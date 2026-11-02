@@ -21,7 +21,7 @@ namespace SourceGit.Automation
         internal static readonly HashSet<string> ReadTools = new(StringComparer.Ordinal)
         { "ui_state", "ui_screenshot", "git_status", "git_log", "git_diff", "git_refs", "git_show" };
         internal static readonly HashSet<string> UiTools = new(StringComparer.Ordinal)
-        { "ui_open_repository", "ui_select_view", "ui_select_commit", "ui_refresh" };
+        { "ui_open_repository", "ui_select_view", "ui_select_commit", "ui_refresh", "ui_window" };
 
         private static object Field(string description, string type = "string", string[] values = null)
             => values == null ? new { type, description } : (object)new { type, description, @enum = values };
@@ -45,6 +45,7 @@ namespace SourceGit.Automation
                 Tool("ui_select_view", "Select history, working copy or stashes in the SourceGit GUI.", new() { ["repo"] = repo, ["view"] = Field("View to display.", values: ["history", "working_copy", "stashes"]) }, ["repo", "view"]),
                 Tool("ui_select_commit", "Navigate to a commit in SourceGit's history and details view.", new() { ["repo"] = repo, ["revision"] = Field("Commit hash or reference.") }, ["repo", "revision"]),
                 Tool("ui_refresh", "Refresh the repository's branches, history, files, stashes, submodules and worktrees in the GUI.", new() { ["repo"] = repo }, ["repo"]),
+                Tool("ui_window", "Adjust the desktop window size or select an existing SourceGit theme. All are optional; saved theme preference is updated when supplied.", new() { ["width"] = Field("Window width, 1024 to 3840.", "integer"), ["height"] = Field("Window height, 640 to 2160.", "integer"), ["theme"] = Field("SourceGit theme.", values: ["Light", "Dark", "Default"]) }),
                 Tool("git_status", "Read tracked/untracked changes and branch status. Never returns saved credentials.", new() { ["repo"] = repo }, ["repo"]),
                 Tool("git_log", "Read recent commits with graph and references.", new() { ["repo"] = repo, ["count"] = Field("Maximum commits, 1 to 500 (default 50).", "integer"), ["all"] = Field("Include all branches.", "boolean") }, ["repo"]),
                 Tool("git_diff", "Read staged or unstaged textual diff, optionally restricted to repository-relative paths.", new() { ["repo"] = repo, ["staged"] = Field("Read staged changes.", "boolean"), ["paths"] = new { type = "array", items = new { type = "string" } } }, ["repo"]),
@@ -55,7 +56,7 @@ namespace SourceGit.Automation
                 tools.Add(Tool("git_action", "Perform an explicit Git operation in the selected GUI repository and refresh its UI. No arbitrary shell command, force push or hard reset is accepted. Hooks configured by the repository still execute. Commit uses already staged files. Remote authentication uses the application's normal dialogs and per-repository credentials.", new()
                 {
                     ["repo"] = repo,
-                    ["action"] = Field("Operation.", values: ["stage", "unstage", "commit", "checkout", "create_branch", "fetch", "pull", "push", "stash", "stash_pop", "merge", "rebase", "cherry_pick", "revert", "merge_abort", "rebase_abort", "cherry_pick_abort", "revert_abort"]),
+                    ["action"] = Field("Operation.", values: ["stage", "unstage", "commit", "checkout", "create_branch", "fetch", "pull", "push", "stash", "stash_pop", "merge", "rebase", "cherry_pick", "revert", "merge_abort", "rebase_abort", "cherry_pick_abort", "revert_abort", "merge_continue", "rebase_continue", "cherry_pick_continue", "revert_continue"]),
                     ["paths"] = new { type = "array", items = new { type = "string" }, description = "Required for stage/unstage. Use ['.'] explicitly for all files." },
                     ["revision"] = Field("Required for checkout, create_branch (new name), merge, rebase, cherry_pick and revert."),
                     ["message"] = Field("Commit or stash message. Required for commit."),
@@ -93,7 +94,9 @@ namespace SourceGit.Automation
                     {
                         case "initialize":
                             initialized = true;
-                            result = new { protocolVersion = "2025-11-25", capabilities = new { tools = new { listChanged = false } }, serverInfo = new { name = "sourcegit-desktop", version = "0.1.0" }, instructions = "Controls the running SourceGit desktop. Open a repository before using Git tools. Read-only by default; --allow-write exposes explicit mutation tools. Credentials are never exposed as tools." };
+                            var requestedVersion = request.TryGetProperty("params", out var init) && init.TryGetProperty("protocolVersion", out var requested) ? requested.GetString() : null;
+                            var negotiatedVersion = requestedVersion is "2024-11-05" or "2025-03-26" or "2025-06-18" or "2025-11-25" ? requestedVersion : "2025-11-25";
+                            result = new { protocolVersion = negotiatedVersion, capabilities = new { tools = new { listChanged = false } }, serverInfo = new { name = "sourcegit-desktop", version = "0.1.0" }, instructions = "Controls the running SourceGit desktop. Open a repository before using Git tools. Read-only by default; --allow-write exposes explicit mutation tools. Credentials are never exposed as tools." };
                             break;
                         case "ping": result = new { }; break;
                         case "tools/list" when initialized:

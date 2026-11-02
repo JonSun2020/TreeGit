@@ -46,6 +46,12 @@ namespace SourceGit
             }
         });
 
+        public static readonly Command OpenMcpConnectionCommand = new Command(async _ =>
+        {
+            if (Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: { } owner })
+                await new Views.McpConnection().ShowDialog(owner);
+        });
+
         public static readonly Command OpenHotkeysCommand = new Command(async _ =>
         {
             if (Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: { } owner })

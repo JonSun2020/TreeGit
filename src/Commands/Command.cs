@@ -28,6 +28,7 @@ namespace SourceGit.Commands
 
         public string Context { get; set; } = string.Empty;
         public string WorkingDirectory { get; set; } = null;
+        public string CredentialScope { get; set; } = null;
         public EditorType Editor { get; set; } = EditorType.CoreEditor;
         public string SSHKey { get; set; } = string.Empty;
         public string Args { get; set; } = string.Empty;
@@ -168,16 +169,14 @@ namespace SourceGit.Commands
             builder.Append("--no-pager -c core.quotepath=off ");
             if (OperatingSystem.IsWindows())
             {
-                var helper = "!'" + selfExecFile.Replace('\\', '/').Replace("'", "'\\''", StringComparison.Ordinal) + "' --credential-helper";
-                builder.Append("-c credential.helper= -c ")
-                    .Append(("credential.helper=" + helper).Quoted())
-                    .Append(" -c credential.useHttpPath=true -c http.sslBackend=openssl ");
-                // Keep upstream GCM/OAuth support when the selected Git distribution has it.
-                var gitRoot = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Native.OS.GitExecutable)!, ".."));
-                if (Native.OS.CredentialHelper != "manager" ||
-                    System.IO.File.Exists(System.IO.Path.Combine(gitRoot, "mingw64", "bin", "git-credential-manager.exe")) ||
-                    System.IO.File.Exists(System.IO.Path.Combine(gitRoot, "ucrt64", "bin", "git-credential-manager.exe")))
+                builder.Append("-c credential.helper= -c credential.useHttpPath=true -c http.sslBackend=openssl ");
+                if (Native.RepositoryCredentials.UsesCredentialManager(CredentialScope ?? WorkingDirectory))
                     builder.Append("-c ").Append(("credential.helper=" + Native.OS.CredentialHelper).Quoted()).Append(' ');
+                else
+                {
+                    var helper = "!'" + selfExecFile.Replace('\\', '/').Replace("'", "'\\''", StringComparison.Ordinal) + "' --credential-helper";
+                    builder.Append("-c ").Append(("credential.helper=" + helper).Quoted()).Append(' ');
+                }
             }
             else
                 builder.Append("-c credential.helper=").Append(Native.OS.CredentialHelper).Append(' ');
@@ -216,7 +215,7 @@ namespace SourceGit.Commands
             start.Environment["SSH_ASKPASS_REQUIRE"] = "prefer";
             start.Environment["SOURCEGIT_LAUNCH_AS_ASKPASS"] = "TRUE";
             start.Environment["GIT_ASKPASS"] = selfExecFile;
-            start.Environment["SOURCEGIT_CREDENTIAL_SCOPE"] = WorkingDirectory ?? Context;
+            start.Environment["SOURCEGIT_CREDENTIAL_SCOPE"] = CredentialScope ?? WorkingDirectory ?? Context;
             if (!OperatingSystem.IsLinux())
                 start.Environment["DISPLAY"] = "required";
 

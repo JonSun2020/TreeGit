@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
@@ -11,6 +13,34 @@ namespace SourceGit.Native
     // No passwords are written into repository config, portable data, logs or MCP output.
     internal static class RepositoryCredentials
     {
+        private static readonly ConcurrentDictionary<string, bool> _managerModes = new(StringComparer.OrdinalIgnoreCase);
+
+        public static bool UsesCredentialManager(string repo)
+        {
+            if (string.IsNullOrEmpty(repo))
+                return false;
+            return _managerModes.GetOrAdd(Path.GetFullPath(repo), path =>
+            {
+                try
+                {
+                    var start = new ProcessStartInfo(OS.GitExecutable) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
+                    start.ArgumentList.Add("-C");
+                    start.ArgumentList.Add(path);
+                    start.ArgumentList.Add("config");
+                    start.ArgumentList.Add("--bool");
+                    start.ArgumentList.Add("sourcegit.credentialmanager");
+                    using var process = Process.Start(start);
+                    var value = process.StandardOutput.ReadToEnd();
+                    process.WaitForExit();
+                    return process.ExitCode == 0 && value.Trim() == "true";
+                }
+                catch { return false; }
+            });
+        }
+
+        public static void SetCredentialManagerMode(string repo, bool enabled)
+            => _managerModes[Path.GetFullPath(repo)] = enabled;
+
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         private struct Credential
         {

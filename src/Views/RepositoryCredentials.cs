@@ -21,6 +21,7 @@ namespace SourceGit.Views
             var remotes = new ComboBox { ItemsSource = repo.Remotes, DisplayMemberBinding = new Avalonia.Data.Binding("Name"), HorizontalAlignment = HorizontalAlignment.Stretch };
             var username = new TextBox { Watermark = "用户名 / Username" };
             var password = new TextBox { Watermark = "密码或访问令牌 / Password or token", PasswordChar = '●' };
+            var useManager = new CheckBox { Content = new TextBlock { Text = "使用原有系统认证 / OAuth（Git Credential Manager）", TextWrapping = Avalonia.Media.TextWrapping.Wrap }, IsChecked = Native.RepositoryCredentials.UsesCredentialManager(repo.FullPath) };
             var message = new TextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
             var save = new Button { Content = "保存", Classes = { "flat", "primary" } };
             var forget = new Button { Content = "清除已保存认证", Classes = { "flat" } };
@@ -43,10 +44,20 @@ namespace SourceGit.Views
                 }
                 catch (Exception ex) { message.Text = ex.Message; }
             };
-            save.Click += (_, _) =>
+            save.Click += async (_, _) =>
             {
                 try
                 {
+                    var manager = useManager.IsChecked == true;
+                    if (!await new Commands.Config(repo.FullPath).SetAsync("sourcegit.credentialmanager", manager ? "true" : "false"))
+                        throw new InvalidOperationException("无法保存此仓库的认证模式。");
+                    Native.RepositoryCredentials.SetCredentialManagerMode(repo.FullPath, manager);
+                    if (manager)
+                    {
+                        password.Text = string.Empty;
+                        message.Text = "已切换到此仓库的系统认证 / OAuth 模式。下次联网操作会启动原有认证流程。";
+                        return;
+                    }
                     if (string.IsNullOrWhiteSpace(username.Text) || string.IsNullOrEmpty(password.Text))
                         throw new InvalidOperationException("请输入用户名和密码/令牌。");
                     Native.RepositoryCredentials.Save(repo.FullPath, SelectedUri(), username.Text, password.Text);
@@ -71,6 +82,7 @@ namespace SourceGit.Views
             buttons.Children.Add(save);
             buttons.Children.Add(close);
             panel.Children.Add(remotes);
+            panel.Children.Add(useManager);
             panel.Children.Add(username);
             panel.Children.Add(password);
             panel.Children.Add(message);

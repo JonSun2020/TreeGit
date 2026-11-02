@@ -33,6 +33,14 @@
     <DefineConstants>$(DefineConstants);DISABLE_UPDATE_DETECTION</DefineConstants>
   </PropertyGroup>
 
+  <!-- Test-only dialog driver; absent from normal builds and portable releases. -->
+  <PropertyGroup Condition="'$(EnableIntegrationTests)' == 'true'">
+    <DefineConstants>$(DefineConstants);INTEGRATION_TESTS</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(EnableIntegrationTests)' == 'true'">
+    <Compile Include="../tests/AskpassProbe.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <AssemblyMetadata Include="BuildDate" Value="$([System.DateTime]::Now.ToString('o'))" />
   </ItemGroup>

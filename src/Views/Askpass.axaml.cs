@@ -18,6 +18,9 @@ namespace SourceGit.Views
         {
             base.OnLoaded(e);
             TxtPassphrase.Focus(NavigationMethod.Directional);
+#if INTEGRATION_TESTS
+            Tests.AskpassProbe.OnLoaded(this, () => EnterPassword(null, null));
+#endif
         }
 
         private void CloseWindow(object _1, RoutedEventArgs _2)

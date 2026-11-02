@@ -812,10 +812,6 @@
               "target": "Package",
               "version": "[11.3.22, )"
             },
-            "Avalonia.Diagnostics": {
-              "target": "Package",
-              "version": "[11.3.22, )"
-            },
             "Avalonia.Fonts.Inter": {
               "target": "Package",
               "version": "[11.3.22, )"

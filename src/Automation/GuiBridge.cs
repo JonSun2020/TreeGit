@@ -114,6 +114,23 @@ namespace SourceGit.Automation
                     return (object)new { png = Convert.ToBase64String(stream.ToArray()), width, height };
                 });
 
+            if (name == "ui_window")
+                return await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    var window = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow;
+                    int? width = args.TryGetProperty("width", out var w) ? w.GetInt32() : null;
+                    int? height = args.TryGetProperty("height", out var h) ? h.GetInt32() : null;
+                    var theme = args.TryGetProperty("theme", out var t) ? t.GetString() : null;
+                    if (width.HasValue && (width < 1024 || width > 3840) || height.HasValue && (height < 640 || height > 2160))
+                        throw new ArgumentException("Window size is out of range.");
+                    if (theme != null && theme is not ("Light" or "Dark" or "Default"))
+                        throw new ArgumentException("Unknown theme.");
+                    if (width.HasValue) window.Width = width.Value;
+                    if (height.HasValue) window.Height = height.Value;
+                    if (theme != null) ViewModels.Preferences.Instance.Theme = theme;
+                    return (object)new { width = window.Width, height = window.Height, theme = ViewModels.Preferences.Instance.Theme };
+                });
+
             var path = Path.GetFullPath(Text(args, "repo")).TrimEnd('\\', '/');
             if (name == "ui_open_repository")
             {
@@ -168,6 +185,7 @@ namespace SourceGit.Automation
             string command;
             var write = name == "git_action";
             string remote = null;
+            Models.Remote selectedRemote = null;
             string tempMessage = null;
             try
             {
@@ -186,16 +204,20 @@ namespace SourceGit.Automation
                     case "git_action":
                         if (!request.TryGetProperty("allowWrite", out var allow) || !allow.GetBoolean())
                             throw new InvalidOperationException("Writes are disabled.");
+                        var action = Text(args, "action");
+                        var recovery = action is "stage" or "unstage" or "commit" || action.EndsWith("_abort", StringComparison.Ordinal) || action.EndsWith("_continue", StringComparison.Ordinal);
                         await Dispatcher.UIThread.InvokeAsync(() =>
                         {
-                            if (App.GetLauncher().ActivePage.Popup != null || repo.InProgressContext != null)
+                            if (App.GetLauncher().ActivePage.Popup != null || (repo.InProgressContext != null && !recovery))
                                 throw new InvalidOperationException("Finish the current SourceGit dialog/operation before starting another Git action.");
                         });
-                        var action = Text(args, "action");
                         switch (action)
                         {
                             case "stage": command = "--literal-pathspecs add -- " + Paths(args, true); break;
-                            case "unstage": command = "--literal-pathspecs restore --staged -- " + Paths(args, true); break;
+                            case "unstage":
+                                var hasHead = await new Query(path, "rev-parse --verify HEAD").RunAsync().ConfigureAwait(false);
+                                command = (hasHead.IsSuccess ? "--literal-pathspecs restore --staged -- " : "--literal-pathspecs rm --cached -r -- ") + Paths(args, true);
+                                break;
                             case "commit":
                                 tempMessage = Path.GetTempFileName();
                                 await File.WriteAllTextAsync(tempMessage, Text(args, "message"), new UTF8Encoding(false), token).ConfigureAwait(false);
@@ -205,8 +227,11 @@ namespace SourceGit.Automation
                             case "create_branch": command = Join("switch", "-c", Revision(args)); break;
                             case "fetch": case "pull": case "push":
                                 remote = args.TryGetProperty("remote", out var r) ? r.GetString() : "origin";
-                                var exists = await Dispatcher.UIThread.InvokeAsync(() => repo.Remotes.Any(r => r.Name == remote));
-                                if (!exists)
+                                // Opening a tab starts an asynchronous refresh. Query configuration
+                                // directly so a fetch immediately after open cannot see a stale VM list.
+                                var remotes = await new Commands.QueryRemotes(path).GetResultAsync().ConfigureAwait(false);
+                                selectedRemote = remotes.FirstOrDefault(r => r.Name == remote);
+                                if (selectedRemote == null || remote.StartsWith('-'))
                                     throw new ArgumentException("remote must name a configured remote (default origin).");
                                 command = action == "fetch" ? Join("fetch", "--", remote) : action == "pull" ? Join("pull", "--ff-only", "--", remote) : Join("push", "--", remote);
                                 break;
@@ -220,14 +245,18 @@ namespace SourceGit.Automation
                             case "rebase_abort": command = "rebase --abort"; break;
                             case "cherry_pick_abort": command = "cherry-pick --abort"; break;
                             case "revert_abort": command = "revert --abort"; break;
+                            case "merge_continue": command = "merge --continue"; break;
+                            case "rebase_continue": command = "rebase --continue"; break;
+                            case "cherry_pick_continue": command = "cherry-pick --continue"; break;
+                            case "revert_continue": command = "revert --continue"; break;
                             default: throw new ArgumentException("Unknown Git action.");
                         }
                         break;
                     default: throw new ArgumentException("Unknown tool.");
                 }
                 var query = new Query(path, command);
-                if (remote != null)
-                    query.SSHKey = await Dispatcher.UIThread.InvokeAsync(() => repo.Remotes.First(r => r.Name == remote).PrivateSSHKey);
+                if (selectedRemote != null)
+                    query.SSHKey = selectedRemote.PrivateSSHKey;
                 ViewModels.CommandLog log = null;
                 if (write)
                 {
