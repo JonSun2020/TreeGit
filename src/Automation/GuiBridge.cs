@@ -200,7 +200,10 @@ namespace SourceGit.Automation
                     var page = launcher.ActivePage;
                     var clone = new ViewModels.Clone(page.Node.Id)
                     {
-                        Remote = url, ParentFolder = parent, Local = Path.GetFileName(destination), SSHKey = key,
+                        Remote = url,
+                        ParentFolder = parent,
+                        Local = Path.GetFileName(destination),
+                        SSHKey = key,
                         UseCredentialManager = Flag(args, "credentialManager"),
                         InitAndUpdateSubmodules = !args.TryGetProperty("recursive", out var recursive) || recursive.GetBoolean(),
                     };

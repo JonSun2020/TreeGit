@@ -213,14 +213,7 @@ namespace SourceGit.Automation
             { await pipe.ConnectAsync(1500).ConfigureAwait(false); }
             catch (TimeoutException)
             {
-                // The same portable executable hosts both the GUI and the stdio endpoint.
-                // Do not let the long-lived GUI inherit the MCP client's stdio handles:
-                // otherwise an exiting stdio server leaves its output pipe open forever.
-                Process.Start(new ProcessStartInfo(Environment.ProcessPath!)
-                {
-                    UseShellExecute = true,
-                    WindowStyle = ProcessWindowStyle.Hidden,
-                });
+                await EnsureDesktopAsync().ConfigureAwait(false);
                 await pipe.ConnectAsync(20000).ConfigureAwait(false);
             }
             using var reader = new StreamReader(pipe, Encoding.UTF8, false, 4096, true);
@@ -231,5 +224,38 @@ namespace SourceGit.Automation
             using var document = JsonDocument.Parse(response);
             return document.RootElement.Clone();
         }
+
+        private static Task EnsureDesktopAsync() => Task.Run(() =>
+        {
+            // Coordinate cold starts across different AI clients. Keep mutex ownership
+            // on this synchronous worker thread, including while waiting for the GUI.
+            using var gate = new Mutex(false, "SourceGit.MCP.Start." + PipeName);
+            var acquired = false;
+            try
+            {
+                try
+                { acquired = gate.WaitOne(TimeSpan.FromSeconds(25)); }
+                catch (AbandonedMutexException) { acquired = true; }
+                if (!acquired)
+                    throw new TimeoutException("SourceGit desktop startup is still in progress.");
+                using var probe = new NamedPipeClientStream(".", PipeName, PipeDirection.InOut, PipeOptions.CurrentUserOnly);
+                try
+                { probe.Connect(250); return; }
+                catch (TimeoutException) { }
+                // ShellExecute prevents the GUI from inheriting the stdio endpoint's
+                // pipe handles, so client EOF remains observable after the server exits.
+                Process.Start(new ProcessStartInfo(Environment.ProcessPath!)
+                {
+                    UseShellExecute = true,
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                });
+                probe.Connect(20000);
+            }
+            finally
+            {
+                if (acquired)
+                    gate.ReleaseMutex();
+            }
+        });
     }
 }
