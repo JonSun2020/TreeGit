@@ -1,15 +1,17 @@
-param([string]$Destination)
+param([string]$Destination, [switch]$IntegrationTests)
 $ErrorActionPreference = 'Stop'
 $repo = $PSScriptRoot
 $workspace = Split-Path -Parent $repo
 $sdk = Join-Path $workspace 'output/dotnet-sdk-portable'
 if (-not $Destination) { $Destination = Join-Path $workspace 'output/SourceGit-Portable/SourceGit' }
+$Destination = [System.IO.Path]::GetFullPath($Destination)
 $env:DOTNET_ROOT = $sdk
 $env:DOTNET_CLI_HOME = Join-Path $workspace 'output/dotnet-home'
 $env:NUGET_PACKAGES = Join-Path $workspace 'output/nuget'
 $env:DOTNET_CLI_TELEMETRY_OPTOUT = '1'
 $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE = '1'
-& (Join-Path $sdk 'dotnet.exe') publish (Join-Path $repo 'src/SourceGit.csproj') -c Release -r win-x64 --self-contained true -p:DisableAOT=true -o $Destination
+$testProperty = '-p:EnableIntegrationTests=' + $IntegrationTests.IsPresent.ToString().ToLowerInvariant()
+& (Join-Path $sdk 'dotnet.exe') publish (Join-Path $repo 'src/SourceGit.csproj') -c Release -r win-x64 --self-contained true -p:DisableAOT=true $testProperty -o $Destination
 if ($LASTEXITCODE -ne 0) { throw 'SourceGit publish failed' }
 New-Item -ItemType Directory -Force (Join-Path $Destination 'data') | Out-Null
 $gitSource = Join-Path $workspace 'output/portablegit-full'

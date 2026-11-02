@@ -21,6 +21,8 @@ namespace SourceGit.Commands
                 destination = cleanURL[(System.Math.Max(cleanURL.LastIndexOf('/'), cleanURL.LastIndexOf(':')) + 1)..];
                 if (destination.EndsWith(".git", System.StringComparison.OrdinalIgnoreCase))
                     destination = destination[..^4];
+                else if (destination.EndsWith(".bundle", System.StringComparison.OrdinalIgnoreCase))
+                    destination = destination[..^7];
             }
             if (!string.IsNullOrEmpty(destination))
                 CredentialScope = System.IO.Path.GetFullPath(System.IO.Path.Combine(path, destination));

@@ -24,7 +24,7 @@ s=p.read_text(encoding='utf-8')
 s=s.replace('<TextBlock Margin="40,0,24,0" Text="{DynamicResource Text.Dashboard}"/>','<TextBlock Margin="40,0,24,0" Text="{DynamicResource Text.Toolbar.History}"/>')
 s=s.replace('<TextBlock Margin="40,0,24,0" Text="{DynamicResource Text.WorkingCopy}"/>','<TextBlock Margin="40,0,24,0" Text="{DynamicResource Text.Toolbar.Files}"/>')
 p.write_text(s,encoding='utf-8')
-values=[('Clone','Clone','克隆'),('Open','Open','打开'),('Terminal','Terminal','终端'),('Groups','New group','新建分组'),('Scan','Scan','扫描仓库'),('History','History','历史'),('Files','File status','文件状态')]
+values=[('Clone','Clone','克隆'),('Open','Open','打开'),('Terminal','Terminal','终端'),('Groups','New group','新建分组'),('Scan','Scan','扫描仓库'),('History','History','历史'),('Files','File status','文件状态'),('Merge','Merge','合并'),('Tag','Tag','标签'),('NoMergeBranches','No other local branches','没有其他本地分支')]
 for p in (root/'Resources/Locales').glob('*.axaml'):
     s=p.read_text(encoding='utf-8-sig')
     text=''.join(f'  <x:String x:Key="Text.Toolbar.{key}">{zh if p.stem in ("zh_CN","zh_TW") else en}</x:String>\n' for key,en,zh in values if f'Text.Toolbar.{key}"' not in s)

@@ -90,6 +90,13 @@ try:
             assert not retry.get('isError'),retry
             assert 'password=alpha-test' in helper(repo,'get')
     assert seen == (['alice','alice','bob'] if prompt_mode else ['alice','bob']),seen
+    if prompt_mode:
+        fixture.write_text(json.dumps({'username':'alice','password':'alpha-test'}), encoding='utf-8')
+        helper(repos[0],'store','alice','expired-native-test')
+        native=subprocess.run([str(exe),'--integration-auth-fetch',str(repos[0]),url], env=env, capture_output=True, timeout=45)
+        assert native.returncode == 0, native.stderr
+        assert seen == ['alice','alice','bob','alice'],seen
+        assert 'password=alpha-test' in helper(repos[0],'get')
     p.stdin.close()
     p.wait(timeout=10)
     assert p.returncode == 0
@@ -99,9 +106,10 @@ try:
     result={'windows_vault_roundtrip':True,'same_server_different_repository_accounts':seen,'actual_gui_git_fetch_authentication':True,'erase':True}
     if prompt_mode:
         events=Path(str(fixture)+'.events').read_text(encoding='utf-8').splitlines()
-        assert events.count('username-dialog') == 3 and events.count('password-dialog') == 3,events
+        assert events.count('username-dialog') == 4 and events.count('password-dialog') == 4,events
         result['automatic_missing_credential_dialog']=events
         result['expired_credential_reprompts_and_retries']=True
+        result['upstream_native_fetch_reprompts_and_retries']=True
     else:
         result.update(username_mismatch_ignored=True,different_remote_path_isolated=True)
     (artifacts/('credentials-prompt-results.json' if prompt_mode else 'credentials-results.json')).write_text(json.dumps(result,indent=2),encoding='utf-8')

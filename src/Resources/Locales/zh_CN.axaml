@@ -1115,4 +1115,7 @@
   <x:String x:Key="Text.Toolbar.History">历史</x:String>
   <x:String x:Key="Text.Toolbar.Files">文件状态</x:String>
   <x:String x:Key="Text.Clone.CredentialManager">使用系统认证 / OAuth</x:String>
+  <x:String x:Key="Text.Toolbar.Merge">合并</x:String>
+  <x:String x:Key="Text.Toolbar.Tag">标签</x:String>
+  <x:String x:Key="Text.Toolbar.NoMergeBranches">没有其他本地分支</x:String>
 </ResourceDictionary>

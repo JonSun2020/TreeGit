@@ -684,4 +684,7 @@
   <x:String x:Key="Text.Toolbar.History">History</x:String>
   <x:String x:Key="Text.Toolbar.Files">File status</x:String>
   <x:String x:Key="Text.Clone.CredentialManager">Use system authentication / OAuth</x:String>
+  <x:String x:Key="Text.Toolbar.Merge">Merge</x:String>
+  <x:String x:Key="Text.Toolbar.Tag">Tag</x:String>
+  <x:String x:Key="Text.Toolbar.NoMergeBranches">No other local branches</x:String>
 </ResourceDictionary>

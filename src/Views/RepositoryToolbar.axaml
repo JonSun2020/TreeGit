@@ -118,6 +118,13 @@
         </StackPanel>
       </Button>
 
+      <Button Classes="icon_button" Width="64" Click="OpenMergeMenu" IsVisible="{Binding !IsBare}" ToolTip.Tip="{DynamicResource Text.Toolbar.Merge}">
+        <StackPanel Orientation="Vertical"><Path Width="22" Height="22" Data="{StaticResource Icons.Merge}"/><TextBlock Classes="toolbar_label" Text="{DynamicResource Text.Toolbar.Merge}"/></StackPanel>
+      </Button>
+      <Button Classes="icon_button" Width="64" Command="{Binding CreateNewTag}" ToolTip.Tip="{DynamicResource Text.Toolbar.Tag}">
+        <StackPanel Orientation="Vertical"><Path Width="22" Height="22" Data="{StaticResource Icons.Tag}"/><TextBlock Classes="toolbar_label" Text="{DynamicResource Text.Toolbar.Tag}"/></StackPanel>
+      </Button>
+
       <Button Classes="icon_button" Width="64" Click="OpenGitFlowMenu" IsVisible="{Binding !IsBare}" ToolTip.Tip="{DynamicResource Text.GitFlow}">
         <StackPanel Orientation="Vertical" VerticalAlignment="Center">
 <Path Width="22" Height="22" Data="{StaticResource Icons.GitFlow}"/>

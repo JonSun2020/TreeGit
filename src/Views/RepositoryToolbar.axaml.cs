@@ -32,6 +32,27 @@ namespace SourceGit.Views
             e.Handled = true;
         }
 
+        private void OpenMergeMenu(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && DataContext is ViewModels.Repository repo)
+            {
+                var menu = new ContextMenu { Placement = PlacementMode.BottomEdgeAlignedLeft };
+                foreach (var branch in repo.Branches)
+                {
+                    if (!branch.IsLocal || branch.IsCurrent || branch.IsDetachedHead)
+                        continue;
+                    var candidate = branch;
+                    var item = new MenuItem { Header = candidate.Name, Icon = this.CreateMenuIcon("Icons.Branch") };
+                    item.Click += (_, _) => repo.MergeMultipleBranches([candidate]);
+                    menu.Items.Add(item);
+                }
+                if (menu.Items.Count == 0)
+                    menu.Items.Add(new MenuItem { Header = App.Text("Toolbar.NoMergeBranches"), IsEnabled = false });
+                menu.Open(button);
+            }
+            e.Handled = true;
+        }
+
         private void OpenWithExternalTools(object sender, RoutedEventArgs ev)
         {
             if (sender is Button button && DataContext is ViewModels.Repository repo)

@@ -10,6 +10,13 @@ namespace SourceGit.Tests
 {
     internal static class UpstreamProbe
     {
+        public static async Task<int> FetchAsync(string repo, string url)
+        {
+            Native.OS.GitExecutable = Path.Combine(AppContext.BaseDirectory, "git", "cmd", "git.exe");
+            var remote = new Models.Remote { Name = "origin", URL = url };
+            return await new Commands.Fetch(repo, remote) { RaiseError = false }.ExecAsync() ? 0 : 1;
+        }
+
         private sealed class Log : Models.ICommandLog
         {
             private readonly StringBuilder _text = new();
@@ -51,6 +58,11 @@ namespace SourceGit.Tests
                 var cloneCommand = Prepare(new Commands.Clone("probe", root, bare, "clone spaces 中文", "", ""));
                 Check("clone credentials use destination scope", cloneCommand.CredentialScope == clone);
                 Check("upstream Clone working copy", await cloneCommand.ExecAsync() && File.Exists(Path.Combine(clone, "中文 file.txt")));
+                var bundle = Path.Combine(root, "backup.bundle");
+                Check("create repository bundle", await Git(repo, "bundle create " + bundle.Quoted() + " --all"));
+                var bundleClone = Prepare(new Commands.Clone("probe", root, bundle, "", "", ""));
+                Check("bundle clone destination credential scope", bundleClone.CredentialScope == Path.Combine(root, "backup"));
+                Check("upstream Clone from bundle", await bundleClone.ExecAsync() && File.Exists(Path.Combine(root, "backup", "中文 file.txt")));
                 var remotes = await new Commands.QueryRemotes(clone).GetResultAsync();
                 Check("upstream QueryRemotes", remotes.Count == 1 && remotes[0].Name == "origin");
                 Check("upstream Fetch", await Prepare(new Commands.Fetch(clone, remotes[0], false, false)).ExecAsync());
@@ -68,7 +80,6 @@ namespace SourceGit.Tests
                 Check("upstream LFS tracking", await lfs.TrackAsync("*.bin", false));
                 await File.WriteAllBytesAsync(Path.Combine(repo, "asset.bin"), [1, 2, 3, 4, 5, 6]);
                 Check("LFS clean filter and original Commit", await Git(repo, "add -- .") && await Prepare(new Commands.Commit(repo, "LFS asset", false, false, false, false)).RunAsync());
-                var pointerPath = Path.Combine(root, "pointer.txt");
                 var start = new System.Diagnostics.ProcessStartInfo(Native.OS.GitExecutable) { WorkingDirectory = repo, UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true };
                 start.ArgumentList.Add("show"); start.ArgumentList.Add("HEAD:asset.bin");
                 using (var process = System.Diagnostics.Process.Start(start))
