@@ -1,0 +1,149 @@
+# Third-Party Licenses
+
+The project uses the following third-party libraries or assets
+
+## Packages
+
+### AvaloniaUI
+
+- **Source**: https://github.com/AvaloniaUI/Avalonia
+- **Version**: 12.0.5
+- **License**: MIT License
+- **License Link**: https://github.com/AvaloniaUI/Avalonia/blob/master/licence.md
+
+### Avalonia.Controls.DataGrid
+
+- **Source**: https://github.com/AvaloniaUI/Avalonia.Controls.DataGrid
+- **Version**: 12.0.1
+- **License**: MIT License
+- **License Link**: https://github.com/AvaloniaUI/Avalonia.Controls.DataGrid/blob/master/licence.md
+
+### AvaloniaEdit
+
+- **Official Source**: https://github.com/AvaloniaUI/AvaloniaEdit
+- **Fork (Modified)**: https://github.com/love-linger/AvaloniaEdit
+- **Version**: Based on 12.0.x
+- **License**: MIT License
+- **License Link**: https://github.com/AvaloniaUI/AvaloniaEdit/blob/master/LICENSE
+
+### TextMateSharp
+
+- **Source**: https://github.com/danipen/TextMateSharp
+- **Version**: 2.0.2
+- **License**: MIT License
+- **License Link**: https://github.com/danipen/TextMateSharp/blob/master/LICENSE.md
+
+### OpenAI .NET SDK
+
+- **Source**: https://github.com/openai/openai-dotnet
+- **Version**: 2.10.0
+- **License**: MIT License
+- **License Link**: https://github.com/openai/openai-dotnet/blob/main/LICENSE
+
+### Azure.AI.OpenAI
+
+- **Source**: https://github.com/Azure/azure-sdk-for-net
+- **Version**: 2.9.0-beta.1
+- **License**: MIT License
+- **License Link**: https://github.com/Azure/azure-sdk-for-net/blob/main/LICENSE.txt
+
+### BitMiracle.LibTiff.NET
+
+- **Source**: https://github.com/BitMiracle/libtiff.net
+- **Version**: 2.4.660
+- **License**: New BSD License
+- **License Link**: https://github.com/BitMiracle/libtiff.net/blob/master/license.txt
+
+### Pfim
+
+- **Source**: https://github.com/nickbabcock/Pfim
+- **Version**: 0.11.4
+- **License**: MIT License
+- **License Link**: https://github.com/nickbabcock/Pfim/blob/master/LICENSE.txt
+
+### StbImageSharp
+
+- **Source**: https://github.com/StbSharp/StbImageSharp
+- **Version**: 2.30.15
+- **License**: Public Domain
+
+## Fonts
+
+### JetBrainsMono
+
+- **Source**: https://github.com/JetBrains/JetBrainsMono
+- **Commit**: v2.304
+- **License**: SIL Open Font License, Version 1.1
+- **License Link**: https://github.com/JetBrains/JetBrainsMono/blob/v2.304/OFL.txt
+
+## Grammar Files
+
+### haxe-TmLanguage
+
+- **Source**: https://github.com/vshaxe/haxe-TmLanguage
+- **Commit**: ddad8b4c6d0781ac20be0481174ec1be772c5da5
+- **License**: MIT License
+- **License Link**: https://github.com/vshaxe/haxe-TmLanguage/blob/ddad8b4c6d0781ac20be0481174ec1be772c5da5/LICENSE.md
+
+### coc-toml
+
+- **Source**: https://github.com/kkiyama117/coc-toml
+- **Commit**: aac3e0c65955c03314b2733041b19f903b7cc447
+- **License**: MIT License
+- **License Link**: https://github.com/kkiyama117/coc-toml/blob/aac3e0c65955c03314b2733041b19f903b7cc447/LICENSE
+
+### eclipse-buildship
+
+- **Source**: https://github.com/eclipse/buildship
+- **Commit**: 6bb773e7692f913dec27105129ebe388de34e68b
+- **License**: Eclipse Public License 1.0
+- **License Link**: https://github.com/eclipse-buildship/buildship/blob/6bb773e7692f913dec27105129ebe388de34e68b/README.md
+
+### vscode-jsp-lang
+
+- **Source**: https://github.com/samuel-weinhardt/vscode-jsp-lang
+- **Commit**: 0e89ecdb13650dbbe5a1e85b47b2e1530bf2f355
+- **License**: MIT License
+- **License Link**: https://github.com/samuel-weinhardt/vscode-jsp-lang/blob/0e89ecdb13650dbbe5a1e85b47b2e1530bf2f355/LICENSE
+
+### vuejs-language-tools
+
+- **Source**: https://github.com/vuejs/language-tools
+- **Commit**: 68d98dc57f8486c2946ae28dc86bf8e91d45da4d
+- **License**: MIT License
+- **License Link**: https://github.com/vuejs/language-tools/blob/68d98dc57f8486c2946ae28dc86bf8e91d45da4d/LICENSE
+
+### OCaml
+
+- **Source**: https://github.com/shentao/vue-multiselect/blob/master/docs/shiki/languages/ocaml.tmLanguage.json
+- **Commit**: 8092917041f0ae02cbe4c6982deddc931c6adecd
+- **License**: MIT License
+- **License Link**: https://github.com/shentao/vue-multiselect/blob/master/LICENSE
+
+### OCamllex
+
+- **Source**: https://github.com/textmate/ocaml.tmbundle/blob/master/Syntaxes/OCamllex.tmLanguage
+- **Commit**: 1eff26848b39368414cb4214183a2cba22f12d0e
+- **License**: Permission to copy, use, modify, sell and distribute this software is granted. This software is provided "as is" without express or implied warranty, and with no claim as to its suitability for any purpose.
+- **License Link**: https://github.com/textmate/ocaml.tmbundle/tree/master#license
+
+### OCamlyacc
+
+- **Source**: https://github.com/textmate/ocaml.tmbundle/blob/master/Syntaxes/OCamlyacc.tmLanguage
+- **Commit**: 08a892aef6a4b285b1902d9ed1427653fce53e31
+- **License**: Permission to copy, use, modify, sell and distribute this software is granted. This software is provided "as is" without express or implied warranty, and with no claim as to its suitability for any purpose.
+- **License Link**: https://github.com/textmate/ocaml.tmbundle/tree/master#license
+
+### Erlang
+
+- **Source**: https://github.com/shentao/vue-multiselect/blob/master/docs/shiki/languages/erlang.tmLanguage.json
+- **Commit**: 8092917041f0ae02cbe4c6982deddc931c6adecd
+- **License**: MIT License
+- **License Link**: https://github.com/shentao/vue-multiselect/blob/master/LICENSE
+
+### Swift
+
+- **Source**: https://github.com/jtbandes/swift-tmlanguage/blob/main/Swift.tmLanguage.json
+- **Commit**: abda279b567a0a7f35f81642c1b830f437f718d9
+- **License**: MIT License
+- **License Link**: https://github.com/jtbandes/swift-tmlanguage/blob/main/LICENSE.md

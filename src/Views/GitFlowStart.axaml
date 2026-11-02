@@ -1,0 +1,62 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:m="using:SourceGit.Models"
+             xmlns:vm="using:SourceGit.ViewModels"
+             xmlns:v="using:SourceGit.Views"
+             mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="450"
+             x:Class="SourceGit.Views.GitFlowStart"
+             x:DataType="vm:GitFlowStart">
+  <StackPanel Orientation="Vertical" Margin="8,0">
+    <StackPanel Orientation="Horizontal">
+      <Path Width="16" Height="16"
+            Margin="0,0,8,0"
+            Data="{StaticResource Icons.GitFlow}"/>
+
+      <TextBlock FontSize="18"
+                 Classes="bold"
+                 Text="{DynamicResource Text.GitFlow.StartFeatureTitle}"
+                 IsVisible="{Binding Type, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:GitFlowBranchType.Feature}}"/>
+      <TextBlock FontSize="18"
+                 Classes="bold"
+                 Text="{DynamicResource Text.GitFlow.StartReleaseTitle}"
+                 IsVisible="{Binding Type, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:GitFlowBranchType.Release}}"/>
+      <TextBlock FontSize="18"
+                 Classes="bold"
+                 Text="{DynamicResource Text.GitFlow.StartHotfixTitle}"
+                 IsVisible="{Binding Type, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:GitFlowBranchType.Hotfix}}"/>
+    </StackPanel>
+
+    <Grid Margin="0,16,0,0" RowDefinitions="32,32" ColumnDefinitions="120,*">
+      <TextBlock Grid.Row="0" Grid.Column="0"
+                 HorizontalAlignment="Right" VerticalAlignment="Center"
+                 Margin="0,0,8,0"
+                 Text="{DynamicResource Text.GitFlow.StartName}"/>
+      <v:BranchOrTagNameTextBox Grid.Row="0" Grid.Column="1"
+                                Height="26"
+                                VerticalAlignment="Center"
+                                CornerRadius="3"
+                                Watermark="{DynamicResource Text.GitFlow.StartPlaceholder}"
+                                Text="{Binding Name, Mode=TwoWay}"
+                                ClipToBounds="True">
+        <v:BranchOrTagNameTextBox.InnerLeftContent>
+          <Border Height="25" Padding="6,0" BorderThickness="0,0,1,0" BorderBrush="{DynamicResource Brush.Border1}">
+            <TextBlock Text="{Binding Prefix, Mode=OneWay}"/>
+          </Border>
+        </v:BranchOrTagNameTextBox.InnerLeftContent>
+      </v:BranchOrTagNameTextBox>
+      
+      <TextBlock Grid.Row="1" Grid.Column="0"
+                 HorizontalAlignment="Right" VerticalAlignment="Center"
+                 Margin="0,0,8,0"
+                 Text="{DynamicResource Text.GitFlow.StartAt}"/>
+      <v:BranchSelector Grid.Row="1" Grid.Column="1"
+                        Height="28"
+                        VerticalAlignment="Center"
+                        Branches="{Binding LocalBranches, Mode=OneWay}"
+                        SelectedBranch="{Binding StartPoint, Mode=TwoWay}"
+                        UsePureName="True"/>
+    </Grid>
+  </StackPanel>
+</UserControl>

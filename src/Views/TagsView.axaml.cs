@@ -1,0 +1,511 @@
+using System;
+using System.Collections.Generic;
+
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
+using Avalonia.Interactivity;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.VisualTree;
+
+namespace SourceGit.Views
+{
+    public class TagTreeNodeToggleButton : ToggleButton
+    {
+        protected override Type StyleKeyOverride => typeof(ToggleButton);
+
+        protected override void OnPointerPressed(PointerPressedEventArgs e)
+        {
+            if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed &&
+                DataContext is ViewModels.TagTreeNode { IsFolder: true } node)
+            {
+                var view = this.FindAncestorOfType<TagsView>();
+                view?.ToggleNodeIsExpanded(node);
+            }
+
+            e.Handled = true;
+        }
+    }
+
+    public class TagTreeNodeIcon : UserControl
+    {
+        public static readonly DirectProperty<TagTreeNodeIcon, bool> IsExpandedProperty =
+            AvaloniaProperty.RegisterDirect<TagTreeNodeIcon, bool>(
+                nameof(IsExpanded),
+                static o => o.IsExpanded,
+                static (o, v) => o.IsExpanded = v);
+
+        public bool IsExpanded
+        {
+            get => _isExpanded;
+            set => SetAndRaise(IsExpandedProperty, ref _isExpanded, value);
+        }
+
+        protected override void OnDataContextChanged(EventArgs e)
+        {
+            base.OnDataContextChanged(e);
+            UpdateContent();
+        }
+
+        protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+        {
+            base.OnPropertyChanged(change);
+
+            if (change.Property == IsExpandedProperty)
+                UpdateContent();
+        }
+
+        private void UpdateContent()
+        {
+            if (DataContext is not ViewModels.TagTreeNode node)
+            {
+                Content = null;
+                return;
+            }
+
+            if (node.Tag is { } tag)
+                CreateContent(new Thickness(0, 0, 0, 0), tag.IsAnnotated ? "Icons.Tag" : "Icons.Tag.LinePath");
+            else if (node.IsExpanded)
+                CreateContent(new Thickness(0, 2, 0, 0), "Icons.Folder.Open");
+            else
+                CreateContent(new Thickness(0, 2, 0, 0), "Icons.Folder");
+        }
+
+        private void CreateContent(Thickness margin, string iconKey)
+        {
+            if (this.FindResource(iconKey) is not StreamGeometry geo)
+                return;
+
+            Content = new Avalonia.Controls.Shapes.Path()
+            {
+                Width = 12,
+                Height = 12,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = margin,
+                Data = geo,
+            };
+        }
+
+        private bool _isExpanded = false;
+    }
+
+    public partial class TagsView : UserControl
+    {
+        public static readonly RoutedEvent<RoutedEventArgs> SelectionChangedEvent =
+            RoutedEvent.Register<TagsView, RoutedEventArgs>(nameof(SelectionChanged), RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
+
+        public event EventHandler<RoutedEventArgs> SelectionChanged
+        {
+            add { AddHandler(SelectionChangedEvent, value); }
+            remove { RemoveHandler(SelectionChangedEvent, value); }
+        }
+
+        public static readonly RoutedEvent<RoutedEventArgs> RowsChangedEvent =
+            RoutedEvent.Register<TagsView, RoutedEventArgs>(nameof(RowsChanged), RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
+
+        public event EventHandler<RoutedEventArgs> RowsChanged
+        {
+            add { AddHandler(RowsChangedEvent, value); }
+            remove { RemoveHandler(RowsChangedEvent, value); }
+        }
+
+        public static readonly RoutedEvent<RoutedEventArgs> SearchRequestedEvent =
+            RoutedEvent.Register<BranchTree, RoutedEventArgs>(nameof(SearchRequested), RoutingStrategies.Tunnel | RoutingStrategies.Bubble);
+
+        public event EventHandler<RoutedEventArgs> SearchRequested
+        {
+            add { AddHandler(SearchRequestedEvent, value); }
+            remove { RemoveHandler(SearchRequestedEvent, value); }
+        }
+
+        public int Rows
+        {
+            get;
+            private set;
+        }
+
+        public TagsView()
+        {
+            InitializeComponent();
+        }
+
+        public void UnselectAll()
+        {
+            var list = this.FindDescendantOfType<ListBox>();
+            if (list != null)
+                list.SelectedItem = null;
+        }
+
+        public void ToggleNodeIsExpanded(ViewModels.TagTreeNode node)
+        {
+            if (Content is ViewModels.TagCollectionAsTree tree)
+            {
+                tree.ToggleExpand(node);
+                Rows = tree.Rows.Count;
+                RaiseEvent(new RoutedEventArgs(RowsChangedEvent));
+            }
+        }
+
+        protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+        {
+            base.OnPropertyChanged(change);
+
+            if (change.Property == ContentProperty)
+            {
+                if (Content is ViewModels.TagCollectionAsTree tree)
+                    Rows = tree.Rows.Count;
+                else if (Content is ViewModels.TagCollectionAsList list)
+                    Rows = list.TagItems.Count;
+                else
+                    Rows = 0;
+
+                RaiseEvent(new RoutedEventArgs(RowsChangedEvent));
+            }
+            else if (change.Property == IsVisibleProperty)
+            {
+                RaiseEvent(new RoutedEventArgs(RowsChangedEvent));
+            }
+        }
+
+        private async void OnItemDoubleTapped(object sender, TappedEventArgs e)
+        {
+            if (sender is Control { DataContext: ViewModels.TagTreeNode node })
+            {
+                if (node.IsFolder)
+                    ToggleNodeIsExpanded(node);
+                else if (DataContext is ViewModels.Repository repo)
+                    await repo.CheckoutTagAsync(node.Tag);
+            }
+            else if (sender is Control { DataContext: ViewModels.TagListItem item })
+            {
+                if (DataContext is ViewModels.Repository repo)
+                    await repo.CheckoutTagAsync(item.Tag);
+            }
+
+            e.Handled = true;
+        }
+
+        private void OnItemPointerPressed(object sender, PointerPressedEventArgs e)
+        {
+            var ctrl = OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control;
+            if (e.KeyModifiers.HasFlag(ctrl) || e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+                return;
+
+            var p = e.GetCurrentPoint(this);
+            if (!p.Properties.IsLeftButtonPressed)
+                return;
+
+            if (DataContext is not ViewModels.Repository repo)
+                return;
+
+            if (sender is not Control control)
+                return;
+
+            if (control.DataContext is ViewModels.TagListItem { Tag: { } itemTag })
+                repo.NavigateToCommit(itemTag.SHA);
+            else if (control.DataContext is ViewModels.TagTreeNode { Tag: { } nodeTag })
+                repo.NavigateToCommit(nodeTag.SHA);
+        }
+
+        private void OnTagsContextMenuRequested(object sender, ContextRequestedEventArgs e)
+        {
+            if (sender is not ListBox { SelectedItems: { Count: > 0 } selectedItems } listBox)
+                return;
+
+            if (DataContext is not ViewModels.Repository repo)
+                return;
+
+            var selected = new List<Models.Tag>();
+            foreach (var item in selectedItems)
+            {
+                if (item is ViewModels.TagListItem i)
+                    selected.Add(i.Tag);
+                else if (item is ViewModels.TagTreeNode n)
+                    CollectTagsInNode(n, selected);
+            }
+
+            if (selected.Count == 1)
+            {
+                var tag = selected[0];
+                var menu = new ContextMenu();
+
+                var createBranch = new MenuItem();
+                createBranch.Icon = this.CreateMenuIcon("Icons.Branch.Add");
+                createBranch.Header = App.Text("CreateBranch");
+                createBranch.Click += (_, ev) =>
+                {
+                    if (repo.CanCreatePopup())
+                        repo.ShowPopup(new ViewModels.CreateBranch(repo, tag));
+                    ev.Handled = true;
+                };
+                menu.Items.Add(createBranch);
+
+                if (repo.CurrentBranch != null && !tag.SHA.Equals(repo.CurrentBranch.Head, StringComparison.Ordinal))
+                {
+                    var checkoutCommit = new MenuItem();
+                    checkoutCommit.Header = App.Text("TagCM.Checkout");
+                    checkoutCommit.Icon = this.CreateMenuIcon("Icons.Detached");
+                    checkoutCommit.Click += (_, e) =>
+                    {
+                        if (repo.CanCreatePopup())
+                            repo.ShowPopup(new ViewModels.CheckoutDetached(repo, tag));
+
+                        e.Handled = true;
+                    };
+                    menu.Items.Add(checkoutCommit);
+                }
+
+                var pushTag = new MenuItem();
+                pushTag.Header = App.Text("TagCM.Push", tag.Name);
+                pushTag.Icon = this.CreateMenuIcon("Icons.Push");
+                pushTag.IsEnabled = repo.Remotes.Count > 0;
+                pushTag.Click += (_, ev) =>
+                {
+                    if (repo.CanCreatePopup())
+                        repo.ShowPopup(new ViewModels.PushTag(repo, tag));
+                    ev.Handled = true;
+                };
+                menu.Items.Add(new MenuItem() { Header = "-" });
+                menu.Items.Add(pushTag);
+
+                if (repo.CurrentBranch is { IsDetachedHead: false } current)
+                {
+                    var mergeTag = new MenuItem();
+                    mergeTag.Header = App.Text("TagCM.Merge", tag.Name, current.Name);
+                    mergeTag.Icon = this.CreateMenuIcon("Icons.Merge");
+                    mergeTag.Click += (_, ev) =>
+                    {
+                        if (repo.CanCreatePopup())
+                            repo.ShowPopup(new ViewModels.Merge(repo, tag, current.Name));
+                        ev.Handled = true;
+                    };
+                    menu.Items.Add(mergeTag);
+                }
+
+                var deleteTag = new MenuItem();
+                deleteTag.Header = App.Text("TagCM.Delete", tag.Name);
+                deleteTag.Icon = this.CreateMenuIcon("Icons.Clear");
+                deleteTag.Click += (_, ev) =>
+                {
+                    if (repo.CanCreatePopup())
+                        repo.ShowPopup(new ViewModels.DeleteTag(repo, tag));
+                    ev.Handled = true;
+                };
+                menu.Items.Add(deleteTag);
+                menu.Items.Add(new MenuItem() { Header = "-" });
+
+                var compareWithHead = new MenuItem();
+                compareWithHead.Header = App.Text("TagCM.CompareWithHead");
+                compareWithHead.Icon = this.CreateMenuIcon("Icons.Compare");
+                compareWithHead.Click += (_, _) =>
+                {
+                    this.ShowWindow(new ViewModels.Compare(repo, tag, repo.CurrentBranch));
+                };
+
+                var compareWith = new MenuItem();
+                compareWith.Header = App.Text("TagCM.CompareWith");
+                compareWith.Icon = this.CreateMenuIcon("Icons.Compare");
+                compareWith.Click += (_, _) =>
+                {
+                    new ViewModels.CompareCommandPalette(repo, tag).Open();
+                };
+                menu.Items.Add(compareWithHead);
+                menu.Items.Add(compareWith);
+                menu.Items.Add(new MenuItem() { Header = "-" });
+
+                var archive = new MenuItem();
+                archive.Icon = this.CreateMenuIcon("Icons.Archive");
+                archive.Header = App.Text("Archive");
+                archive.Click += (_, ev) =>
+                {
+                    if (repo.CanCreatePopup())
+                        repo.ShowPopup(new ViewModels.Archive(repo, tag));
+                    ev.Handled = true;
+                };
+                menu.Items.Add(archive);
+                menu.Items.Add(new MenuItem() { Header = "-" });
+
+                var actions = repo.GetCustomActions(Models.CustomActionScope.Tag);
+                if (actions.Count > 0)
+                {
+                    var custom = new MenuItem();
+                    custom.Header = App.Text("TagCM.CustomAction");
+                    custom.Icon = this.CreateMenuIcon("Icons.Action");
+
+                    foreach (var action in actions)
+                    {
+                        var (dup, label) = action;
+                        var item = new MenuItem();
+                        item.Icon = this.CreateMenuIcon("Icons.Action");
+                        item.Header = label;
+                        item.Click += async (_, ev) =>
+                        {
+                            await repo.ExecCustomActionAsync(dup, tag);
+                            ev.Handled = true;
+                        };
+
+                        custom.Items.Add(item);
+                    }
+
+                    menu.Items.Add(custom);
+                    menu.Items.Add(new MenuItem() { Header = "-" });
+                }
+
+                var copy = new MenuItem();
+                copy.Header = App.Text("Copy");
+                copy.Icon = this.CreateMenuIcon("Icons.Copy");
+
+                var copyName = new MenuItem();
+                copyName.Header = App.Text("TagCM.Copy.Name");
+                copyName.Icon = this.CreateMenuIcon("Icons.Tag");
+                copyName.Click += async (_, ev) =>
+                {
+                    await this.CopyTextAsync(tag.Name);
+                    ev.Handled = true;
+                };
+
+                var copyMessage = new MenuItem();
+                copyMessage.Header = App.Text("TagCM.Copy.Message");
+                copyMessage.Icon = this.CreateMenuIcon("Icons.Info");
+                copyMessage.IsEnabled = !string.IsNullOrEmpty(tag.Message);
+                copyMessage.Click += async (_, ev) =>
+                {
+                    await this.CopyTextAsync(tag.Message);
+                    ev.Handled = true;
+                };
+
+                copy.Items.Add(copyName);
+                copy.Items.Add(copyMessage);
+
+                if (tag.Creator is { Email: { Length: > 0 } })
+                {
+                    var copyCreator = new MenuItem();
+                    copyCreator.Header = App.Text("TagCM.Copy.Tagger");
+                    copyCreator.Icon = this.CreateMenuIcon("Icons.User");
+                    copyCreator.Click += async (_, ev) =>
+                    {
+                        await this.CopyTextAsync(tag.Creator.ToString());
+                        ev.Handled = true;
+                    };
+                    copy.Items.Add(copyCreator);
+                }
+
+                menu.Items.Add(copy);
+                menu.Open(listBox);
+            }
+            else if (selected.Count > 0)
+            {
+                var menu = new ContextMenu();
+
+                if (selected.Count == 2)
+                {
+                    var compare = new MenuItem();
+                    compare.Header = App.Text("TagCM.CompareTwo");
+                    compare.Icon = this.CreateMenuIcon("Icons.Compare");
+                    compare.Click += (_, ev) =>
+                    {
+                        var (based, to) = (selected[0], selected[1]);
+                        if (based.CreatorDate > to.CreatorDate)
+                            (based, to) = (to, based);
+
+                        this.ShowWindow(new ViewModels.Compare(repo, based, to));
+                        ev.Handled = true;
+                    };
+                    menu.Items.Add(compare);
+                }
+
+                var deleteMultiple = new MenuItem();
+                deleteMultiple.Header = App.Text("TagCM.DeleteMultiple", selected.Count);
+                deleteMultiple.Icon = this.CreateMenuIcon("Icons.Clear");
+                deleteMultiple.Click += (_, ev) =>
+                {
+                    if (repo.CanCreatePopup())
+                        repo.ShowPopup(new ViewModels.DeleteMultipleTags(repo, selected));
+
+                    ev.Handled = true;
+                };
+
+                menu.Items.Add(deleteMultiple);
+                menu.Open(listBox);
+            }
+
+            e.Handled = true;
+        }
+
+        private void OnSelectionChanged(object sender, SelectionChangedEventArgs _)
+        {
+            if (sender is not ListBox listBox)
+                return;
+
+            if (listBox.SelectedItems is { Count: 0 })
+            {
+                if (Content is ViewModels.TagCollectionAsList list)
+                    list.ClearSelection();
+                else if (Content is ViewModels.TagCollectionAsTree tree)
+                    tree.ClearSelection();
+            }
+            else if (listBox.SelectedItems is { Count: > 0 })
+            {
+                if (Content is ViewModels.TagCollectionAsList list)
+                    list.UpdateSelection(listBox.SelectedItems);
+                else if (Content is ViewModels.TagCollectionAsTree tree)
+                    tree.UpdateSelection(listBox.SelectedItems);
+
+                RaiseEvent(new RoutedEventArgs(SelectionChangedEvent));
+            }
+        }
+
+        private void OnKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.F && e.KeyModifiers == (OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control))
+            {
+                RaiseEvent(new RoutedEventArgs(SearchRequestedEvent));
+                e.Handled = true;
+            }
+            else if (e.Key is (Key.Delete or Key.Back) && e.KeyModifiers == KeyModifiers.None)
+            {
+                if (DataContext is not ViewModels.Repository repo)
+                    return;
+
+                var selected = (sender as ListBox)?.SelectedItems;
+                var tags = new List<Models.Tag>();
+                foreach (var item in selected)
+                {
+                    if (item is ViewModels.TagListItem i)
+                        tags.Add(i.Tag);
+                    else if (item is ViewModels.TagTreeNode n)
+                        CollectTagsInNode(n, tags);
+                }
+
+                if (tags.Count == 1)
+                {
+                    repo.DeleteTag(tags[0]);
+                }
+                else if (tags.Count > 1)
+                {
+                    if (repo.CanCreatePopup())
+                        repo.ShowPopup(new ViewModels.DeleteMultipleTags(repo, tags));
+                }
+
+                e.Handled = true;
+            }
+        }
+
+        private void CollectTagsInNode(ViewModels.TagTreeNode node, List<Models.Tag> outs)
+        {
+            if (node.Tag is { } tag)
+            {
+                if (!outs.Contains(tag))
+                    outs.Add(tag);
+
+                return;
+            }
+
+            foreach (var child in node.Children)
+                CollectTagsInNode(child, outs);
+        }
+    }
+}

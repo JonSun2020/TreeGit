@@ -1,0 +1,146 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:c="using:SourceGit.Converters"
+             xmlns:vm="using:SourceGit.ViewModels"
+             xmlns:v="using:SourceGit.Views"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="SourceGit.Views.CommitMessageToolBox"
+             x:Name="ThisControl">
+  <Border Background="{DynamicResource Brush.Contents}"
+          BorderThickness="1"
+          BorderBrush="{DynamicResource Brush.Border2}"
+          CornerRadius="4">
+    <Grid RowDefinitions="*,24">
+      <Grid Grid.Row="0">        
+        <v:CommitMessageTextBox x:Name="Editor"
+                                Classes="no_border no_background"
+                                CornerRadius="4,4,0,0"
+                                Background="Transparent"
+                                Text="{Binding #ThisControl.CommitMessage, Mode=TwoWay}"
+                                Watermark="{DynamicResource Text.CommitMessageTextBox.Placeholder}"
+                                SubjectGuideLength="{Binding Source={x:Static vm:Preferences.Instance}, Path=SubjectGuideLength, Mode=OneWay}"
+                                GuideLineBrush="{DynamicResource Brush.Border2}"
+                                FontFamily="{DynamicResource Fonts.Monospace}">
+          <v:CommitMessageTextBox.Styles>
+            <Style Selector="ContentPresenter">
+              <Setter Property="FontFamily" Value="{DynamicResource Fonts.Monospace}"/>
+            </Style>
+          </v:CommitMessageTextBox.Styles>
+        </v:CommitMessageTextBox>
+
+        <Popup PlacementTarget="{Binding #Editor, Mode=OneWay}"
+               Placement="AnchorAndGravity"
+               PlacementAnchor="TopLeft"
+               PlacementGravity="BottomRight"
+               HorizontalOffset="-4" VerticalOffset="{Binding #Editor.SuggestionPopupY, Mode=OneWay}">
+          <Popup.IsOpen>
+            <MultiBinding Converter="{x:Static BoolConverters.And}">
+              <Binding Path="#Editor.Suggestions" Converter="{x:Static c:ListConverters.IsNotNullOrEmpty}"/>
+              <Binding Path="$parent[Window].IsActive"/>
+            </MultiBinding>
+          </Popup.IsOpen>
+
+          <Border Margin="8" VerticalAlignment="Top" Effect="drop-shadow(0 0 8 #80000000)">
+            <Border Padding="4"
+                    BorderThickness="1" BorderBrush="{DynamicResource Brush.PopupBorder}"
+                    Background="{DynamicResource Brush.Popup}"
+                    CornerRadius="4">
+              <v:ListBoxEx x:Name="SuggestionBox"
+                           Background="Transparent"
+                           SelectionMode="Single"
+                           ItemsSource="{Binding #Editor.Suggestions, Mode=OneWay}"
+                           SelectedIndex="{Binding #Editor.SelectedSuggestionIndex, Mode=TwoWay}"
+                           MaxHeight="400"
+                           Focusable="False">
+                <ListBox.Styles>
+                  <Style Selector="ListBoxItem">
+                    <Setter Property="Padding" Value="0"/>
+                    <Setter Property="MinWidth" Value="140"/>
+                    <Setter Property="MinHeight" Value="26"/>
+                    <Setter Property="CornerRadius" Value="4"/>
+                    <Setter Property="Focusable" Value="False"/>
+                  </Style>
+                </ListBox.Styles>
+
+                <ListBox.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Orientation="Vertical" Spacing="2"/>
+                  </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+
+                <ListBox.ItemTemplate>
+                  <DataTemplate DataType="v:CommitMessageTextBoxSuggestion">
+                    <Border Padding="8,0" Height="26" Background="Transparent" Tapped="OnSuggestionTapped">
+                      <TextBlock Text="{Binding Text, Mode=OneWay}" VerticalAlignment="Center"/>
+                    </Border>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </v:ListBoxEx>
+            </Border>
+          </Border>
+        </Popup>
+      </Grid>
+
+      <Border Grid.Row="1"
+              Background="{DynamicResource Brush.Window}"
+              BorderThickness="0,1,0,0"
+              BorderBrush="{DynamicResource Brush.Border2}"
+              CornerRadius="0,0,4,4">
+        <Grid ColumnDefinitions="Auto,Auto,Auto,*">
+          <Button Grid.Column="0"
+                  Classes="icon_button"
+                  Width="28"
+                  Margin="0,0,4,0" Padding="0"
+                  Click="OnOpenCommitMessagePicker"
+                  IsVisible="{Binding #ThisControl.ShowAdvancedOptions}"
+                  ToolTip.Tip="{DynamicResource Text.WorkingCopy.CommitMessageHelper}">
+            <Path Width="12" Height="12" Data="{StaticResource Icons.Menu}"/>
+          </Button>
+
+          <Button Grid.Column="1"
+                  Classes="icon_button"
+                  Width="28"
+                  Margin="0,0,4,0" Padding="0"
+                  Click="OnOpenOpenAIHelper"
+                  IsVisible="{Binding #ThisControl.ShowAdvancedOptions}"
+                  ToolTip.Tip="{DynamicResource Text.AIAssistant.Tip}">
+            <Path Width="13" Height="13" Data="{StaticResource Icons.AIAssist}"/>
+          </Button>
+
+          <Button Grid.Column="2"
+                  Classes="icon_button"
+                  Width="28"
+                  Margin="0" Padding="0"
+                  Click="OnOpenConventionalCommitHelper"
+                  ToolTip.Tip="{DynamicResource Text.ConventionalCommit}">
+            <Path Width="13" Height="13" Margin="0,1,0,0" Data="{StaticResource Icons.CommitMessageGenerator}"/>
+          </Button>
+
+          <StackPanel Grid.Column="3"
+                      Margin="0,0,6,0"
+                      HorizontalAlignment="Right" VerticalAlignment="Stretch"
+                      Orientation="Horizontal">
+            <TextBlock Classes="info_label"
+                       FontSize="13"
+                       HorizontalAlignment="Left"
+                       Text="{DynamicResource Text.CommitMessageTextBox.SubjectCount}"/>
+            <TextBlock Margin="8,0,0,0"
+                       FontSize="11"
+                       Text="{Binding #Editor.SubjectLength}"
+                       Foreground="{Binding #Editor.WarnSubjectLength, Converter={x:Static c:BoolConverters.IsWarningToBrush}, Mode=OneWay}"
+                       VerticalAlignment="Center"/>
+            <TextBlock FontSize="11"
+                       Text="/"
+                       VerticalAlignment="Center"/>
+            <TextBlock FontSize="11"
+                       Text="{Binding #Editor.SubjectGuideLength, Mode=OneWay}"
+                       VerticalAlignment="Center"/>
+            <Path Width="10" Height="10" Margin="4,0,0,0" Data="{StaticResource Icons.Error}" Fill="DarkGoldenrod" IsVisible="{Binding #Editor.WarnSubjectLength, Mode=OneWay}"/>
+          </StackPanel>
+        </Grid>
+      </Border>
+    </Grid>
+  </Border>
+</UserControl>

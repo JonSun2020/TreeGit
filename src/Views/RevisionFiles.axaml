@@ -1,0 +1,166 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:m="using:SourceGit.Models"
+             xmlns:vm="using:SourceGit.ViewModels"
+             xmlns:v="using:SourceGit.Views"
+             xmlns:c="using:SourceGit.Converters"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="SourceGit.Views.RevisionFiles"
+             x:DataType="vm:CommitDetail">
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="{Binding Source={x:Static vm:Preferences.Instance}, Path=Layout.CommitDetailFilesLeftWidth, Mode=TwoWay}" MinWidth="200"/>
+      <ColumnDefinition Width="4"/>
+      <ColumnDefinition Width="*" MinWidth="100"/>
+    </Grid.ColumnDefinitions>
+
+    <!-- Left -->
+    <Grid Grid.Column="0" RowDefinitions="26,*">
+      <Grid Grid.Row="0" Height="26">
+        <TextBox Grid.Row="0"
+                 x:Name="TxtSearchRevisionFiles"
+                 Height="26"
+                 BorderThickness="1" BorderBrush="{DynamicResource Brush.Border2}"
+                 Background="Transparent"
+                 CornerRadius="4"
+                 Watermark="{DynamicResource Text.CommitDetail.Files.Search}"
+                 Text="{Binding RevisionFileSearchFilter, Mode=TwoWay}"
+                 KeyDown="OnSearchBoxKeyDown"
+                 TextChanged="OnSearchBoxTextChanged"
+                 LayoutUpdated="OnSearchBoxLayoutUpdated">
+          <TextBox.InnerLeftContent>
+            <Path Width="14" Height="14" Margin="4,0,0,0" Fill="{DynamicResource Brush.FG2}" Data="{StaticResource Icons.Search}"/>
+          </TextBox.InnerLeftContent>
+
+          <TextBox.InnerRightContent>
+            <Button Classes="icon_button"
+                    Focusable="False"
+                    IsVisible="{Binding RevisionFileSearchFilter, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                    Command="{Binding ClearRevisionFileSearchFilter}">
+              <Path Width="14" Height="14" Fill="{DynamicResource Brush.FG2}" Data="{StaticResource Icons.Clear}"/>
+            </Button>
+          </TextBox.InnerRightContent>
+        </TextBox>
+
+        <Popup PlacementTarget="{Binding #TxtSearchRevisionFiles}"
+               Placement="BottomEdgeAlignedLeft"
+               HorizontalOffset="-8" VerticalOffset="-6">
+          <Popup.IsOpen>
+            <MultiBinding Converter="{x:Static BoolConverters.And}">
+              <Binding Path="RevisionFileSearchSuggestion" Converter="{x:Static c:ListConverters.IsNotNullOrEmpty}"/>
+              <Binding Path="$parent[Window].IsActive"/>
+            </MultiBinding>
+          </Popup.IsOpen>
+
+          <Border Margin="8" VerticalAlignment="Top" Effect="drop-shadow(0 0 8 #80000000)">
+            <Border Padding="4"
+                    CornerRadius="4"
+                    Background="{DynamicResource Brush.Popup}"
+                    BorderThickness="1" BorderBrush="{DynamicResource Brush.PopupBorder}">
+              <v:ListBoxEx x:Name="SearchSuggestionBox"
+                           Background="Transparent"
+                           SelectionMode="Single"
+                           ItemsSource="{Binding RevisionFileSearchSuggestion}"
+                           MaxHeight="400"
+                           Focusable="True"
+                           KeyDown="OnSearchSuggestionBoxKeyDown">
+                <ListBox.Styles>
+                  <Style Selector="ListBoxItem">
+                    <Setter Property="Padding" Value="0"/>
+                    <Setter Property="MinHeight" Value="26"/>
+                    <Setter Property="CornerRadius" Value="4"/>
+                  </Style>
+
+                  <Style Selector="ListBox">
+                    <Setter Property="FocusAdorner">
+                      <FocusAdornerTemplate>
+                        <Grid/>
+                      </FocusAdornerTemplate>
+                    </Setter>
+                  </Style>
+                </ListBox.Styles>
+
+                <ListBox.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Orientation="Vertical"/>
+                  </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+
+                <ListBox.ItemTemplate>
+                  <DataTemplate DataType="x:String">
+                    <StackPanel Background="Transparent" Orientation="Vertical" Margin="8,4" Tapped="OnSearchSuggestionTapped">
+                      <StackPanel Orientation="Horizontal" IsHitTestVisible="False">
+                        <Path Width="12" Height="12" Data="{StaticResource Icons.File}"/>
+                        <TextBlock Margin="6,0,0,0" Text="{Binding Converter={x:Static c:PathConverters.PureFileName}}"/>
+                      </StackPanel>
+                      <TextBlock FontSize="12"
+                                 Margin="18,2,0,0"
+                                 Foreground="{DynamicResource Brush.FG2}"
+                                 Text="{Binding Converter={x:Static c:PathConverters.PureDirectoryName}}"
+                                 IsHitTestVisible="False"/>
+                    </StackPanel>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </v:ListBoxEx>
+            </Border>
+          </Border>
+        </Popup>
+      </Grid>
+
+      <!-- File Tree -->
+      <Border Grid.Row="1" Margin="0,4,0,0" CornerRadius="4" BorderBrush="{DynamicResource Brush.Border2}" BorderThickness="1">
+        <Border CornerRadius="4" Background="{DynamicResource Brush.Contents}" ClipToBounds="True">
+          <v:RevisionFileTreeView x:Name="FileTree" Revision="{Binding Commit.SHA, FallbackValue={x:Null}}" SearchRequested="OnToggleSearch"/>          
+        </Border>
+      </Border>
+    </Grid>
+
+    <GridSplitter Grid.Column="1"
+                  MinWidth="1"
+                  HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
+                  Background="Transparent"
+                  Focusable="False"/>
+
+    <!-- Right: File Content Viewer -->
+    <Border Grid.Column="2" CornerRadius="4" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border2}">
+      <Border CornerRadius="4" ClipToBounds="True">
+        <Grid RowDefinitions="Auto,*">
+          <Border Grid.Row="0"
+                  Height="26"
+                  BorderBrush="{DynamicResource Brush.Border2}" BorderThickness="0,0,0,1"
+                  IsVisible="{Binding ViewRevisionFilePath, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <Grid ColumnDefinitions="Auto,*,Auto">
+              <Path Grid.Column="0" Width="12" Height="12" Data="{StaticResource Icons.File}" Margin="8,0,0,0"/>
+              <TextBlock Grid.Column="1"
+                         Margin="4,0,0,0"
+                         Text="{Binding ViewRevisionFilePath}"
+                         FontSize="11"
+                         TextTrimming="CharacterEllipsis"/>
+              <Button Grid.Column="2"
+                      Classes="icon_button"
+                      Width="28"
+                      Background="Transparent"
+                      Click="OnOpenFileWithDefaultEditor"
+                      IsVisible="{Binding CanOpenRevisionFileWithDefaultEditor, Mode=OneWay}"
+                      HotKey="{OnPlatform Ctrl+O, macOS=⌘+O}">
+                <ToolTip.Tip>
+                  <TextBlock>
+                    <Run Text="{DynamicResource Text.Open}"/>
+                    <Run Text=" "/>
+                    <Run Text="{OnPlatform Ctrl+O, macOS=⌘+O}" FontSize="11" Foreground="{DynamicResource MenuFlyoutItemKeyboardAcceleratorTextForeground}"/>
+                  </TextBlock>
+                </ToolTip.Tip>
+                <Path Width="12" Height="12" Data="{StaticResource Icons.OpenWith}"/>
+              </Button>
+            </Grid>
+          </Border>
+
+          <v:RevisionFileContentViewer Grid.Row="1"
+                                       Content="{Binding ViewRevisionFileContent, TargetNullValue={x:Static m:Null.Instance}, Mode=OneWay}"/>
+        </Grid>
+      </Border>
+    </Border>
+  </Grid>
+</UserControl>
