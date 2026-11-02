@@ -1,0 +1,7 @@
+# Local build outputs, never part of the upstream source checkpoint.
+**/bin/
+**/obj/
+.vs/
+*.user
+*.suo
+__pycache__/
