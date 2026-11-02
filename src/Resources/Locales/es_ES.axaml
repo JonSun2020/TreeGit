@@ -1091,4 +1091,19 @@
   <x:String x:Key="Text.Worktree.Remove" xml:space="preserve">Eliminar</x:String>
   <x:String x:Key="Text.Worktree.Unlock" xml:space="preserve">Desbloquear</x:String>
   <x:String x:Key="Text.Yes" xml:space="preserve">SÍ</x:String>
+  <x:String x:Key="Text.Toolbar.Tools">Tools</x:String>
+  <x:String x:Key="Text.Toolbar.Log">Log</x:String>
+  <x:String x:Key="Text.Toolbar.Statistics">Statistics</x:String>
+  <x:String x:Key="Text.Toolbar.Fetch">Fetch</x:String>
+  <x:String x:Key="Text.Toolbar.Pull">Pull</x:String>
+  <x:String x:Key="Text.Toolbar.Push">Push</x:String>
+  <x:String x:Key="Text.Toolbar.Stash">Stash</x:String>
+  <x:String x:Key="Text.Toolbar.Patch">Patch</x:String>
+  <x:String x:Key="Text.Toolbar.Branch">Branch</x:String>
+  <x:String x:Key="Text.Toolbar.GitFlow">Git Flow</x:String>
+  <x:String x:Key="Text.Toolbar.GitLFS">Git LFS</x:String>
+  <x:String x:Key="Text.Toolbar.Bisect">Bisect</x:String>
+  <x:String x:Key="Text.Toolbar.Actions">Actions</x:String>
+  <x:String x:Key="Text.Toolbar.Clean">Clean</x:String>
+  <x:String x:Key="Text.Toolbar.Commit">Commit</x:String>
 </ResourceDictionary>

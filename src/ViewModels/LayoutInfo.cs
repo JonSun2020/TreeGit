@@ -1,4 +1,4 @@
-﻿using Avalonia.Controls;
+using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace SourceGit.ViewModels
@@ -9,13 +9,13 @@ namespace SourceGit.ViewModels
         {
             get;
             set;
-        } = 1280;
+        } = 1440;
 
         public double LauncherHeight
         {
             get;
             set;
-        } = 720;
+        } = 900;
 
         public int LauncherPositionX
         {
@@ -39,13 +39,13 @@ namespace SourceGit.ViewModels
         {
             get;
             set;
-        } = 250;
+        } = 240;
 
         public double RepositorySearchCommitWidth
         {
             get;
             set;
-        } = 250;
+        } = 240;
 
         public bool IsSidebarCollapsedInLocalChanges
         {

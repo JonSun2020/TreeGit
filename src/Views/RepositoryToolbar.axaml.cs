@@ -18,6 +18,20 @@ namespace SourceGit.Views
             InitializeComponent();
         }
 
+        private async void OpenRepositoryCredentials(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is ViewModels.Repository repo && TopLevel.GetTopLevel(this) is Window owner)
+                await new RepositoryCredentials(repo).ShowDialog(owner);
+            e.Handled = true;
+        }
+
+        private void ShowWorkingCopy(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is ViewModels.Repository repo)
+                repo.SelectedViewIndex = 1;
+            e.Handled = true;
+        }
+
         private void OpenWithExternalTools(object sender, RoutedEventArgs ev)
         {
             if (sender is Button button && DataContext is ViewModels.Repository repo)

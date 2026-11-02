@@ -1,0 +1,340 @@
+using System;
+using System.IO;
+using System.IO.Pipes;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
+
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Media.Imaging;
+using Avalonia.Threading;
+
+namespace SourceGit.Automation
+{
+    internal static class GuiBridge
+    {
+        private static readonly SemaphoreSlim _operations = new(1, 1);
+        private static CancellationTokenSource _lifetime;
+
+        public static void Start()
+        {
+            _lifetime = new CancellationTokenSource();
+            _ = ListenAsync(_lifetime.Token);
+        }
+
+        public static void Stop() => _lifetime?.Cancel();
+
+        private static async Task ListenAsync(CancellationToken token)
+        {
+            while (!token.IsCancellationRequested)
+            {
+                var pipe = new NamedPipeServerStream(McpServer.PipeName, PipeDirection.InOut, 8,
+                    PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+                try
+                {
+                    await pipe.WaitForConnectionAsync(token).ConfigureAwait(false);
+                    _ = HandleClientAsync(pipe, token);
+                }
+                catch (OperationCanceledException) { pipe.Dispose(); break; }
+                catch (Exception ex)
+                {
+                    pipe.Dispose();
+                    Native.OS.LogException(ex);
+                    await Task.Delay(500, token).ConfigureAwait(false);
+                }
+            }
+        }
+
+        private static async Task HandleClientAsync(NamedPipeServerStream pipe, CancellationToken token)
+        {
+            using (pipe)
+            using (var reader = new StreamReader(pipe, Encoding.UTF8, false, 4096, true))
+            await using (var writer = new StreamWriter(pipe, new UTF8Encoding(false), 4096, true) { AutoFlush = true })
+            {
+                try
+                {
+                    using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
+                    timeout.CancelAfter(TimeSpan.FromSeconds(15));
+                    var line = await reader.ReadLineAsync(timeout.Token).ConfigureAwait(false);
+                    if (line == null || line.Length > 2 * 1024 * 1024)
+                        return;
+                    using var document = JsonDocument.Parse(line);
+                    await _operations.WaitAsync(token).ConfigureAwait(false);
+                    object result;
+                    try
+                    {
+                        result = await DispatchAsync(document.RootElement, token).ConfigureAwait(false);
+                    }
+                    catch (Exception ex) { result = new { error = Redact(ex.Message) }; }
+                    finally { _operations.Release(); }
+                    await writer.WriteLineAsync(JsonSerializer.Serialize(result)).ConfigureAwait(false);
+                }
+                catch (OperationCanceledException) { }
+                catch (IOException) { }
+                catch (Exception ex) { Native.OS.LogException(ex); }
+            }
+        }
+
+        private static async Task<object> DispatchAsync(JsonElement request, CancellationToken token)
+        {
+            var name = request.GetProperty("name").GetString();
+            var args = request.GetProperty("arguments");
+            if (args.ValueKind != JsonValueKind.Object)
+                throw new ArgumentException("arguments must be an object.");
+            if (name == "ui_state")
+                return await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    var launcher = App.GetLauncher();
+                    return (object)new
+                    {
+                        application = "SourceGit", mcp = "server", writesRequire = "--allow-write",
+                        repositories = launcher.Pages.Where(p => p.Data is ViewModels.Repository).Select(p =>
+                        {
+                            var r = (ViewModels.Repository)p.Data;
+                            return new { repo = r.FullPath, active = p == launcher.ActivePage, view = r.SelectedViewIndex,
+                                branch = r.CurrentBranch?.Name, changes = r.LocalChangesCount, pendingDialog = p.Popup?.GetType().Name };
+                        }).ToArray(),
+                    };
+                });
+            if (name == "ui_screenshot")
+                return await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    var lifetime = (IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime;
+                    var window = lifetime.MainWindow;
+                    var width = Math.Max(1, (int)window.Bounds.Width);
+                    var height = Math.Max(1, (int)window.Bounds.Height);
+                    using var image = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96));
+                    image.Render(window);
+                    using var stream = new MemoryStream();
+                    image.Save(stream);
+                    return (object)new { png = Convert.ToBase64String(stream.ToArray()), width, height };
+                });
+
+            var path = Path.GetFullPath(Text(args, "repo")).TrimEnd('\\', '/');
+            if (name == "ui_open_repository")
+            {
+                if (!Directory.Exists(path))
+                    throw new ArgumentException("Repository directory does not exist.");
+                // Never turn an arbitrary directory into a Git repository as a side effect of opening it.
+                var check = await new Query(path, "rev-parse --absolute-git-dir").RunAsync().ConfigureAwait(false);
+                if (!check.IsSuccess)
+                    throw new ArgumentException("This directory is not a trusted Git repository: " + Redact(check.StdErr));
+                return await Dispatcher.UIThread.InvokeAsync(() =>
+                    (object)new { opened = App.GetLauncher().TryOpenRepositoryFromPath(path), repo = path });
+            }
+
+            var repo = await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                var launcher = App.GetLauncher();
+                var page = launcher.Pages.FirstOrDefault(p => p.Data is ViewModels.Repository r &&
+                    string.Equals(Path.GetFullPath(r.FullPath).TrimEnd('\\', '/'), path, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal));
+                if (page?.Data is not ViewModels.Repository found)
+                    throw new ArgumentException("Open this repository with ui_open_repository first.");
+                launcher.ActivePage = page;
+                return found;
+            });
+
+            if (name == "ui_select_view")
+            {
+                var index = Text(args, "view") switch { "history" => 0, "working_copy" => 1, "stashes" => 2, _ => throw new ArgumentException("Unknown view.") };
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (repo.IsBare && index != 0)
+                        throw new ArgumentException("Bare repositories have no working copy or stash view.");
+                    repo.SelectedViewIndex = index;
+                });
+                return new { selected = index, repo = path };
+            }
+            if (name == "ui_select_commit")
+            {
+                var revision = Revision(args);
+                var resolved = await new Query(path, Join("rev-parse", "--verify", revision + "^{commit}")).RunAsync().ConfigureAwait(false);
+                if (!resolved.IsSuccess)
+                    throw new ArgumentException(Redact(resolved.StdErr));
+                var sha = resolved.StdOut.Trim();
+                await Dispatcher.UIThread.InvokeAsync(() => { repo.SelectedViewIndex = 0; repo.NavigateToCommit(sha); });
+                return new { selected = sha, repo = path };
+            }
+            if (name == "ui_refresh")
+            {
+                await Dispatcher.UIThread.InvokeAsync(repo.RefreshAll);
+                return new { refreshed = true, repo = path };
+            }
+
+            string command;
+            var write = name == "git_action";
+            string remote = null;
+            string tempMessage = null;
+            try
+            {
+                switch (name)
+                {
+                    case "git_status": command = "status --porcelain=v2 --branch --untracked-files=all"; break;
+                    case "git_log":
+                        var count = args.TryGetProperty("count", out var n) ? n.GetInt32() : 50;
+                        if (count < 1 || count > 500)
+                            throw new ArgumentException("count must be between 1 and 500.");
+                        command = $"log -{count} --graph --decorate=short --date=iso-strict --format=fuller" + (Flag(args, "all") ? " --all" : "");
+                        break;
+                    case "git_diff": command = "--literal-pathspecs diff --no-ext-diff --no-textconv" + (Flag(args, "staged") ? " --cached" : "") + " -- " + Paths(args, false); break;
+                    case "git_refs": command = "for-each-ref --format=%(refname:short)%09%(objectname)%09%(upstream:short) refs/heads refs/remotes refs/tags"; break;
+                    case "git_show": command = Join("show", "--no-ext-diff", "--no-textconv", "--format=fuller", Revision(args), "--"); break;
+                    case "git_action":
+                        if (!request.TryGetProperty("allowWrite", out var allow) || !allow.GetBoolean())
+                            throw new InvalidOperationException("Writes are disabled.");
+                        await Dispatcher.UIThread.InvokeAsync(() =>
+                        {
+                            if (App.GetLauncher().ActivePage.Popup != null || repo.InProgressContext != null)
+                                throw new InvalidOperationException("Finish the current SourceGit dialog/operation before starting another Git action.");
+                        });
+                        var action = Text(args, "action");
+                        switch (action)
+                        {
+                            case "stage": command = "--literal-pathspecs add -- " + Paths(args, true); break;
+                            case "unstage": command = "--literal-pathspecs restore --staged -- " + Paths(args, true); break;
+                            case "commit":
+                                tempMessage = Path.GetTempFileName();
+                                await File.WriteAllTextAsync(tempMessage, Text(args, "message"), new UTF8Encoding(false), token).ConfigureAwait(false);
+                                command = Join("commit", "--file", tempMessage);
+                                break;
+                            case "checkout": command = Join("checkout", Revision(args), "--"); break;
+                            case "create_branch": command = Join("switch", "-c", Revision(args)); break;
+                            case "fetch": case "pull": case "push":
+                                remote = args.TryGetProperty("remote", out var r) ? r.GetString() : "origin";
+                                var exists = await Dispatcher.UIThread.InvokeAsync(() => repo.Remotes.Any(r => r.Name == remote));
+                                if (!exists)
+                                    throw new ArgumentException("remote must name a configured remote (default origin).");
+                                command = action == "fetch" ? Join("fetch", "--", remote) : action == "pull" ? Join("pull", "--ff-only", "--", remote) : Join("push", "--", remote);
+                                break;
+                            case "stash": command = "stash push" + (args.TryGetProperty("message", out var msg) ? " -m " + Quote(msg.GetString()) : ""); break;
+                            case "stash_pop": command = "stash pop"; break;
+                            case "merge": command = Join("merge", "--no-edit", "--", Revision(args)); break;
+                            case "rebase": command = Join("rebase", "--", Revision(args)); break;
+                            case "cherry_pick": command = Join("cherry-pick", "--", Revision(args)); break;
+                            case "revert": command = Join("revert", "--no-edit", "--", Revision(args)); break;
+                            case "merge_abort": command = "merge --abort"; break;
+                            case "rebase_abort": command = "rebase --abort"; break;
+                            case "cherry_pick_abort": command = "cherry-pick --abort"; break;
+                            case "revert_abort": command = "revert --abort"; break;
+                            default: throw new ArgumentException("Unknown Git action.");
+                        }
+                        break;
+                    default: throw new ArgumentException("Unknown tool.");
+                }
+                var query = new Query(path, command);
+                if (remote != null)
+                    query.SSHKey = await Dispatcher.UIThread.InvokeAsync(() => repo.Remotes.First(r => r.Name == remote).PrivateSSHKey);
+                ViewModels.CommandLog log = null;
+                if (write)
+                {
+                    log = await Dispatcher.UIThread.InvokeAsync(() => repo.CreateLog("MCP · " + Text(args, "action")));
+                    log.AppendLine("$ git " + Redact(command));
+                }
+                var result = await query.RunAsync().ConfigureAwait(false);
+                if (write)
+                {
+                    log.AppendLine(Redact(result.StdOut));
+                    log.AppendLine(Redact(result.StdErr));
+                    log.Complete();
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        repo.RefreshAll();
+                        repo.SendNotification("MCP · " + Text(args, "action") + (result.IsSuccess ? " ✓" : " failed; see command log"), !result.IsSuccess);
+                    });
+                }
+                var stdout = Redact(result.StdOut);
+                var stderr = Redact(result.StdErr);
+                const int limit = 1024 * 1024;
+                return new { isSuccess = result.IsSuccess, stdout = stdout[..Math.Min(stdout.Length, limit)], stderr = stderr[..Math.Min(stderr.Length, limit)], truncated = stdout.Length > limit || stderr.Length > limit };
+            }
+            finally
+            {
+                if (tempMessage != null)
+                    File.Delete(tempMessage);
+            }
+        }
+
+        private static string Text(JsonElement args, string key)
+        {
+            if (!args.TryGetProperty(key, out var value) || value.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(value.GetString()))
+                throw new ArgumentException(key + " must be a nonempty string.");
+            var text = value.GetString();
+            if (text.Contains('\0'))
+                throw new ArgumentException(key + " contains a NUL character.");
+            return text;
+        }
+
+        private static bool Flag(JsonElement args, string name) => args.TryGetProperty(name, out var value) && value.GetBoolean();
+        private static string Revision(JsonElement args)
+        {
+            var revision = Text(args, "revision");
+            if (revision.StartsWith('-') || revision.Any(char.IsControl))
+                throw new ArgumentException("revision cannot be an option or contain control characters.");
+            return revision;
+        }
+
+        private static string Paths(JsonElement args, bool required)
+        {
+            if (!args.TryGetProperty("paths", out var array))
+            {
+                if (required) throw new ArgumentException("Explicit paths are required.");
+                return string.Empty;
+            }
+            if (array.ValueKind != JsonValueKind.Array || array.GetArrayLength() > 1024 || (required && array.GetArrayLength() == 0))
+                throw new ArgumentException("paths must contain 1 to 1024 relative paths.");
+            return string.Join(' ', array.EnumerateArray().Select(p =>
+            {
+                var path = p.GetString();
+                if (string.IsNullOrEmpty(path) || Path.IsPathRooted(path) || path.Any(char.IsControl) || path.Replace('\\', '/').Split('/').Contains(".."))
+                    throw new ArgumentException("Paths must stay inside the repository.");
+                return Quote(path);
+            }));
+        }
+
+        // Windows command line quoting, including embedded quotes and trailing backslashes.
+        internal static string Quote(string text)
+        {
+            if (text == null || text.Contains('\0'))
+                throw new ArgumentException("Invalid argument.");
+            var b = new StringBuilder("\"");
+            var slashes = 0;
+            foreach (var c in text)
+            {
+                if (c == '\\') { slashes++; continue; }
+                b.Append('\\', c == '"' ? slashes * 2 + 1 : slashes);
+                b.Append(c);
+                slashes = 0;
+            }
+            return b.Append('\\', slashes * 2).Append('"').ToString();
+        }
+
+        private static string Join(params string[] args) => string.Join(' ', args.Select(Quote));
+        private static string Redact(string value) => Regex.Replace(value ?? string.Empty, @"(https?://)[^\s/@]+(?::[^\s/@]*)?@", "$1[redacted]@", RegexOptions.IgnoreCase);
+
+        private sealed class Query : Commands.Command
+        {
+            public Query(string repo, string args)
+            {
+                WorkingDirectory = repo;
+                Context = repo;
+                Args = args;
+                Editor = EditorType.None;
+                RaiseError = false;
+            }
+
+            public async Task<Result> RunAsync()
+            {
+                using var process = new System.Diagnostics.Process { StartInfo = CreateGitStartInfo(true) };
+                process.Start();
+                var stdout = process.StandardOutput.ReadToEndAsync();
+                var stderr = process.StandardError.ReadToEndAsync();
+                await Task.WhenAll(stdout, stderr, process.WaitForExitAsync()).ConfigureAwait(false);
+                return new Result { IsSuccess = process.ExitCode == 0, StdOut = stdout.Result, StdErr = stderr.Result };
+            }
+        }
+    }
+}

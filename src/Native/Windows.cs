@@ -82,6 +82,10 @@ namespace SourceGit.Native
 
         public string FindGitExecutable()
         {
+            var bundled = Path.Combine(AppContext.BaseDirectory, "git", "cmd", "git.exe");
+            if (File.Exists(bundled))
+                return bundled;
+
             var reg = Microsoft.Win32.RegistryKey.OpenBaseKey(
                 Microsoft.Win32.RegistryHive.LocalMachine,
                 Microsoft.Win32.RegistryView.Registry64);

@@ -1092,4 +1092,19 @@
   <x:String x:Key="Text.Worktree.Remove" xml:space="preserve">移除工作树</x:String>
   <x:String x:Key="Text.Worktree.Unlock" xml:space="preserve">解除工作树锁定</x:String>
   <x:String x:Key="Text.Yes" xml:space="preserve">好的</x:String>
+  <x:String x:Key="Text.Toolbar.Tools">外部工具</x:String>
+  <x:String x:Key="Text.Toolbar.Log">命令日志</x:String>
+  <x:String x:Key="Text.Toolbar.Statistics">统计</x:String>
+  <x:String x:Key="Text.Toolbar.Fetch">获取</x:String>
+  <x:String x:Key="Text.Toolbar.Pull">拉取</x:String>
+  <x:String x:Key="Text.Toolbar.Push">推送</x:String>
+  <x:String x:Key="Text.Toolbar.Stash">贮藏</x:String>
+  <x:String x:Key="Text.Toolbar.Patch">应用补丁</x:String>
+  <x:String x:Key="Text.Toolbar.Branch">分支</x:String>
+  <x:String x:Key="Text.Toolbar.GitFlow">Git Flow</x:String>
+  <x:String x:Key="Text.Toolbar.GitLFS">Git LFS</x:String>
+  <x:String x:Key="Text.Toolbar.Bisect">二分定位</x:String>
+  <x:String x:Key="Text.Toolbar.Actions">自定义</x:String>
+  <x:String x:Key="Text.Toolbar.Clean">清理</x:String>
+  <x:String x:Key="Text.Toolbar.Commit">提交</x:String>
 </ResourceDictionary>

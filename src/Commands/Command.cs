@@ -165,10 +165,22 @@ namespace SourceGit.Commands
             if (useSetSid)
                 builder.Append(Native.OS.GitExecutable.Quoted()).Append(' ');
 
-            builder
-                .Append("--no-pager -c core.quotepath=off -c credential.helper=")
-                .Append(Native.OS.CredentialHelper)
-                .Append(' ');
+            builder.Append("--no-pager -c core.quotepath=off ");
+            if (OperatingSystem.IsWindows())
+            {
+                var helper = "!'" + selfExecFile.Replace('\\', '/').Replace("'", "'\\''", StringComparison.Ordinal) + "' --credential-helper";
+                builder.Append("-c credential.helper= -c ")
+                    .Append(("credential.helper=" + helper).Quoted())
+                    .Append(" -c credential.useHttpPath=true -c http.sslBackend=openssl ");
+                // Keep upstream GCM/OAuth support when the selected Git distribution has it.
+                var gitRoot = System.IO.Path.GetFullPath(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(Native.OS.GitExecutable)!, ".."));
+                if (Native.OS.CredentialHelper != "manager" ||
+                    System.IO.File.Exists(System.IO.Path.Combine(gitRoot, "mingw64", "bin", "git-credential-manager.exe")) ||
+                    System.IO.File.Exists(System.IO.Path.Combine(gitRoot, "ucrt64", "bin", "git-credential-manager.exe")))
+                    builder.Append("-c ").Append(("credential.helper=" + Native.OS.CredentialHelper).Quoted()).Append(' ');
+            }
+            else
+                builder.Append("-c credential.helper=").Append(Native.OS.CredentialHelper).Append(' ');
 
             switch (Editor)
             {
@@ -200,11 +212,27 @@ namespace SourceGit.Commands
             }
 
             // Force using this app as SSH askpass program
-            start.Environment.Add("SSH_ASKPASS", selfExecFile); // Can not use parameter here, because it invoked by SSH with `exec`
-            start.Environment.Add("SSH_ASKPASS_REQUIRE", "prefer");
-            start.Environment.Add("SOURCEGIT_LAUNCH_AS_ASKPASS", "TRUE");
+            start.Environment["SSH_ASKPASS"] = selfExecFile; // Raw executable path, including spaces, is required by exec.
+            start.Environment["SSH_ASKPASS_REQUIRE"] = "prefer";
+            start.Environment["SOURCEGIT_LAUNCH_AS_ASKPASS"] = "TRUE";
+            start.Environment["GIT_ASKPASS"] = selfExecFile;
+            start.Environment["SOURCEGIT_CREDENTIAL_SCOPE"] = WorkingDirectory ?? Context;
             if (!OperatingSystem.IsLinux())
-                start.Environment.Add("DISPLAY", "required");
+                start.Environment["DISPLAY"] = "required";
+
+            var bundledSSH = System.IO.Path.Combine(AppContext.BaseDirectory, "git", "usr", "bin", "ssh.exe");
+            if (OperatingSystem.IsWindows() && System.IO.File.Exists(bundledSSH))
+            {
+                start.Environment["PATH"] = System.IO.Path.GetDirectoryName(bundledSSH) + System.IO.Path.PathSeparator +
+                    System.IO.Path.Combine(AppContext.BaseDirectory, "git", "ucrt64", "bin") + System.IO.Path.PathSeparator + start.Environment["PATH"];
+                if (!start.Environment.ContainsKey("GIT_SSH_COMMAND"))
+                {
+                    var ssh = "'" + bundledSSH.Replace('\\', '/').Replace("'", "'\\''", StringComparison.Ordinal) + "'";
+                    if (!string.IsNullOrEmpty(SSHKey))
+                        ssh += " -i '" + SSHKey.Replace("'", "'\\''", StringComparison.Ordinal) + "' -o AddKeysToAgent=yes";
+                    start.Environment["GIT_SSH_COMMAND"] = ssh;
+                }
+            }
 
             // If an SSH private key was provided, sets the environment.
             if (!start.Environment.ContainsKey("GIT_SSH_COMMAND") && !string.IsNullOrEmpty(SSHKey))

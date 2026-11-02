@@ -23,6 +23,16 @@ namespace SourceGit
         [STAThread]
         public static void Main(string[] args)
         {
+            if (args.Length > 1 && args[0] == "--credential-helper")
+            {
+                Environment.Exit(Native.RepositoryCredentials.RunHelper(args[1]));
+                return;
+            }
+            if (args.Length > 0 && args[0] == "--mcp")
+            {
+                Environment.Exit(Automation.McpServer.RunAsync(args).GetAwaiter().GetResult());
+                return;
+            }
             Native.OS.SetupBasicDirectories();
 
             AppDomain.CurrentDomain.UnhandledException += (_, e) =>
@@ -448,6 +458,11 @@ namespace SourceGit
             {
                 var askpass = new Views.Askpass();
                 askpass.TxtDescription.Text = args[0];
+                if (args[0].StartsWith("Username", StringComparison.OrdinalIgnoreCase))
+                {
+                    askpass.TxtPassphrase.PasswordChar = '\0';
+                    askpass.ToggleShowPassword.IsVisible = false;
+                }
                 desktop.MainWindow = askpass;
                 return true;
             }
@@ -499,6 +514,7 @@ namespace SourceGit
 
             _launcher = new ViewModels.Launcher(startupRepo);
             desktop.MainWindow = new Views.Launcher() { DataContext = _launcher };
+            Automation.GuiBridge.Start();
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
             // Fix macOS crash when quiting from Dock
@@ -513,6 +529,7 @@ namespace SourceGit
 
             desktop.Exit += (_, _) =>
             {
+                Automation.GuiBridge.Stop();
                 _ipcChannel?.Dispose();
                 _ipcChannel = null;
             };

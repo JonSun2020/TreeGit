@@ -1,0 +1,544 @@
+is_global = true
+build_property.AvaloniaNameGeneratorIsEnabled = true
+build_property.AvaloniaNameGeneratorBehavior = InitializeComponent
+build_property.AvaloniaNameGeneratorDefaultFieldModifier = internal
+build_property.AvaloniaNameGeneratorFilterByPath = *
+build_property.AvaloniaNameGeneratorFilterByNamespace = *
+build_property.AvaloniaNameGeneratorViewFileNamingStrategy = NamespaceAndClassName
+build_property.AvaloniaNameGeneratorAttachDevTools = true
+build_property.AvaloniaUseCompiledBindingsByDefault = true
+build_property.AvaloniaMainPackageVersion = 11.3.22
+build_property.AvaloniaPreviewerNetCoreToolPath = D:\SunMing\项目\激光传感器平台\output\nuget\avalonia\11.3.22\buildTransitive\\..\tools\netstandard2.0\designer\Avalonia.Designer.HostApp.dll
+build_property.AvaloniaResourcePaths = D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\App.ico,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Fonts\JetBrainsMonoNL-Bold.ttf,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Fonts\JetBrainsMonoNL-Italic.ttf,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Fonts\JetBrainsMonoNL-Regular.ttf,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Grammars\erlang.json,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Grammars\haxe.json,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Grammars\hxml.json,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Grammars\jsp.json,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Grammars\kotlin.json,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Grammars\ocaml.json,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Grammars\ocamllex.json,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Grammars\ocamlyacc.json,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Grammars\swift.json,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Grammars\toml.json,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Grammars\vue.json,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\github.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\unreal.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\beyond_compare.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\codium.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\cursor.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\fleet.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\git.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\kdiff3.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\meld.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\p4merge.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\plastic_merge.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\rider.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\sublime_text.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\tortoise_merge.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\vs-preview.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\vs.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\vscode.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\vscode_insiders.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\win_merge.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\xcode.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\zed.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\JetBrains\AI.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\JetBrains\CL.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\JetBrains\DB.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\JetBrains\DL.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\JetBrains\DS.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\JetBrains\GO.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\JetBrains\IC.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\JetBrains\IU.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\JetBrains\JB.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\JetBrains\PC.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\JetBrains\PS.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\JetBrains\PY.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\JetBrains\QA.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\JetBrains\QD.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\JetBrains\RD.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\JetBrains\RM.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\JetBrains\RR.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\JetBrains\WRS.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ExternalToolIcons\JetBrains\WS.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\alacritty-term.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\cmd.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\cmux.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\custom.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\deepin-terminal.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\foot.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\ghostty.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\git-bash.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\gnome-terminal.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\iterm2.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\kitty.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\konsole.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\lxterminal.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\mac-terminal.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\mate-terminal.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\mux0.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\otty.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\ptyxis.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\pwsh.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\warp.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\wezterm.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\wt.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Images\ShellIcons\xfce4-terminal.png,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\App.ico,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\App.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Fonts.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Icons.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Locales\ca_ES.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Locales\de_DE.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Locales\el_GR.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Locales\en_US.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Locales\es_ES.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Locales\fr_FR.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Locales\he_IL.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Locales\id_ID.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Locales\it_IT.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Locales\ja_JP.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Locales\ko_KR.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Locales\pt_BR.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Locales\ru_RU.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Locales\ta_IN.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Locales\uk_UA.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Locales\zh_CN.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Locales\zh_TW.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Styles.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Resources\Themes.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\About.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\AddRemote.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\AddSubmodule.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\AddToIgnore.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\AddWorktree.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\AIAssistant.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Alert.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Apply.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\ApplyStash.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Archive.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Askpass.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\AssumeUnchangedManager.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\BinaryFileViewer.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Blame.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\BlameCommandPalette.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\BranchSelector.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\BranchTree.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\CaptionButtons.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\ChangeCollectionView.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\ChangeSubmoduleUrl.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\ChangeViewModeSwitcher.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Checkout.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\CheckoutAndFastForward.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\CheckoutAsWorktree.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\CheckoutBranchFromStash.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\CheckoutCommandPalette.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\CheckoutDetached.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\CheckoutRemoteBranchAsWorktree.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\CherryPick.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Cleanup.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\ClearStashes.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Clone.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\CommitBaseInfo.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\CommitChanges.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\CommitDetail.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\CommitDetailStandalone.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\CommitMessageEditor.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\CommitMessageToolBox.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\CommitRelationTracking.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\CommitSearchView.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Compare.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\CompareCommandPalette.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\ConfigureCustomActionControls.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\ConfigureWorkspace.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Confirm.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\ConfirmEmptyCommit.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\ConfirmRestart.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Conflict.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\ConventionalCommitMessageBuilder.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\CreateBranch.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\CreateGroup.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\CreateTag.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\DealWithLocalChangesMethod.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\DeinitSubmodule.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\DeleteBranch.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\DeleteMultipleBranches.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\DeleteMultipleTags.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\DeleteRemote.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\DeleteRepositoryNode.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\DeleteSubmodule.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\DeleteTag.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\DiffView.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\DirHistories.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Discard.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\DropStash.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\EditBranchDescription.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\EditRemote.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\EditRepositoryNode.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\ExecuteCustomAction.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\ExecuteCustomActionCommandPalette.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Fetch.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\FetchInto.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\FileHistories.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\FileHistoryCommandPalette.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\FilterModeInGraph.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\FilterModeSwitchButton.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\GitFlowFinish.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\GitFlowStart.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\GotoRevisionSelector.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Histories.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Hotkeys.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\ImageDiffView.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Init.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\InitGitFlow.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\InteractiveRebase.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Launcher.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\LauncherPage.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\LauncherPagesCommandPalette.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\LauncherTabBar.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\LFSFetch.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\LFSLocks.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\LFSPrune.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\LFSPull.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\LFSPush.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\LFSTrackCustomPattern.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\LoadingIcon.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Merge.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\MergeCommandPalette.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\MergeConflictEditor.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\MergeMultiple.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\MoveRepositoryNode.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\MoveSubmodule.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\OpenFileCommandPalette.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\OpenLocalRepository.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\PopupRunningStatus.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Preferences.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\PruneRemote.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\PruneWorktrees.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Pull.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Push.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\PushRevision.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\PushTag.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\PushToNewBranch.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Rebase.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\RemoteProtocolSwitcher.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\RemoveWorktree.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\RenameBranch.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Repository.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\RepositoryCommandPalette.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\RepositoryConfigure.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\RepositoryToolbar.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Reset.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\ResetWithoutCheckout.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Revert.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\RevisionCompare.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\RevisionCompareStandalone.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\RevisionFileContentViewer.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\RevisionFiles.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\RevisionFileTreeView.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\ScanRepositories.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\SelfUpdate.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\SetPushURL.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\SetSubmoduleBranch.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\SetUpstream.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\SSHKeyHelper.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\StashChanges.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\StashesPage.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Statistics.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\SubmoduleRevisionCompare.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\SubmodulesView.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\TagsView.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\TextDiffView.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\TrustRepository.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\UpdateSubmodules.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\ViewLogs.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\Welcome.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\WelcomeToolbar.axaml,D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\Views\WorkingCopy.axaml
+build_property.MvvmToolkitEnableINotifyPropertyChangingSupport = true
+build_property._MvvmToolkitIsUsingWindowsRuntimePack = false
+build_property.CsWinRTComponent = 
+build_property.CsWinRTAotOptimizerEnabled = 
+build_property.CsWinRTAotWarningLevel = 
+build_property.TargetFramework = net10.0
+build_property.TargetFrameworkIdentifier = .NETCoreApp
+build_property.TargetFrameworkVersion = v10.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = 
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = false
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property.EntryPointFilePath = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = SourceGit
+build_property.ProjectDir = D:\SunMing\项目\激光传感器平台\SourceGit-Sourcetree\src\
+build_property.EnableComHosting = 
+build_property.EnableGeneratedComInterfaceComImportInterop = 
+build_property.EffectiveAnalysisLevelStyle = 10.0
+build_property.EnableCodeStyleSeverity = 
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/App.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Resources/Fonts.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Resources/Icons.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Resources/Locales/ca_ES.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Resources/Locales/de_DE.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Resources/Locales/el_GR.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Resources/Locales/en_US.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Resources/Locales/es_ES.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Resources/Locales/fr_FR.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Resources/Locales/he_IL.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Resources/Locales/id_ID.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Resources/Locales/it_IT.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Resources/Locales/ja_JP.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Resources/Locales/ko_KR.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Resources/Locales/pt_BR.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Resources/Locales/ru_RU.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Resources/Locales/ta_IN.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Resources/Locales/uk_UA.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Resources/Locales/zh_CN.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Resources/Locales/zh_TW.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Resources/Styles.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Resources/Themes.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/About.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/AddRemote.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/AddSubmodule.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/AddToIgnore.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/AddWorktree.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/AIAssistant.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Alert.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Apply.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/ApplyStash.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Archive.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Askpass.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/AssumeUnchangedManager.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/BinaryFileViewer.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Blame.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/BlameCommandPalette.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/BranchSelector.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/BranchTree.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/CaptionButtons.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/ChangeCollectionView.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/ChangeSubmoduleUrl.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/ChangeViewModeSwitcher.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Checkout.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/CheckoutAndFastForward.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/CheckoutAsWorktree.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/CheckoutBranchFromStash.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/CheckoutCommandPalette.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/CheckoutDetached.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/CheckoutRemoteBranchAsWorktree.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/CherryPick.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Cleanup.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/ClearStashes.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Clone.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/CommitBaseInfo.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/CommitChanges.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/CommitDetail.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/CommitDetailStandalone.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/CommitMessageEditor.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/CommitMessageToolBox.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/CommitRelationTracking.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/CommitSearchView.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Compare.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/CompareCommandPalette.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/ConfigureCustomActionControls.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/ConfigureWorkspace.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Confirm.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/ConfirmEmptyCommit.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/ConfirmRestart.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Conflict.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/ConventionalCommitMessageBuilder.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/CreateBranch.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/CreateGroup.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/CreateTag.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/DealWithLocalChangesMethod.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/DeinitSubmodule.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/DeleteBranch.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/DeleteMultipleBranches.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/DeleteMultipleTags.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/DeleteRemote.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/DeleteRepositoryNode.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/DeleteSubmodule.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/DeleteTag.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/DiffView.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/DirHistories.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Discard.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/DropStash.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/EditBranchDescription.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/EditRemote.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/EditRepositoryNode.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/ExecuteCustomAction.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/ExecuteCustomActionCommandPalette.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Fetch.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/FetchInto.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/FileHistories.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/FileHistoryCommandPalette.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/FilterModeInGraph.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/FilterModeSwitchButton.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/GitFlowFinish.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/GitFlowStart.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/GotoRevisionSelector.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Histories.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Hotkeys.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/ImageDiffView.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Init.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/InitGitFlow.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/InteractiveRebase.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Launcher.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/LauncherPage.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/LauncherPagesCommandPalette.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/LauncherTabBar.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/LFSFetch.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/LFSLocks.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/LFSPrune.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/LFSPull.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/LFSPush.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/LFSTrackCustomPattern.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/LoadingIcon.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Merge.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/MergeCommandPalette.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/MergeConflictEditor.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/MergeMultiple.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/MoveRepositoryNode.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/MoveSubmodule.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/OpenFileCommandPalette.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/OpenLocalRepository.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/PopupRunningStatus.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Preferences.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/PruneRemote.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/PruneWorktrees.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Pull.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Push.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/PushRevision.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/PushTag.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/PushToNewBranch.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Rebase.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/RemoteProtocolSwitcher.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/RemoveWorktree.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/RenameBranch.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Repository.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/RepositoryCommandPalette.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/RepositoryConfigure.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/RepositoryToolbar.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Reset.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/ResetWithoutCheckout.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Revert.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/RevisionCompare.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/RevisionCompareStandalone.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/RevisionFileContentViewer.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/RevisionFiles.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/RevisionFileTreeView.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/ScanRepositories.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/SelfUpdate.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/SetPushURL.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/SetSubmoduleBranch.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/SetUpstream.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/SSHKeyHelper.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/StashChanges.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/StashesPage.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Statistics.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/SubmoduleRevisionCompare.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/SubmodulesView.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/TagsView.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/TextDiffView.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/TrustRepository.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/UpdateSubmodules.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/ViewLogs.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/Welcome.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/WelcomeToolbar.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/SunMing/项目/激光传感器平台/SourceGit-Sourcetree/src/Views/WorkingCopy.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
