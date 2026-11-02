@@ -28,4 +28,6 @@ values=[('Clone','Clone','克隆'),('Open','Open','打开'),('Terminal','Termina
 for p in (root/'Resources/Locales').glob('*.axaml'):
     s=p.read_text(encoding='utf-8-sig')
     text=''.join(f'  <x:String x:Key="Text.Toolbar.{key}">{zh if p.stem in ("zh_CN","zh_TW") else en}</x:String>\n' for key,en,zh in values if f'Text.Toolbar.{key}"' not in s)
+    if 'Text.Clone.CredentialManager"' not in s:
+        text += '  <x:String x:Key="Text.Clone.CredentialManager">'+('使用系统认证 / OAuth' if p.stem in ('zh_CN','zh_TW') else 'Use system authentication / OAuth')+'</x:String>\n'
     p.write_text(s.replace('</ResourceDictionary>',text+'</ResourceDictionary>'),encoding='utf-8')

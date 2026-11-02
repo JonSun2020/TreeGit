@@ -95,6 +95,7 @@ namespace SourceGit.Automation
                         application = "SourceGit",
                         mcp = "server",
                         writesRequire = "--allow-write",
+                        activePage = new { kind = launcher.ActivePage.Data.GetType().Name, pendingDialog = launcher.ActivePage.Popup?.GetType().Name, notifications = launcher.ActivePage.Notifications.Count },
                         dialogs = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).Windows
                             .Where(w => w != ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow && w.IsVisible)
                             .Select(w => new { title = w.Title, type = w.GetType().Name }).ToArray(),
@@ -147,6 +148,11 @@ namespace SourceGit.Automation
                             page.ClearNotifications();
                         return (object)new { cleared = true };
                     }
+                    if (uiCommand == "cancel_popup" && !args.TryGetProperty("repo", out _))
+                    {
+                        App.GetLauncher().ActivePage.CancelPopup();
+                        return (object)new { cancelled = App.GetLauncher().ActivePage.Popup == null };
+                    }
                     if (dialog != null)
                         throw new InvalidOperationException("Close the current dialog before opening another one.");
                     if (uiCommand == "mcp_connection")
@@ -195,6 +201,7 @@ namespace SourceGit.Automation
                     var clone = new ViewModels.Clone(page.Node.Id)
                     {
                         Remote = url, ParentFolder = parent, Local = Path.GetFileName(destination), SSHKey = key,
+                        UseCredentialManager = Flag(args, "credentialManager"),
                         InitAndUpdateSubmodules = !args.TryGetProperty("recursive", out var recursive) || recursive.GetBoolean(),
                     };
                     if (!clone.Check())
@@ -203,7 +210,7 @@ namespace SourceGit.Automation
                     await page.ProcessPopupAsync();
                     return (object)new { isSuccess = page.Popup == null && Directory.Exists(destination), repo = destination };
                 });
-                return await cloneTask.ConfigureAwait(false);
+                return cloneTask;
             }
 
             if (name == "ui_window")
@@ -557,14 +564,17 @@ namespace SourceGit.Automation
                 RaiseError = false;
             }
 
-            public async Task<Result> RunAsync()
+            public async Task<Result> RunAsync(bool allowAuthenticationRetry = true)
             {
                 using var process = new System.Diagnostics.Process { StartInfo = CreateGitStartInfo(true) };
                 process.Start();
                 var stdout = ReadCappedAsync(process.StandardOutput);
                 var stderr = ReadCappedAsync(process.StandardError);
                 await Task.WhenAll(stdout, stderr, process.WaitForExitAsync()).ConfigureAwait(false);
-                return new Result { IsSuccess = process.ExitCode == 0, StdOut = stdout.Result, StdErr = stderr.Result };
+                var result = new Result { IsSuccess = process.ExitCode == 0, StdOut = stdout.Result, StdErr = stderr.Result };
+                if (!result.IsSuccess && allowAuthenticationRetry && OperatingSystem.IsWindows() && Native.RepositoryCredentials.IsAuthenticationFailure(result.StdErr))
+                    return await RunAsync(false).ConfigureAwait(false);
+                return result;
             }
 
             private static async Task<string> ReadCappedAsync(StreamReader reader)

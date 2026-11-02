@@ -29,6 +29,7 @@ namespace SourceGit.Commands
         public string Context { get; set; } = string.Empty;
         public string WorkingDirectory { get; set; } = null;
         public string CredentialScope { get; set; } = null;
+        public bool? UseCredentialManager { get; set; } = null;
         public EditorType Editor { get; set; } = EditorType.CoreEditor;
         public string SSHKey { get; set; } = string.Empty;
         public string Args { get; set; } = string.Empty;
@@ -38,7 +39,9 @@ namespace SourceGit.Commands
         public bool RaiseError { get; set; } = true;
         public Models.ICommandLog Log { get; set; } = null;
 
-        public async Task<bool> ExecAsync()
+        public Task<bool> ExecAsync() => ExecAsync(true);
+
+        private async Task<bool> ExecAsync(bool allowAuthenticationRetry)
         {
             Log?.AppendLine($"$ git {Args}\n");
 
@@ -98,9 +101,16 @@ namespace SourceGit.Commands
 
             if (!CancellationToken.IsCancellationRequested && proc.ExitCode != 0)
             {
+                var errMsg = string.Join("\n", errs).Trim();
+                // Git rejects/erases an invalid HTTP credential before returning this
+                // error. Retry once so the normal askpass flow can request a replacement.
+                if (allowAuthenticationRetry && OperatingSystem.IsWindows() && Native.RepositoryCredentials.IsAuthenticationFailure(errMsg))
+                {
+                    Log?.AppendLine("Authentication was rejected; requesting updated credentials.");
+                    return await ExecAsync(false).ConfigureAwait(false);
+                }
                 if (RaiseError)
                 {
-                    var errMsg = string.Join("\n", errs).Trim();
                     if (!string.IsNullOrEmpty(errMsg))
                         RaiseException(errMsg);
                 }
@@ -170,7 +180,7 @@ namespace SourceGit.Commands
             if (OperatingSystem.IsWindows())
             {
                 builder.Append("-c credential.helper= -c credential.useHttpPath=true -c http.sslBackend=openssl ");
-                if (Native.RepositoryCredentials.UsesCredentialManager(CredentialScope ?? WorkingDirectory))
+                if (UseCredentialManager ?? Native.RepositoryCredentials.UsesCredentialManager(CredentialScope ?? WorkingDirectory))
                     builder.Append("-c ").Append(("credential.helper=" + Native.OS.CredentialHelper).Quoted()).Append(' ');
                 else
                 {

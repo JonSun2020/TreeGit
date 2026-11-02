@@ -12,9 +12,11 @@ $env:DOTNET_SKIP_FIRST_TIME_EXPERIENCE = '1'
 & (Join-Path $sdk 'dotnet.exe') publish (Join-Path $repo 'src/SourceGit.csproj') -c Release -r win-x64 --self-contained true -p:DisableAOT=true -o $Destination
 if ($LASTEXITCODE -ne 0) { throw 'SourceGit publish failed' }
 New-Item -ItemType Directory -Force (Join-Path $Destination 'data') | Out-Null
-$gitSource = Join-Path $workspace 'output/BranchDesk/release/git'
+$gitSource = Join-Path $workspace 'output/portablegit-full'
+if (-not (Test-Path -LiteralPath (Join-Path $gitSource 'git-bash.exe'))) { throw 'Prepared PortableGit distribution is missing' }
 New-Item -ItemType Directory -Force (Join-Path $Destination 'git') | Out-Null
-Copy-Item -Path (Join-Path $gitSource '*') -Destination (Join-Path $Destination 'git') -Recurse -Force
+& robocopy $gitSource (Join-Path $Destination 'git') /E /MT:16 /R:1 /W:1 /NFL /NDL /NJH /NJS /NP
+if ($LASTEXITCODE -ge 8) { throw 'Portable Git copy failed' }
 # Explicit Git path interpolation avoids the bundled libcurl default CA path's
 # Unicode conversion failure. System config stays below user/repository CA overrides.
 [System.IO.File]::AppendAllText((Join-Path $Destination 'git/etc/gitconfig'), "`n[http]`n`tsslCAInfo = %(prefix)/etc/ssl/certs/ca-bundle.crt`n", [System.Text.UTF8Encoding]::new($false))
@@ -26,6 +28,6 @@ $mcp = @{mcpServers=@{sourcegit=@{command=(Join-Path $Destination 'SourceGit.exe
 $mcp | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 (Join-Path $Destination 'mcp-readonly.json')
 $mcp.mcpServers.sourcegit.args = @('--mcp','--allow-write')
 $mcp | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 (Join-Path $Destination 'mcp-readwrite.json')
-$manifest = @{built=(Get-Date -Format o);upstream='c0f40a2e78d81a7474628847727644fc0c56f558';local=(git -C $repo rev-parse HEAD);runtime='win-x64 self-contained .NET 10';files=@(Get-ChildItem -LiteralPath $Destination -File | ForEach-Object {@{name=$_.Name;sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash}})}
+$manifest = @{built=(Get-Date -Format o);upstream='c0f40a2e78d81a7474628847727644fc0c56f558';local=(git -C $repo rev-parse HEAD);runtime='win-x64 self-contained .NET 10';components=@{git='2.56.0.windows.4';openssh='10.6p1';openssl='3.5.9';lfs='3.8.1';gitflow='2.1.0'};files=@(Get-ChildItem -LiteralPath $Destination -File | Where-Object {$_.Name -ne 'build-manifest.json'} | ForEach-Object {@{name=$_.Name;sha256=(Get-FileHash -LiteralPath $_.FullName -Algorithm SHA256).Hash}})}
 $manifest | ConvertTo-Json -Depth 8 | Set-Content -Encoding UTF8 (Join-Path $Destination 'build-manifest.json')
 Write-Output "Portable build ready: $Destination"

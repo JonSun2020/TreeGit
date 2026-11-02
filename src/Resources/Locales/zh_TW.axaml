@@ -1113,4 +1113,5 @@
   <x:String x:Key="Text.Toolbar.Scan">扫描仓库</x:String>
   <x:String x:Key="Text.Toolbar.History">历史</x:String>
   <x:String x:Key="Text.Toolbar.Files">文件状态</x:String>
+  <x:String x:Key="Text.Clone.CredentialManager">使用系统认证 / OAuth</x:String>
 </ResourceDictionary>

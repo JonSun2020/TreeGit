@@ -62,6 +62,7 @@ namespace SourceGit.Automation
                     ["destination"] = Field("Absolute path of a new repository directory."),
                     ["recursive"] = Field("Initialize submodules after cloning (default true).", "boolean"),
                     ["sshKey"] = Field("Optional absolute SSH private key path; passphrase is entered through the normal dialog."),
+                    ["credentialManager"] = Field("Use the original system/OAuth authentication flow for this clone and resulting repository (default false).", "boolean"),
                 }, ["url", "destination"]));
                 tools.Add(Tool("git_action", "Perform an explicit Git operation in the selected GUI repository and refresh its UI. No arbitrary shell command, force push or hard reset is accepted. Hooks configured by the repository still execute. Commit uses already staged files. Remote authentication uses the application's normal dialogs and per-repository credentials.", new()
                 {

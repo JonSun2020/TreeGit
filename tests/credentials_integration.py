@@ -84,7 +84,12 @@ try:
         fetched=call('tools/call',{'name':'git_action','arguments':{'repo':str(repo),'action':'fetch'}})
         assert not fetched.get('isError'),fetched
         assert f'username={user}' in helper(repo,'get')
-    assert seen == ['alice','bob'],seen
+        if prompt_mode and user=='alice':
+            helper(repo,'store',user,'expired-test-secret')
+            retry=call('tools/call',{'name':'git_action','arguments':{'repo':str(repo),'action':'fetch'}})
+            assert not retry.get('isError'),retry
+            assert 'password=alpha-test' in helper(repo,'get')
+    assert seen == (['alice','alice','bob'] if prompt_mode else ['alice','bob']),seen
     p.stdin.close()
     p.wait(timeout=10)
     assert p.returncode == 0
@@ -94,8 +99,9 @@ try:
     result={'windows_vault_roundtrip':True,'same_server_different_repository_accounts':seen,'actual_gui_git_fetch_authentication':True,'erase':True}
     if prompt_mode:
         events=Path(str(fixture)+'.events').read_text(encoding='utf-8').splitlines()
-        assert events.count('username-dialog') == 2 and events.count('password-dialog') == 2,events
+        assert events.count('username-dialog') == 3 and events.count('password-dialog') == 3,events
         result['automatic_missing_credential_dialog']=events
+        result['expired_credential_reprompts_and_retries']=True
     else:
         result.update(username_mismatch_ignored=True,different_remote_path_isolated=True)
     (artifacts/('credentials-prompt-results.json' if prompt_mode else 'credentials-results.json')).write_text(json.dumps(result,indent=2),encoding='utf-8')

@@ -29,6 +29,12 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _useSSH, value);
         }
 
+        public bool UseCredentialManager
+        {
+            get => _useCredentialManager;
+            set => SetProperty(ref _useCredentialManager, value);
+        }
+
         public string SSHKey
         {
             get => _sshKey;
@@ -126,7 +132,7 @@ namespace SourceGit.ViewModels
             _cancellation = new CancellationTokenSource();
             var token = _cancellation.Token;
 
-            var succ = await new Commands.Clone(_pageId, _parentFolder, _remote, _local, _useSSH ? _sshKey : "", _extraArgs)
+            var succ = await new Commands.Clone(_pageId, _parentFolder, _remote, _local, _useSSH ? _sshKey : "", _extraArgs) { UseCredentialManager = _useCredentialManager }
                 .WithCancellation(token)
                 .Use(log)
                 .ExecAsync();
@@ -160,6 +166,12 @@ namespace SourceGit.ViewModels
                 await new Commands.Config(path)
                     .Use(log)
                     .SetAsync("remote.origin.sshkey", _sshKey);
+            }
+
+            if (!_useSSH && _useCredentialManager)
+            {
+                await new Commands.Config(path).Use(log).SetAsync("sourcegit.credentialmanager", "true");
+                Native.RepositoryCredentials.SetCredentialManagerMode(path, true);
             }
 
             if (InitAndUpdateSubmodules && !token.IsCancellationRequested)
@@ -238,6 +250,7 @@ namespace SourceGit.ViewModels
         private string _pageId = string.Empty;
         private string _remote = string.Empty;
         private bool _useSSH = false;
+        private bool _useCredentialManager = false;
         private string _sshKey = string.Empty;
         private string _parentFolder = string.Empty;
         private string _defaultCloneDir = string.Empty;

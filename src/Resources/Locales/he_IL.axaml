@@ -1003,4 +1003,5 @@
   <x:String x:Key="Text.Toolbar.Scan">Scan</x:String>
   <x:String x:Key="Text.Toolbar.History">History</x:String>
   <x:String x:Key="Text.Toolbar.Files">File status</x:String>
+  <x:String x:Key="Text.Clone.CredentialManager">Use system authentication / OAuth</x:String>
 </ResourceDictionary>

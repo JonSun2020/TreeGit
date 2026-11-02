@@ -13,6 +13,9 @@ namespace SourceGit.Native
     // No passwords are written into repository config, portable data, logs or MCP output.
     internal static class RepositoryCredentials
     {
+        public static bool IsAuthenticationFailure(string output)
+            => output?.Contains("Authentication failed", StringComparison.OrdinalIgnoreCase) == true;
+
         private static readonly ConcurrentDictionary<string, bool> _managerModes = new(StringComparer.OrdinalIgnoreCase);
 
         public static bool UsesCredentialManager(string repo)
