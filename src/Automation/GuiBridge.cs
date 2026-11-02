@@ -92,6 +92,9 @@ namespace SourceGit.Automation
                     return (object)new
                     {
                         application = "SourceGit", mcp = "server", writesRequire = "--allow-write",
+                        dialogs = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).Windows
+                            .Where(w => w != ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow && w.IsVisible)
+                            .Select(w => new { title = w.Title, type = w.GetType().Name }).ToArray(),
                         repositories = launcher.Pages.Where(p => p.Data is ViewModels.Repository).Select(p =>
                         {
                             var r = (ViewModels.Repository)p.Data;
@@ -105,6 +108,8 @@ namespace SourceGit.Automation
                 {
                     var lifetime = (IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime;
                     var window = lifetime.MainWindow;
+                    if (args.TryGetProperty("window", out var target) && target.GetString() == "active")
+                        window = lifetime.Windows.LastOrDefault(w => w.IsVisible && w != lifetime.MainWindow) ?? window;
                     var width = Math.Max(1, (int)window.Bounds.Width);
                     var height = Math.Max(1, (int)window.Bounds.Height);
                     using var image = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96));
@@ -113,6 +118,42 @@ namespace SourceGit.Automation
                     image.Save(stream);
                     return (object)new { png = Convert.ToBase64String(stream.ToArray()), width, height };
                 });
+
+            if (name == "ui_command")
+            {
+                var command = Text(args, "command");
+                var globalResult = await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    var lifetime = (IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime;
+                    var dialog = lifetime.Windows.LastOrDefault(w => w.IsVisible && w != lifetime.MainWindow);
+                    if (command == "close_dialog")
+                    {
+                        dialog?.Close();
+                        return (object)new { closed = dialog != null };
+                    }
+                    if (command == "clear_notifications")
+                    {
+                        foreach (var page in App.GetLauncher().Pages)
+                            page.ClearNotifications();
+                        return (object)new { cleared = true };
+                    }
+                    if (dialog != null)
+                        throw new InvalidOperationException("Close the current dialog before opening another one.");
+                    if (command == "mcp_connection")
+                    {
+                        App.OpenMcpConnectionCommand.Execute(null);
+                        return (object)new { opened = command };
+                    }
+                    if (command == "preferences")
+                    {
+                        App.OpenPreferencesCommand.Execute(null);
+                        return (object)new { opened = command };
+                    }
+                    return null;
+                });
+                if (globalResult != null)
+                    return globalResult;
+            }
 
             if (name == "ui_window")
                 return await Dispatcher.UIThread.InvokeAsync(() =>
@@ -154,6 +195,35 @@ namespace SourceGit.Automation
                 launcher.ActivePage = page;
                 return found;
             });
+
+            if (name == "ui_command")
+                return await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    var command = Text(args, "command");
+                    var page = App.GetLauncher().ActivePage;
+                    if (command == "cancel_popup")
+                    {
+                        page.CancelPopup();
+                        return (object)new { cancelled = page.Popup == null };
+                    }
+                    if (page.Popup != null)
+                        throw new InvalidOperationException("Finish or cancel the current repository dialog first.");
+                    var owner = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow;
+                    switch (command)
+                    {
+                        case "repository_settings": _ = new Views.RepositoryConfigure { DataContext = new ViewModels.RepositoryConfigure(repo) }.ShowDialog(owner); break;
+                        case "credentials": _ = new Views.RepositoryCredentials(repo).ShowDialog(owner); break;
+                        case "create_branch": repo.CreateNewBranch(); break;
+                        case "create_tag": repo.CreateNewTag(); break;
+                        case "fetch_dialog": _ = repo.FetchAsync(false); break;
+                        case "pull_dialog": _ = repo.PullAsync(false); break;
+                        case "push_dialog": _ = repo.PushAsync(false); break;
+                        case "stash_dialog": _ = repo.StashAllAsync(false); break;
+                        case "apply_patch": repo.ApplyPatch(); break;
+                        default: throw new ArgumentException("Unknown GUI command.");
+                    }
+                    return (object)new { opened = command, repo = path };
+                });
 
             if (name == "ui_select_view")
             {
@@ -208,7 +278,9 @@ namespace SourceGit.Automation
                         var recovery = action is "stage" or "unstage" or "commit" || action.EndsWith("_abort", StringComparison.Ordinal) || action.EndsWith("_continue", StringComparison.Ordinal);
                         await Dispatcher.UIThread.InvokeAsync(() =>
                         {
-                            if (App.GetLauncher().ActivePage.Popup != null || (repo.InProgressContext != null && !recovery))
+                            var inProgress = new[] { "MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD" }.Any(f => File.Exists(Path.Combine(repo.GitDir, f))) ||
+                                Directory.Exists(Path.Combine(repo.GitDir, "rebase-merge")) || Directory.Exists(Path.Combine(repo.GitDir, "rebase-apply"));
+                            if (App.GetLauncher().ActivePage.Popup != null || (inProgress && !recovery))
                                 throw new InvalidOperationException("Finish the current SourceGit dialog/operation before starting another Git action.");
                         });
                         switch (action)
@@ -260,10 +332,16 @@ namespace SourceGit.Automation
                 ViewModels.CommandLog log = null;
                 if (write)
                 {
-                    log = await Dispatcher.UIThread.InvokeAsync(() => repo.CreateLog("MCP · " + Text(args, "action")));
+                    log = await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        repo.McpActivity = "MCP · " + Text(args, "action") + " …";
+                        return repo.CreateLog("MCP · " + Text(args, "action"));
+                    });
                     log.AppendLine("$ git " + Redact(command));
                 }
-                var result = await query.RunAsync().ConfigureAwait(false);
+                Commands.Command.Result result;
+                try { result = await query.RunAsync().ConfigureAwait(false); }
+                catch (Exception ex) { result = Commands.Command.Result.Failed(ex.Message); }
                 if (write)
                 {
                     log.AppendLine(Redact(result.StdOut));
@@ -272,7 +350,7 @@ namespace SourceGit.Automation
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         repo.RefreshAll();
-                        repo.SendNotification("MCP · " + Text(args, "action") + (result.IsSuccess ? " ✓" : " failed; see command log"), !result.IsSuccess);
+                        repo.McpActivity = "MCP · " + Text(args, "action") + (result.IsSuccess ? " ✓" : " ✕ · 查看命令日志");
                     });
                 }
                 var stdout = Redact(result.StdOut);

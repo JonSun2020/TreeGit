@@ -21,7 +21,7 @@ namespace SourceGit.Automation
         internal static readonly HashSet<string> ReadTools = new(StringComparer.Ordinal)
         { "ui_state", "ui_screenshot", "git_status", "git_log", "git_diff", "git_refs", "git_show" };
         internal static readonly HashSet<string> UiTools = new(StringComparer.Ordinal)
-        { "ui_open_repository", "ui_select_view", "ui_select_commit", "ui_refresh", "ui_window" };
+        { "ui_open_repository", "ui_select_view", "ui_select_commit", "ui_refresh", "ui_window", "ui_command" };
 
         private static object Field(string description, string type = "string", string[] values = null)
             => values == null ? new { type, description } : (object)new { type, description, @enum = values };
@@ -40,12 +40,13 @@ namespace SourceGit.Automation
             var tools = new List<object>
             {
                 Tool("ui_state", "Inspect the running SourceGit application's repository tabs, selected view, branch and pending dialog.", []),
-                Tool("ui_screenshot", "Capture the running SourceGit window as a PNG image.", []),
+                Tool("ui_screenshot", "Capture the running SourceGit window or its open dialog as a PNG image.", new() { ["window"] = Field("Window to capture (default main).", values: ["main", "active"]) }),
                 Tool("ui_open_repository", "Open or activate a local Git repository in the SourceGit GUI. Does not initialize a repository.", new() { ["repo"] = repo }, ["repo"]),
                 Tool("ui_select_view", "Select history, working copy or stashes in the SourceGit GUI.", new() { ["repo"] = repo, ["view"] = Field("View to display.", values: ["history", "working_copy", "stashes"]) }, ["repo", "view"]),
                 Tool("ui_select_commit", "Navigate to a commit in SourceGit's history and details view.", new() { ["repo"] = repo, ["revision"] = Field("Commit hash or reference.") }, ["repo", "revision"]),
                 Tool("ui_refresh", "Refresh the repository's branches, history, files, stashes, submodules and worktrees in the GUI.", new() { ["repo"] = repo }, ["repo"]),
                 Tool("ui_window", "Adjust the desktop window size or select an existing SourceGit theme. All are optional; saved theme preference is updated when supplied.", new() { ["width"] = Field("Window width, 1024 to 3840.", "integer"), ["height"] = Field("Window height, 640 to 2160.", "integer"), ["theme"] = Field("SourceGit theme.", values: ["Light", "Dark", "Default"]) }),
+                Tool("ui_command", "Open SourceGit's original dialogs or dismiss notifications. No Git operation is submitted by this tool. Repository commands require repo. Opening another dialog is rejected while one is already open.", new() { ["repo"] = repo, ["command"] = Field("GUI command.", values: ["mcp_connection", "preferences", "repository_settings", "credentials", "clear_notifications", "close_dialog", "create_branch", "create_tag", "fetch_dialog", "pull_dialog", "push_dialog", "stash_dialog", "apply_patch", "cancel_popup"]) }, ["command"]),
                 Tool("git_status", "Read tracked/untracked changes and branch status. Never returns saved credentials.", new() { ["repo"] = repo }, ["repo"]),
                 Tool("git_log", "Read recent commits with graph and references.", new() { ["repo"] = repo, ["count"] = Field("Maximum commits, 1 to 500 (default 50).", "integer"), ["all"] = Field("Include all branches.", "boolean") }, ["repo"]),
                 Tool("git_diff", "Read staged or unstaged textual diff, optionally restricted to repository-relative paths.", new() { ["repo"] = repo, ["staged"] = Field("Read staged changes.", "boolean"), ["paths"] = new { type = "array", items = new { type = "string" } } }, ["repo"]),
@@ -63,6 +64,46 @@ namespace SourceGit.Automation
                     ["remote"] = Field("Configured remote name (defaults to origin)."),
                 }, ["repo", "action"]));
             return tools.ToArray();
+        }
+
+        private sealed class RpcException(int code, string message) : Exception(message)
+        {
+            public int Code { get; } = code;
+        }
+
+        private static void ValidateTool(string name, JsonElement arguments, bool allowWrite)
+        {
+            var tools = JsonSerializer.SerializeToElement(Tools(allowWrite));
+            var tool = tools.EnumerateArray().FirstOrDefault(t => t.GetProperty("name").GetString() == name);
+            if (tool.ValueKind == JsonValueKind.Undefined)
+                throw new RpcException(-32602, "Unknown or disabled tool. Git writes require --allow-write.");
+            if (arguments.ValueKind != JsonValueKind.Object)
+                throw new RpcException(-32602, "arguments must be an object.");
+            var schema = tool.GetProperty("inputSchema");
+            foreach (var required in schema.GetProperty("required").EnumerateArray())
+            {
+                if (!arguments.TryGetProperty(required.GetString(), out _))
+                    throw new RpcException(-32602, "Missing required argument: " + required.GetString());
+            }
+            var properties = schema.GetProperty("properties");
+            foreach (var argument in arguments.EnumerateObject())
+            {
+                if (!properties.TryGetProperty(argument.Name, out var property))
+                    throw new RpcException(-32602, "Unknown argument: " + argument.Name);
+                var type = property.GetProperty("type").GetString();
+                var valid = type switch
+                {
+                    "string" => argument.Value.ValueKind == JsonValueKind.String,
+                    "integer" => argument.Value.ValueKind == JsonValueKind.Number && argument.Value.TryGetInt32(out _),
+                    "boolean" => argument.Value.ValueKind is JsonValueKind.True or JsonValueKind.False,
+                    "array" => argument.Value.ValueKind == JsonValueKind.Array && argument.Value.EnumerateArray().All(v => v.ValueKind == JsonValueKind.String),
+                    _ => false,
+                };
+                if (!valid)
+                    throw new RpcException(-32602, "Invalid argument type: " + argument.Name);
+                if (property.TryGetProperty("enum", out var options) && !options.EnumerateArray().Any(v => v.GetString() == argument.Value.GetString()))
+                    throw new RpcException(-32602, "Invalid argument value: " + argument.Name);
+            }
         }
 
         public static async Task<int> RunAsync(string[] args)
@@ -84,6 +125,11 @@ namespace SourceGit.Automation
                     var request = document.RootElement;
                     hasId = request.TryGetProperty("id", out id);
                     id = hasId ? id.Clone() : default;
+                    if (hasId && id.ValueKind is not (JsonValueKind.String or JsonValueKind.Number or JsonValueKind.Null))
+                    {
+                        hasId = false;
+                        throw new ArgumentException("Invalid request id.");
+                    }
                     if (!request.TryGetProperty("jsonrpc", out var version) || version.GetString() != "2.0" || !request.TryGetProperty("method", out var methodElement))
                         throw new ArgumentException("Invalid JSON-RPC 2.0 request.");
                     var method = methodElement.GetString();
@@ -107,9 +153,8 @@ namespace SourceGit.Automation
                             {
                                 var p = request.GetProperty("params");
                                 var name = p.GetProperty("name").GetString();
-                                if (!ReadTools.Contains(name ?? "") && !UiTools.Contains(name ?? "") && !(name == "git_action" && allowWrite))
-                                    throw new ArgumentException("Unknown or disabled tool. Git writes require --allow-write.");
                                 var arguments = p.TryGetProperty("arguments", out var a) ? a.Clone() : JsonSerializer.SerializeToElement(new { });
+                                ValidateTool(name, arguments, allowWrite);
                                 var data = await SendAsync(new { name, arguments, allowWrite }).ConfigureAwait(false);
                                 if (data.TryGetProperty("error", out var error))
                                     throw new InvalidOperationException(error.GetString());
@@ -118,6 +163,7 @@ namespace SourceGit.Automation
                                 else
                                     result = new { content = new[] { new { type = "text", text = data.GetRawText() } }, isError = data.TryGetProperty("isSuccess", out var success) && !success.GetBoolean() };
                             }
+                            catch (RpcException) { throw; }
                             catch (Exception ex)
                             {
                                 result = new { content = new[] { new { type = "text", text = ex.Message } }, isError = true };
@@ -133,6 +179,10 @@ namespace SourceGit.Automation
                 catch (JsonException)
                 {
                     response = new { jsonrpc = "2.0", id = (object)null, error = new { code = -32700, message = "Parse error" } };
+                }
+                catch (RpcException ex)
+                {
+                    response = new { jsonrpc = "2.0", id = hasId ? (object)id : null, error = new { code = ex.Code, message = ex.Message } };
                 }
                 catch (Exception ex)
                 {

@@ -14,6 +14,14 @@ namespace SourceGit.ViewModels
 {
     public class Repository : ObservableObject, Models.IRepository
     {
+        public string McpActivity
+        {
+            get => _mcpActivity;
+            set => SetProperty(ref _mcpActivity, value);
+        }
+
+        private string _mcpActivity = string.Empty;
+
         public bool IsBare
         {
             get;
