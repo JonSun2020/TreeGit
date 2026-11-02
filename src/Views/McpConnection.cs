@@ -24,7 +24,7 @@ namespace SourceGit.Views
                 TextWrapping = TextWrapping.Wrap,
             });
             var write = new CheckBox { Content = "在此连接配置中启用 Git 读写操作" };
-            var configuration = new TextBox { IsReadOnly = true, AcceptsReturn = true, Height = 235, FontFamily = new FontFamily("Cascadia Mono,Consolas"), FontSize = 12, TextWrapping = TextWrapping.Wrap };
+            var configuration = new TextBox { IsReadOnly = true, AcceptsReturn = true, Height = 235, VerticalContentAlignment = VerticalAlignment.Top, FontFamily = new FontFamily("Cascadia Mono,Consolas"), FontSize = 12, TextWrapping = TextWrapping.Wrap };
             void Update() => configuration.Text = JsonSerializer.Serialize(new
             {
                 mcpServers = new

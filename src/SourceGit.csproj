@@ -39,6 +39,7 @@
   </PropertyGroup>
   <ItemGroup Condition="'$(EnableIntegrationTests)' == 'true'">
     <Compile Include="../tests/AskpassProbe.cs" />
+    <Compile Include="../tests/UpstreamProbe.cs" />
   </ItemGroup>
 
   <ItemGroup>

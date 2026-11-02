@@ -29,9 +29,10 @@ namespace SourceGit.Automation
         private static object Tool(string name, string description, Dictionary<string, object> properties, string[] required = null)
             => new
             {
-                name, description,
+                name,
+                description,
                 inputSchema = new { type = "object", properties, required = required ?? [], additionalProperties = false },
-                annotations = new { readOnlyHint = ReadTools.Contains(name), destructiveHint = name == "git_action", idempotentHint = name != "git_action", openWorldHint = name == "git_action" },
+                annotations = new { readOnlyHint = ReadTools.Contains(name), destructiveHint = name == "git_action", idempotentHint = name is not ("git_action" or "git_clone"), openWorldHint = name is "git_action" or "git_clone" },
             };
 
         private static object[] Tools(bool allowWrite)
@@ -45,7 +46,7 @@ namespace SourceGit.Automation
                 Tool("ui_select_view", "Select history, working copy or stashes in the SourceGit GUI.", new() { ["repo"] = repo, ["view"] = Field("View to display.", values: ["history", "working_copy", "stashes"]) }, ["repo", "view"]),
                 Tool("ui_select_commit", "Navigate to a commit in SourceGit's history and details view.", new() { ["repo"] = repo, ["revision"] = Field("Commit hash or reference.") }, ["repo", "revision"]),
                 Tool("ui_refresh", "Refresh the repository's branches, history, files, stashes, submodules and worktrees in the GUI.", new() { ["repo"] = repo }, ["repo"]),
-                Tool("ui_window", "Adjust the desktop window size or select an existing SourceGit theme. All are optional; saved theme preference is updated when supplied.", new() { ["width"] = Field("Window width, 1024 to 3840.", "integer"), ["height"] = Field("Window height, 640 to 2160.", "integer"), ["theme"] = Field("SourceGit theme.", values: ["Light", "Dark", "Default"]) }),
+                Tool("ui_window", "Adjust the desktop window size, theme or working-copy branch sidebar. All are optional; supplied preferences are saved.", new() { ["width"] = Field("Window width, 1024 to 3840.", "integer"), ["height"] = Field("Window height, 640 to 2160.", "integer"), ["theme"] = Field("SourceGit theme.", values: ["Light", "Dark", "Default"]), ["collapseBranches"] = Field("Collapse branch groups in the working-copy view, retaining compact workspace navigation.", "boolean") }),
                 Tool("ui_command", "Open SourceGit's original dialogs or dismiss notifications. No Git operation is submitted by this tool. Repository commands require repo. Opening another dialog is rejected while one is already open.", new() { ["repo"] = repo, ["command"] = Field("GUI command.", values: ["mcp_connection", "preferences", "repository_settings", "credentials", "clear_notifications", "close_dialog", "create_branch", "create_tag", "fetch_dialog", "pull_dialog", "push_dialog", "stash_dialog", "apply_patch", "cancel_popup"]) }, ["command"]),
                 Tool("git_status", "Read tracked/untracked changes and branch status. Never returns saved credentials.", new() { ["repo"] = repo }, ["repo"]),
                 Tool("git_log", "Read recent commits with graph and references.", new() { ["repo"] = repo, ["count"] = Field("Maximum commits, 1 to 500 (default 50).", "integer"), ["all"] = Field("Include all branches.", "boolean") }, ["repo"]),
@@ -54,6 +55,14 @@ namespace SourceGit.Automation
                 Tool("git_show", "Read commit metadata and patch for a revision.", new() { ["repo"] = repo, ["revision"] = Field("Commit hash or reference.") }, ["repo", "revision"]),
             };
             if (allowWrite)
+            {
+                tools.Add(Tool("git_clone", "Clone through SourceGit's original clone dialog/workflow, show progress in the GUI, then open the resulting repository. Destination must not exist; parent directory must already exist. Authentication uses normal prompts. Credentials must not be embedded in the URL.", new()
+                {
+                    ["url"] = Field("Git remote URL or existing local repository path."),
+                    ["destination"] = Field("Absolute path of a new repository directory."),
+                    ["recursive"] = Field("Initialize submodules after cloning (default true).", "boolean"),
+                    ["sshKey"] = Field("Optional absolute SSH private key path; passphrase is entered through the normal dialog."),
+                }, ["url", "destination"]));
                 tools.Add(Tool("git_action", "Perform an explicit Git operation in the selected GUI repository and refresh its UI. No arbitrary shell command, force push or hard reset is accepted. Hooks configured by the repository still execute. Commit uses already staged files. Remote authentication uses the application's normal dialogs and per-repository credentials.", new()
                 {
                     ["repo"] = repo,
@@ -63,6 +72,7 @@ namespace SourceGit.Automation
                     ["message"] = Field("Commit or stash message. Required for commit."),
                     ["remote"] = Field("Configured remote name (defaults to origin)."),
                 }, ["repo", "action"]));
+            }
             return tools.ToArray();
         }
 
@@ -144,7 +154,9 @@ namespace SourceGit.Automation
                             var negotiatedVersion = requestedVersion is "2024-11-05" or "2025-03-26" or "2025-06-18" or "2025-11-25" ? requestedVersion : "2025-11-25";
                             result = new { protocolVersion = negotiatedVersion, capabilities = new { tools = new { listChanged = false } }, serverInfo = new { name = "sourcegit-desktop", version = "0.1.0" }, instructions = "Controls the running SourceGit desktop. Open a repository before using Git tools. Read-only by default; --allow-write exposes explicit mutation tools. Credentials are never exposed as tools." };
                             break;
-                        case "ping": result = new { }; break;
+                        case "ping":
+                            result = new { };
+                            break;
                         case "tools/list" when initialized:
                             result = new { tools = Tools(allowWrite) };
                             break;
@@ -196,7 +208,8 @@ namespace SourceGit.Automation
         private static async Task<JsonElement> SendAsync(object request)
         {
             using var pipe = new NamedPipeClientStream(".", PipeName, PipeDirection.InOut, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
-            try { await pipe.ConnectAsync(1500).ConfigureAwait(false); }
+            try
+            { await pipe.ConnectAsync(1500).ConfigureAwait(false); }
             catch (TimeoutException)
             {
                 // The same portable executable hosts both the GUI and the stdio endpoint.
@@ -204,7 +217,8 @@ namespace SourceGit.Automation
                 // otherwise an exiting stdio server leaves its output pipe open forever.
                 Process.Start(new ProcessStartInfo(Environment.ProcessPath!)
                 {
-                    UseShellExecute = true, WindowStyle = ProcessWindowStyle.Hidden,
+                    UseShellExecute = true,
+                    WindowStyle = ProcessWindowStyle.Hidden,
                 });
                 await pipe.ConnectAsync(20000).ConfigureAwait(false);
             }

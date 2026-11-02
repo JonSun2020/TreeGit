@@ -526,9 +526,9 @@ namespace SourceGit.Views
             else
             {
                 // The workspace navigation now shares the branch sidebar.
-                // Keep navigation available when branches are collapsed or stashes are selected.
-                SidebarMinWidth = 200;
-                SidebarWidth = new GridLength(layout.RepositorySidebarWidth, GridUnitType.Pixel);
+                // Preserve the original compact navigation when branches are collapsed.
+                SidebarMinWidth = 49;
+                SidebarWidth = new GridLength(49, GridUnitType.Pixel);
             }
         }
 

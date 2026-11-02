@@ -36,6 +36,7 @@ run('commit', '-m', 'Initial')
 run('init', '--bare', str(remote))
 run('remote', 'add', 'origin', str(remote))
 run('push', '-u', 'origin', 'main')
+run('--git-dir='+str(remote),'symbolic-ref','HEAD','refs/heads/main')
 
 class Mcp:
     def __init__(self, write=False):
@@ -101,6 +102,9 @@ readonly.close()
 
 mcp = Mcp(True)
 check('write endpoint advertises git_action', any(t['name']=='git_action' for t in mcp.call('tools/list')['tools']))
+cloned = testroot/'MCP clone 中文'
+check('clone uses original GUI workflow', mcp.tool('git_clone', {'url':str(remote),'destination':str(cloned),'recursive':False})['isSuccess'] and (cloned/'文件 with spaces.txt').exists())
+mcp.tool('ui_open_repository', {'repo':str(repo)})
 (repo/'文件 with spaces.txt').write_text('initial\nchanged\n', encoding='utf-8')
 check('unstaged diff', '+changed' in mcp.tool('git_diff', {'repo':str(repo)})['stdout'])
 def action(name, **kwargs):

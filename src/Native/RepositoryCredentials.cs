@@ -96,6 +96,8 @@ namespace SourceGit.Native
         {
             if (!OperatingSystem.IsWindows())
                 throw new PlatformNotSupportedException("Repository credential storage requires Windows.");
+            if (username.IndexOfAny(['\r', '\n', '\0']) >= 0 || password.IndexOfAny(['\r', '\n', '\0']) >= 0)
+                throw new ArgumentException("Credentials cannot contain line breaks or NUL characters.");
             var bytes = Encoding.Unicode.GetBytes(password);
             if (bytes.Length > 5120)
                 throw new ArgumentException("Password/token exceeds Windows credential storage size.");
@@ -105,8 +107,12 @@ namespace SourceGit.Native
                 Marshal.Copy(bytes, 0, blob, bytes.Length);
                 var c = new Credential
                 {
-                    Type = 1, TargetName = target, UserName = username, Persist = 2,
-                    CredentialBlob = blob, CredentialBlobSize = (uint)bytes.Length,
+                    Type = 1,
+                    TargetName = target,
+                    UserName = username,
+                    Persist = 2,
+                    CredentialBlob = blob,
+                    CredentialBlobSize = (uint)bytes.Length,
                     Comment = "SourceGit repository-scoped HTTPS credential",
                 };
                 if (!Write(ref c, 0))

@@ -19,8 +19,8 @@ namespace SourceGit.Views
             panel.Children.Add(new TextBlock { Text = repo.FullPath, TextWrapping = Avalonia.Media.TextWrapping.Wrap });
             panel.Children.Add(new TextBlock { Text = "HTTPS 账号只用于当前仓库和所选远程。密码/令牌保存到 Windows 凭据管理器。\nSSH 密钥仍在原有远程配置中设置。", TextWrapping = Avalonia.Media.TextWrapping.Wrap });
             var remotes = new ComboBox { ItemsSource = repo.Remotes, DisplayMemberBinding = new Avalonia.Data.Binding("Name"), HorizontalAlignment = HorizontalAlignment.Stretch };
-            var username = new TextBox { Watermark = "用户名 / Username" };
-            var password = new TextBox { Watermark = "密码或访问令牌 / Password or token", PasswordChar = '●' };
+            var username = new TextBox { Height = 32, Watermark = "用户名 / Username" };
+            var password = new TextBox { Height = 32, Watermark = "密码或访问令牌 / Password or token", PasswordChar = '●' };
             var useManager = new CheckBox { Content = new TextBlock { Text = "使用原有系统认证 / OAuth（Git Credential Manager）", TextWrapping = Avalonia.Media.TextWrapping.Wrap }, IsChecked = Native.RepositoryCredentials.UsesCredentialManager(repo.FullPath) };
             var message = new TextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
             var save = new Button { Content = "保存", Classes = { "flat", "primary" } };

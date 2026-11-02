@@ -3,6 +3,8 @@ from pathlib import Path
 import re
 
 root = Path(__file__).resolve().parents[1] / 'src'
+if 'toolbar_label' in (root/'Views/RepositoryToolbar.axaml').read_text(encoding='utf-8-sig'):
+    raise SystemExit('The one-time upstream presentation migration has already been applied.')
 def edit(name, fn):
     p = root / name
     p.write_text(fn(p.read_text(encoding='utf-8-sig')), encoding='utf-8')

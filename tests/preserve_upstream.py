@@ -5,7 +5,7 @@ import json
 import re
 import subprocess
 root=Path(__file__).resolve().parents[1]
-files=['src/Views/Repository.axaml','src/Views/RepositoryToolbar.axaml','src/Views/LauncherPage.axaml']
+files=['src/Views/Repository.axaml','src/Views/RepositoryToolbar.axaml','src/Views/LauncherPage.axaml','src/Views/Launcher.axaml','src/Views/WelcomeToolbar.axaml']
 checks=[]
 for name in files:
     old=subprocess.check_output(['git','show','upstream-c0f40a2:'+name],cwd=root).decode('utf-8-sig')

@@ -1107,4 +1107,11 @@
   <x:String x:Key="Text.Toolbar.Actions">自定义</x:String>
   <x:String x:Key="Text.Toolbar.Clean">清理</x:String>
   <x:String x:Key="Text.Toolbar.Commit">提交</x:String>
+  <x:String x:Key="Text.Toolbar.Clone">克隆</x:String>
+  <x:String x:Key="Text.Toolbar.Open">打开</x:String>
+  <x:String x:Key="Text.Toolbar.Terminal">终端</x:String>
+  <x:String x:Key="Text.Toolbar.Groups">新建分组</x:String>
+  <x:String x:Key="Text.Toolbar.Scan">扫描仓库</x:String>
+  <x:String x:Key="Text.Toolbar.History">历史</x:String>
+  <x:String x:Key="Text.Toolbar.Files">文件状态</x:String>
 </ResourceDictionary>

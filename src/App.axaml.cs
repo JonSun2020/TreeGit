@@ -34,6 +34,13 @@ namespace SourceGit
                 return;
             }
             Native.OS.SetupBasicDirectories();
+#if INTEGRATION_TESTS
+            if (args.Length > 2 && args[0] == "--integration-probe")
+            {
+                Environment.Exit(Tests.UpstreamProbe.RunAsync(args[1], args[2]).GetAwaiter().GetResult());
+                return;
+            }
+#endif
 
             AppDomain.CurrentDomain.UnhandledException += (_, e) =>
             {

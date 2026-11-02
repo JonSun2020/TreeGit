@@ -2,6 +2,8 @@ from pathlib import Path
 root = Path(__file__).resolve().parents[1] / 'src'
 p = root/'Views/RepositoryToolbar.axaml'
 s = p.read_text(encoding='utf-8')
+if 'Text.Toolbar.Commit' in s:
+    raise SystemExit('The one-time toolbar presentation migration has already been applied.')
 labels = [('Repository.OpenWithExternalTools','Tools','外部工具'),('Repository.ViewLogs','Log','命令日志'),
           ('Repository.Statistics','Statistics','统计'),('Fetch','Fetch','获取'),('Pull','Pull','拉取'),
           ('Push','Push','推送'),('Stash','Stash','贮藏'),('Apply.Title','Patch','应用补丁'),

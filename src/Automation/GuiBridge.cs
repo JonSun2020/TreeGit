@@ -32,17 +32,18 @@ namespace SourceGit.Automation
         {
             while (!token.IsCancellationRequested)
             {
-                var pipe = new NamedPipeServerStream(McpServer.PipeName, PipeDirection.InOut, 8,
-                    PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+                NamedPipeServerStream pipe = null;
                 try
                 {
+                    pipe = new NamedPipeServerStream(McpServer.PipeName, PipeDirection.InOut, NamedPipeServerStream.MaxAllowedServerInstances,
+                        PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
                     await pipe.WaitForConnectionAsync(token).ConfigureAwait(false);
                     _ = HandleClientAsync(pipe, token);
                 }
-                catch (OperationCanceledException) { pipe.Dispose(); break; }
+                catch (OperationCanceledException) { pipe?.Dispose(); break; }
                 catch (Exception ex)
                 {
-                    pipe.Dispose();
+                    pipe?.Dispose();
                     Native.OS.LogException(ex);
                     await Task.Delay(500, token).ConfigureAwait(false);
                 }
@@ -91,15 +92,24 @@ namespace SourceGit.Automation
                     var launcher = App.GetLauncher();
                     return (object)new
                     {
-                        application = "SourceGit", mcp = "server", writesRequire = "--allow-write",
+                        application = "SourceGit",
+                        mcp = "server",
+                        writesRequire = "--allow-write",
                         dialogs = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).Windows
                             .Where(w => w != ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow && w.IsVisible)
                             .Select(w => new { title = w.Title, type = w.GetType().Name }).ToArray(),
                         repositories = launcher.Pages.Where(p => p.Data is ViewModels.Repository).Select(p =>
                         {
                             var r = (ViewModels.Repository)p.Data;
-                            return new { repo = r.FullPath, active = p == launcher.ActivePage, view = r.SelectedViewIndex,
-                                branch = r.CurrentBranch?.Name, changes = r.LocalChangesCount, pendingDialog = p.Popup?.GetType().Name };
+                            return new
+                            {
+                                repo = r.FullPath,
+                                active = p == launcher.ActivePage,
+                                view = r.SelectedViewIndex,
+                                branch = r.CurrentBranch?.Name,
+                                changes = r.LocalChangesCount,
+                                pendingDialog = p.Popup?.GetType().Name
+                            };
                         }).ToArray(),
                     };
                 });
@@ -121,17 +131,17 @@ namespace SourceGit.Automation
 
             if (name == "ui_command")
             {
-                var command = Text(args, "command");
+                var uiCommand = Text(args, "command");
                 var globalResult = await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     var lifetime = (IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime;
                     var dialog = lifetime.Windows.LastOrDefault(w => w.IsVisible && w != lifetime.MainWindow);
-                    if (command == "close_dialog")
+                    if (uiCommand == "close_dialog")
                     {
                         dialog?.Close();
                         return (object)new { closed = dialog != null };
                     }
-                    if (command == "clear_notifications")
+                    if (uiCommand == "clear_notifications")
                     {
                         foreach (var page in App.GetLauncher().Pages)
                             page.ClearNotifications();
@@ -139,20 +149,61 @@ namespace SourceGit.Automation
                     }
                     if (dialog != null)
                         throw new InvalidOperationException("Close the current dialog before opening another one.");
-                    if (command == "mcp_connection")
+                    if (uiCommand == "mcp_connection")
                     {
                         App.OpenMcpConnectionCommand.Execute(null);
-                        return (object)new { opened = command };
+                        return (object)new { opened = uiCommand };
                     }
-                    if (command == "preferences")
+                    if (uiCommand == "preferences")
                     {
                         App.OpenPreferencesCommand.Execute(null);
-                        return (object)new { opened = command };
+                        return (object)new { opened = uiCommand };
                     }
                     return null;
                 });
                 if (globalResult != null)
                     return globalResult;
+            }
+
+            if (name == "git_clone")
+            {
+                if (!request.TryGetProperty("allowWrite", out var writePermission) || !writePermission.GetBoolean())
+                    throw new InvalidOperationException("Writes are disabled.");
+                var url = Text(args, "url");
+                if (!Models.Remote.IsValidURL(url) || url.StartsWith('-') || url.Any(char.IsControl))
+                    throw new ArgumentException("Invalid repository URL.");
+                if (Uri.TryCreate(url, UriKind.Absolute, out var remoteUri) && remoteUri.UserInfo.Contains(':'))
+                    throw new ArgumentException("Use the authentication dialog instead of embedding a password in the URL.");
+                var destination = Text(args, "destination");
+                if (!Path.IsPathFullyQualified(destination))
+                    throw new ArgumentException("destination must be an absolute path.");
+                destination = Path.GetFullPath(destination).TrimEnd('\\', '/');
+                var parent = Path.GetDirectoryName(destination);
+                if (!Directory.Exists(parent) || Directory.Exists(destination) || File.Exists(destination))
+                    throw new ArgumentException("Destination must not exist and its parent directory must already exist.");
+                var key = args.TryGetProperty("sshKey", out var k) ? k.GetString() : string.Empty;
+                if (!string.IsNullOrEmpty(key) && (!Path.IsPathFullyQualified(key) || !File.Exists(key)))
+                    throw new ArgumentException("sshKey must name an existing private key file.");
+                var cloneTask = await Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    var launcher = App.GetLauncher();
+                    var lifetime = (IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime;
+                    if (launcher.ActivePage.Popup != null || lifetime.Windows.Any(w => w != lifetime.MainWindow && w.IsVisible))
+                        throw new InvalidOperationException("Finish the current dialog before cloning.");
+                    launcher.AddNewTab();
+                    var page = launcher.ActivePage;
+                    var clone = new ViewModels.Clone(page.Node.Id)
+                    {
+                        Remote = url, ParentFolder = parent, Local = Path.GetFileName(destination), SSHKey = key,
+                        InitAndUpdateSubmodules = !args.TryGetProperty("recursive", out var recursive) || recursive.GetBoolean(),
+                    };
+                    if (!clone.Check())
+                        throw new ArgumentException("SourceGit rejected the clone configuration.");
+                    page.Popup = clone;
+                    await page.ProcessPopupAsync();
+                    return (object)new { isSuccess = page.Popup == null && Directory.Exists(destination), repo = destination };
+                });
+                return await cloneTask.ConfigureAwait(false);
             }
 
             if (name == "ui_window")
@@ -166,9 +217,14 @@ namespace SourceGit.Automation
                         throw new ArgumentException("Window size is out of range.");
                     if (theme != null && theme is not ("Light" or "Dark" or "Default"))
                         throw new ArgumentException("Unknown theme.");
-                    if (width.HasValue) window.Width = width.Value;
-                    if (height.HasValue) window.Height = height.Value;
-                    if (theme != null) ViewModels.Preferences.Instance.Theme = theme;
+                    if (width.HasValue)
+                        window.Width = width.Value;
+                    if (height.HasValue)
+                        window.Height = height.Value;
+                    if (theme != null)
+                        ViewModels.Preferences.Instance.Theme = theme;
+                    if (args.TryGetProperty("collapseBranches", out var collapse))
+                        ViewModels.Preferences.Instance.Layout.IsSidebarCollapsedInLocalChanges = collapse.GetBoolean();
                     return (object)new { width = window.Width, height = window.Height, theme = ViewModels.Preferences.Instance.Theme };
                 });
 
@@ -211,16 +267,35 @@ namespace SourceGit.Automation
                     var owner = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow;
                     switch (command)
                     {
-                        case "repository_settings": _ = new Views.RepositoryConfigure { DataContext = new ViewModels.RepositoryConfigure(repo) }.ShowDialog(owner); break;
-                        case "credentials": _ = new Views.RepositoryCredentials(repo).ShowDialog(owner); break;
-                        case "create_branch": repo.CreateNewBranch(); break;
-                        case "create_tag": repo.CreateNewTag(); break;
-                        case "fetch_dialog": _ = repo.FetchAsync(false); break;
-                        case "pull_dialog": _ = repo.PullAsync(false); break;
-                        case "push_dialog": _ = repo.PushAsync(false); break;
-                        case "stash_dialog": _ = repo.StashAllAsync(false); break;
-                        case "apply_patch": repo.ApplyPatch(); break;
-                        default: throw new ArgumentException("Unknown GUI command.");
+                        case "repository_settings":
+                            _ = new Views.RepositoryConfigure { DataContext = new ViewModels.RepositoryConfigure(repo) }.ShowDialog(owner);
+                            break;
+                        case "credentials":
+                            _ = new Views.RepositoryCredentials(repo).ShowDialog(owner);
+                            break;
+                        case "create_branch":
+                            repo.CreateNewBranch();
+                            break;
+                        case "create_tag":
+                            repo.CreateNewTag();
+                            break;
+                        case "fetch_dialog":
+                            _ = repo.FetchAsync(false);
+                            break;
+                        case "pull_dialog":
+                            _ = repo.PullAsync(false);
+                            break;
+                        case "push_dialog":
+                            _ = repo.PushAsync(false);
+                            break;
+                        case "stash_dialog":
+                            _ = repo.StashAllAsync(false);
+                            break;
+                        case "apply_patch":
+                            repo.ApplyPatch();
+                            break;
+                        default:
+                            throw new ArgumentException("Unknown GUI command.");
                     }
                     return (object)new { opened = command, repo = path };
                 });
@@ -261,16 +336,24 @@ namespace SourceGit.Automation
             {
                 switch (name)
                 {
-                    case "git_status": command = "status --porcelain=v2 --branch --untracked-files=all"; break;
+                    case "git_status":
+                        command = "status --porcelain=v2 --branch --untracked-files=all";
+                        break;
                     case "git_log":
                         var count = args.TryGetProperty("count", out var n) ? n.GetInt32() : 50;
                         if (count < 1 || count > 500)
                             throw new ArgumentException("count must be between 1 and 500.");
                         command = $"log -{count} --graph --decorate=short --date=iso-strict --format=fuller" + (Flag(args, "all") ? " --all" : "");
                         break;
-                    case "git_diff": command = "--literal-pathspecs diff --no-ext-diff --no-textconv" + (Flag(args, "staged") ? " --cached" : "") + " -- " + Paths(args, false); break;
-                    case "git_refs": command = "for-each-ref --format=%(refname:short)%09%(objectname)%09%(upstream:short) refs/heads refs/remotes refs/tags"; break;
-                    case "git_show": command = Join("show", "--no-ext-diff", "--no-textconv", "--format=fuller", Revision(args), "--"); break;
+                    case "git_diff":
+                        command = "--literal-pathspecs diff --no-ext-diff --no-textconv" + (Flag(args, "staged") ? " --cached" : "") + " -- " + Paths(args, false);
+                        break;
+                    case "git_refs":
+                        command = "for-each-ref --format=%(refname:short)%09%(objectname)%09%(upstream:short) refs/heads refs/remotes refs/tags";
+                        break;
+                    case "git_show":
+                        command = Join("show", "--no-ext-diff", "--no-textconv", "--format=fuller", Revision(args), "--");
+                        break;
                     case "git_action":
                         if (!request.TryGetProperty("allowWrite", out var allow) || !allow.GetBoolean())
                             throw new InvalidOperationException("Writes are disabled.");
@@ -285,7 +368,9 @@ namespace SourceGit.Automation
                         });
                         switch (action)
                         {
-                            case "stage": command = "--literal-pathspecs add -- " + Paths(args, true); break;
+                            case "stage":
+                                command = "--literal-pathspecs add -- " + Paths(args, true);
+                                break;
                             case "unstage":
                                 var hasHead = await new Query(path, "rev-parse --verify HEAD").RunAsync().ConfigureAwait(false);
                                 command = (hasHead.IsSuccess ? "--literal-pathspecs restore --staged -- " : "--literal-pathspecs rm --cached -r -- ") + Paths(args, true);
@@ -295,9 +380,15 @@ namespace SourceGit.Automation
                                 await File.WriteAllTextAsync(tempMessage, Text(args, "message"), new UTF8Encoding(false), token).ConfigureAwait(false);
                                 command = Join("commit", "--file", tempMessage);
                                 break;
-                            case "checkout": command = Join("checkout", Revision(args), "--"); break;
-                            case "create_branch": command = Join("switch", "-c", Revision(args)); break;
-                            case "fetch": case "pull": case "push":
+                            case "checkout":
+                                command = Join("checkout", Revision(args), "--");
+                                break;
+                            case "create_branch":
+                                command = Join("switch", "-c", Revision(args));
+                                break;
+                            case "fetch":
+                            case "pull":
+                            case "push":
                                 remote = args.TryGetProperty("remote", out var r) ? r.GetString() : "origin";
                                 // Opening a tab starts an asynchronous refresh. Query configuration
                                 // directly so a fetch immediately after open cannot see a stale VM list.
@@ -307,24 +398,54 @@ namespace SourceGit.Automation
                                     throw new ArgumentException("remote must name a configured remote (default origin).");
                                 command = action == "fetch" ? Join("fetch", "--", remote) : action == "pull" ? Join("pull", "--ff-only", "--", remote) : Join("push", "--", remote);
                                 break;
-                            case "stash": command = "stash push" + (args.TryGetProperty("message", out var msg) ? " -m " + Quote(msg.GetString()) : ""); break;
-                            case "stash_pop": command = "stash pop"; break;
-                            case "merge": command = Join("merge", "--no-edit", "--", Revision(args)); break;
-                            case "rebase": command = Join("rebase", "--", Revision(args)); break;
-                            case "cherry_pick": command = Join("cherry-pick", "--", Revision(args)); break;
-                            case "revert": command = Join("revert", "--no-edit", "--", Revision(args)); break;
-                            case "merge_abort": command = "merge --abort"; break;
-                            case "rebase_abort": command = "rebase --abort"; break;
-                            case "cherry_pick_abort": command = "cherry-pick --abort"; break;
-                            case "revert_abort": command = "revert --abort"; break;
-                            case "merge_continue": command = "merge --continue"; break;
-                            case "rebase_continue": command = "rebase --continue"; break;
-                            case "cherry_pick_continue": command = "cherry-pick --continue"; break;
-                            case "revert_continue": command = "revert --continue"; break;
-                            default: throw new ArgumentException("Unknown Git action.");
+                            case "stash":
+                                command = "stash push" + (args.TryGetProperty("message", out var msg) ? " -m " + Quote(msg.GetString()) : "");
+                                break;
+                            case "stash_pop":
+                                command = "stash pop";
+                                break;
+                            case "merge":
+                                command = Join("merge", "--no-edit", "--", Revision(args));
+                                break;
+                            case "rebase":
+                                command = Join("rebase", "--", Revision(args));
+                                break;
+                            case "cherry_pick":
+                                command = Join("cherry-pick", "--", Revision(args));
+                                break;
+                            case "revert":
+                                command = Join("revert", "--no-edit", "--", Revision(args));
+                                break;
+                            case "merge_abort":
+                                command = "merge --abort";
+                                break;
+                            case "rebase_abort":
+                                command = "rebase --abort";
+                                break;
+                            case "cherry_pick_abort":
+                                command = "cherry-pick --abort";
+                                break;
+                            case "revert_abort":
+                                command = "revert --abort";
+                                break;
+                            case "merge_continue":
+                                command = "merge --continue";
+                                break;
+                            case "rebase_continue":
+                                command = "rebase --continue";
+                                break;
+                            case "cherry_pick_continue":
+                                command = "cherry-pick --continue";
+                                break;
+                            case "revert_continue":
+                                command = "revert --continue";
+                                break;
+                            default:
+                                throw new ArgumentException("Unknown Git action.");
                         }
                         break;
-                    default: throw new ArgumentException("Unknown tool.");
+                    default:
+                        throw new ArgumentException("Unknown tool.");
                 }
                 var query = new Query(path, command);
                 if (selectedRemote != null)
@@ -340,7 +461,8 @@ namespace SourceGit.Automation
                     log.AppendLine("$ git " + Redact(command));
                 }
                 Commands.Command.Result result;
-                try { result = await query.RunAsync().ConfigureAwait(false); }
+                try
+                { result = await query.RunAsync().ConfigureAwait(false); }
                 catch (Exception ex) { result = Commands.Command.Result.Failed(ex.Message); }
                 if (write)
                 {
@@ -388,7 +510,8 @@ namespace SourceGit.Automation
         {
             if (!args.TryGetProperty("paths", out var array))
             {
-                if (required) throw new ArgumentException("Explicit paths are required.");
+                if (required)
+                    throw new ArgumentException("Explicit paths are required.");
                 return string.Empty;
             }
             if (array.ValueKind != JsonValueKind.Array || array.GetArrayLength() > 1024 || (required && array.GetArrayLength() == 0))
@@ -411,7 +534,8 @@ namespace SourceGit.Automation
             var slashes = 0;
             foreach (var c in text)
             {
-                if (c == '\\') { slashes++; continue; }
+                if (c == '\\')
+                { slashes++; continue; }
                 b.Append('\\', c == '"' ? slashes * 2 + 1 : slashes);
                 b.Append(c);
                 slashes = 0;
@@ -437,10 +561,25 @@ namespace SourceGit.Automation
             {
                 using var process = new System.Diagnostics.Process { StartInfo = CreateGitStartInfo(true) };
                 process.Start();
-                var stdout = process.StandardOutput.ReadToEndAsync();
-                var stderr = process.StandardError.ReadToEndAsync();
+                var stdout = ReadCappedAsync(process.StandardOutput);
+                var stderr = ReadCappedAsync(process.StandardError);
                 await Task.WhenAll(stdout, stderr, process.WaitForExitAsync()).ConfigureAwait(false);
                 return new Result { IsSuccess = process.ExitCode == 0, StdOut = stdout.Result, StdErr = stderr.Result };
+            }
+
+            private static async Task<string> ReadCappedAsync(StreamReader reader)
+            {
+                const int capacity = 1024 * 1024 + 1;
+                var result = new StringBuilder();
+                var buffer = new char[4096];
+                int count;
+                // Drain both pipes even when the returned result has reached the limit.
+                while ((count = await reader.ReadAsync(buffer).ConfigureAwait(false)) > 0)
+                {
+                    if (result.Length < capacity)
+                        result.Append(buffer, 0, Math.Min(count, capacity - result.Length));
+                }
+                return result.ToString();
             }
         }
     }
