@@ -4,10 +4,10 @@
     <ResourceDictionary x:Key="Light">
       <Color x:Key="SystemAccentColor">#FF497BFF</Color>
       <Color x:Key="SystemListLowColor">#FFE8EFFF</Color>
-      <Color x:Key="Color.TreeGit.Chrome">#FF5B88FF</Color>
-      <Color x:Key="Color.TreeGit.ChromeHover">#FF7199FF</Color>
-      <Color x:Key="Color.TreeGit.ToolbarIconTop">#FFA2BFFF</Color>
-      <Color x:Key="Color.TreeGit.ToolbarIconBottom">#FF628EFF</Color>
+      <Color x:Key="Color.TreeGit.Chrome">#FF497BFF</Color>
+      <Color x:Key="Color.TreeGit.ChromeHover">#FF628EFF</Color>
+      <Color x:Key="Color.TreeGit.ToolbarIconTop">#FF7DA3FF</Color>
+      <Color x:Key="Color.TreeGit.ToolbarIconBottom">#FF497BFF</Color>
       <Color x:Key="Color.TreeGit.ToolbarLabel">#FF42526E</Color>
       <Color x:Key="Color.Window">#FFF4F5F7</Color>
       <Color x:Key="Color.WindowBorder">#FFB3BAC5</Color>
