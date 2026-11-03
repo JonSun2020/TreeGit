@@ -70,6 +70,7 @@ namespace SourceGit.Views
         {
             public Models.Decorator Decorator { get; set; } = null;
             public FormattedText Label { get; set; } = null;
+            public FormattedText TrackStatus { get; set; } = null;
             public IBrush Brush { get; set; } = null;
             public bool IsHead { get; set; } = false;
             public double Width { get; set; } = 0.0;
@@ -244,6 +245,13 @@ namespace SourceGit.Views
 
                 context.DrawRectangle(null, new Pen(item.Brush), entireRect);
 
+                if (item.TrackStatus != null)
+                {
+                    var badge = new Rect(x + item.Width - item.TrackStatus.Width - 9, y + 1, item.TrackStatus.Width + 6, 14);
+                    context.DrawRectangle(new SolidColorBrush(Color.Parse("#7A869A")), null, new RoundedRect(badge, 2));
+                    context.DrawText(item.TrackStatus, new Point(badge.X + 3, badge.Center.Y - item.TrackStatus.Height / 2));
+                }
+
                 var icon = CommitRefsIconCache.Instance.GetIcon(item.Decorator.Type);
                 using (context.PushTransform(Matrix.CreateTranslation(x + 3, y + 3)))
                     context.DrawGeometry(fg, null, icon);
@@ -335,12 +343,17 @@ namespace SourceGit.Views
                         decorator.Name,
                         CultureInfo.CurrentCulture,
                         FlowDirection.LeftToRight,
-                        typeface,
+                        decorator.Type == Models.DecoratorType.LocalBranchHead ? typefaceHead : typeface,
                         labelSize,
                         fg);
                 }
 
                 item.Width = item.Label.Width + 24;
+                if (!string.IsNullOrEmpty(decorator.TrackStatusDescription))
+                {
+                    item.TrackStatus = new FormattedText(decorator.TrackStatusDescription, CultureInfo.CurrentCulture, FlowDirection.LeftToRight, typeface, 11, Brushes.White);
+                    item.Width += item.TrackStatus.Width + 12;
+                }
 
                 var findRemotes = useCompactBranchNames && (decorator.Type == Models.DecoratorType.CurrentBranchHead || decorator.Type == Models.DecoratorType.LocalBranchHead);
                 if (findRemotes)

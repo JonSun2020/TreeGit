@@ -35,6 +35,18 @@ def check(name,ok=True):
     assert ok,name
     checks.append(name);print('PASS',name,flush=True)
 def state():return next(r for r in tool('ui_state')['repositories'] if Path(r['repo'])==repo)
+def wait_graph(revisions):
+    expected=set(run('rev-list',*revisions,cwd=repo).splitlines())
+    for _ in range(100):
+        s=state()
+        if not s['graphLoading'] and {c['sha'] for c in s['graphCommits']}==expected:return s
+        time.sleep(.1)
+    raise AssertionError(s)
+
+def head_badge(s):
+    head=run('rev-parse','HEAD',cwd=repo)
+    return next(c for c in s['graphCommits'] if c['sha']==head)
+
 def wait_counts(a,b):
     for _ in range(100):
         s=state()
@@ -48,10 +60,37 @@ check('un-pushed local commit reports one outgoing change');(out/'outgoing.png')
 (peer/'peer.txt').write_text('Peer\n');run('add','.',cwd=peer);run('commit','-m','Remote change',cwd=peer);run('push',cwd=peer)
 tool('git_action',{'repo':str(repo),'action':'fetch'});wait_counts(1,1)
 check('fetched remote commit reports both incoming and outgoing changes');(out/'diverged.png').write_bytes(tool('ui_screenshot'))
+tool('ui_graph',{'repo':str(repo),'mode':'current','showRemotes':True});s=wait_graph(['main','origin/main'])
+check('current mode includes the upstream history when remote branches are shown',any('origin/main' in c['refs'] for c in s['graphCommits']))
+check('local tip carries the same outgoing and incoming counts',head_badge(s)['tracking']==[{'branch':'main','status':'1↑ 1↓'}])
+check('local tip is marked for bold rendering',head_badge(s)['localHead'])
+tool('ui_graph',{'repo':str(repo),'showRemotes':False});s=wait_graph(['main'])
+check('turning remote branches off hides upstream-only commits and labels',all(not any(ref.startswith('origin/') for ref in c['refs']) for c in s['graphCommits']))
+tool('ui_graph',{'repo':str(repo),'showRemotes':True});wait_graph(['main','origin/main'])
+(out/'current-with-remote.png').write_bytes(tool('ui_screenshot'))
+
 tool('git_run',{'repo':str(repo),'arguments':['merge','--no-edit','origin/main']});wait_counts(2,0)
 check('merging incoming commits leaves outgoing merge history')
 tool('git_action',{'repo':str(repo),'action':'push'});wait_counts(0,0)
 check('push clears synchronized counts')
+run('pull','--ff-only',cwd=peer)
+(peer/'incoming.txt').write_text('Incoming only\n');run('add','.',cwd=peer);run('commit','-m','Incoming update',cwd=peer);run('push',cwd=peer)
+run('checkout','-b','feature/unrelated',cwd=peer)
+(peer/'unrelated.txt').write_text('Unrelated branch\n');run('add','.',cwd=peer);run('commit','-m','Unrelated remote branch',cwd=peer);run('push','-u','origin','feature/unrelated',cwd=peer);run('checkout','main',cwd=peer)
+tool('git_action',{'repo':str(repo),'action':'fetch'});wait_counts(0,1);s=wait_graph(['main','origin/main'])
+for _ in range(100):
+    s=state()
+    if head_badge(s)['tracking']==[{'branch':'main','status':'1↓'}]:break
+    time.sleep(.1)
+check('incoming-only update has the same pull count on the local tip',head_badge(s)['tracking']==[{'branch':'main','status':'1↓'}])
+check('current mode hides unrelated remote branches',all('origin/feature/unrelated' not in c['refs'] for c in s['graphCommits']))
+remote=next(c for c in s['graphCommits'] if 'origin/main' in c['refs'])
+check('remote-only tip is not treated as a local bold tip',not remote['localHead'])
+(out/'incoming-current.png').write_bytes(tool('ui_screenshot'))
+tool('ui_graph',{'repo':str(repo),'mode':'all'});s=wait_graph(['--all'])
+check('all mode includes unrelated remote branches',any('origin/feature/unrelated' in c['refs'] for c in s['graphCommits']))
+tool('ui_graph',{'repo':str(repo),'mode':'current'});wait_graph(['main','origin/main'])
+
 before=run('config','--local','--list',cwd=repo)
 tool('ui_command',{'repo':str(repo),'command':'repository_settings'});time.sleep(.4)
 check('unified repository settings opens',any(w['type']=='RepositorySettings' for w in tool('ui_state')['dialogs']))

@@ -36,6 +36,7 @@ namespace SourceGit.Models
 
         public bool IsCommitterVisible => !Author.Equals(Committer) || AuthorTime != CommitterTime;
         public bool IsCurrentHead => Decorators.Find(x => x.Type is DecoratorType.CurrentBranchHead or DecoratorType.CurrentCommitHead) != null;
+        public bool IsLocalHead => Decorators.Exists(x => x.Type is DecoratorType.LocalBranchHead or DecoratorType.CurrentBranchHead or DecoratorType.CurrentCommitHead);
         public bool HasDecorators => Decorators.Count > 0;
         public string FirstParentToCompare => Parents.Count > 0 ? $"{SHA}^" : EmptyTreeHash.Guess(SHA);
 

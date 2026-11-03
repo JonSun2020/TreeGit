@@ -93,6 +93,8 @@ namespace SourceGit.Automation
                 return await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     var launcher = App.GetLauncher();
+                    var window = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow;
+                    var tabs = window.GetVisualDescendants().OfType<ListBox>().FirstOrDefault(b => b.Name == "LauncherTabsList");
                     return (object)new
                     {
                         application = "TreeGit",
@@ -102,6 +104,14 @@ namespace SourceGit.Automation
 #endif
                         mcp = "server",
                         defaultReadWrite = true,
+                        tabs = tabs?.GetVisualDescendants().OfType<ListBoxItem>().Select(item =>
+                        {
+                            var close = item.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Classes.Contains("treegit_tab_close"));
+                            var a = close?.TranslatePoint(new Point(0, 0), item);
+                            var b = close?.TranslatePoint(new Point(close.Bounds.Width, close.Bounds.Height), item);
+                            return new { selected = item.IsSelected, text = item.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text).ToArray(),
+                                closeVisible = close?.IsEffectivelyVisible == true && a.HasValue && b.HasValue && a.Value.X >= 0 && b.Value.X <= item.Bounds.Width + 1 };
+                        }).ToArray(),
                         readOnlyFlag = "--read-only",
                         activePage = new { kind = launcher.ActivePage.Data.GetType().Name, pendingDialog = launcher.ActivePage.Popup?.GetType().Name, notifications = launcher.ActivePage.Notifications.Count },
                         dialogs = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).Windows
@@ -142,7 +152,7 @@ namespace SourceGit.Automation
                                 graphMode = r.Histories?.BranchDisplayMode,
                                 graphLoading = r.Histories?.IsLoading,
                                 graphTotal = r.Histories?.Commits.Count,
-                                graphCommits = r.Histories?.Commits.Take(256).Select((c, index) => new { sha = c.SHA, subject = c.Subject, x = r.Histories.Graph?.Dots[index].Center.X, subjectLeft = c.LeftMargin, refs = c.Decorators.Select(d => d.Name).ToArray() }).ToArray(),
+                                graphCommits = r.Histories?.Commits.Take(256).Select((c, index) => new { sha = c.SHA, subject = c.Subject, localHead = c.IsLocalHead, tracking = c.Decorators.Where(d => !string.IsNullOrEmpty(d.TrackStatusDescription)).Select(d => new { branch = d.Name, status = d.TrackStatusDescription }).ToArray(), x = r.Histories.Graph?.Dots[index].Center.X, subjectLeft = c.LeftMargin, refs = c.Decorators.Select(d => d.Name).ToArray() }).ToArray(),
                                 pendingDialog = p.Popup?.GetType().Name
                             };
                         }).ToArray(),
@@ -194,6 +204,17 @@ namespace SourceGit.Automation
                     }
                     if (dialog != null)
                         throw new InvalidOperationException("Close the current dialog before opening another one.");
+                    if (uiCommand == "new_tab")
+                    {
+                        App.GetLauncher().AddNewTab();
+                        return (object)new { opened = uiCommand };
+                    }
+                    if (uiCommand == "close_tab")
+                    {
+                        var launcher = App.GetLauncher();
+                        launcher.CloseTab(launcher.ActivePage);
+                        return (object)new { closed = true };
+                    }
                     if (uiCommand == "mcp_connection")
                     {
                         App.OpenMcpConnectionCommand.Execute(null);
@@ -367,6 +388,7 @@ namespace SourceGit.Automation
                             repo.Histories.FocusGraphBranch(branch);
                         }
                     }
+                    if (args.TryGetProperty("showRemotes", out var showRemotes)) repo.Histories.ShowRemoteBranches = showRemotes.GetBoolean();
                     if (args.TryGetProperty("mode", out var mode))
                         repo.Histories.BranchDisplayMode = mode.GetString() switch { "all" => 0, "current" or "only" or "merged" => 1, _ => throw new ArgumentException("Invalid graph mode.") };
                     return (object)new { branch = repo.Histories.GraphBranchName, mode = repo.Histories.BranchDisplayMode, loading = repo.Histories.IsLoading };

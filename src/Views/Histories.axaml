@@ -110,7 +110,7 @@
 
                     <v:CommitRefsPresenter Grid.Column="2" Background="{DynamicResource Brush.Contents}" Foreground="{DynamicResource Brush.FG1}" ShowTags="{Binding Source={x:Static vm:Preferences.Instance}, Path=ShowTagsInGraph}" FontSize="12" VerticalAlignment="Center" UseGraphColor="{Binding IsHighlightedInGraph, Mode=OneWay}" UseCompactBranchNames="{Binding Source={x:Static vm:Preferences.Instance}, Path=UseCompactBranchNamesInGraph}" HasSingleRemote="{Binding $parent[v:Histories].HasSingleRemote}"/>
 
-                    <v:CommitSubjectPresenter Grid.Column="3" Height="19" FontFamily="{DynamicResource Fonts.Default}" FontSize="{Binding Source={x:Static vm:Preferences.Instance}, Path=DefaultFontSize}" CodeFontFamily="{DynamicResource Fonts.Monospace}" InlineCodeBackground="{DynamicResource Brush.InlineCode}" InlineCodeForeground="{DynamicResource Brush.InlineCodeFG}" Foreground="{Binding $parent[DataGridRow].Foreground}" LinkForeground="{DynamicResource Brush.Link}" Subject="{Binding Subject}" IssueTrackers="{Binding $parent[v:Histories].IssueTrackers}" FontWeight="{Binding IsCurrentHead, Converter={x:Static c:BoolConverters.IsBoldToFontWeight}}" Opacity="{Binding IsMerged, Converter={x:Static c:BoolConverters.IsMergedToOpacity}}"/>
+                    <v:CommitSubjectPresenter Grid.Column="3" Height="19" FontFamily="{DynamicResource Fonts.Default}" FontSize="{Binding Source={x:Static vm:Preferences.Instance}, Path=DefaultFontSize}" CodeFontFamily="{DynamicResource Fonts.Monospace}" InlineCodeBackground="{DynamicResource Brush.InlineCode}" InlineCodeForeground="{DynamicResource Brush.InlineCodeFG}" Foreground="{Binding $parent[DataGridRow].Foreground}" LinkForeground="{DynamicResource Brush.Link}" Subject="{Binding Subject}" IssueTrackers="{Binding $parent[v:Histories].IssueTrackers}" FontWeight="{Binding IsLocalHead, Converter={x:Static c:BoolConverters.IsBoldToFontWeight}}" Opacity="{Binding IsMerged, Converter={x:Static c:BoolConverters.IsMergedToOpacity}}"/>
                   </Grid>
                 </Border>
               </DataTemplate>
@@ -123,7 +123,7 @@
             <DataGridTemplateColumn.CellTemplate>
               <DataTemplate DataType="m:Commit">
                 <Border Padding="8,0" Background="Transparent" ClipToBounds="True">
-                  <v:CommitTimeTextBlock FontWeight="{Binding IsCurrentHead, Converter={x:Static c:BoolConverters.IsBoldToFontWeight}}" FontFeatures="+tnum" Opacity="{Binding IsMerged, Converter={x:Static c:BoolConverters.IsMergedToOpacity}}" Timestamp="{Binding CommitterTime, Mode=OneWay}" ShowAsDateTime="{Binding Source={x:Static vm:Preferences.Instance}, Path=!DisplayTimeAsPeriodInHistories, Mode=OneWay}" DateTimeFormat="{Binding Source={x:Static vm:Preferences.Instance}, Path=DateTimeFormat, Mode=OneWay}" Use24Hours="{Binding Source={x:Static vm:Preferences.Instance}, Path=Use24Hours, Mode=OneWay}" Foreground="{Binding $parent[DataGridRow].Foreground}"/>
+                  <v:CommitTimeTextBlock FontWeight="{Binding IsLocalHead, Converter={x:Static c:BoolConverters.IsBoldToFontWeight}}" FontFeatures="+tnum" Opacity="{Binding IsMerged, Converter={x:Static c:BoolConverters.IsMergedToOpacity}}" Timestamp="{Binding CommitterTime, Mode=OneWay}" ShowAsDateTime="{Binding Source={x:Static vm:Preferences.Instance}, Path=!DisplayTimeAsPeriodInHistories, Mode=OneWay}" DateTimeFormat="{Binding Source={x:Static vm:Preferences.Instance}, Path=DateTimeFormat, Mode=OneWay}" Use24Hours="{Binding Source={x:Static vm:Preferences.Instance}, Path=Use24Hours, Mode=OneWay}" Foreground="{Binding $parent[DataGridRow].Foreground}"/>
                 </Border>
               </DataTemplate>
             </DataGridTemplateColumn.CellTemplate>
@@ -138,7 +138,7 @@
                   <v:Avatar Grid.Column="0" Width="16" Height="16" Margin="4,0,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" User="{Binding Author}" Opacity="{Binding IsMerged, Converter={x:Static c:BoolConverters.IsMergedToOpacity}}" IsHitTestVisible="False" IsVisible="False"/>
 
                   <Border Grid.Column="1" Padding="8,0" ClipToBounds="True">
-                    <TextBlock Text="{Binding Author.Name}" FontWeight="{Binding IsCurrentHead, Converter={x:Static c:BoolConverters.IsBoldToFontWeight}}" Opacity="{Binding IsMerged, Converter={x:Static c:BoolConverters.IsMergedToOpacity}}" HorizontalAlignment="Left" Foreground="{Binding $parent[DataGridRow].Foreground}"/>
+                    <TextBlock Text="{Binding Author.Name}" FontWeight="{Binding IsLocalHead, Converter={x:Static c:BoolConverters.IsBoldToFontWeight}}" Opacity="{Binding IsMerged, Converter={x:Static c:BoolConverters.IsMergedToOpacity}}" HorizontalAlignment="Left" Foreground="{Binding $parent[DataGridRow].Foreground}"/>
                   </Border>
                 </Grid>
               </DataTemplate>
@@ -151,7 +151,7 @@
             <DataGridTemplateColumn.CellTemplate>
               <DataTemplate DataType="m:Commit">
                 <Border Padding="8,0,0,0" Background="Transparent" ClipToBounds="True">
-                  <TextBlock Text="{Binding SHA, Converter={x:Static c:StringConverters.ToShortSHA}}" FontFamily="{DynamicResource Fonts.Monospace}" FontWeight="{Binding IsCurrentHead, Converter={x:Static c:BoolConverters.IsBoldToFontWeight}}" Opacity="{Binding IsMerged, Converter={x:Static c:BoolConverters.IsMergedToOpacity}}" Foreground="{Binding $parent[DataGridRow].Foreground}"/>
+                  <TextBlock Text="{Binding SHA, Converter={x:Static c:StringConverters.ToShortSHA}}" FontFamily="{DynamicResource Fonts.Monospace}" FontWeight="{Binding IsLocalHead, Converter={x:Static c:BoolConverters.IsBoldToFontWeight}}" Opacity="{Binding IsMerged, Converter={x:Static c:BoolConverters.IsMergedToOpacity}}" Foreground="{Binding $parent[DataGridRow].Foreground}"/>
                 </Border>
               </DataTemplate>
             </DataGridTemplateColumn.CellTemplate>
@@ -163,7 +163,7 @@
             <DataGridTemplateColumn.CellTemplate>
               <DataTemplate DataType="m:Commit">
                 <Border Padding="8,0" Background="Transparent" ClipToBounds="True">
-                  <v:CommitTimeTextBlock FontFeatures="+tnum" FontWeight="{Binding IsCurrentHead, Converter={x:Static c:BoolConverters.IsBoldToFontWeight}}" Opacity="{Binding IsMerged, Converter={x:Static c:BoolConverters.IsMergedToOpacity}}" Timestamp="{Binding AuthorTime, Mode=OneWay}" ShowAsDateTime="{Binding Source={x:Static vm:Preferences.Instance}, Path=!DisplayTimeAsPeriodInHistories, Mode=OneWay}" DateTimeFormat="{Binding Source={x:Static vm:Preferences.Instance}, Path=DateTimeFormat, Mode=OneWay}" Use24Hours="{Binding Source={x:Static vm:Preferences.Instance}, Path=Use24Hours, Mode=OneWay}" Foreground="{Binding $parent[DataGridRow].Foreground}"/>
+                  <v:CommitTimeTextBlock FontFeatures="+tnum" FontWeight="{Binding IsLocalHead, Converter={x:Static c:BoolConverters.IsBoldToFontWeight}}" Opacity="{Binding IsMerged, Converter={x:Static c:BoolConverters.IsMergedToOpacity}}" Timestamp="{Binding AuthorTime, Mode=OneWay}" ShowAsDateTime="{Binding Source={x:Static vm:Preferences.Instance}, Path=!DisplayTimeAsPeriodInHistories, Mode=OneWay}" DateTimeFormat="{Binding Source={x:Static vm:Preferences.Instance}, Path=DateTimeFormat, Mode=OneWay}" Use24Hours="{Binding Source={x:Static vm:Preferences.Instance}, Path=Use24Hours, Mode=OneWay}" Foreground="{Binding $parent[DataGridRow].Foreground}"/>
                 </Border>
               </DataTemplate>
             </DataGridTemplateColumn.CellTemplate>
