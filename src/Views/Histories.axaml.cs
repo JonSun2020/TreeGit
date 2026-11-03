@@ -751,6 +751,12 @@ namespace SourceGit.Views
                 if (histories.Commits.Count > 0) CommitListContainer.ScrollIntoView(histories.Commits[0], null);
         }
 
+        public void OpenSearchCommitMenu(Control target, Models.Commit commit)
+        {
+            if (this.FindAncestorOfType<Repository>()?.DataContext is ViewModels.Repository repo)
+                CreateContextMenuForSingleCommit(repo, commit).Open(target);
+        }
+
         private void OnCommitListContextRequested(object sender, ContextRequestedEventArgs e)
         {
             var repoView = this.FindAncestorOfType<Repository>();

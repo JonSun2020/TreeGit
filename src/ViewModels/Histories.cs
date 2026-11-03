@@ -23,18 +23,34 @@ namespace SourceGit.ViewModels
             get => _isSearchingCommits;
             set
             {
+                if (value == _isSearchingCommits) return;
                 if (value)
                     _repo.SelectedViewIndex = 0;
                 else
                     _searchCommitContext.EndSearch();
 
                 SetProperty(ref _isSearchingCommits, value);
+                if (value)
+                {
+                    IsCollapseDetails = false;
+                    ShowSearchCommit(null);
+                    _searchCommitContext.StartSearch();
+                }
             }
         }
 
         public SearchCommitContext SearchCommitContext
         {
             get => _searchCommitContext;
+        }
+
+        public void ShowSearchCommit(Models.Commit commit)
+        {
+            _ignoreSelectionChange = true;
+            SelectedCommits = [];
+            _ignoreSelectionChange = false;
+            IsWorkingCopySelected = false;
+            DetailContext = commit == null ? Models.Null.Instance : new CommitDetail(_repo, _commitDetailSharedData) { Commit = commit };
         }
 
         public bool EnableTopoOrder

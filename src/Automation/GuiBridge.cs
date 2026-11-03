@@ -14,6 +14,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 namespace SourceGit.Automation
 {
@@ -109,16 +110,23 @@ namespace SourceGit.Automation
                         repositories = launcher.Pages.Where(p => p.Data is ViewModels.Repository).Select(p =>
                         {
                             var r = (ViewModels.Repository)p.Data;
+                            var repositoryView = launcher.GetVisualDescendants().OfType<Views.Repository>().FirstOrDefault(v => v.DataContext == r);
                             return new
                             {
                                 repo = r.FullPath,
                                 active = p == launcher.ActivePage,
                                 view = r.SelectedViewIndex,
+                                sidebarVisible = repositoryView?.IsNormalSidebarVisible,
+                                sidebarWidth = repositoryView?.SidebarWidth.Value,
                                 branch = r.CurrentBranch?.Name,
                                 changes = r.LocalChangesCount,
                                 ahead = r.CurrentBranch?.Ahead.Count ?? 0,
                                 behind = r.CurrentBranch?.Behind.Count ?? 0,
                                 workingCopySelected = r.Histories?.IsWorkingCopySelected,
+                                searchActive = r.Histories?.IsSearchingCommits,
+                                searchQuerying = r.Histories?.SearchCommitContext.IsQuerying,
+                                searchSelected = r.Histories?.SearchCommitContext.Selected?.SHA,
+                                searchResults = r.Histories?.SearchCommitContext.Results?.Select(c => new { sha = c.SHA, subject = c.Subject }).ToArray(),
                                 detailView = r.Histories?.DetailContext?.GetType().Name,
                                 graphBranch = r.Histories?.GraphBranchName,
                                 graphMode = r.Histories?.BranchDisplayMode,
@@ -298,9 +306,22 @@ namespace SourceGit.Automation
                 return await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     if (repo.IsBare) throw new ArgumentException("Bare repositories have no working copy.");
-                    repo.SelectedViewIndex = 0;
-                    repo.Histories.ShowWorkingCopyOverview();
+                    repo.ShowWorkingCopyOverview();
                     return (object)new { selected = "uncommitted_changes", repo = path };
+                });
+
+            if (name == "ui_search")
+                return await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    repo.Histories.IsSearchingCommits = true;
+                    var search = repo.Histories.SearchCommitContext;
+                    if (args.TryGetProperty("method", out var method))
+                        search.Method = method.GetString() switch { "sha" => 0, "author" => 1, "message" => 2, "path" => 3, "content" => 4, _ => throw new ArgumentException("Unknown search method.") };
+                    if (args.TryGetProperty("currentBranchOnly", out var current)) search.OnlySearchCurrentBranch = current.GetBoolean();
+                    if (args.TryGetProperty("query", out var query)) { search.Filter = query.GetString() ?? ""; search.StartSearch(); }
+                    if (args.TryGetProperty("select", out var selected))
+                        search.Selected = search.Results?.FirstOrDefault(c => c.SHA.StartsWith(selected.GetString() ?? "", StringComparison.Ordinal)) ?? throw new ArgumentException("No matching search result.");
+                    return (object)new { active = true, querying = search.IsQuerying };
                 });
 
             if (name == "ui_history_columns")
@@ -391,12 +412,15 @@ namespace SourceGit.Automation
 
             if (name == "ui_select_view")
             {
-                var index = Text(args, "view") switch { "history" => 0, "working_copy" => 1, "stashes" => 2, _ => throw new ArgumentException("Unknown view.") };
+                var view = Text(args, "view");
+                var index = view switch { "history" or "search" => 0, "working_copy" => 1, "stashes" => 2, _ => throw new ArgumentException("Unknown view.") };
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     if (repo.IsBare && index != 0)
                         throw new ArgumentException("Bare repositories have no working copy or stash view.");
-                    repo.SelectedViewIndex = index;
+                    if (view == "search") repo.Histories.IsSearchingCommits = true;
+                    else if (view == "history") repo.ShowHistoryPage();
+                    else repo.SelectedViewIndex = index;
                 });
                 return new { selected = index, repo = path };
             }

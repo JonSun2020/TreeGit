@@ -1551,5 +1551,10 @@
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border2}"/>
     <Setter Property="Background" Value="{DynamicResource Brush.SubPanel}"/>
   </Style>
+  <Style Selector="Button.treegit_bottom_tab.active">
+    <Setter Property="Background" Value="{DynamicResource Brush.Contents}"/>
+    <Setter Property="BorderThickness" Value="1,0,1,1"/>
+    <Setter Property="FontWeight" Value="Bold"/>
+  </Style>
 </Styles>
 

@@ -9,48 +9,16 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="SourceGit.Views.CommitSearchView"
              x:DataType="vm:SearchCommitContext">
-  <Grid RowDefinitions="Auto,Auto,Auto,*">
-    <TextBlock Grid.Row="0"
-               Margin="0,6,0,8"
-               HorizontalAlignment="Center"
-               Text="{DynamicResource Text.Repository.Search}"
-               Foreground="{DynamicResource Brush.FG2}"
-               FontWeight="Bold"/>
-
-    <!-- Search Input Box -->
-    <Grid Grid.Row="1" Height="26">
-      <TextBox x:Name="TxtSearchCommitsBox"
-               Height="24"
-               BorderThickness="1"
-               BorderBrush="{DynamicResource Brush.Border2}"
-               Background="{DynamicResource Brush.Contents}"
-               CornerRadius="12"
-               Text="{Binding Filter, Mode=TwoWay}"
-               VerticalContentAlignment="Center"
-               KeyDown="OnSearchBoxKeyDown">
-        <TextBox.InnerLeftContent>
-          <Path Width="14" Height="14"
-                Margin="6,0,0,0"
-                Fill="{DynamicResource Brush.FG2}"
-                Data="{StaticResource Icons.Search}"/>
-        </TextBox.InnerLeftContent>
-
+  <Grid RowDefinitions="28,*" Background="{DynamicResource Brush.Contents}">
+    <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto" Background="{DynamicResource Brush.SubPanel}" Margin="2,0">
+      <TextBox x:Name="TxtSearchCommitsBox" Grid.Column="0" Height="24" MinHeight="24" CornerRadius="0" Padding="4,0" Watermark="搜索" Text="{Binding Filter, Mode=TwoWay}" VerticalContentAlignment="Center" KeyDown="OnSearchBoxKeyDown">
         <TextBox.InnerRightContent>
-          <Button Classes="icon_button"
-                  Focusable="False"
-                  Width="16"
-                  Margin="0,0,6,0"
-                  Command="{Binding ClearFilter}"
-                  IsVisible="{Binding Filter, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                  HorizontalAlignment="Right">
-            <Path Width="14" Height="14"
-                  Margin="0,1,0,0"
-                  Fill="{DynamicResource Brush.FG1}"
-                  Data="{StaticResource Icons.Clear}"/>
-          </Button>
+          <StackPanel Orientation="Horizontal">
+            <Button Classes="icon_button" Width="20" Command="{Binding ClearFilter}" IsVisible="{Binding Filter, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"><Path Width="12" Height="12" Data="{StaticResource Icons.Clear}"/></Button>
+            <Button Classes="icon_button" Width="24" Command="{Binding StartSearch}" ToolTip.Tip="搜索"><Path Width="14" Height="14" Data="{StaticResource Icons.Search}"/></Button>
+          </StackPanel>
         </TextBox.InnerRightContent>
       </TextBox>
-
       <Popup PlacementTarget="{Binding #TxtSearchCommitsBox}"
              Placement="BottomEdgeAlignedLeft"
              HorizontalOffset="-8" VerticalOffset="-6">
@@ -128,109 +96,28 @@
           </Border>
         </Border>
       </Popup>
-    </Grid>
 
-    <!-- Search Setting -->
-    <Grid Grid.Row="2" Margin="4,4,4,4" RowDefinitions="26,Auto" ColumnDefinitions="Auto,*">
-      <TextBlock Grid.Row="0" Grid.Column="0"
-                 Classes="group_header_label"
-                 Text="{DynamicResource Text.Repository.Search.Method}"
-                 VerticalAlignment="Center"
-                 Margin="0,0,8,0"/>
-      <ComboBox Grid.Row="0" Grid.Column="1"
-                Height="24" MinHeight="24"
-                Padding="12,0,0,0"
-                HorizontalAlignment="Stretch" VerticalAlignment="Center"
-                HorizontalContentAlignment="Left"
-                BorderBrush="{DynamicResource Brush.Border2}"
-                SelectedIndex="{Binding Method, Mode=TwoWay}">
-        <ComboBox.Items>
-          <TextBlock Text="{DynamicResource Text.Repository.Search.BySHA}"/>
-          <TextBlock Text="{DynamicResource Text.Repository.Search.ByAuthor}"/>
-          <TextBlock Text="{DynamicResource Text.Repository.Search.ByMessage}"/>
-          <TextBlock Text="{DynamicResource Text.Repository.Search.ByPath}"/>
-          <TextBlock Text="{DynamicResource Text.Repository.Search.ByContent}"/>
-        </ComboBox.Items>
+      <TextBlock Grid.Column="1" Text="搜索：" Margin="6,0,0,0" VerticalAlignment="Center"/>
+      <ComboBox Grid.Column="2" Height="24" MinHeight="24" Width="120" Padding="4,0" SelectedIndex="{Binding Method, Mode=TwoWay}">
+        <TextBlock Text="{DynamicResource Text.Repository.Search.BySHA}"/>
+        <TextBlock Text="{DynamicResource Text.Repository.Search.ByAuthor}"/>
+        <TextBlock Text="{DynamicResource Text.Repository.Search.ByMessage}"/>
+        <TextBlock Text="{DynamicResource Text.Repository.Search.ByPath}"/>
+        <TextBlock Text="{DynamicResource Text.Repository.Search.ByContent}"/>
       </ComboBox>
-
-      <CheckBox Grid.Row="1" Grid.Column="1"
-                Height="26"
-                IsChecked="{Binding OnlySearchCurrentBranch, Mode=TwoWay}"
-                IsVisible="{Binding Method, Converter={x:Static c:IntConverters.IsGreaterThanZero}}">
-        <TextBlock Text="{DynamicResource Text.Repository.Search.InCurrentBranch}"/>
-      </CheckBox>
+      <Button Grid.Column="3" Classes="icon_button" Width="24" ToolTip.Tip="搜索范围">
+        <Path Width="12" Height="12" Data="{StaticResource Icons.Filter}"/>
+        <Button.Flyout><Flyout><CheckBox IsChecked="{Binding OnlySearchCurrentBranch, Mode=TwoWay}" Content="{DynamicResource Text.Repository.Search.InCurrentBranch}"/></Flyout></Button.Flyout>
+      </Button>
     </Grid>
-
-    <!-- Search Results -->
-    <ListBox Grid.Row="3"
-             Margin="0,6"
-             Padding="4"
-             ItemsSource="{Binding Results}"
-             SelectionMode="Single"
-             SelectedItem="{Binding Selected, Mode=TwoWay}"
-             BorderThickness="1"
-             BorderBrush="{DynamicResource Brush.Border2}"
-             Background="{DynamicResource Brush.Contents}"
-             CornerRadius="4"
-             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-             ScrollViewer.VerticalScrollBarVisibility="Auto"
-             Grid.IsSharedSizeScope="True">
-      <ListBox.Styles>
-        <Style Selector="ListBoxItem">
-          <Setter Property="Margin" Value="0"/>
-          <Setter Property="Padding" Value="0"/>
-          <Setter Property="Height" Value="28"/>
-          <Setter Property="CornerRadius" Value="4"/>
-        </Style>
-      </ListBox.Styles>
-
-      <ListBox.ItemsPanel>
-        <ItemsPanelTemplate>
-          <VirtualizingStackPanel Orientation="Vertical"/>
-        </ItemsPanelTemplate>
-      </ListBox.ItemsPanel>
-
-      <ListBox.ItemTemplate>
-        <DataTemplate DataType="m:Commit">
-          <Grid>
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="24"/>
-              <ColumnDefinition Width="*"/>
-              <ColumnDefinition Width="Auto" SharedSizeGroup="SearchCommitTimeColumn"/>
-            </Grid.ColumnDefinitions>
-            <v:Avatar Grid.Column="0" Width="16" Height="16" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False" User="{Binding Author}"/>
-            <Grid Grid.Column="1" ColumnDefinitions="Auto,*">
-              <Path Grid.Column="0" Width="14" Height="14" Margin="0,2,2,0" Data="{StaticResource Icons.Check}" Fill="Green" IsVisible="{Binding IsMerged, Mode=OneWay}"/>
-              <TextBlock Grid.Column="1" Text="{Binding Subject}" Margin="2,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
-            </Grid>
-            <v:DateTimePresenter Grid.Column="2"
-                                 Margin="4,0"
-                                 ShowDateOnly="True"
-                                 FontFeatures="+tnum"
-                                 Timestamp="{Binding CommitterTime}"
-                                 Foreground="{DynamicResource Brush.FG2}"
-                                 HorizontalAlignment="Right" VerticalAlignment="Center"/>
-          </Grid>
-        </DataTemplate>
-      </ListBox.ItemTemplate>
-    </ListBox>
-
-    <Path Grid.Row="3"
-          HorizontalAlignment="Center" VerticalAlignment="Center"
-          Width="48" Height="48"
-          Data="{StaticResource Icons.Empty}"
-          Fill="{DynamicResource Brush.FG2}">
-      <Path.IsVisible>
-        <MultiBinding Converter="{x:Static BoolConverters.And}">
-          <Binding Path="Results" Converter="{x:Static c:ListConverters.IsNullOrEmpty}"/>
-          <Binding Path="IsQuerying" Converter="{x:Static BoolConverters.Not}"/>
-        </MultiBinding>
-      </Path.IsVisible>
-    </Path>
-
-    <v:LoadingIcon Grid.Row="3"
-                   Width="48" Height="48"
-                   HorizontalAlignment="Center" VerticalAlignment="Center"
-                   IsVisible="{Binding IsQuerying}"/>
+    <DataGrid x:Name="SearchResults" Grid.Row="1" ItemsSource="{Binding Results}" SelectedItem="{Binding Selected, Mode=TwoWay}" AutoGenerateColumns="False" IsReadOnly="True" CanUserResizeColumns="True" CanUserSortColumns="False" HeadersVisibility="Column" RowHeight="21" GridLinesVisibility="None" SelectionMode="Single" BorderThickness="0" Background="{DynamicResource Brush.Contents}" ContextRequested="OnResultsContextRequested">
+      <DataGrid.Columns>
+        <DataGridTextColumn Header="描述" Binding="{Binding Subject}" Width="*" MinWidth="160"/>
+        <DataGridTemplateColumn Header="日期" Width="160" MinWidth="100"><DataGridTemplateColumn.CellTemplate><DataTemplate DataType="m:Commit"><v:CommitTimeTextBlock Margin="4,0" Timestamp="{Binding CommitterTime}" ShowAsDateTime="True" DateTimeFormat="{Binding Source={x:Static vm:Preferences.Instance}, Path=DateTimeFormat}" Use24Hours="{Binding Source={x:Static vm:Preferences.Instance}, Path=Use24Hours}"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+        <DataGridTextColumn Header="作者" Binding="{Binding Author.Name}" Width="150" MinWidth="80"/>
+        <DataGridTextColumn Header="提交" Binding="{Binding SHA, Converter={x:Static c:StringConverters.ToShortSHA}}" Width="100" MinWidth="70"/>
+      </DataGrid.Columns>
+    </DataGrid>
+    <v:LoadingIcon Grid.Row="1" Width="32" Height="32" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsQuerying}"/>
   </Grid>
 </UserControl>

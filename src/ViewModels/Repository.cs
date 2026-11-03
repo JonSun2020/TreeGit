@@ -82,6 +82,8 @@ namespace SourceGit.ViewModels
             get => _selectedViewIndex;
             set
             {
+                if (value != 0 && _histories?.IsSearchingCommits == true)
+                    _histories.IsSearchingCommits = false;
                 if (SetProperty(ref _selectedViewIndex, value))
                 {
                     OnPropertyChanged(nameof(IsDashboardVisible));
@@ -89,6 +91,22 @@ namespace SourceGit.ViewModels
                     OnPropertyChanged(nameof(IsStashesVisible));
                 }
             }
+        }
+
+        public void ShowHistoryPage()
+        {
+            var wasSearching = _histories.IsSearchingCommits;
+            _histories.IsSearchingCommits = false;
+            SelectedViewIndex = 0;
+            if ((wasSearching || _histories.IsWorkingCopySelected) && _histories.Commits.Count > 0)
+                _histories.SelectedCommits = [_histories.Commits.Find(c => c.IsCurrentHead) ?? _histories.Commits[0]];
+        }
+
+        public void ShowWorkingCopyOverview()
+        {
+            _histories.IsSearchingCommits = false;
+            SelectedViewIndex = 0;
+            _histories.ShowWorkingCopyOverview();
         }
 
         public Histories Histories

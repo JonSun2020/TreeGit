@@ -81,7 +81,7 @@ namespace SourceGit.Views
         private ViewModels.Repository TreeGitRepository => (DataContext as ViewModels.Launcher)?.ActivePage?.Data as ViewModels.Repository;
         private void OnTreeGitShowRepositories(object sender, RoutedEventArgs e) => (DataContext as ViewModels.Launcher)?.AddNewTab();
         private void OnTreeGitWorkingCopy(object sender, RoutedEventArgs e) { if (TreeGitRepository is { IsBare: false } repo) repo.SelectedViewIndex = 1; }
-        private void OnTreeGitHistory(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) repo.SelectedViewIndex = 0; }
+        private void OnTreeGitHistory(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) repo.ShowHistoryPage(); }
         private void OnTreeGitSearch(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) { repo.SelectedViewIndex = 0; repo.Histories.IsSearchingCommits = true; } }
         private async void OnTreeGitRepositorySettings(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) await OpenRepositorySettingsAsync(repo); }
         private void OnTreeGitExplorer(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) Native.OS.OpenInFileManager(repo.FullPath); }

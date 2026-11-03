@@ -92,8 +92,7 @@ namespace SourceGit.Views
         {
             if (DataContext is ViewModels.Repository { IsBare: false } repo)
             {
-                repo.SelectedViewIndex = 0;
-                repo.Histories.ShowWorkingCopyOverview();
+                repo.ShowWorkingCopyOverview();
             }
         }
 
@@ -101,9 +100,7 @@ namespace SourceGit.Views
         {
             if (DataContext is ViewModels.Repository repo)
             {
-                repo.SelectedViewIndex = 0;
-                if (repo.Histories.IsWorkingCopySelected && repo.Histories.Commits.Count > 0)
-                    repo.Histories.SelectedCommits = [repo.Histories.Commits.Find(c => c.IsCurrentHead) ?? repo.Histories.Commits[0]];
+                repo.ShowHistoryPage();
             }
         }
 

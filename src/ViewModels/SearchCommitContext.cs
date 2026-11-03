@@ -65,8 +65,11 @@ namespace SourceGit.ViewModels
             get => _selected;
             set
             {
-                if (SetProperty(ref _selected, value) && value != null)
-                    _histories.NavigateTo(value.SHA);
+                if (SetProperty(ref _selected, value))
+                {
+                    if (_histories.IsSearchingCommits) _histories.ShowSearchCommit(value);
+                    else if (value != null) _histories.NavigateTo(value.SHA);
+                }
             }
         }
 
@@ -79,8 +82,7 @@ namespace SourceGit.ViewModels
         public void ClearFilter()
         {
             Filter = string.Empty;
-            Selected = null;
-            Results = null;
+            StartSearch();
         }
 
         public void ClearSuggestions()
@@ -90,6 +92,9 @@ namespace SourceGit.ViewModels
 
         public void StartSearch()
         {
+            if (_cancellation is { IsCancellationRequested: false })
+                _cancellation.Cancel();
+            IsQuerying = false;
             Results = null;
             Selected = null;
             Suggestions = null;
@@ -98,9 +103,6 @@ namespace SourceGit.ViewModels
                 return;
 
             IsQuerying = true;
-
-            if (_cancellation is { IsCancellationRequested: false })
-                _cancellation.Cancel();
 
             _cancellation = new();
             var token = _cancellation.Token;
@@ -180,6 +182,7 @@ namespace SourceGit.ViewModels
             _authors = null;
 
             IsQuerying = false;
+            Selected = null;
             Suggestions = null;
             Results = null;
             GC.Collect();

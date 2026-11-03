@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 namespace SourceGit.Views
 {
@@ -10,6 +11,15 @@ namespace SourceGit.Views
         public CommitSearchView()
         {
             InitializeComponent();
+        }
+
+        private void OnResultsContextRequested(object sender, ContextRequestedEventArgs e)
+        {
+            if (DataContext is ViewModels.SearchCommitContext { Selected: { } commit })
+            {
+                this.FindAncestorOfType<Histories>()?.OpenSearchCommitMenu(SearchResults, commit);
+                e.Handled = true;
+            }
         }
 
         protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)

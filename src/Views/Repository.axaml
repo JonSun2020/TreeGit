@@ -341,9 +341,6 @@
               <Button Grid.Row="10" Classes="icon_button" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Click="OnShowStashes"><StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0"><TextBlock Text="›"/><Path Width="18" Height="18" Data="{StaticResource Icons.Stashes}" Fill="#75869D"/><TextBlock Text="贮藏" FontWeight="Bold" Foreground="{DynamicResource Brush.FG2}"/></StackPanel></Button></Grid>
             </Grid>
 
-            <!-- Commit Search Panel -->
-            <v:CommitSearchView Grid.Row="1" Margin="6,0,4,0" DataContext="{Binding Histories.SearchCommitContext, Mode=OneWay}" IsVisible="{Binding #ThisControl.IsCommitSearchPanelVisible, Mode=OneWay}"/>
-
             <StackPanel Grid.Row="0" Margin="10,18,0,8" Spacing="5"><StackPanel Orientation="Horizontal" Spacing="7"><TextBlock Text="⌄"/><Path Width="20" Height="20" Data="{StaticResource Icons.Dashboard}" Fill="#75869D"/><TextBlock Text="文件状态" FontWeight="Bold" Foreground="{DynamicResource Brush.FG2}"/></StackPanel><Button Classes="icon_button" Margin="38,0,0,0" HorizontalAlignment="Left" Click="OnShowWorkingCopyOverview" Content="工作副本"/></StackPanel></Grid>
 
             <!-- Splitter -->
@@ -476,7 +473,7 @@
                 </Border>
               </Border>
             </Grid>
-          <StackPanel Grid.Row="1" Orientation="Horizontal" Background="{DynamicResource Brush.ToolBar}"><Button Classes="treegit_bottom_tab" Width="132" Content="文件状态" Click="OnShowWorkingCopyOverview"/><Button Classes="treegit_bottom_tab" Width="146" Content="日志 / 历史" Click="OnShowHistory"/><Button Classes="treegit_bottom_tab" Width="104" Content="搜索" Click="OnShowSearch"/></StackPanel></Grid></Grid>
+          <StackPanel Grid.Row="1" Orientation="Horizontal" Background="{DynamicResource Brush.ToolBar}"><Button Classes="treegit_bottom_tab" Width="132" Content="文件状态" Click="OnShowWorkingCopyOverview"/><Button Classes="treegit_bottom_tab" Width="146" Content="日志 / 历史" Click="OnShowHistory"/><Button Classes="treegit_bottom_tab" Width="104" Content="搜索" Click="OnShowSearch" Classes.active="{Binding Histories.IsSearchingCommits}"/></StackPanel></Grid></Grid>
         </Grid>
       </Border>
     </Border>

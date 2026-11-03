@@ -21,7 +21,7 @@ namespace SourceGit.Automation
         internal static readonly HashSet<string> ReadTools = new(StringComparer.Ordinal)
         { "ui_state", "ui_screenshot", "git_status", "git_log", "git_diff", "git_refs", "git_show" };
         internal static readonly HashSet<string> UiTools = new(StringComparer.Ordinal)
-        { "ui_open_repository", "ui_select_view", "ui_select_commit", "ui_refresh", "ui_window", "ui_command", "ui_graph", "ui_history_columns", "ui_working_copy" };
+        { "ui_open_repository", "ui_select_view", "ui_select_commit", "ui_refresh", "ui_window", "ui_command", "ui_search", "ui_graph", "ui_history_columns", "ui_working_copy" };
 
         private static object Field(string description, string type = "string", string[] values = null)
             => values == null ? new { type, description } : (object)new { type, description, @enum = values };
@@ -43,8 +43,9 @@ namespace SourceGit.Automation
                 Tool("ui_state", "Inspect the running TreeGit application's repository tabs, selected view, branch and pending dialog.", []),
                 Tool("ui_screenshot", "Capture the running TreeGit window or its open dialog as a PNG image.", new() { ["window"] = Field("Window to capture (default main).", values: ["main", "active"]) }),
                 Tool("ui_open_repository", "Open or activate a local Git repository in the TreeGit GUI. Does not initialize a repository.", new() { ["repo"] = repo }, ["repo"]),
-                Tool("ui_select_view", "Select history, working copy or stashes in the TreeGit GUI.", new() { ["repo"] = repo, ["view"] = Field("View to display.", values: ["history", "working_copy", "stashes"]) }, ["repo", "view"]),
+                Tool("ui_select_view", "Select history, working copy or stashes in the TreeGit GUI.", new() { ["repo"] = repo, ["view"] = Field("View to display.", values: ["history", "working_copy", "stashes", "search"]) }, ["repo", "view"]),
                 Tool("ui_select_commit", "Navigate to a commit in TreeGit's history and details view.", new() { ["repo"] = repo, ["revision"] = Field("Commit hash or reference.") }, ["repo", "revision"]),
+                Tool("ui_search", "Open the search page, query commits or select a result to inspect its files and diff.", new() { ["repo"] = repo, ["query"] = Field("Search text; an empty string clears results."), ["method"] = Field("Search method.", values: ["sha", "author", "message", "path", "content"]), ["currentBranchOnly"] = Field("Limit the search to the checked-out branch.", "boolean"), ["select"] = Field("SHA or prefix of an existing search result.") }, ["repo"]),
                 Tool("ui_graph", "Choose the branch pinned to the leftmost graph lane and the visible history. Does not check out or modify Git refs. all shows all branches; current shows the selected branch history.", new() { ["repo"] = repo, ["branch"] = Field("Existing local/remote branch name, full ref, or HEAD for the checked-out branch."), ["mode"] = Field("History visibility.", values: ["all", "current", "only", "merged"]) }, ["repo"]),
                 Tool("ui_working_copy", "Select the uncommitted-changes row at the top of history and show staged/unstaged files and diff beneath the graph.", new() { ["repo"] = repo }, ["repo"]),
                 Tool("ui_history_columns", "Inspect, resize and save history column widths for this repository. Widths are pixels; reset restores defaults. Graph minimum 40, description 100, other columns 60; maximum 8192.", new() { ["repo"] = repo, ["reset"] = Field("Restore default widths before applying supplied values.", "boolean"), ["graph"] = Field("Graph width.", "integer"), ["description"] = Field("Description width.", "integer"), ["date"] = Field("Commit date width.", "integer"), ["author"] = Field("Author width.", "integer"), ["commit"] = Field("Commit hash width.", "integer"), ["authorDate"] = Field("Author date width.", "integer") }, ["repo"]),

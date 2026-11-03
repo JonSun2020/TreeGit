@@ -12,6 +12,12 @@ for name in files:
     new=(root/name).read_text(encoding='utf-8-sig')
     for label,pattern in [('named controls',r'x:Name="[^"]+"'),('actions',r'(?:Click|Tapped|DoubleTapped|Command|HotKey|ContextRequested|SelectionChanged|PointerPressed|SizeChanged|RowsChanged|SearchRequested)="[^"]+"'),('data bindings',r'\{Binding [^}]+\}')]:
         missing=Counter(re.findall(pattern,old))-Counter(re.findall(pattern,new))
+        if name == 'src/Views/Repository.axaml' and label == 'data bindings':
+            # Search moved from the repository sidebar into the history area.
+            moved = {'{Binding Histories.SearchCommitContext, Mode=OneWay}', '{Binding #ThisControl.IsCommitSearchPanelVisible, Mode=OneWay}'}
+            history = (root/'src/Views/Histories.axaml').read_text(encoding='utf-8-sig')
+            assert '<Border IsVisible="{Binding IsSearchingCommits}"><v:CommitSearchView DataContext="{Binding SearchCommitContext}"/></Border>' in history
+            missing = Counter({key: count for key, count in missing.items() if key not in moved})
         assert not missing, (name,label,dict(missing))
         checks.append(f'{name}: all original {label} retained')
 for p in (root/'src/Resources/Locales').glob('*.axaml'):
