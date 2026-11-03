@@ -25,7 +25,7 @@
               <Setter Property="Background" Value="{DynamicResource Brush.ToolBar}"/>
               <Setter Property="Opacity" Value="1"/>
             </Style>
-          </ListBox.Styles>
+          <Style Selector="ListBoxItem v|LauncherTabSizeBox"><Setter Property="Background" Value="{DynamicResource Brush.TreeGit.TabInactive}"/><Setter Property="BorderBrush" Value="#6C838A"/><Setter Property="BorderThickness" Value="1"/><Setter Property="VerticalAlignment" Value="Bottom"/><Setter Property="Height" Value="24"/></Style><Style Selector="ListBoxItem:selected v|LauncherTabSizeBox"><Setter Property="Background" Value="{DynamicResource Brush.TreeGit.TabActive}"/><Setter Property="BorderBrush" Value="{DynamicResource Brush.TreeGit.TabActiveBorder}"/><Setter Property="BorderThickness" Value="1,3,1,0"/><Setter Property="Height" Value="26"/></Style><Style Selector="ListBoxItem:selected TextBlock"><Setter Property="FontWeight" Value="Bold"/></Style></ListBox.Styles>
 
           <ListBox.ItemsPanel>
             <ItemsPanelTemplate>
@@ -35,7 +35,7 @@
 
           <ListBox.ItemTemplate>
             <DataTemplate DataType="vm:LauncherPage">
-              <v:LauncherTabSizeBox UseFixedWidth="{Binding Source={x:Static vm:Preferences.Instance}, Path=UseFixedTabWidth}" Height="26" Padding="0,2,0,0" Background="{DynamicResource Brush.ToolBar}" PointerPressed="OnPointerPressedTab" PointerMoved="OnPointerMovedOverTab" PointerReleased="OnPointerReleasedTab" ContextRequested="OnTabContextRequested" DragDrop.AllowDrop="True" DragDrop.Drop="DropTab" BorderBrush="#42526E" BorderThickness="1">
+              <v:LauncherTabSizeBox UseFixedWidth="{Binding Source={x:Static vm:Preferences.Instance}, Path=UseFixedTabWidth}" Padding="0,2,0,0" PointerPressed="OnPointerPressedTab" PointerMoved="OnPointerMovedOverTab" PointerReleased="OnPointerReleasedTab" ContextRequested="OnTabContextRequested" DragDrop.AllowDrop="True" DragDrop.Drop="DropTab">
                 <ToolTip.Tip>
                   <Grid>
                     <TextBlock Text="{DynamicResource Text.Welcome}" IsVisible="{Binding !Node.IsRepository}"/>

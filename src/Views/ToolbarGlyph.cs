@@ -10,6 +10,10 @@ namespace SourceGit.Views
     public sealed class ToolbarGlyph : Control
     {
         public string Kind { get; set; } = "Fetch";
+        public static readonly StyledProperty<IBrush> StrokeProperty = AvaloniaProperty.Register<ToolbarGlyph, IBrush>(nameof(Stroke), Brushes.Teal);
+        public IBrush Stroke { get => GetValue(StrokeProperty); set => SetValue(StrokeProperty, value); }
+        static ToolbarGlyph() => AffectsRender<ToolbarGlyph>(StrokeProperty);
+
 
         public override void Render(DrawingContext context)
         {
@@ -17,7 +21,7 @@ namespace SourceGit.Views
             var scale = System.Math.Min(Bounds.Width, Bounds.Height) / 24;
             using (context.PushTransform(Matrix.CreateScale(scale, scale) * Matrix.CreateTranslation((Bounds.Width - scale * 24) / 2, (Bounds.Height - scale * 24) / 2)))
             {
-                var brush = this.FindResource("Brush.TreeGit.ToolbarOutline") as IBrush ?? Brushes.Teal;
+                var brush = Stroke;
                 var pen = new Pen(brush, 1.3, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
                 if (Kind == "Fetch")
                 {
