@@ -10,6 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
@@ -115,6 +116,8 @@ namespace SourceGit.Automation
                                 view = r.SelectedViewIndex,
                                 branch = r.CurrentBranch?.Name,
                                 changes = r.LocalChangesCount,
+                                ahead = r.CurrentBranch?.Ahead.Count ?? 0,
+                                behind = r.CurrentBranch?.Behind.Count ?? 0,
                                 workingCopySelected = r.Histories?.IsWorkingCopySelected,
                                 detailView = r.Histories?.DetailContext?.GetType().Name,
                                 graphBranch = r.Histories?.GraphBranchName,
@@ -165,6 +168,11 @@ namespace SourceGit.Automation
                     {
                         App.GetLauncher().ActivePage.CancelPopup();
                         return (object)new { cancelled = App.GetLauncher().ActivePage.Popup == null };
+                    }
+                    if (uiCommand is "repository_settings_advanced" or "repository_settings_remotes" && dialog is Views.RepositorySettings settings)
+                    {
+                        settings.SelectPage(uiCommand == "repository_settings_advanced");
+                        return (object)new { selected = uiCommand };
                     }
                     if (dialog != null)
                         throw new InvalidOperationException("Close the current dialog before opening another one.");
@@ -251,9 +259,15 @@ namespace SourceGit.Automation
                         window.Height = height.Value;
                     if (theme != null)
                         ViewModels.Preferences.Instance.Theme = theme;
+                    if (args.TryGetProperty("state", out var windowState))
+                    {
+                        if (windowState.GetString() == "toggle" && window is Views.Launcher launcher) launcher.ToggleMaximizeRestore();
+                        else window.WindowState = windowState.GetString() switch { "normal" => WindowState.Normal, "maximized" => WindowState.Maximized, "minimized" => WindowState.Minimized, _ => throw new ArgumentException("Unknown window state.") };
+                    }
+
                     if (args.TryGetProperty("collapseBranches", out var collapse))
                         ViewModels.Preferences.Instance.Layout.IsSidebarCollapsedInLocalChanges = collapse.GetBoolean();
-                    return (object)new { width = window.Width, height = window.Height, theme = ViewModels.Preferences.Instance.Theme };
+                    return (object)new { width = window.Width, height = window.Height, theme = ViewModels.Preferences.Instance.Theme, state = window.WindowState.ToString() };
                 });
 
             var path = Path.GetFullPath(Text(args, "repo")).TrimEnd('\\', '/');
@@ -337,7 +351,7 @@ namespace SourceGit.Automation
                     switch (command)
                     {
                         case "repository_settings":
-                            _ = new Views.RepositoryConfigure { DataContext = new ViewModels.RepositoryConfigure(repo) }.ShowDialog(owner);
+                            _ = ((Views.Launcher)owner).OpenRepositorySettingsAsync(repo);
                             break;
                         case "credentials":
                             _ = new Views.RepositoryCredentials(repo).ShowDialog(owner);

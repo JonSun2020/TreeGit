@@ -42,6 +42,7 @@ namespace SourceGit.Views
                 CaptionHeight = new GridLength(56);
 
             InitializeComponent();
+            InitializeTitleChrome();
             PositionChanged += OnPositionChanged;
 
             var layout = ViewModels.Preferences.Instance.Layout;
@@ -82,7 +83,7 @@ namespace SourceGit.Views
         private void OnTreeGitWorkingCopy(object sender, RoutedEventArgs e) { if (TreeGitRepository is { IsBare: false } repo) repo.SelectedViewIndex = 1; }
         private void OnTreeGitHistory(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) repo.SelectedViewIndex = 0; }
         private void OnTreeGitSearch(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) { repo.SelectedViewIndex = 0; repo.Histories.IsSearchingCommits = true; } }
-        private async void OnTreeGitRepositorySettings(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) await new RepositoryConfigure { DataContext = new ViewModels.RepositoryConfigure(repo) }.ShowDialog(this); }
+        private async void OnTreeGitRepositorySettings(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) await OpenRepositorySettingsAsync(repo); }
         private void OnTreeGitExplorer(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) Native.OS.OpenInFileManager(repo.FullPath); }
         private void OnTreeGitTerminal(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) Native.OS.OpenTerminal(repo.FullPath); }
         private async void OnTreeGitFetch(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) await repo.FetchAsync(false); }
@@ -375,7 +376,7 @@ namespace SourceGit.Views
 
         private void OnOpenWorkspaceMenu(object sender, RoutedEventArgs e)
         {
-            if (sender is Button btn && DataContext is ViewModels.Launcher launcher)
+            if (sender is Control btn && DataContext is ViewModels.Launcher launcher)
             {
                 if (launcher.CommandPalette != null)
                     launcher.CommandPalette = null;
@@ -427,7 +428,7 @@ namespace SourceGit.Views
                     ev.Handled = true;
                 };
                 menu.Items.Add(configure);
-                menu.Open(btn);
+                menu.Open(btn.IsEffectivelyVisible ? btn : TitleChrome);
             }
 
             e.Handled = true;

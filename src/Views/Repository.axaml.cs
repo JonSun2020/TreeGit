@@ -125,7 +125,7 @@ namespace SourceGit.Views
         {
             if (DataContext is ViewModels.Repository repo)
             {
-                await this.ShowDialogAsync(new ViewModels.RepositoryConfigure(repo));
+                await ((Launcher)TopLevel.GetTopLevel(this)).OpenRepositorySettingsAsync(repo);
                 e.Handled = true;
             }
         }

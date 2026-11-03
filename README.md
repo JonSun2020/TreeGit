@@ -72,6 +72,8 @@ dotnet build src/SourceGit.csproj -c Release -r win-x64 -p:PublishAot=false
 
 构建脚本也支持本机已有的便携 SDK。测试用驱动仅在显式启用 `-IntegrationTests` 时编入，正常发布不包含这些入口。
 
+全部功能的界面位置见 [SourceGit 功能入口对照](docs/FUNCTIONALITY.md)。仓库设置统一为远程仓库与高级两页，完整的原有配置仍可从高级页进入。
+
 ## 跟随上游迭代
 
 当前基线为 SourceGit **2026.23**，提交 `c0f40a2e78d81a7474628847727644fc0c56f558`。保留上游提交历史，后续通过独立同步分支合并上游更新，再验证 TreeGit 的界面、认证和 MCP。

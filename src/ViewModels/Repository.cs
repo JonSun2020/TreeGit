@@ -156,6 +156,8 @@ namespace SourceGit.ViewModels
             private set => SetProperty(ref _branches, value);
         }
 
+        public bool IsAutoRefreshEnabled => Settings.AutoRefreshEnabled;
+
         public Models.Branch CurrentBranch
         {
             get => _currentBranch;
@@ -1931,7 +1933,7 @@ namespace SourceGit.ViewModels
 
             try
             {
-                if (!Preferences.Instance.EnableAutoFetch || !CanCreatePopup())
+                if (!_settings.BackgroundFetchEnabled || !Preferences.Instance.EnableAutoFetch || !CanCreatePopup())
                 {
                     _lastFetchTime = DateTime.Now;
                     return;

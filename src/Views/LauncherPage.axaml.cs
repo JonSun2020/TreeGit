@@ -1,4 +1,4 @@
-using Avalonia.Controls;
+﻿using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
@@ -83,7 +83,12 @@ namespace SourceGit.Views
 
         private void OnToolBarPointerPressed(object sender, PointerPressedEventArgs e)
         {
-            this.FindAncestorOfType<ChromelessWindow>()?.BeginMoveWindow(sender, e);
+            if (this.FindAncestorOfType<Launcher>() is { } window && e.ClickCount >= 2)
+            {
+                window.ToggleMaximizeRestore();
+                e.Handled = true;
+            }
+            else this.FindAncestorOfType<ChromelessWindow>()?.BeginMoveWindow(sender, e);
         }
     }
 }

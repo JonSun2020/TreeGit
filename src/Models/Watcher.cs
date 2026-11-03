@@ -141,6 +141,7 @@ namespace SourceGit.Models
 
         private void Tick(object sender)
         {
+            if (!_repo.IsAutoRefreshEnabled) return;
             if (Interlocked.Read(ref _lockCount) > 0)
                 return;
 

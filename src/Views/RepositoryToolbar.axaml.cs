@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -18,6 +18,27 @@ namespace SourceGit.Views
             InitializeComponent();
         }
 
+        public void ExecuteMenuAction(string action, Control anchor)
+        {
+            var e = new RoutedEventArgs();
+            switch (action)
+            {
+                case "gitflow": OpenGitFlowMenu(anchor, e); break;
+                case "lfs": OpenGitLFSMenu(anchor, e); break;
+                case "bisect": StartBisect(anchor, e); break;
+                case "actions": OpenCustomActionMenu(anchor, e); break;
+                case "external": OpenWithExternalTools(anchor, e); break;
+                case "logs": OpenGitLogs(anchor, e); break;
+                case "statistics": OpenStatistics(anchor, e); break;
+                case "cleanup": Cleanup(anchor, e); break;
+                case "credentials": OpenRepositoryCredentials(anchor, e); break;
+                case "head": NavigateToHead(anchor, e); break;
+                case "patch": if (DataContext is ViewModels.Repository patchRepo) patchRepo.ApplyPatch(); break;
+                case "submodule": if (DataContext is ViewModels.Repository subRepo) subRepo.AddSubmodule(); break;
+                case "worktree": if (DataContext is ViewModels.Repository treeRepo) treeRepo.AddWorktree(); break;
+            }
+        }
+
         private void OpenTerminalDirect(object sender, RoutedEventArgs e)
         {
             if (DataContext is ViewModels.Repository repo) Native.OS.OpenTerminal(repo.FullPath);
@@ -26,7 +47,7 @@ namespace SourceGit.Views
 
         private void OpenRemotesDirect(object sender, RoutedEventArgs e)
         {
-            if (sender is Button button && DataContext is ViewModels.Repository repo)
+            if (sender is Control button && DataContext is ViewModels.Repository repo)
             {
                 var menu = new ContextMenu { Placement = PlacementMode.BottomEdgeAlignedLeft };
                 foreach (var remote in repo.Remotes)
@@ -52,7 +73,7 @@ namespace SourceGit.Views
         private async void OpenSettingsDirect(object sender, RoutedEventArgs e)
         {
             if (DataContext is ViewModels.Repository repo)
-                await this.ShowDialogAsync(new ViewModels.RepositoryConfigure(repo));
+                await ((Launcher)TopLevel.GetTopLevel(this)).OpenRepositorySettingsAsync(repo);
             e.Handled = true;
         }
 
@@ -79,7 +100,7 @@ namespace SourceGit.Views
 
         private void OpenMergeMenu(object sender, RoutedEventArgs e)
         {
-            if (sender is Button button && DataContext is ViewModels.Repository repo)
+            if (sender is Control button && DataContext is ViewModels.Repository repo)
             {
                 var menu = new ContextMenu { Placement = PlacementMode.BottomEdgeAlignedLeft };
                 foreach (var branch in repo.Branches)
@@ -100,7 +121,7 @@ namespace SourceGit.Views
 
         private void OpenWithExternalTools(object sender, RoutedEventArgs ev)
         {
-            if (sender is Button button && DataContext is ViewModels.Repository repo)
+            if (sender is Control button && DataContext is ViewModels.Repository repo)
             {
                 var fullpath = repo.FullPath;
                 if (!Directory.Exists(fullpath))

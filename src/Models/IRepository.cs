@@ -2,6 +2,8 @@
 {
     public interface IRepository
     {
+        bool IsAutoRefreshEnabled => true;
+
         bool MayHaveSubmodules();
 
         void RefreshBranches();
