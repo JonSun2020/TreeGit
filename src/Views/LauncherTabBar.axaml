@@ -10,7 +10,7 @@
         <ListBox x:Name="LauncherTabsList" Background="Transparent" ItemsSource="{Binding Pages}" SelectionMode="AlwaysSelected" SelectedItem="{Binding ActivePage, Mode=TwoWay}" SelectionChanged="OnTabsSelectionChanged" LayoutUpdated="OnTabsLayoutUpdated">
           <ListBox.Styles>
             <Style Selector="ListBoxItem">
-              <Setter Property="Padding" Value="0"/><Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/><Setter Property="CornerRadius" Value="0"/><Setter Property="Margin" Value="0,0,3,0"/><Setter Property="BorderThickness" Value="1"/><Setter Property="BorderBrush" Value="#42526E"/>
+              <Setter Property="Padding" Value="0"/><Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/><Setter Property="CornerRadius" Value="0"/><Setter Property="Margin" Value="0,0,3,0"/><Setter Property="BorderThickness" Value="0"/><Setter Property="BorderBrush" Value="Transparent"/>
             </Style>
             <Style Selector="ListBoxItem /template/ ContentPresenter#PART_ContentPresenter">
               <Setter Property="Background" Value="{DynamicResource Brush.ToolBar}"/>
@@ -25,7 +25,7 @@
               <Setter Property="Background" Value="{DynamicResource Brush.ToolBar}"/>
               <Setter Property="Opacity" Value="1"/>
             </Style>
-          <Style Selector="ListBoxItem v|LauncherTabSizeBox"><Setter Property="Background" Value="{DynamicResource Brush.TreeGit.TabInactive}"/><Setter Property="BorderBrush" Value="#6C838A"/><Setter Property="BorderThickness" Value="1"/><Setter Property="VerticalAlignment" Value="Bottom"/><Setter Property="Height" Value="24"/></Style><Style Selector="ListBoxItem:selected v|LauncherTabSizeBox"><Setter Property="Background" Value="{DynamicResource Brush.TreeGit.TabActive}"/><Setter Property="BorderBrush" Value="{DynamicResource Brush.TreeGit.TabActiveBorder}"/><Setter Property="BorderThickness" Value="1,3,1,0"/><Setter Property="Height" Value="26"/></Style><Style Selector="ListBoxItem:selected TextBlock"><Setter Property="FontWeight" Value="Bold"/></Style></ListBox.Styles>
+          <Style Selector="ListBoxItem Border.treegit_repository_tab"><Setter Property="Background" Value="{DynamicResource Brush.TreeGit.TabInactive}"/><Setter Property="BorderBrush" Value="#6C838A"/><Setter Property="BorderThickness" Value="1"/><Setter Property="VerticalAlignment" Value="Bottom"/><Setter Property="Height" Value="24"/></Style><Style Selector="ListBoxItem:selected Border.treegit_repository_tab"><Setter Property="Background" Value="{DynamicResource Brush.TreeGit.TabActive}"/><Setter Property="BorderBrush" Value="{DynamicResource Brush.TreeGit.TabActiveBorder}"/><Setter Property="BorderThickness" Value="1,1,1,0"/><Setter Property="Height" Value="26"/></Style><Style Selector="ListBoxItem:selected TextBlock"><Setter Property="FontWeight" Value="Bold"/></Style><Style Selector="ListBoxItem Button.treegit_tab_close"><Setter Property="IsVisible" Value="False"/></Style><Style Selector="ListBoxItem:selected Button.treegit_tab_close"><Setter Property="IsVisible" Value="True"/></Style></ListBox.Styles>
 
           <ListBox.ItemsPanel>
             <ItemsPanelTemplate>
@@ -35,7 +35,7 @@
 
           <ListBox.ItemTemplate>
             <DataTemplate DataType="vm:LauncherPage">
-              <v:LauncherTabSizeBox UseFixedWidth="{Binding Source={x:Static vm:Preferences.Instance}, Path=UseFixedTabWidth}" Padding="0,2,0,0" PointerPressed="OnPointerPressedTab" PointerMoved="OnPointerMovedOverTab" PointerReleased="OnPointerReleasedTab" ContextRequested="OnTabContextRequested" DragDrop.AllowDrop="True" DragDrop.Drop="DropTab">
+              <v:LauncherTabSizeBox UseFixedWidth="{Binding Source={x:Static vm:Preferences.Instance}, Path=UseFixedTabWidth}" Padding="0,0,0,0" PointerPressed="OnPointerPressedTab" PointerMoved="OnPointerMovedOverTab" PointerReleased="OnPointerReleasedTab" ContextRequested="OnTabContextRequested" DragDrop.AllowDrop="True" DragDrop.Drop="DropTab" Classes="treegit_repository_tab">
                 <ToolTip.Tip>
                   <Grid>
                     <TextBlock Text="{DynamicResource Text.Welcome}" IsVisible="{Binding !Node.IsRepository}"/>
@@ -50,15 +50,15 @@
                   <v:Bookmark Grid.Column="0" Width="12" Height="12" Margin="12,0" Value="{Binding Node.Bookmark, Mode=OneWay}" IsVisible="{Binding Node.IsRepository}"/>
                   <Path Grid.Column="0" Width="12" Height="12" Margin="12,0" Fill="{DynamicResource Brush.FG1}" Data="{StaticResource Icons.Repositories}" IsVisible="{Binding !Node.IsRepository}" IsHitTestVisible="False"/>
 
-                  <Grid Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center" ColumnDefinitions="Auto,*" IsHitTestVisible="False" IsVisible="{Binding Node.IsRepository}">
+                  <Grid Grid.Column="1" HorizontalAlignment="Left" VerticalAlignment="Center" ColumnDefinitions="Auto,*" IsHitTestVisible="False" IsVisible="{Binding Node.IsRepository}" Margin="4,0">
                     <Ellipse Grid.Column="0" Width="8" Height="8" Margin="0,0,6,0" VerticalAlignment="Center" IsVisible="{Binding DirtyState, Converter={x:Static ObjectConverters.NotEqual}, ConverterParameter={x:Static m:DirtyState.None}}" Fill="{Binding DirtyState, Converter={x:Static c:DirtyStateConverters.ToBrush}}"/>
 
                     <TextBlock Grid.Column="1" VerticalAlignment="Center" Foreground="{Binding $parent[ListBoxItem].Foreground}" FontSize="{Binding Source={x:Static vm:Preferences.Instance}, Path=DefaultFontSize, Converter={x:Static c:DoubleConverters.Decrease}}" TextAlignment="Center" Text="{Binding Node.Name}" IsHitTestVisible="False"/>
                   </Grid>
 
-                  <TextBlock Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Center" Foreground="{Binding $parent[ListBoxItem].Foreground}" FontSize="{Binding Source={x:Static vm:Preferences.Instance}, Path=DefaultFontSize, Converter={x:Static c:DoubleConverters.Decrease}}" TextAlignment="Center" Text="{DynamicResource Text.PageTabBar.Welcome.Title}" IsVisible="{Binding !Node.IsRepository}" IsHitTestVisible="False"/>
+                  <TextBlock Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Center" Foreground="{Binding $parent[ListBoxItem].Foreground}" FontSize="{Binding Source={x:Static vm:Preferences.Instance}, Path=DefaultFontSize, Converter={x:Static c:DoubleConverters.Decrease}}" TextAlignment="Left" Text="{DynamicResource Text.PageTabBar.Welcome.Title}" IsVisible="{Binding !Node.IsRepository}" IsHitTestVisible="False" Margin="4,0"/>
 
-                  <Button Grid.Column="2" Classes="icon_button" Width="14" Height="12" Margin="12,0" Click="OnCloseTab">
+                  <Button Grid.Column="2" Classes="icon_button treegit_tab_close" Width="14" Height="12" Margin="12,0" Click="OnCloseTab">
                     <ToolTip.Tip>
                       <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="{DynamicResource Text.PageTabBar.Tab.Close}" VerticalAlignment="Center"/>
