@@ -21,7 +21,7 @@
             <ComboBoxItem Content="{DynamicResource Text.Graph.AllBranches}"/>
             <ComboBoxItem Content="{DynamicResource Text.Graph.OnlyBranch}"/>
           </ComboBox>
-          <CheckBox Grid.Column="1" Content="显示远程分支" Margin="12,0" IsChecked="{Binding ShowRemoteBranches, Mode=TwoWay}"/><ComboBox Grid.Column="2" Width="98" Height="22" Padding="4,0" SelectedIndex="{Binding SortMode, Mode=TwoWay}"><ComboBoxItem Content="按日期排序"/><ComboBoxItem Content="按拓扑排序"/></ComboBox><TextBlock Grid.Column="3" Margin="12,0,0,0" Foreground="{DynamicResource Brush.FG2}" Text="{Binding GraphBranchName}" FontSize="11" TextTrimming="CharacterEllipsis"/>
+          <CheckBox Grid.Column="1" Content="显示远程分支" Margin="12,0" IsChecked="{Binding ShowRemoteBranches, Mode=TwoWay}"/><ComboBox Grid.Column="2" Width="136" MinWidth="136" Height="22" Padding="6,0" SelectedIndex="{Binding SortMode, Mode=TwoWay}"><ComboBoxItem Content="按日期排序"/><ComboBoxItem Content="按拓扑排序"/></ComboBox><TextBlock Grid.Column="3" Margin="12,0,0,0" Foreground="{DynamicResource Brush.FG2}" Text="{Binding GraphBranchName}" FontSize="11" TextTrimming="CharacterEllipsis"/>
         </Grid>
       </Border>
       <v:HistoriesCommitList Grid.Row="1" x:Name="CommitListContainer" Classes="static_scrollbar" ScrollViewer.AllowAutoHide="False" Background="Transparent" ItemsSource="{Binding Commits, Mode=OneWay}" TotalCommits="{Binding Commits.Count, Mode=OneWay}" SelectedCommits="{Binding SelectedCommits, Mode=TwoWay}" ColumnHeaderHeight="24" RowHeight="19" LayoutUpdated="OnCommitListLayoutUpdated" ContextRequested="OnCommitListContextRequested" DoubleTapped="OnCommitListDoubleTapped">

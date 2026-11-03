@@ -106,7 +106,16 @@ namespace SourceGit.Automation
                         activePage = new { kind = launcher.ActivePage.Data.GetType().Name, pendingDialog = launcher.ActivePage.Popup?.GetType().Name, notifications = launcher.ActivePage.Notifications.Count },
                         dialogs = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).Windows
                             .Where(w => w != ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow && w.IsVisible)
-                            .Select(w => new { title = w.Title, type = w.GetType().Name }).ToArray(),
+                            .Select(w =>
+                            {
+                                var area = w.Screens.ScreenFromWindow(w)?.WorkingArea;
+                                var confirm = w.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "ConfirmRepositorySettings");
+                                var top = confirm?.TranslatePoint(new Point(0, 0), w);
+                                var bottom = confirm?.TranslatePoint(new Point(confirm.Bounds.Width, confirm.Bounds.Height), w);
+                                return new { title = w.Title, type = w.GetType().Name, width = w.Bounds.Width, height = w.Bounds.Height, x = w.Position.X, y = w.Position.Y, scaling = w.RenderScaling,
+                                    workArea = new { x = area?.X, y = area?.Y, width = area?.Width, height = area?.Height },
+                                    confirmVisible = top.HasValue && bottom.HasValue && top.Value.Y >= 0 && bottom.Value.Y <= w.Bounds.Height && bottom.Value.X <= w.Bounds.Width };
+                            }).ToArray(),
                         repositories = launcher.Pages.Where(p => p.Data is ViewModels.Repository).Select(p =>
                         {
                             var r = (ViewModels.Repository)p.Data;
@@ -258,6 +267,12 @@ namespace SourceGit.Automation
                     int? width = args.TryGetProperty("width", out var w) ? w.GetInt32() : null;
                     int? height = args.TryGetProperty("height", out var h) ? h.GetInt32() : null;
                     var theme = args.TryGetProperty("theme", out var t) ? t.GetString() : null;
+                    if (args.TryGetProperty("zoom", out var z))
+                    {
+                        var zoom = z.GetDouble();
+                        if (!double.IsFinite(zoom) || zoom < 0.75 || zoom > 2) throw new ArgumentException("Zoom is out of range.");
+                        ViewModels.Preferences.Instance.Zoom = zoom;
+                    }
                     if (width.HasValue && (width < 1024 || width > 3840) || height.HasValue && (height < 640 || height > 2160))
                         throw new ArgumentException("Window size is out of range.");
                     if (theme != null && theme is not ("Light" or "Dark" or "Default" or "SourceTree"))

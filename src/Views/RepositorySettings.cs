@@ -26,7 +26,35 @@ namespace SourceGit.Views
         private readonly CheckBox _backgroundFetch;
         private readonly TextBlock _error;
         private readonly Action<bool> _selectPage;
+        private Window _screenOwner;
+        private bool _advanced;
         public void SelectPage(bool advanced) => _selectPage(advanced);
+
+        public void FitToOwner(Window owner)
+        {
+            _screenOwner = owner;
+            FitToScreen();
+        }
+
+        private void FitToScreen()
+        {
+            if (_screenOwner == null) return;
+            var screen = IsVisible ? Screens.ScreenFromWindow(this) : _screenOwner.Screens.ScreenFromWindow(_screenOwner);
+            screen ??= _screenOwner.Screens.Primary;
+            if (screen == null) return;
+            var area = screen.WorkingArea;
+            var scale = screen.Scaling;
+            var zoom = ViewModels.Preferences.Instance.Zoom;
+            var centerX = IsVisible ? Position.X + Bounds.Width * scale / 2 : _screenOwner.Position.X + _screenOwner.Bounds.Width * scale / 2;
+            var centerY = IsVisible ? Position.Y + Bounds.Height * scale / 2 : _screenOwner.Position.Y + _screenOwner.Bounds.Height * scale / 2;
+            MaxWidth = Math.Max(1, area.Width / scale - 32);
+            MaxHeight = Math.Max(1, area.Height / scale - 32);
+            Width = Math.Min(640 * zoom, MaxWidth);
+            Height = Math.Min((_advanced ? 620 : 420) * zoom, MaxHeight);
+            var x = Math.Clamp(centerX - Width * scale / 2, area.X + 8, Math.Max(area.X + 8, area.Right - Width * scale - 8));
+            var y = Math.Clamp(centerY - Height * scale / 2, area.Y + 8, Math.Max(area.Y + 8, area.Bottom - Height * scale - 8));
+            Position = new PixelPoint((int)x, (int)y);
+        }
 
         public RepositorySettings(ViewModels.Repository repo)
         {
@@ -34,18 +62,18 @@ namespace SourceGit.Views
             _configuration = new ViewModels.RepositoryConfigure(repo);
             Title = "仓库设置";
             Width = 640;
-            SizeToContent = SizeToContent.Height;
+            SizeToContent = SizeToContent.Manual;
             CanResize = false;
             CloseOnESC = true;
-            WindowStartupLocation = WindowStartupLocation.CenterOwner;
-            var root = new StackPanel { Margin = new Thickness(8), Spacing = 0 };
+            WindowStartupLocation = WindowStartupLocation.Manual;
+            var root = new Grid { Margin = new Thickness(8), RowDefinitions = new RowDefinitions("Auto,Auto,*,Auto,Auto") };
             var title = new Border { Background = new SolidColorBrush(Color.Parse("#9D9D9D")), CornerRadius = new CornerRadius(2), Margin = new Thickness(0, 0, 0, 8), Height = 24, Child = new TextBlock { Text = Title, Foreground = Brushes.White, FontWeight = FontWeight.Bold, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center } };
             title.PointerPressed += BeginMoveWindow;
             root.Children.Add(title);
             var tabs = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, -1), ZIndex = 1 };
             var remoteTab = Tab("远程仓库", "Icons.Remotes");
             var advancedTab = Tab("高级", "Icons.Settings");
-            tabs.Children.Add(remoteTab); tabs.Children.Add(advancedTab); root.Children.Add(tabs);
+            tabs.Children.Add(remoteTab); tabs.Children.Add(advancedTab); Grid.SetRow(tabs, 1); root.Children.Add(tabs);
             var border = new Border { BorderBrush = Brushes.Gray, BorderThickness = new Thickness(1), Background = this.FindResource("Brush.Contents") as IBrush, Padding = new Thickness(8) };
             var remotePage = new StackPanel { Spacing = 8 };
             remotePage.Children.Add(new TextBlock { Text = "远程仓库路径" });
@@ -62,13 +90,13 @@ namespace SourceGit.Views
             _remotes.DoubleTapped += async (_, _) => { if (_remotes.SelectedItem is Models.Remote r) await EditRemoteAsync(r); };
             remoteActions.Children.Add(add); remoteActions.Children.Add(edit); remoteActions.Children.Add(remove); remotePage.Children.Add(remoteActions);
 
-            var advancedPage = new StackPanel { Spacing = 12 };
+            var advancedPage = new StackPanel { Spacing = 6 };
             var ignored = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
             var ignorePath = Path.Combine(repo.FullPath, ".gitignore");
             ignored.Children.Add(new TextBlock { Text = ignorePath, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center });
             var ignoreEdit = Action("编辑", () => { if (!File.Exists(ignorePath)) File.WriteAllText(ignorePath, ""); Native.OS.OpenWithDefaultEditor(ignorePath); return Task.CompletedTask; });
             Grid.SetColumn(ignoreEdit, 1); ignored.Children.Add(ignoreEdit); advancedPage.Children.Add(Group("仓库指定忽略列表", ignored));
-            var identity = new StackPanel { Spacing = 8 };
+            var identity = new StackPanel { Spacing = 4 };
             _global = new CheckBox { Content = "使用全局用户配置", IsChecked = string.IsNullOrEmpty(LocalConfig("user.name")) && string.IsNullOrEmpty(LocalConfig("user.email")) };
             identity.Children.Add(_global);
             _name = new TextBox { Text = _configuration.UserName, Height = 26 };
@@ -78,7 +106,7 @@ namespace SourceGit.Views
             _global.IsCheckedChanged += (_, _) => EnableIdentity(); EnableIdentity();
             advancedPage.Children.Add(Group("用户信息", identity));
             var links = new StackPanel { Spacing = 6 };
-            _links = new ListBox { Height = 92, ItemsSource = _configuration.IssueTrackers, DisplayMemberBinding = new Binding("Name"), Background = this.FindResource("Brush.Contents") as IBrush, BorderThickness = new Thickness(1), BorderBrush = Brushes.Gray };
+            _links = new ListBox { Height = 64, ItemsSource = _configuration.IssueTrackers, DisplayMemberBinding = new Binding("Name"), Background = this.FindResource("Brush.Contents") as IBrush, BorderThickness = new Thickness(1), BorderBrush = Brushes.Gray };
             links.Children.Add(_links);
             var linkActions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
             linkActions.Children.Add(Action("添加", async () => await EditLinkAsync(null)));
@@ -98,23 +126,27 @@ namespace SourceGit.Views
                 _links.ItemsSource = _configuration.IssueTrackers;
             });
             miscellaneous.Children.Add(original); advancedPage.Children.Add(Group("杂项", miscellaneous));
-            border.Child = remotePage; root.Children.Add(border);
+            var scroll = new ScrollViewer { Content = remotePage, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto };
+            border.Child = scroll; Grid.SetRow(border, 2); root.Children.Add(border);
             void Select(bool advanced)
             {
-                border.Child = advanced ? advancedPage : remotePage;
+                _advanced = advanced;
+                scroll.Content = advanced ? advancedPage : remotePage;
+                scroll.Offset = new Vector(0, 0);
                 SetTabAppearance(remoteTab, !advanced);
                 SetTabAppearance(advancedTab, advanced);
+                FitToScreen();
             }
             _selectPage = Select;
             remoteTab.Click += (_, _) => Select(false); advancedTab.Click += (_, _) => Select(true); Select(false);
             _error = new TextBlock { Foreground = Brushes.IndianRed, TextWrapping = TextWrapping.Wrap, IsVisible = false };
-            root.Children.Add(_error);
+            Grid.SetRow(_error, 3); root.Children.Add(_error);
             var footer = new Grid { Margin = new Thickness(0, 8, 0, 0), ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto") };
             footer.Children.Add(Action("编辑配置文件…", () => { Native.OS.OpenWithDefaultEditor(Path.Combine(repo.GitDir, "config")); return Task.CompletedTask; }));
-            var ok = Action("确定", SaveAsync); Grid.SetColumn(ok, 2); footer.Children.Add(ok);
+            var ok = Action("确定", SaveAsync); ok.Name = "ConfirmRepositorySettings"; Grid.SetColumn(ok, 2); footer.Children.Add(ok);
             var cancel = new Button { Content = "取消", Classes = { "flat" }, MinWidth = 74, Margin = new Thickness(6, 0, 0, 0) }; cancel.Click += (_, _) => Close(); Grid.SetColumn(cancel, 3); footer.Children.Add(cancel);
-            root.Children.Add(footer); Content = root;
-            Opened += async (_, _) => await RefreshRemotesAsync();
+            Grid.SetRow(footer, 4); root.Children.Add(footer); Content = root;
+            Opened += async (_, _) => { FitToScreen(); await RefreshRemotesAsync(); };
         }
 
         private string LocalConfig(string key) => new LocalConfigQuery(_repo.FullPath, key).ReadValue();
@@ -222,7 +254,7 @@ namespace SourceGit.Views
         }
 
         private static Control Group(string title, Control content)
-            => new StackPanel { Spacing = 2, Children = { new TextBlock { Text = title }, new Border { BorderThickness = new Thickness(1), BorderBrush = new SolidColorBrush(Color.Parse("#CED8DF")), CornerRadius = new CornerRadius(3), Padding = new Thickness(10), Child = content } } };
+            => new StackPanel { Spacing = 2, Children = { new TextBlock { Text = title }, new Border { BorderThickness = new Thickness(1), BorderBrush = new SolidColorBrush(Color.Parse("#CED8DF")), CornerRadius = new CornerRadius(3), Padding = new Thickness(6), Child = content } } };
 
         private static Control Field(string label, Control editor)
         {

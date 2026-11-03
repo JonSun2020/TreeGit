@@ -13,7 +13,12 @@ namespace SourceGit.Views
         public async System.Threading.Tasks.Task OpenRepositorySettingsAsync(ViewModels.Repository repo)
         {
             IsRepositorySettingsOpen = true;
-            try { await new RepositorySettings(repo).ShowDialog(this); }
+            try
+            {
+                var settings = new RepositorySettings(repo);
+                settings.FitToOwner(this);
+                await settings.ShowDialog(this);
+            }
             finally { IsRepositorySettingsOpen = false; }
         }
 
