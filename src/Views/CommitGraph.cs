@@ -184,16 +184,14 @@ namespace SourceGit.Views
                 switch (dot.Type)
                 {
                     case Models.CommitGraph.DotType.Head:
-                        context.DrawEllipse(dotFill, pen, center, 6, 6);
-                        context.DrawEllipse(pen.Brush, null, center, 3, 3);
+                        context.DrawEllipse(dotFill, pen, center, 4.5, 4.5);
+                        context.DrawEllipse(pen.Brush, null, center, 2.5, 2.5);
                         break;
                     case Models.CommitGraph.DotType.Merge:
-                        context.DrawEllipse(pen.Brush, null, center, 6, 6);
-                        context.DrawLine(dotFillPen, new Point(center.X, center.Y - 3), new Point(center.X, center.Y + 3));
-                        context.DrawLine(dotFillPen, new Point(center.X - 3, center.Y), new Point(center.X + 3, center.Y));
+                        context.DrawEllipse(pen.Brush, null, center, 3.5, 3.5);
                         break;
                     default:
-                        context.DrawEllipse(dotFill, pen, center, 3, 3);
+                        context.DrawEllipse(pen.Brush, null, center, 3, 3);
                         break;
                 }
             }

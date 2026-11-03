@@ -37,9 +37,9 @@ namespace SourceGit.Views
             if (OperatingSystem.IsMacOS())
                 CaptionHeight = new GridLength(34);
             else if (UseSystemWindowFrame)
-                CaptionHeight = new GridLength(30);
+                CaptionHeight = new GridLength(64);
             else
-                CaptionHeight = new GridLength(38);
+                CaptionHeight = new GridLength(68);
 
             InitializeComponent();
             PositionChanged += OnPositionChanged;
@@ -77,6 +77,20 @@ namespace SourceGit.Views
                 Activate();
         }
 
+        private ViewModels.Repository TreeGitRepository => (DataContext as ViewModels.Launcher)?.ActivePage?.Data as ViewModels.Repository;
+        private void OnTreeGitShowRepositories(object sender, RoutedEventArgs e) => (DataContext as ViewModels.Launcher)?.AddNewTab();
+        private void OnTreeGitWorkingCopy(object sender, RoutedEventArgs e) { if (TreeGitRepository is { IsBare: false } repo) repo.SelectedViewIndex = 1; }
+        private void OnTreeGitHistory(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) repo.SelectedViewIndex = 0; }
+        private void OnTreeGitSearch(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) { repo.SelectedViewIndex = 0; repo.Histories.IsSearchingCommits = true; } }
+        private async void OnTreeGitRepositorySettings(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) await new RepositoryConfigure { DataContext = new ViewModels.RepositoryConfigure(repo) }.ShowDialog(this); }
+        private void OnTreeGitExplorer(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) Native.OS.OpenInFileManager(repo.FullPath); }
+        private void OnTreeGitTerminal(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) Native.OS.OpenTerminal(repo.FullPath); }
+        private async void OnTreeGitFetch(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) await repo.FetchAsync(false); }
+        private async void OnTreeGitPull(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) await repo.PullAsync(false); }
+        private async void OnTreeGitPush(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) await repo.PushAsync(false); }
+        private void OnTreeGitBranch(object sender, RoutedEventArgs e) => TreeGitRepository?.CreateNewBranch();
+        private void OnTreeGitTag(object sender, RoutedEventArgs e) => TreeGitRepository?.CreateNewTag();
+
         protected override void OnOpened(EventArgs e)
         {
             base.OnOpened(e);
@@ -95,7 +109,7 @@ namespace SourceGit.Views
                 _lastWindowState = (WindowState)change.OldValue!;
 
                 if (!OperatingSystem.IsMacOS() && !UseSystemWindowFrame)
-                    CaptionHeight = new GridLength(state == WindowState.Maximized ? 30 : 38);
+                    CaptionHeight = new GridLength(state == WindowState.Maximized ? 64 : 68);
 
                 ViewModels.Preferences.Instance.Layout.LauncherWindowState = state;
             }

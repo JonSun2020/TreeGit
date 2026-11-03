@@ -29,6 +29,9 @@ with ThreadPoolExecutor(max_workers=12) as pool:
 assert len(results)==12
 print('PASS 12 simultaneous clients, 60 GUI-backed Git requests',flush=True)
 git=exe.parent/'git/cmd/git.exe'
+if not git.exists():
+    import shutil
+    git=Path(shutil.which('git'))
 def run(*args):subprocess.run([str(git),'-C',str(repo),*args],check=True,capture_output=True)
 file=repo/'large-output.txt'
 file.write_text('baseline\n',encoding='utf-8')

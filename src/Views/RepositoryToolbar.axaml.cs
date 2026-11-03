@@ -18,6 +18,25 @@ namespace SourceGit.Views
             InitializeComponent();
         }
 
+        private void OpenTerminalDirect(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is ViewModels.Repository repo) Native.OS.OpenTerminal(repo.FullPath);
+            e.Handled = true;
+        }
+
+        private void OpenExplorerDirect(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is ViewModels.Repository repo) Native.OS.OpenInFileManager(repo.FullPath);
+            e.Handled = true;
+        }
+
+        private async void OpenSettingsDirect(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is ViewModels.Repository repo)
+                await this.ShowDialogAsync(new ViewModels.RepositoryConfigure(repo));
+            e.Handled = true;
+        }
+
         private async void OpenRepositoryCredentials(object sender, RoutedEventArgs e)
         {
             if (DataContext is ViewModels.Repository repo && TopLevel.GetTopLevel(this) is Window owner)
@@ -29,6 +48,13 @@ namespace SourceGit.Views
         {
             if (DataContext is ViewModels.Repository repo)
                 repo.SelectedViewIndex = 1;
+            e.Handled = true;
+        }
+
+        private void OpenDiscard(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is ViewModels.Repository repo && !repo.IsBare)
+                repo.WorkingCopy.DiscardAllChanges();
             e.Handled = true;
         }
 
@@ -561,6 +587,7 @@ namespace SourceGit.Views
         {
             if (DataContext is ViewModels.Repository { CurrentBranch: { } head } repo)
             {
+                repo.Histories.FocusGraphBranch(head);
                 var repoView = TopLevel.GetTopLevel(this)?.FindDescendantOfType<Repository>();
                 repoView?.LocalBranchTree?.Select(head);
 

@@ -15,13 +15,13 @@ namespace SourceGit.Automation
     // Explicitly launched stdio MCP server. The desktop process never owns protocol stdout.
     internal static class McpServer
     {
-        internal static string PipeName => "SourceGit.MCP." + Convert.ToHexString(SHA256.HashData(
+        internal static string PipeName => "TreeGit.MCP." + Convert.ToHexString(SHA256.HashData(
             Encoding.UTF8.GetBytes(AppContext.BaseDirectory.ToUpperInvariant() + "\n" + Environment.UserName)))[..24];
 
         internal static readonly HashSet<string> ReadTools = new(StringComparer.Ordinal)
         { "ui_state", "ui_screenshot", "git_status", "git_log", "git_diff", "git_refs", "git_show" };
         internal static readonly HashSet<string> UiTools = new(StringComparer.Ordinal)
-        { "ui_open_repository", "ui_select_view", "ui_select_commit", "ui_refresh", "ui_window", "ui_command" };
+        { "ui_open_repository", "ui_select_view", "ui_select_commit", "ui_refresh", "ui_window", "ui_command", "ui_graph" };
 
         private static object Field(string description, string type = "string", string[] values = null)
             => values == null ? new { type, description } : (object)new { type, description, @enum = values };
@@ -37,17 +37,18 @@ namespace SourceGit.Automation
 
         private static object[] Tools(bool allowWrite)
         {
-            var repo = Field("Absolute path of a repository opened in this SourceGit window.");
+            var repo = Field("Absolute path of a repository opened in this TreeGit window.");
             var tools = new List<object>
             {
-                Tool("ui_state", "Inspect the running SourceGit application's repository tabs, selected view, branch and pending dialog.", []),
-                Tool("ui_screenshot", "Capture the running SourceGit window or its open dialog as a PNG image.", new() { ["window"] = Field("Window to capture (default main).", values: ["main", "active"]) }),
-                Tool("ui_open_repository", "Open or activate a local Git repository in the SourceGit GUI. Does not initialize a repository.", new() { ["repo"] = repo }, ["repo"]),
-                Tool("ui_select_view", "Select history, working copy or stashes in the SourceGit GUI.", new() { ["repo"] = repo, ["view"] = Field("View to display.", values: ["history", "working_copy", "stashes"]) }, ["repo", "view"]),
-                Tool("ui_select_commit", "Navigate to a commit in SourceGit's history and details view.", new() { ["repo"] = repo, ["revision"] = Field("Commit hash or reference.") }, ["repo", "revision"]),
+                Tool("ui_state", "Inspect the running TreeGit application's repository tabs, selected view, branch and pending dialog.", []),
+                Tool("ui_screenshot", "Capture the running TreeGit window or its open dialog as a PNG image.", new() { ["window"] = Field("Window to capture (default main).", values: ["main", "active"]) }),
+                Tool("ui_open_repository", "Open or activate a local Git repository in the TreeGit GUI. Does not initialize a repository.", new() { ["repo"] = repo }, ["repo"]),
+                Tool("ui_select_view", "Select history, working copy or stashes in the TreeGit GUI.", new() { ["repo"] = repo, ["view"] = Field("View to display.", values: ["history", "working_copy", "stashes"]) }, ["repo", "view"]),
+                Tool("ui_select_commit", "Navigate to a commit in TreeGit's history and details view.", new() { ["repo"] = repo, ["revision"] = Field("Commit hash or reference.") }, ["repo", "revision"]),
+                Tool("ui_graph", "Choose the branch pinned to the leftmost graph lane and the visible history. Does not check out or modify Git refs. all shows all branches; only shows just the selected first-parent line; merged includes its merged ancestry.", new() { ["repo"] = repo, ["branch"] = Field("Existing local/remote branch name, full ref, or HEAD for the checked-out branch."), ["mode"] = Field("History visibility.", values: ["all", "only", "merged"]) }, ["repo"]),
                 Tool("ui_refresh", "Refresh the repository's branches, history, files, stashes, submodules and worktrees in the GUI.", new() { ["repo"] = repo }, ["repo"]),
-                Tool("ui_window", "Adjust the desktop window size, theme or working-copy branch sidebar. All are optional; supplied preferences are saved.", new() { ["width"] = Field("Window width, 1024 to 3840.", "integer"), ["height"] = Field("Window height, 640 to 2160.", "integer"), ["theme"] = Field("SourceGit theme.", values: ["Light", "Dark", "Default"]), ["collapseBranches"] = Field("Collapse branch groups in the working-copy view, retaining compact workspace navigation.", "boolean") }),
-                Tool("ui_command", "Open SourceGit's original dialogs or dismiss notifications. No Git operation is submitted by this tool. Repository commands require repo. Opening another dialog is rejected while one is already open.", new() { ["repo"] = repo, ["command"] = Field("GUI command.", values: ["mcp_connection", "preferences", "repository_settings", "credentials", "clear_notifications", "close_dialog", "create_branch", "create_tag", "fetch_dialog", "pull_dialog", "push_dialog", "stash_dialog", "apply_patch", "cancel_popup"]) }, ["command"]),
+                Tool("ui_window", "Adjust the desktop window size, theme or working-copy branch sidebar. All are optional; supplied preferences are saved.", new() { ["width"] = Field("Window width, 1024 to 3840.", "integer"), ["height"] = Field("Window height, 640 to 2160.", "integer"), ["theme"] = Field("TreeGit theme.", values: ["Light", "Dark", "Default"]), ["collapseBranches"] = Field("Collapse branch groups in the working-copy view, retaining compact workspace navigation.", "boolean") }),
+                Tool("ui_command", "Open TreeGit's original dialogs or dismiss notifications. No Git operation is submitted by this tool. Repository commands require repo. Opening another dialog is rejected while one is already open.", new() { ["repo"] = repo, ["command"] = Field("GUI command.", values: ["mcp_connection", "preferences", "repository_settings", "credentials", "clear_notifications", "close_dialog", "create_branch", "create_tag", "fetch_dialog", "pull_dialog", "push_dialog", "stash_dialog", "apply_patch", "cancel_popup"]) }, ["command"]),
                 Tool("git_status", "Read tracked/untracked changes and branch status. Never returns saved credentials.", new() { ["repo"] = repo }, ["repo"]),
                 Tool("git_log", "Read recent commits with graph and references.", new() { ["repo"] = repo, ["count"] = Field("Maximum commits, 1 to 500 (default 50).", "integer"), ["all"] = Field("Include all branches.", "boolean") }, ["repo"]),
                 Tool("git_diff", "Read staged or unstaged textual diff, optionally restricted to repository-relative paths.", new() { ["repo"] = repo, ["staged"] = Field("Read staged changes.", "boolean"), ["paths"] = new { type = "array", items = new { type = "string" } } }, ["repo"]),
@@ -56,7 +57,7 @@ namespace SourceGit.Automation
             };
             if (allowWrite)
             {
-                tools.Add(Tool("git_clone", "Clone through SourceGit's original clone dialog/workflow, show progress in the GUI, then open the resulting repository. Destination must not exist; parent directory must already exist. Authentication uses normal prompts. Credentials must not be embedded in the URL.", new()
+                tools.Add(Tool("git_clone", "Clone through TreeGit's original clone dialog/workflow, show progress in the GUI, then open the resulting repository. Destination must not exist; parent directory must already exist. Authentication uses normal prompts. Credentials must not be embedded in the URL.", new()
                 {
                     ["url"] = Field("Git remote URL or existing local repository path."),
                     ["destination"] = Field("Absolute path of a new repository directory."),
@@ -153,7 +154,7 @@ namespace SourceGit.Automation
                             initialized = true;
                             var requestedVersion = request.TryGetProperty("params", out var init) && init.TryGetProperty("protocolVersion", out var requested) ? requested.GetString() : null;
                             var negotiatedVersion = requestedVersion is "2024-11-05" or "2025-03-26" or "2025-06-18" or "2025-11-25" ? requestedVersion : "2025-11-25";
-                            result = new { protocolVersion = negotiatedVersion, capabilities = new { tools = new { listChanged = false } }, serverInfo = new { name = "sourcegit-desktop", version = "0.1.0" }, instructions = "Controls the running SourceGit desktop. Open a repository before using Git tools. Read-only by default; --allow-write exposes explicit mutation tools. Credentials are never exposed as tools." };
+                            result = new { protocolVersion = negotiatedVersion, capabilities = new { tools = new { listChanged = false } }, serverInfo = new { name = "treegit-desktop", version = "0.1.0" }, instructions = "Controls the running TreeGit desktop. Open a repository before using Git tools. Read-only by default; --allow-write exposes explicit mutation tools. Credentials are never exposed as tools." };
                             break;
                         case "ping":
                             result = new { };
@@ -220,7 +221,7 @@ namespace SourceGit.Automation
             await using var writer = new StreamWriter(pipe, new UTF8Encoding(false), 4096, true) { AutoFlush = true };
             await writer.WriteLineAsync(JsonSerializer.Serialize(request)).ConfigureAwait(false);
             // Authentication dialogs and Git operations may legitimately need user input.
-            var response = await reader.ReadLineAsync().ConfigureAwait(false) ?? throw new IOException("SourceGit GUI connection closed.");
+            var response = await reader.ReadLineAsync().ConfigureAwait(false) ?? throw new IOException("TreeGit GUI connection closed.");
             using var document = JsonDocument.Parse(response);
             return document.RootElement.Clone();
         }
@@ -229,7 +230,7 @@ namespace SourceGit.Automation
         {
             // Coordinate cold starts across different AI clients. Keep mutex ownership
             // on this synchronous worker thread, including while waiting for the GUI.
-            using var gate = new Mutex(false, "SourceGit.MCP.Start." + PipeName);
+            using var gate = new Mutex(false, "TreeGit.MCP.Start." + PipeName);
             var acquired = false;
             try
             {
@@ -237,7 +238,7 @@ namespace SourceGit.Automation
                 { acquired = gate.WaitOne(TimeSpan.FromSeconds(25)); }
                 catch (AbandonedMutexException) { acquired = true; }
                 if (!acquired)
-                    throw new TimeoutException("SourceGit desktop startup is still in progress.");
+                    throw new TimeoutException("TreeGit desktop startup is still in progress.");
                 using var probe = new NamedPipeClientStream(".", PipeName, PipeDirection.InOut, PipeOptions.CurrentUserOnly);
                 try
                 { probe.Connect(250); return; }

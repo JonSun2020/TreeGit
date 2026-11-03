@@ -68,7 +68,7 @@ namespace SourceGit.Native
             {
                 var appDataDir = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                    "SourceGit");
+                    "TreeGit");
 
                 if (!Directory.Exists(appDataDir))
                     Directory.CreateDirectory(appDataDir);

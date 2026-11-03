@@ -1228,12 +1228,24 @@ namespace SourceGit.ViewModels
 
             Task.Run(async () =>
             {
-                await Dispatcher.UIThread.InvokeAsync(() => _histories.IsLoading = true);
+                var graphView = await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    _histories.IsLoading = true;
+                    return (Reference: _histories.GraphBranchRef, Name: _histories.GraphBranchName, OnlyBranch: _histories.BranchDisplayMode != 0, FirstParentOnly: _histories.BranchDisplayMode == 1);
+                });
+                var preferredHead = await new Commands.QueryRevisionByRefName(FullPath, graphView.Reference).GetResultAsync().ConfigureAwait(false);
+                var resetMissingBranch = false;
+                if (string.IsNullOrEmpty(preferredHead) && graphView.Reference != "HEAD")
+                {
+                    resetMissingBranch = true;
+                    graphView.Reference = "HEAD";
+                    preferredHead = await new Commands.QueryRevisionByRefName(FullPath, "HEAD").GetResultAsync().ConfigureAwait(false);
+                }
 
                 var builder = new StringBuilder();
                 builder
                     .Append('-').Append(Preferences.Instance.MaxHistoryCommits).Append(' ')
-                    .Append(_uiStates.BuildHistoryParams(GitDir));
+                    .Append(_uiStates.BuildHistoryParams(GitDir, graphView.Reference, graphView.OnlyBranch, graphView.FirstParentOnly));
 
                 var commits = await new Commands.QueryCommits(FullPath, builder.ToString())
                     .GetResultAsync()
@@ -1252,6 +1264,14 @@ namespace SourceGit.ViewModels
                     }
                 }
 
+                if (graphView.OnlyBranch)
+                {
+                    if (graphView.Reference == "HEAD")
+                        graphView.Name = commits.Find(c => c.SHA == preferredHead)?.Decorators.Find(d => d.Type == Models.DecoratorType.CurrentBranchHead)?.Name ?? graphView.Name;
+                    foreach (var commit in commits)
+                        commit.Decorators.RemoveAll(d => (d.Type is Models.DecoratorType.LocalBranchHead or Models.DecoratorType.RemoteBranchHead or Models.DecoratorType.CurrentBranchHead) && d.Name != graphView.Name);
+                }
+
                 Dispatcher.UIThread.Invoke(() =>
                 {
                     if (token.IsCancellationRequested)
@@ -1260,7 +1280,7 @@ namespace SourceGit.ViewModels
                     if (_histories != null)
                     {
                         _histories.IsLoading = false;
-                        _histories.Commits = commits;
+                        _histories.SetGraphCommits(commits, preferredHead, resetMissingBranch);
                         BisectState = _histories.UpdateBisectInfo();
 
                         if (!string.IsNullOrEmpty(_navigateToCommitDelayed))

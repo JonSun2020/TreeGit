@@ -37,6 +37,42 @@ namespace SourceGit.Tests
             async Task<bool> Git(string repo, string args) => await Prepare(new Commands.Command { WorkingDirectory = repo, Context = repo, Args = args, Editor = Commands.Command.EditorType.None }).ExecAsync();
             try
             {
+                // Exercise branch pinning with crossing/merging histories, multiple
+                // roots and a preferred head below newer unrelated commits.
+                var random = new Random(7319);
+                var history = new List<Models.Commit>();
+                for (var i = 0; i < 100; i++)
+                {
+                    var c = new Models.Commit { SHA = i.ToString("x40"), Subject = "Graph regression " + i };
+                    if (i < 99)
+                        c.Parents.Add(random.Next(i + 1, 100).ToString("x40"));
+                    if (i < 96 && random.Next(3) == 0)
+                    {
+                        var other = random.Next(i + 1, 100).ToString("x40");
+                        if (!c.Parents.Contains(other)) c.Parents.Add(other);
+                    }
+                    history.Add(c);
+                }
+                Models.CommitGraph.SetDefaultPens();
+                for (var h = 0; h < 80; h++)
+                {
+                    var graph = Models.CommitGraph.Generate(history, false, Models.CommitGraphHighlighting.All, [], history[h].SHA);
+                    var next = h;
+                    while (true)
+                    {
+                        if (graph.Dots[next].Center.X != 12)
+                            throw new InvalidOperationException("Selected branch escaped the leftmost graph lane.");
+                        if (history[next].Parents.Count == 0) break;
+                        next = Convert.ToInt32(history[next].Parents[0], 16);
+                    }
+                    if (history.Select(c => c.LeftMargin).Distinct().Count() != 1 || graph.Dots.Any(d => !double.IsFinite(d.Center.X)))
+                        throw new InvalidOperationException("Graph columns are not aligned/finite.");
+                }
+                Check("80 complex DAG branch selections stay in the leftmost lane", true);
+                Check("graph descriptions stay aligned across merges and roots", true);
+                Models.CommitGraph.SetPens([Avalonia.Media.Colors.Blue], 2);
+                Check("single-color custom themes render without graph failure", Models.CommitGraph.Generate(history, false, Models.CommitGraphHighlighting.All, [], history[30].SHA).Dots.Count == 100);
+                Models.CommitGraph.SetDefaultPens();
                 root = Path.GetFullPath(root);
                 Directory.CreateDirectory(root);
                 Native.OS.GitExecutable = Path.Combine(AppContext.BaseDirectory, "git", "cmd", "git.exe");

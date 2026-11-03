@@ -79,7 +79,7 @@ namespace SourceGit.ViewModels
 
         private GridLength _workingCopyLeftWidth = new GridLength(300, GridUnitType.Pixel);
         private GridLength _stashesLeftWidth = new GridLength(300, GridUnitType.Pixel);
-        private GridLength _commitDetailChangesLeftWidth = new GridLength(256, GridUnitType.Pixel);
+        private GridLength _commitDetailChangesLeftWidth = new GridLength(400, GridUnitType.Pixel);
         private GridLength _commitDetailFilesLeftWidth = new GridLength(256, GridUnitType.Pixel);
         private bool _isSidebarCollapsedInLocalChanges = false;
     }

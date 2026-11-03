@@ -74,7 +74,7 @@ namespace SourceGit.Native
         {
             var scope = Path.GetFullPath(repo).TrimEnd('\\', '/').ToUpperInvariant();
             var value = $"{scope}\n{protocol.ToLowerInvariant()}\n{host.ToLowerInvariant()}\n{path.TrimStart('/')}";
-            return "SourceGit.Repository/" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
+            return "TreeGit.Repository/" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
         }
 
         public static (string Username, string Password)? Get(string repo, Uri remote)
@@ -82,12 +82,22 @@ namespace SourceGit.Native
 
         private static (string Username, string Password)? Get(string target)
         {
-            if (!OperatingSystem.IsWindows() || !Read(target, 1, 0, out var ptr))
+            if (!OperatingSystem.IsWindows())
                 return null;
+            var migrated = false;
+            if (!Read(target, 1, 0, out var ptr))
+            {
+                if (!Read(target.Replace("TreeGit.Repository/", "SourceGit.Repository/", StringComparison.Ordinal), 1, 0, out ptr))
+                    return null;
+                migrated = true;
+            }
             try
             {
                 var c = Marshal.PtrToStructure<Credential>(ptr);
-                return (c.UserName, Marshal.PtrToStringUni(c.CredentialBlob, checked((int)c.CredentialBlobSize / 2)) ?? string.Empty);
+                var password = Marshal.PtrToStringUni(c.CredentialBlob, checked((int)c.CredentialBlobSize / 2)) ?? string.Empty;
+                if (migrated)
+                    Save(target, c.UserName, password);
+                return (c.UserName, password);
             }
             finally { CredFree(ptr); }
         }
@@ -116,7 +126,7 @@ namespace SourceGit.Native
                     Persist = 2,
                     CredentialBlob = blob,
                     CredentialBlobSize = (uint)bytes.Length,
-                    Comment = "SourceGit repository-scoped HTTPS credential",
+                    Comment = "TreeGit repository-scoped HTTPS credential",
                 };
                 if (!Write(ref c, 0))
                     throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
@@ -131,7 +141,13 @@ namespace SourceGit.Native
         }
 
         public static void Forget(string repo, Uri remote)
-            => Delete(Target(repo, remote.Scheme, remote.Authority, remote.AbsolutePath), 1, 0);
+            => ForgetTarget(Target(repo, remote.Scheme, remote.Authority, remote.AbsolutePath));
+
+        private static void ForgetTarget(string target)
+        {
+            Delete(target, 1, 0);
+            Delete(target.Replace("TreeGit.Repository/", "SourceGit.Repository/", StringComparison.Ordinal), 1, 0);
+        }
 
         public static int RunHelper(string operation)
         {
@@ -165,13 +181,13 @@ namespace SourceGit.Native
                 else if (operation == "store" && input.TryGetValue("username", out var username) && input.TryGetValue("password", out var password))
                     Save(target, username, password);
                 else if (operation == "erase")
-                    Delete(target, 1, 0);
+                    ForgetTarget(target);
                 return 0;
             }
             catch (Exception ex)
             {
                 // Never include credential input or exception data in protocol output.
-                Console.Error.WriteLine("SourceGit credential storage failed: " + ex.GetType().Name);
+                Console.Error.WriteLine("TreeGit credential storage failed: " + ex.GetType().Name);
                 return 1;
             }
         }

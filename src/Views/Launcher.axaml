@@ -26,11 +26,12 @@
     </Grid.RowDefinitions>
 
     <!-- Custom TitleBar -->
-    <Grid Grid.Row="0" ColumnDefinitions="Auto,32,32,*,Auto,Auto">
+    <Grid Grid.Row="0" Classes="treegit_title" RowDefinitions="32,*" ColumnDefinitions="Auto,32,32,*,Auto,Auto">
+      <Grid.Styles><Style Selector="Grid.treegit_title &gt; Button.icon_button &gt; Path"><Setter Property="Fill" Value="White"/></Style></Grid.Styles>
       <!-- Bottom border -->
-      <Border Grid.Column="0" Grid.ColumnSpan="6"
+      <Border Grid.Column="0" Grid.ColumnSpan="6" Grid.RowSpan="2"
               BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Brush.Border0}"
-              Background="{DynamicResource Brush.TitleBar}"
+              Background="#23527C"
               DoubleTapped="MaximizeOrRestoreWindow"
               PointerPressed="BeginMoveWindow"/>
 
@@ -132,7 +133,53 @@
       </Button>
 
       <!-- Pages Tabs -->
-      <v:LauncherTabBar Grid.Column="3" Height="30" Margin="0,0,16,0" VerticalAlignment="Bottom"/>
+      <Menu Grid.Column="3" VerticalAlignment="Center" Background="Transparent">
+        <Menu.Styles>
+          <Style Selector="Menu &gt; MenuItem">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Padding" Value="12,4"/>
+            <Setter Property="Template">
+              <ControlTemplate>
+                <Panel>
+                  <Border Name="PART_LayoutRoot" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                    <ContentPresenter Name="PART_HeaderPresenter" Content="{TemplateBinding Header}" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center"/>
+                  </Border>
+                  <Popup Name="PART_Popup" Placement="BottomEdgeAlignedLeft" IsLightDismissEnabled="False" IsOpen="{TemplateBinding IsSubMenuOpen, Mode=TwoWay}">
+                    <Border Padding="4" MinWidth="180" Background="{DynamicResource Brush.Popup}" BorderBrush="{DynamicResource Brush.Border1}" BorderThickness="1">
+                      <ItemsPresenter Name="PART_ItemsPresenter" Grid.IsSharedSizeScope="True"><ItemsPresenter.ItemsPanel><ItemsPanelTemplate><StackPanel/></ItemsPanelTemplate></ItemsPresenter.ItemsPanel></ItemsPresenter>
+                    </Border>
+                  </Popup>
+                </Panel>
+              </ControlTemplate>
+            </Setter>
+          </Style>
+          <Style Selector="Menu &gt; MenuItem:selected /template/ Border#PART_LayoutRoot"><Setter Property="Background" Value="#3877A5"/></Style>
+          <Style Selector="Menu &gt; MenuItem:selected /template/ ContentPresenter#PART_HeaderPresenter"><Setter Property="Foreground" Value="White"/></Style>
+        </Menu.Styles>
+        <MenuItem Header="文件">
+          <MenuItem Header="新标签页" Command="{Binding AddNewTab}"/>
+          <MenuItem Header="打开 / 克隆仓库" Click="OnTreeGitShowRepositories"/>
+          <MenuItem Header="退出" Command="{x:Static s:App.QuitCommand}"/>
+        </MenuItem>
+        <MenuItem Header="编辑"><MenuItem Header="偏好设置" Command="{x:Static s:App.OpenPreferencesCommand}"/></MenuItem>
+        <MenuItem Header="查看">
+          <MenuItem Header="文件状态" Click="OnTreeGitWorkingCopy"/>
+          <MenuItem Header="历史" Click="OnTreeGitHistory"/>
+          <MenuItem Header="搜索" Click="OnTreeGitSearch"/>
+        </MenuItem>
+        <MenuItem Header="仓库">
+          <MenuItem Header="仓库设置" Click="OnTreeGitRepositorySettings"/>
+          <MenuItem Header="在文件管理器中打开" Click="OnTreeGitExplorer"/>
+          <MenuItem Header="打开终端" Click="OnTreeGitTerminal"/>
+        </MenuItem>
+        <MenuItem Header="操作">
+          <MenuItem Header="获取" Click="OnTreeGitFetch"/><MenuItem Header="拉取" Click="OnTreeGitPull"/><MenuItem Header="推送" Click="OnTreeGitPush"/>
+          <MenuItem Header="新建分支" Click="OnTreeGitBranch"/><MenuItem Header="新建标签" Click="OnTreeGitTag"/>
+        </MenuItem>
+        <MenuItem Header="工具"><MenuItem Header="MCP · AI 连接" Command="{x:Static s:App.OpenMcpConnectionCommand}"/><MenuItem Header="SSH 密钥" Command="{x:Static s:App.OpenSSHKeyHelperCommand}"/></MenuItem>
+        <MenuItem Header="帮助"><MenuItem Header="快捷键" Command="{x:Static s:App.OpenHotkeysCommand}"/><MenuItem Header="关于 TreeGit" Command="{x:Static s:App.OpenAboutCommand}"/></MenuItem>
+      </Menu>
+      <v:LauncherTabBar Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="6" Height="30" Margin="10,0,110,0" VerticalAlignment="Bottom"/>
 
       <!-- Update Available Button -->
       <Button Grid.Column="4"
@@ -148,7 +195,7 @@
 
       <!-- Caption Buttons (Windows/Linux) -->
       <Border Grid.Column="5" IsVisible="{Binding #ThisControl.HasRightCaptionButton}">
-        <v:CaptionButtons Height="30" VerticalAlignment="Top"/>
+        <v:CaptionButtons Height="30" VerticalAlignment="Top"><v:CaptionButtons.Styles><Style Selector="Button.caption_button &gt; Path"><Setter Property="Fill" Value="White"/></Style></v:CaptionButtons.Styles></v:CaptionButtons>
       </Border>
     </Grid>
 

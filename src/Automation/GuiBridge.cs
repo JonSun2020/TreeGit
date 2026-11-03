@@ -92,7 +92,7 @@ namespace SourceGit.Automation
                     var launcher = App.GetLauncher();
                     return (object)new
                     {
-                        application = "SourceGit",
+                        application = "TreeGit",
                         mcp = "server",
                         writesRequire = "--allow-write",
                         activePage = new { kind = launcher.ActivePage.Data.GetType().Name, pendingDialog = launcher.ActivePage.Popup?.GetType().Name, notifications = launcher.ActivePage.Notifications.Count },
@@ -109,6 +109,11 @@ namespace SourceGit.Automation
                                 view = r.SelectedViewIndex,
                                 branch = r.CurrentBranch?.Name,
                                 changes = r.LocalChangesCount,
+                                graphBranch = r.Histories?.GraphBranchName,
+                                graphMode = r.Histories?.BranchDisplayMode,
+                                graphLoading = r.Histories?.IsLoading,
+                                graphTotal = r.Histories?.Commits.Count,
+                                graphCommits = r.Histories?.Commits.Take(256).Select((c, index) => new { sha = c.SHA, subject = c.Subject, x = r.Histories.Graph?.Dots[index].Center.X, subjectLeft = c.LeftMargin, refs = c.Decorators.Select(d => d.Name).ToArray() }).ToArray(),
                                 pendingDialog = p.Popup?.GetType().Name
                             };
                         }).ToArray(),
@@ -208,7 +213,7 @@ namespace SourceGit.Automation
                         InitAndUpdateSubmodules = !args.TryGetProperty("recursive", out var recursive) || recursive.GetBoolean(),
                     };
                     if (!clone.Check())
-                        throw new ArgumentException("SourceGit rejected the clone configuration.");
+                        throw new ArgumentException("TreeGit rejected the clone configuration.");
                     page.Popup = clone;
                     await page.ProcessPopupAsync();
                     return (object)new { isSuccess = page.Popup == null && Directory.Exists(destination), repo = destination };
@@ -261,6 +266,25 @@ namespace SourceGit.Automation
                 launcher.ActivePage = page;
                 return found;
             });
+
+            if (name == "ui_graph")
+                return await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (args.TryGetProperty("branch", out var branchValue))
+                    {
+                        var reference = branchValue.GetString();
+                        if (reference == "HEAD") repo.Histories.FocusGraphBranch(null);
+                        else
+                        {
+                            var branch = repo.Branches.Find(b => b.FullName == reference || b.FriendlyName == reference);
+                            if (branch == null) throw new ArgumentException("Branch has not been loaded or does not exist.");
+                            repo.Histories.FocusGraphBranch(branch);
+                        }
+                    }
+                    if (args.TryGetProperty("mode", out var mode))
+                        repo.Histories.BranchDisplayMode = mode.GetString() switch { "all" => 0, "only" => 1, "merged" => 2, _ => throw new ArgumentException("Invalid graph mode.") };
+                    return (object)new { branch = repo.Histories.GraphBranchName, mode = repo.Histories.BranchDisplayMode, loading = repo.Histories.IsLoading };
+                });
 
             if (name == "ui_command")
                 return await Dispatcher.UIThread.InvokeAsync(() =>
@@ -374,7 +398,7 @@ namespace SourceGit.Automation
                             var inProgress = new[] { "MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD" }.Any(f => File.Exists(Path.Combine(repo.GitDir, f))) ||
                                 Directory.Exists(Path.Combine(repo.GitDir, "rebase-merge")) || Directory.Exists(Path.Combine(repo.GitDir, "rebase-apply"));
                             if (App.GetLauncher().ActivePage.Popup != null || (inProgress && !recovery))
-                                throw new InvalidOperationException("Finish the current SourceGit dialog/operation before starting another Git action.");
+                                throw new InvalidOperationException("Finish the current TreeGit dialog/operation before starting another Git action.");
                         });
                         switch (action)
                         {

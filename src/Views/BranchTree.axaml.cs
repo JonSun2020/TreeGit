@@ -448,6 +448,7 @@ namespace SourceGit.Views
             if (node.Backend is not Models.Branch branch)
                 return;
 
+            repo.Histories.FocusGraphBranch(branch);
             repo.NavigateToCommit(branch.Head);
         }
 
@@ -475,6 +476,9 @@ namespace SourceGit.Views
             var selected = BranchesPresenter.SelectedItems;
             if (selected == null || selected.Count == 0)
                 return;
+
+            if (selected.Count == 1 && selected[0] is ViewModels.BranchTreeNode { Backend: Models.Branch branch })
+                repo.Histories.FocusGraphBranch(branch);
 
             ViewModels.BranchTreeNode prev = null;
             foreach (var row in Rows)

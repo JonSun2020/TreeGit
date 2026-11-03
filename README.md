@@ -1,3 +1,15 @@
+# TreeGit — SourceGit-based desktop Git client
+
+TreeGit keeps SourceGit's repository workflows and uses a SourceTree-inspired Windows main-window layout: blue menus and tabs, a full-width action toolbar, workspace/branch sidebar, separate graph and description columns, and file/diff panes below the history.
+
+Click a branch to pin its first-parent line to the leftmost graph lane without checking it out. The history dropdown offers all branches, only the selected branch's first-parent line, or the selected branch with merged ancestry. Other branch labels are hidden in filtered views.
+
+Run `build-treegit.ps1` for a self-contained Windows x64 portable build. It uses a compressed, trimmed single-file .NET runtime and does not bundle Git. TreeGit detects an existing Git installation; an optional portable Git component can be extracted into `git/` beside `TreeGit.exe`. No .NET installation or application login is required. Portable preferences live in `data/`; repository passwords remain in the current Windows user's credential vault.
+
+Choose **Tools → MCP · AI 连接** to copy a stdio MCP server configuration with the current executable path. Launching `TreeGit.exe --mcp` exposes UI/history/status tools; add `--allow-write` for Git operations. `ui_graph` selects the pinned branch and graph visibility. This is an MCP server for controlling the desktop application.
+
+Upstream source: `sourcegit-scm/sourcegit`, commit `c0f40a2e78d81a7474628847727644fc0c56f558`, version `2026.23`. SourceGit namespaces, resource URIs and Git configuration keys remain compatible with upstream. Original upstream documentation follows.
+
 # SourceGit - Opensource Git GUI client.
 
 [![stars](https://img.shields.io/github/stars/sourcegit-scm/sourcegit.svg)](https://github.com/sourcegit-scm/sourcegit/stargazers)

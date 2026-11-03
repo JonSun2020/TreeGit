@@ -29,7 +29,7 @@ namespace SourceGit.Views
             {
                 mcpServers = new
                 {
-                    sourcegit = new { command = Environment.ProcessPath, args = write.IsChecked == true ? new[] { "--mcp", "--allow-write" } : ["--mcp"] },
+                    treegit = new { command = Environment.ProcessPath, args = write.IsChecked == true ? new[] { "--mcp", "--allow-write" } : ["--mcp"] },
                 },
             }, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
             write.IsCheckedChanged += (_, _) => Update();

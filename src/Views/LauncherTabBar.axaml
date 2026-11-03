@@ -37,18 +37,19 @@
                  LayoutUpdated="OnTabsLayoutUpdated">
           <ListBox.Styles>
             <Style Selector="ListBoxItem">
-              <Setter Property="Padding" Value="0"/>
+              <Setter Property="Padding" Value="0"/><Setter Property="Foreground" Value="White"/><Setter Property="CornerRadius" Value="4,4,0,0"/><Setter Property="Margin" Value="0,0,3,0"/>
             </Style>
             <Style Selector="ListBoxItem /template/ ContentPresenter#PART_ContentPresenter">
               <Setter Property="Background" Value="Transparent"/>
-              <Setter Property="Opacity" Value=".5"/>
+              <Setter Property="Opacity" Value="1"/>
             </Style>
             <Style Selector="ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-              <Setter Property="Background" Value="Transparent"/>
-              <Setter Property="Opacity" Value=".85"/>
+              <Setter Property="Background" Value="#337BA5"/>
+              <Setter Property="Opacity" Value="1"/>
             </Style>
+            <Style Selector="ListBoxItem:selected"><Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/></Style>
             <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
-              <Setter Property="Background" Value="Transparent"/>
+              <Setter Property="Background" Value="{DynamicResource Brush.ToolBar}"/>
               <Setter Property="Opacity" Value="1"/>
             </Style>
           </ListBox.Styles>

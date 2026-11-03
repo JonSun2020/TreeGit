@@ -7,14 +7,14 @@ The project uses the following third-party libraries or assets
 ### AvaloniaUI
 
 - **Source**: https://github.com/AvaloniaUI/Avalonia
-- **Version**: 12.0.5
+- **Version**: 11.3.22 (TreeGit build)
 - **License**: MIT License
 - **License Link**: https://github.com/AvaloniaUI/Avalonia/blob/master/licence.md
 
 ### Avalonia.Controls.DataGrid
 
 - **Source**: https://github.com/AvaloniaUI/Avalonia.Controls.DataGrid
-- **Version**: 12.0.1
+- **Version**: 11.3.13 (TreeGit build)
 - **License**: MIT License
 - **License Link**: https://github.com/AvaloniaUI/Avalonia.Controls.DataGrid/blob/master/licence.md
 
@@ -22,7 +22,7 @@ The project uses the following third-party libraries or assets
 
 - **Official Source**: https://github.com/AvaloniaUI/AvaloniaEdit
 - **Fork (Modified)**: https://github.com/love-linger/AvaloniaEdit
-- **Version**: Based on 12.0.x
+- **Version**: Fork commit ddf00a91dc0da29b85c79b85c9583860213a99ff; built against Avalonia 11.3.22
 - **License**: MIT License
 - **License Link**: https://github.com/AvaloniaUI/AvaloniaEdit/blob/master/LICENSE
 

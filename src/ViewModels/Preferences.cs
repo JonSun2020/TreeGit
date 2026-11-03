@@ -127,7 +127,7 @@ namespace SourceGit.ViewModels
         {
             get;
             set;
-        } = false;
+        } = true;
 
         public int MaxHistoryCommits
         {

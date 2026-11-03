@@ -71,29 +71,52 @@ namespace SourceGit.Models
         public List<Link> Links { get; } = [];
         public List<Dot> Dots { get; } = [];
 
-        public static CommitGraph Generate(List<Commit> commits, bool firstParentOnlyEnabled, CommitGraphHighlighting highlighting, HashSet<string> highlightExtraCommits)
+        public static CommitGraph Generate(List<Commit> commits, bool firstParentOnlyEnabled, CommitGraphHighlighting highlighting, HashSet<string> highlightExtraCommits, string preferredHead = null)
         {
-            const double unitWidth = 12;
-            const double halfWidth = 6;
+            const double unitWidth = 16;
+            const double halfWidth = 8;
             const double unitHeight = 1;
             const double halfHeight = 0.5;
+
+            var spine = new HashSet<string>(StringComparer.Ordinal);
+            var lookup = new Dictionary<string, Commit>(StringComparer.Ordinal);
+            foreach (var c in commits)
+                lookup.TryAdd(c.SHA, c);
+            var cursor = preferredHead;
+            while (!string.IsNullOrEmpty(cursor) && lookup.TryGetValue(cursor, out var next) && spine.Add(cursor))
+                cursor = next.Parents.Count > 0 ? next.Parents[0] : null;
 
             var temp = new CommitGraph();
             var unsolved = new List<PathHelper>();
             var ended = new List<PathHelper>();
             var offsetY = -halfHeight;
-            var colorPicker = new ColorPicker();
+            var colorPicker = new ColorPicker(spine.Count > 0);
             var defHighlighting = highlighting == CommitGraphHighlighting.All;
 
             foreach (var commit in commits)
             {
                 PathHelper major = null;
+                var onSpine = spine.Contains(commit.SHA);
+                if (onSpine)
+                {
+                    var preferred = unsolved.Find(x => x.Next == commit.SHA && x.IsPreferred) ?? unsolved.Find(x => x.Next == commit.SHA);
+                    if (preferred != null)
+                    {
+                        preferred.IsPreferred = true;
+                        unsolved.Remove(preferred);
+                        unsolved.Insert(0, preferred);
+                    }
+                }
 
                 // Update current y offset
                 offsetY += unitHeight;
 
                 // Find first curves that links to this commit and marks others that links to this commit ended.
                 var offsetX = 4 - halfWidth;
+                // Reserve column zero even when newer commits from other branches
+                // precede the selected head. Do not draw a fabricated line above it.
+                if (spine.Count > 0 && !unsolved.Exists(x => x.IsPreferred))
+                    offsetX += unitWidth;
                 var maxOffsetOld = unsolved.Count > 0 ? unsolved[^1].LastX : offsetX + unitWidth;
                 var isHighlighted = defHighlighting;
                 foreach (var l in unsolved)
@@ -136,7 +159,8 @@ namespace SourceGit.Models
                 // Remove ended curves from unsolved
                 foreach (var l in ended)
                 {
-                    colorPicker.Recycle(l.Path.Color);
+                    if (spine.Count == 0 || l.Path.Color != 0)
+                        colorPicker.Recycle(l.Path.Color);
                     unsolved.Remove(l);
                 }
                 ended.Clear();
@@ -180,14 +204,21 @@ namespace SourceGit.Models
                 // Otherwise, create new curve for new merged commit
                 if (major == null)
                 {
-                    offsetX += unitWidth;
+                    var nodeX = onSpine ? 4 + halfWidth : offsetX + unitWidth;
+                    offsetX = Math.Max(offsetX, nodeX);
 
                     if (commit.Parents.Count > 0)
                     {
-                        major = new PathHelper(commit.Parents[0], isHighlighted, colorPicker.Next(), new Point(offsetX, offsetY));
-                        unsolved.Add(major);
+                        major = new PathHelper(commit.Parents[0], isHighlighted, onSpine ? 0 : colorPicker.Next(), new Point(nodeX, offsetY)) { IsPreferred = onSpine };
+                        if (onSpine)
+                            unsolved.Insert(0, major);
+                        else
+                            unsolved.Add(major);
                         temp.Paths.Add(major.Path);
                     }
+                    // Root commits do not create a continuing path.
+                    if (onSpine && major == null)
+                        offsetX = nodeX;
                 }
                 else if (isHighlighted && !major.IsHighlighted && commit.Parents.Count > 0)
                 {
@@ -196,6 +227,12 @@ namespace SourceGit.Models
                 }
 
                 // Calculate link position of this commit.
+                if (onSpine && major != null && major.Path.Color != 0)
+                {
+                    colorPicker.Recycle(major.Path.Color);
+                    major.SwitchColor(0);
+                    temp.Paths.Add(major.Path);
+                }
                 var position = new Point(major?.LastX ?? offsetX, offsetY);
                 var dotColor = major?.Path.Color ?? 0;
                 var anchor = new Dot() { Center = position, Color = dotColor, IsHighlighted = isHighlighted };
@@ -261,20 +298,27 @@ namespace SourceGit.Models
                 if (path.Path.Points.Count == 1 && Math.Abs(path.Path.Points[0].Y - endY) < 0.0001)
                     continue;
 
-                path.End((i + 0.5) * unitWidth + 4, endY + halfHeight, halfHeight);
+                path.End(path.LastX, endY + halfHeight, halfHeight);
             }
             unsolved.Clear();
+
+            // A fixed graph area keeps references and subjects aligned across rows.
+            double subjectLeft = 24;
+            foreach (var c in commits)
+                subjectLeft = Math.Max(subjectLeft, c.LeftMargin);
+            foreach (var c in commits)
+                c.LeftMargin = subjectLeft;
 
             return temp;
         }
 
-        private class ColorPicker
+        private class ColorPicker(bool reservePrimary)
         {
             public int Next()
             {
                 if (_colorsQueue.Count == 0)
                 {
-                    for (var i = 0; i < s_penCount; i++)
+                    for (var i = reservePrimary && s_penCount > 1 ? 1 : 0; i < s_penCount; i++)
                         _colorsQueue.Enqueue(i);
                 }
 
@@ -296,6 +340,7 @@ namespace SourceGit.Models
             public string Next { get; set; }
             public double LastX { get; private set; }
             public bool IsHighlighted { get => Path.IsHighlighted; }
+            public bool IsPreferred { get; set; }
 
             public PathHelper(string next, bool IsHighlighted, int color, Point start)
             {
@@ -406,6 +451,14 @@ namespace SourceGit.Models
                 _endY = 0;
             }
 
+            public void SwitchColor(int color)
+            {
+                Add(LastX, _lastY);
+                Path = new Path(color, IsHighlighted);
+                Path.Points.Add(new Point(LastX, _lastY));
+                _endY = 0;
+            }
+
             private void Add(double x, double y)
             {
                 if (_endY < y)
@@ -421,16 +474,16 @@ namespace SourceGit.Models
 
         private static int s_penCount = 0;
         private static readonly List<Color> s_defaultPenColors = [
-            Colors.Orange,
-            Colors.ForestGreen,
-            Colors.Turquoise,
-            Colors.Olive,
-            Colors.Magenta,
-            Colors.Red,
-            Colors.Khaki,
-            Colors.Lime,
-            Colors.RoyalBlue,
-            Colors.Teal,
+            Color.Parse("#2684FF"),
+            Color.Parse("#36B37E"),
+            Color.Parse("#6554C0"),
+            Color.Parse("#FF8B00"),
+            Color.Parse("#00B8D9"),
+            Color.Parse("#FF5630"),
+            Color.Parse("#8777D9"),
+            Color.Parse("#57D9A3"),
+            Color.Parse("#FFC400"),
+            Color.Parse("#008DA6"),
         ];
     }
 }

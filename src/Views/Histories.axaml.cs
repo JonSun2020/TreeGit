@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text;
@@ -465,7 +465,7 @@ namespace SourceGit.Views
             base.OnDataContextChanged(e);
 
             if (DataContext is ViewModels.Histories vm)
-                CommitListContainer.Columns[1].Width = new(vm.AuthorColumnWidth, DataGridLengthUnitType.Pixel);
+                CommitListContainer.Columns[3].Width = new(vm.AuthorColumnWidth, DataGridLengthUnitType.Pixel);
         }
 
         private void OnCommitListHeaderPointerMoved(object sender, PointerEventArgs e)
@@ -479,16 +479,16 @@ namespace SourceGit.Views
             var pos = e.GetPosition(border);
             if (_resizingAuthorColumn)
             {
-                var posX = CommitListContainer.Columns[0].ActualWidth;
-                var maxW = posX + CommitListContainer.Columns[1].ActualWidth - 100;
+                var posX = CommitListContainer.Columns[0].ActualWidth + CommitListContainer.Columns[1].ActualWidth + CommitListContainer.Columns[2].ActualWidth;
+                var maxW = posX + CommitListContainer.Columns[3].ActualWidth - 100;
                 var delta = posX - pos.X;
                 var w = Math.Max(Math.Min(vm.AuthorColumnWidth + delta, maxW), 80);
-                CommitListContainer.Columns[1].Width = new(w, DataGridLengthUnitType.Pixel);
+                CommitListContainer.Columns[3].Width = new(w, DataGridLengthUnitType.Pixel);
                 vm.AuthorColumnWidth = w;
             }
             else
             {
-                var dis = CommitListContainer.Columns[0].ActualWidth - 4 - pos.X;
+                var dis = CommitListContainer.Columns[0].ActualWidth + CommitListContainer.Columns[1].ActualWidth + CommitListContainer.Columns[2].ActualWidth - 4 - pos.X;
                 if (dis < 4 && dis > -4)
                 {
                     if (border.Cursor != _resizingCursor)
@@ -507,7 +507,7 @@ namespace SourceGit.Views
                 return;
 
             var pos = e.GetPosition(border);
-            var dis = CommitListContainer.Columns[0].ActualWidth - 4 - pos.X;
+            var dis = CommitListContainer.Columns[0].ActualWidth + CommitListContainer.Columns[1].ActualWidth + CommitListContainer.Columns[2].ActualWidth - 4 - pos.X;
             if (dis > 4 || dis < -4)
                 return;
 
@@ -755,6 +755,8 @@ namespace SourceGit.Views
                 return;
 
             var dataGrid = CommitListContainer;
+            if (DataContext is ViewModels.Histories histories && Math.Abs(dataGrid.Columns[0].ActualWidth - histories.GraphWidth) > 0.5)
+                dataGrid.Columns[0].Width = new(histories.GraphWidth, DataGridLengthUnitType.Pixel);
             var rowsPresenter = dataGrid.FindDescendantOfType<DataGridRowsPresenter>();
             if (rowsPresenter == null)
                 return;

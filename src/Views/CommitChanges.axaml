@@ -14,15 +14,23 @@
       <ColumnDefinition Width="*" MinWidth="100"/>
     </Grid.ColumnDefinitions>
 
-    <Grid Grid.Column="0" RowDefinitions="26,*,26">
+    <Grid Grid.Column="0" RowDefinitions="Auto,26,*,26">
+      <Border Grid.Row="0" BorderBrush="{DynamicResource Brush.Border0}" BorderThickness="0,0,0,1" Padding="8,6" Margin="0,0,0,4">
+        <StackPanel Spacing="3">
+          <TextBlock FontSize="12" TextWrapping="Wrap"><Run FontWeight="Bold" Text="Commit: "/><Run Text="{Binding Commit.SHA}"/></TextBlock>
+          <TextBlock FontSize="12" TextWrapping="Wrap"><Run FontWeight="Bold" Text="Author: "/><Run Text="{Binding Commit.Author.Name}"/><Run Text=" &lt;"/><Run Text="{Binding Commit.Author.Email}"/><Run Text="&gt;"/></TextBlock>
+          <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock FontSize="12" FontWeight="Bold" Text="Date:"/><v:DateTimePresenter Timestamp="{Binding Commit.CommitterTime}" FontSize="12"/></StackPanel>
+          <TextBlock Text="{Binding Commit.Subject}" Margin="0,5,0,2" TextWrapping="Wrap" FontWeight="SemiBold"/>
+        </StackPanel>
+      </Border>
       <!-- Search & Display Mode -->
-      <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+      <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
         <TextBox Grid.Column="0"
                  x:Name="CommitChangeSearchBox"
                  Height="26"
                  BorderThickness="1" BorderBrush="{DynamicResource Brush.Border2}"
                  Background="Transparent"
-                 CornerRadius="4"
+                 CornerRadius="0"
                  Watermark="{DynamicResource Text.CommitDetail.Changes.Search}"
                  Text="{Binding SearchChangeFilter, Mode=TwoWay}">
           <TextBox.InnerLeftContent>
@@ -46,12 +54,12 @@
       </Grid>
 
       <!-- Changes -->
-      <Border Grid.Row="1"
+      <Border Grid.Row="2"
               Margin="0,4,0,0"
               BorderBrush="{DynamicResource Brush.Border2}"
               BorderThickness="1"
-              CornerRadius="4,4,0,0">
-        <Border CornerRadius="4,4,0,0"
+              CornerRadius="0">
+        <Border CornerRadius="0"
                 Background="{DynamicResource Brush.Contents}"
                 ClipToBounds="True">
           <v:ChangeCollectionView ViewMode="{Binding Source={x:Static vm:Preferences.Instance}, Path=ChangeViewMode}"
@@ -65,7 +73,7 @@
       
 
       <!-- Summary -->
-      <Border Grid.Row="2" CornerRadius="0,0,4,4" BorderBrush="{DynamicResource Brush.Border2}" BorderThickness="1,0,1,1" Background="Transparent">
+      <Border Grid.Row="3" CornerRadius="0" BorderBrush="{DynamicResource Brush.Border2}" BorderThickness="1,0,1,1" Background="Transparent">
         <TextBlock Margin="4,0,0,0"
                    Foreground="{DynamicResource Brush.FG2}"
                    HorizontalAlignment="Left" VerticalAlignment="Center">
@@ -82,7 +90,7 @@
                   Focusable="False"/>
 
     <Grid Grid.Column="2">
-      <Border CornerRadius="4" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border2}">
+      <Border CornerRadius="0" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border2}">
         <StackPanel Orientation="Vertical" VerticalAlignment="Center">
           <Path Width="64" Height="64" Data="{StaticResource Icons.Diff}" Fill="{DynamicResource Brush.FG2}"/>
           <TextBlock Margin="0,16,0,0"

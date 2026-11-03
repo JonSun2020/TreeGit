@@ -21,8 +21,8 @@
       <Color x:Key="Color.FlatButton.Background">#FFF8F8F8</Color>
       <Color x:Key="Color.FlatButton.BackgroundHovered">White</Color>
       <Color x:Key="Color.FlatButton.FloatingBorder">#FF898989</Color>
-      <Color x:Key="Color.FG1">#FF172B4D</Color>
-      <Color x:Key="Color.FG2">#FF5E6C84</Color>
+      <Color x:Key="Color.FG1">#FF333333</Color>
+      <Color x:Key="Color.FG2">#FF666666</Color>
       <Color x:Key="Color.Diff.EmptyBG">#10000000</Color>
       <Color x:Key="Color.Diff.AddedBG">#80BFE6C1</Color>
       <Color x:Key="Color.Diff.DeletedBG">#80FF9797</Color>

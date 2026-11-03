@@ -13,6 +13,9 @@ exe = Path(sys.argv[1]).resolve()
 artifacts = Path(sys.argv[2]).resolve()
 artifacts.mkdir(parents=True, exist_ok=True)
 git = exe.parent/'git/cmd/git.exe'
+if not git.exists():
+    import shutil
+    git = Path(shutil.which('git'))
 root = Path(tempfile.mkdtemp(prefix='SourceGit credential 中文 '))
 prompt_mode = '--prompt' in sys.argv[3:]
 fixture = root/'askpass-fixture.json'

@@ -9,11 +9,13 @@ import tempfile
 import time
 import queue
 import threading
+import shutil
 
 exe = Path(sys.argv[1]).resolve()
 artifacts = Path(sys.argv[2]).resolve()
 artifacts.mkdir(parents=True, exist_ok=True)
 git = exe.parent / 'git/cmd/git.exe'
+if not git.exists(): git = Path(shutil.which('git'))
 testroot = Path(tempfile.mkdtemp(prefix='SourceGit MCP 中文 '))
 repo = testroot / 'repo with spaces'
 remote = testroot / 'remote.git'
@@ -81,7 +83,7 @@ check('read-only tool discovery excludes mutation', 'git_action' not in [t['name
 readonly.tool('git_action', {'repo':str(repo),'action':'stage','paths':['.']}, error=True)
 readonly.tool('git_clone', {'url':str(remote),'destination':str(testroot/'readonly-clone')}, error=True)
 check('read-only endpoint rejects mutation', True)
-check('GUI auto launch and ui_state', readonly.tool('ui_state')['application'] == 'SourceGit')
+check('GUI auto launch and ui_state', readonly.tool('ui_state')['application'] == 'TreeGit')
 check('open repository in GUI', readonly.tool('ui_open_repository', {'repo':str(repo)})['opened'])
 state = readonly.tool('ui_state')
 check('opened repository is visible in GUI state', any(Path(r['repo']) == repo for r in state['repositories']))

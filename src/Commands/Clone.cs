@@ -15,7 +15,7 @@ namespace SourceGit.Commands
             var destination = localName;
             if (string.IsNullOrEmpty(destination))
             {
-                var cleanURL = url.TrimEnd('/', '\\');
+                var cleanURL = url.TrimEnd('/', '\\').Replace('\\', '/');
                 if (System.Uri.TryCreate(cleanURL, System.UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https" or "ssh")
                     cleanURL = uri.AbsolutePath.TrimEnd('/');
                 destination = cleanURL[(System.Math.Max(cleanURL.LastIndexOf('/'), cleanURL.LastIndexOf(':')) + 1)..];

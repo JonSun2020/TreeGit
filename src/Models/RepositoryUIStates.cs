@@ -57,6 +57,10 @@ namespace SourceGit.Models
             set;
         } = CommitGraphHighlighting.All;
 
+        public string GraphBranchRef { get; set; } = string.Empty;
+        public bool ShowOnlyGraphBranch { get; set; } = false;
+        public bool GraphIncludeMergedHistory { get; set; } = false;
+
         public BranchSortMode LocalBranchSortMode
         {
             get;
@@ -411,7 +415,7 @@ namespace SourceGit.Models
                 HistoryFilters.Remove(filter);
         }
 
-        public string BuildHistoryParams(string gitDir)
+        public string BuildHistoryParams(string gitDir, string graphBranchRef = null, bool onlyGraphBranch = false, bool graphFirstParentOnly = false)
         {
             var builder = new StringBuilder();
 
@@ -420,14 +424,20 @@ namespace SourceGit.Models
             else
                 builder.Append("--date-order ");
 
-            if (HistoryShowFlags.HasFlag(HistoryShowFlags.Reflog))
+            if (!onlyGraphBranch && HistoryShowFlags.HasFlag(HistoryShowFlags.Reflog))
                 builder.Append("--reflog ");
 
-            if (HistoryShowFlags.HasFlag(HistoryShowFlags.FirstParentOnly))
+            if (graphFirstParentOnly || HistoryShowFlags.HasFlag(HistoryShowFlags.FirstParentOnly))
                 builder.Append("--first-parent ");
 
             if (HistoryShowFlags.HasFlag(HistoryShowFlags.SimplifyByDecoration))
                 builder.Append("--simplify-by-decoration ");
+
+            if (onlyGraphBranch)
+            {
+                builder.Append((string.IsNullOrEmpty(graphBranchRef) ? "HEAD" : graphBranchRef).Quoted());
+                return builder.ToString();
+            }
 
             var mode = GetHistoryFilterMode();
             if (mode == FilterMode.None)

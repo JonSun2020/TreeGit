@@ -119,6 +119,49 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _graph, value);
         }
 
+        public double GraphWidth => _commits.Count > 0 ? Math.Max(64, _commits[0].LeftMargin + 8) : 64;
+
+        public string GraphBranchRef => string.IsNullOrEmpty(_repo.UIStates.GraphBranchRef) ? "HEAD" : _repo.UIStates.GraphBranchRef;
+        public string GraphBranchName => GraphBranchRef == "HEAD" ? CurrentBranch?.Name ?? "HEAD" : GraphBranchRef.Replace("refs/heads/", "").Replace("refs/remotes/", "");
+        public int BranchDisplayMode
+        {
+            get => _repo.UIStates.ShowOnlyGraphBranch || GraphHighlighting == Models.CommitGraphHighlighting.CurrentBranchOnly ? (_repo.UIStates.GraphIncludeMergedHistory ? 2 : 1) : 0;
+            set
+            {
+                if (value == BranchDisplayMode) return;
+                _repo.UIStates.ShowOnlyGraphBranch = value != 0;
+                _repo.UIStates.GraphIncludeMergedHistory = value == 2;
+                if (value == 0 && GraphHighlighting == Models.CommitGraphHighlighting.CurrentBranchOnly)
+                    _repo.UIStates.GraphHighlighting = Models.CommitGraphHighlighting.All;
+                OnPropertyChanged();
+                OnPropertyChanged(nameof(GraphHighlighting));
+                IsLoading = true;
+                _repo.RefreshCommits();
+            }
+        }
+
+        public void FocusGraphBranch(Models.Branch branch)
+        {
+            var reference = branch?.FullName ?? string.Empty;
+            if (_repo.UIStates.GraphBranchRef == reference) return;
+            _repo.UIStates.GraphBranchRef = reference;
+            OnPropertyChanged(nameof(GraphBranchName));
+            IsLoading = true;
+            _repo.RefreshCommits();
+        }
+
+        public void SetGraphCommits(List<Models.Commit> commits, string preferredHead, bool resetMissingBranch = false)
+        {
+            if (resetMissingBranch)
+            {
+                _repo.UIStates.GraphBranchRef = string.Empty;
+                OnPropertyChanged(nameof(GraphBranchName));
+            }
+            _preferredGraphHead = preferredHead;
+            Commits = commits;
+            OnPropertyChanged(nameof(GraphWidth));
+        }
+
         public Models.CommitGraphHighlighting GraphHighlighting
         {
             get => _repo.UIStates.GraphHighlighting;
@@ -127,7 +170,10 @@ namespace SourceGit.ViewModels
                 if (_repo.UIStates.GraphHighlighting != value)
                 {
                     _repo.UIStates.GraphHighlighting = value;
-                    GenerateGraph(_commits);
+                    _repo.UIStates.ShowOnlyGraphBranch = value == Models.CommitGraphHighlighting.CurrentBranchOnly;
+                    _repo.UIStates.GraphIncludeMergedHistory = false;
+                    OnPropertyChanged(nameof(BranchDisplayMode));
+                    _repo.RefreshCommits();
                 }
             }
         }
@@ -162,7 +208,11 @@ namespace SourceGit.ViewModels
         public Models.Branch CurrentBranch
         {
             get => _currentBranch;
-            set => SetProperty(ref _currentBranch, value);
+            set
+            {
+                if (SetProperty(ref _currentBranch, value))
+                    OnPropertyChanged(nameof(GraphBranchName));
+            }
         }
 
         public bool HasSingleRemote
@@ -574,10 +624,15 @@ namespace SourceGit.ViewModels
                     extraHeads.Add(c.SHA);
             }
 
-            Graph = Models.CommitGraph.Generate(commits, firstParentOnly, highlighting, extraHeads);
+            if (BranchDisplayMode != 0)
+                highlighting = Models.CommitGraphHighlighting.All;
+            if (BranchDisplayMode == 1)
+                firstParentOnly = true;
+            Graph = Models.CommitGraph.Generate(commits, firstParentOnly, highlighting, extraHeads, _preferredGraphHead);
         }
 
         private Repository _repo = null;
+        private string _preferredGraphHead;
         private Models.Branch _currentBranch = null;
         private bool _hasSingleRemote = false;
         private CommitDetailSharedData _commitDetailSharedData = null;
