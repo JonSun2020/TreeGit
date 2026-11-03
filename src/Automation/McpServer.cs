@@ -115,6 +115,7 @@ namespace SourceGit.Automation
                 {
                     "string" => argument.Value.ValueKind == JsonValueKind.String,
                     "integer" => argument.Value.ValueKind == JsonValueKind.Number && argument.Value.TryGetInt32(out _),
+                    "number" => argument.Value.ValueKind == JsonValueKind.Number && argument.Value.TryGetDouble(out var numericValue) && double.IsFinite(numericValue),
                     "boolean" => argument.Value.ValueKind is JsonValueKind.True or JsonValueKind.False,
                     "array" => argument.Value.ValueKind == JsonValueKind.Array && argument.Value.EnumerateArray().All(v => v.ValueKind == JsonValueKind.String),
                     _ => false,
