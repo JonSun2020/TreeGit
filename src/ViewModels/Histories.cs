@@ -139,6 +139,7 @@ namespace SourceGit.ViewModels
         }
 
         public bool HasWorkingCopy => !_repo.IsBare;
+        public int WorkingCopyHeadIndex => HasWorkingCopy ? _commits.FindIndex(c => c.IsCurrentHead) : -1;
         public bool ShowRemoteBranches
         {
             get => _repo.UIStates.ShowRemoteBranchesInHistory;
@@ -213,6 +214,7 @@ namespace SourceGit.ViewModels
             _preferredGraphHead = preferredHead;
             Commits = commits;
             OnPropertyChanged(nameof(GraphWidth));
+            OnPropertyChanged(nameof(WorkingCopyHeadIndex));
         }
 
         public Models.CommitGraphHighlighting GraphHighlighting

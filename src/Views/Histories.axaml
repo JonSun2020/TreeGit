@@ -195,14 +195,14 @@
           <Style Selector="Button.working_copy_row.selected"><Setter Property="Background" Value="{DynamicResource Brush.Accent}"/><Setter Property="Foreground" Value="White"/></Style>
         </Button.Styles>
         <Grid x:Name="WorkingCopyColumns" ClipToBounds="True" ColumnDefinitions="48,*,160,120,100,0">
-          <Canvas Grid.Column="0" ClipToBounds="True"><Ellipse Width="10" Height="10" Canvas.Left="1" Canvas.Top="4.5" Fill="#8A8A8A" Stroke="White" StrokeThickness="1.5"/></Canvas>
+          <Canvas Grid.Column="0" ClipToBounds="True"><Line StartPoint="6,14" EndPoint="6,19" Stroke="Gray" StrokeThickness="2"/><Ellipse Width="10" Height="10" Canvas.Left="1" Canvas.Top="4.5" Fill="#8A8A8A" Stroke="White" StrokeThickness="1.5"/></Canvas>
           <TextBlock Grid.Column="1" Margin="6,0" Text="未提交的更改" Foreground="{Binding $parent[Button].Foreground}" FontWeight="Bold" VerticalAlignment="Center"/>
           <TextBlock Grid.Column="3" Margin="8,0" Text="*" Foreground="{Binding $parent[Button].Foreground}"/>
           <TextBlock Grid.Column="4" Margin="8,0" Text="*" Foreground="{Binding $parent[Button].Foreground}"/>
         </Grid>
       </Button>
 
-      <v:CommitGraph Grid.Row="1" x:Name="CommitGraph" Margin="0,43,0,0" Graph="{Binding Graph}" DotBrush="{DynamicResource Brush.Contents}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsHitTestVisible="False" ClipToBounds="True" Loaded="OnCommitGraphLoaded"/>
+      <v:CommitGraph Grid.Row="1" x:Name="CommitGraph" Margin="0,43,0,0" Graph="{Binding Graph}" PendingHeadIndex="{Binding WorkingCopyHeadIndex}" DotBrush="{DynamicResource Brush.Contents}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsHitTestVisible="False" ClipToBounds="True" Loaded="OnCommitGraphLoaded"/>
 
       <Border Grid.Row="1" Width="28" Height="28" Margin="0,0,16,8" CornerRadius="14" Background="{DynamicResource Brush.Popup}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Effect="drop-shadow(0 0 8 #80000000)" PointerPressed="OnScrollToTopPointerPressed" IsVisible="{Binding $parent[v:Histories].IsScrollToTopVisible}">
         <Path Width="12" Height="12" Data="{StaticResource Icons.ScrollToTop}" Fill="{DynamicResource Brush.FG1}" Opacity=".8"/>

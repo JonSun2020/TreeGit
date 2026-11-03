@@ -6,6 +6,9 @@ namespace SourceGit.Views
 {
     public class CommitGraph : Control
     {
+        public static readonly StyledProperty<int> PendingHeadIndexProperty = AvaloniaProperty.Register<CommitGraph, int>(nameof(PendingHeadIndex), -1);
+        public int PendingHeadIndex { get => GetValue(PendingHeadIndexProperty); set => SetValue(PendingHeadIndexProperty, value); }
+
         public static readonly DirectProperty<CommitGraph, Models.CommitGraph> GraphProperty =
             AvaloniaProperty.RegisterDirect<CommitGraph, Models.CommitGraph>(
                 nameof(Graph),
@@ -55,6 +58,15 @@ namespace SourceGit.Views
             using (context.PushClip(new Rect(0, 0, clipWidth, clipHeight)))
             using (context.PushTransform(Matrix.CreateTranslation(0, -startY)))
             {
+                if (PendingHeadIndex >= 0 && PendingHeadIndex < _graph.Dots.Count)
+                {
+                    var dot = _graph.Dots[PendingHeadIndex];
+                    var target = new Point(dot.Center.X, dot.Center.Y * rowHeight);
+                    var pen = new Pen(Brushes.Gray, 2);
+                    var join = new Point(6, target.Y - (target.X == 6 ? 0 : rowHeight * .5));
+                    context.DrawLine(pen, new Point(6, -rowHeight * .5), join);
+                    if (target != join) context.DrawLine(pen, join, target);
+                }
                 DrawCurves(context, _graph, startY, endY, rowHeight);
                 DrawAnchors(context, _graph, startY, endY, rowHeight);
             }
@@ -66,7 +78,7 @@ namespace SourceGit.Views
 
             if (change.Property == GraphProperty ||
                 change.Property == LayoutProperty ||
-                change.Property == DotBrushProperty)
+                change.Property == DotBrushProperty || change.Property == PendingHeadIndexProperty)
                 InvalidateVisual();
         }
 

@@ -713,6 +713,10 @@ namespace SourceGit.Views
             if (rowsPresenter == null)
                 return;
 
+            var pendingHeight = DataContext is ViewModels.Histories { HasWorkingCopy: true } ? 19 : 0;
+            rowsPresenter.Margin = new Thickness(0, pendingHeight, 0, 0);
+            CommitGraph.Margin = new Thickness(0, 24 + pendingHeight, 0, 0);
+
             double rowHeight = dataGrid.RowHeight;
             double startY = 0;
             foreach (var child in rowsPresenter.Children)
