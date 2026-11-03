@@ -114,6 +114,7 @@
       <DataGrid.Styles>
         <Style Selector="DataGridRow"><Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/></Style>
         <Style Selector="DataGridRow:selected"><Setter Property="Foreground" Value="White"/></Style>
+        <Style Selector="DataGridRow:selected TextBlock, DataGridRow:selected v|CommitTimeTextBlock"><Setter Property="Foreground" Value="White"/></Style>
         <Style Selector="DataGridRow:selected /template/ Rectangle#BackgroundRectangle"><Setter Property="Fill" Value="{DynamicResource Brush.Accent}"/><Setter Property="Opacity" Value="1"/></Style>
         <Style Selector="DataGridCell"><Setter Property="Foreground" Value="{Binding $parent[DataGridRow].Foreground}"/></Style>
         <Style Selector="DataGridColumnHeader"><Setter Property="HorizontalContentAlignment" Value="Center"/></Style>
