@@ -60,13 +60,19 @@ namespace SourceGit.Tests
                     var next = h;
                     while (true)
                     {
-                        if (graph.Dots[next].Center.X != 12)
+                        if (graph.Dots[next].Center.X != 6)
                             throw new InvalidOperationException("Selected branch escaped the leftmost graph lane.");
                         if (history[next].Parents.Count == 0) break;
                         next = Convert.ToInt32(history[next].Parents[0], 16);
                     }
-                    if (history.Select(c => c.LeftMargin).Distinct().Count() != 1 || graph.Dots.Any(d => !double.IsFinite(d.Center.X)))
+                    if (history.Select(c => c.LeftMargin).Distinct().Count() != 1 || graph.Dots.Any(d => !double.IsFinite(d.Center.X) || (d.Center.X - 6) % 11 != 0))
                         throw new InvalidOperationException("Graph columns are not aligned/finite.");
+                    foreach (var path in graph.Paths)
+                    {
+                        for (var point = 1; point < path.Points.Count; point++)
+                            if (path.Points[point].Y < path.Points[point - 1].Y)
+                                throw new InvalidOperationException("Graph edge reverses its history direction.");
+                    }
                 }
                 Check("80 complex DAG branch selections stay in the leftmost lane", true);
                 Check("graph descriptions stay aligned across merges and roots", true);

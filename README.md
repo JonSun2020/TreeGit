@@ -4,6 +4,8 @@ TreeGit keeps SourceGit's repository workflows and uses a SourceTree-inspired Wi
 
 Click a branch to pin its first-parent line to the leftmost graph lane without checking it out. The history dropdown offers all branches, only the selected branch's first-parent line, or the selected branch with merged ancestry. Other branch labels are hidden in filtered views.
 
+The graph uses compact 19-pixel rows, 11-pixel lanes and straight diagonal joins. Filled commit nodes have a 4-pixel radius and a white 1-pixel outline. These display metrics and the branch palette were checked against the locally installed SourceTree 2.6.10 renderer using an isolated merge fixture. TreeGit independently computes its graph; SourceTree binaries and implementation are not included in the application.
+
 Run `build-treegit.ps1` for a self-contained Windows x64 portable build. It uses a compressed, trimmed single-file .NET runtime and does not bundle Git. TreeGit detects an existing Git installation; an optional portable Git component can be extracted into `git/` beside `TreeGit.exe`. No .NET installation or application login is required. Portable preferences live in `data/`; repository passwords remain in the current Windows user's credential vault.
 
 Choose **Tools → MCP · AI 连接** to copy a stdio MCP server configuration with the current executable path. Launching `TreeGit.exe --mcp` exposes UI/history/status tools; add `--allow-write` for Git operations. `ui_graph` selects the pinned branch and graph visibility. This is an MCP server for controlling the desktop application.

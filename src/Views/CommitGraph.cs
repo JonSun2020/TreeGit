@@ -88,7 +88,7 @@ namespace SourceGit.Views
                 using (var ctx = geo.Open())
                 {
                     ctx.BeginFigure(new Point(link.Start.X, startY), false);
-                    ctx.QuadraticBezierTo(new Point(link.Control.X, link.Control.Y * rowHeight), new Point(link.End.X, endY));
+                    ctx.LineTo(new Point(link.End.X, endY));
                 }
 
                 var pen = link.IsHighlighted ? Models.CommitGraph.Pens[link.Color] : grayedPen;
@@ -130,30 +130,12 @@ namespace SourceGit.Views
 
                         if (cur.Y > bottom)
                         {
-                            cur = new Point(cur.X, bottom);
+                            var fraction = (bottom - last.Y) / (cur.Y - last.Y);
+                            cur = new Point(last.X + (cur.X - last.X) * fraction, bottom);
                             ended = true;
                         }
 
-                        if (cur.X > last.X)
-                        {
-                            ctx.QuadraticBezierTo(new Point(cur.X, last.Y), cur);
-                        }
-                        else if (cur.X < last.X)
-                        {
-                            if (i < size - 1)
-                            {
-                                var midY = (last.Y + cur.Y) / 2;
-                                ctx.CubicBezierTo(new Point(last.X, midY + 4), new Point(cur.X, midY - 4), cur);
-                            }
-                            else
-                            {
-                                ctx.QuadraticBezierTo(new Point(last.X, cur.Y), cur);
-                            }
-                        }
-                        else
-                        {
-                            ctx.LineTo(cur);
-                        }
+                        ctx.LineTo(cur);
 
                         if (ended)
                             break;
@@ -167,8 +149,7 @@ namespace SourceGit.Views
 
         private void DrawAnchors(DrawingContext context, Models.CommitGraph graph, double top, double bottom, double rowHeight)
         {
-            var dotFill = DotBrush;
-            var dotFillPen = new Pen(dotFill, 2);
+            var nodeOutline = new Pen(Brushes.White, 1);
             var grayedPen = new Pen(Brushes.Gray, Models.CommitGraph.Pens[0].Thickness);
 
             foreach (var dot in graph.Dots)
@@ -181,19 +162,7 @@ namespace SourceGit.Views
                     break;
 
                 var pen = dot.IsHighlighted ? Models.CommitGraph.Pens[dot.Color] : grayedPen;
-                switch (dot.Type)
-                {
-                    case Models.CommitGraph.DotType.Head:
-                        context.DrawEllipse(dotFill, pen, center, 4.5, 4.5);
-                        context.DrawEllipse(pen.Brush, null, center, 2.5, 2.5);
-                        break;
-                    case Models.CommitGraph.DotType.Merge:
-                        context.DrawEllipse(pen.Brush, null, center, 3.5, 3.5);
-                        break;
-                    default:
-                        context.DrawEllipse(pen.Brush, null, center, 3, 3);
-                        break;
-                }
+                context.DrawEllipse(pen.Brush, nodeOutline, center, 4, 4);
             }
         }
 

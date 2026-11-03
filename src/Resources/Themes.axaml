@@ -2,12 +2,12 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <ResourceDictionary.ThemeDictionaries>
     <ResourceDictionary x:Key="Light">
-      <Color x:Key="SystemAccentColor">#FF497BFF</Color>
-      <Color x:Key="SystemListLowColor">#FFE8EFFF</Color>
-      <Color x:Key="Color.TreeGit.Chrome">#FF3568DB</Color>
-      <Color x:Key="Color.TreeGit.ChromeHover">#FF497BFF</Color>
-      <Color x:Key="Color.TreeGit.ToolbarIconTop">#FF7DA3FF</Color>
-      <Color x:Key="Color.TreeGit.ToolbarIconBottom">#FF497BFF</Color>
+      <Color x:Key="SystemAccentColor">#FF0052CC</Color>
+      <Color x:Key="SystemListLowColor">#FFDEEBFF</Color>
+      <Color x:Key="Color.TreeGit.Chrome">#FF0747A6</Color>
+      <Color x:Key="Color.TreeGit.ChromeHover">#FF0052CC</Color>
+      <Color x:Key="Color.TreeGit.ToolbarIconTop">#FF709FE3</Color>
+      <Color x:Key="Color.TreeGit.ToolbarIconBottom">#FF0052CC</Color>
       <Color x:Key="Color.TreeGit.ToolbarLabel">#FF42526E</Color>
       <Color x:Key="Color.Window">#FFF4F5F7</Color>
       <Color x:Key="Color.WindowBorder">#FFB3BAC5</Color>
@@ -36,7 +36,7 @@
       <Color x:Key="Color.Diff.AddedHighlight">#A7E1A7</Color>
       <Color x:Key="Color.Diff.DeletedHighlight">#F19B9D</Color>
       <Color x:Key="Color.Diff.BlockBorderHighlight">DarkCyan</Color>
-      <Color x:Key="Color.Link">#FF497BFF</Color>
+      <Color x:Key="Color.Link">#FF0052CC</Color>
       <Color x:Key="Color.InlineCode">#FFE4E4E4</Color>
       <Color x:Key="Color.InlineCodeFG">Black</Color>
       <Color x:Key="Color.SubPanel">#FFFAFBFC</Color>

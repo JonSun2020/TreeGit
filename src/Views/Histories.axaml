@@ -23,7 +23,7 @@
           <TextBlock Grid.Column="1" Margin="12,0,0,0" Foreground="{DynamicResource Brush.FG2}" Text="{Binding GraphBranchName}"/>
         </Grid>
       </Border>
-      <v:HistoriesCommitList Grid.Row="1" x:Name="CommitListContainer" Classes="static_scrollbar" ScrollViewer.AllowAutoHide="False" Background="Transparent" ItemsSource="{Binding Commits, Mode=OneWay}" TotalCommits="{Binding Commits.Count, Mode=OneWay}" SelectedCommits="{Binding SelectedCommits, Mode=TwoWay}" ColumnHeaderHeight="24" RowHeight="26" LayoutUpdated="OnCommitListLayoutUpdated" ContextRequested="OnCommitListContextRequested" DoubleTapped="OnCommitListDoubleTapped">
+      <v:HistoriesCommitList Grid.Row="1" x:Name="CommitListContainer" Classes="static_scrollbar" ScrollViewer.AllowAutoHide="False" Background="Transparent" ItemsSource="{Binding Commits, Mode=OneWay}" TotalCommits="{Binding Commits.Count, Mode=OneWay}" SelectedCommits="{Binding SelectedCommits, Mode=TwoWay}" ColumnHeaderHeight="24" RowHeight="19" LayoutUpdated="OnCommitListLayoutUpdated" ContextRequested="OnCommitListContextRequested" DoubleTapped="OnCommitListDoubleTapped">
         <DataGrid.Styles>
           <Style Selector="DataGridRow"><Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/></Style>
           <Style Selector="DataGridRow:selected"><Setter Property="Foreground" Value="White"/></Style>
@@ -88,7 +88,7 @@
           
 
           
-        <DataGridTemplateColumn Width="64" IsReadOnly="True">
+        <DataGridTemplateColumn Width="48" IsReadOnly="True">
             <DataGridTemplateColumn.Header><TextBlock Classes="table_header" Text="路线图" Margin="6,0"/></DataGridTemplateColumn.Header>
             <DataGridTemplateColumn.CellTemplate><DataTemplate DataType="m:Commit"><Border Background="Transparent"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
           </DataGridTemplateColumn><DataGridTemplateColumn Width="*" IsReadOnly="True">
@@ -108,7 +108,7 @@
 
                     <v:CommitRefsPresenter Grid.Column="2" Background="{DynamicResource Brush.Contents}" Foreground="{DynamicResource Brush.FG1}" ShowTags="{Binding Source={x:Static vm:Preferences.Instance}, Path=ShowTagsInGraph}" FontSize="12" VerticalAlignment="Center" UseGraphColor="{Binding IsHighlightedInGraph, Mode=OneWay}" UseCompactBranchNames="{Binding Source={x:Static vm:Preferences.Instance}, Path=UseCompactBranchNamesInGraph}" HasSingleRemote="{Binding $parent[v:Histories].HasSingleRemote}"/>
 
-                    <v:CommitSubjectPresenter Grid.Column="3" Height="26" FontFamily="{DynamicResource Fonts.Default}" FontSize="{Binding Source={x:Static vm:Preferences.Instance}, Path=DefaultFontSize}" CodeFontFamily="{DynamicResource Fonts.Monospace}" InlineCodeBackground="{DynamicResource Brush.InlineCode}" InlineCodeForeground="{DynamicResource Brush.InlineCodeFG}" Foreground="{Binding $parent[DataGridRow].Foreground}" LinkForeground="{DynamicResource Brush.Link}" Subject="{Binding Subject}" IssueTrackers="{Binding $parent[v:Histories].IssueTrackers}" FontWeight="{Binding IsCurrentHead, Converter={x:Static c:BoolConverters.IsBoldToFontWeight}}" Opacity="{Binding IsMerged, Converter={x:Static c:BoolConverters.IsMergedToOpacity}}"/>
+                    <v:CommitSubjectPresenter Grid.Column="3" Height="19" FontFamily="{DynamicResource Fonts.Default}" FontSize="{Binding Source={x:Static vm:Preferences.Instance}, Path=DefaultFontSize}" CodeFontFamily="{DynamicResource Fonts.Monospace}" InlineCodeBackground="{DynamicResource Brush.InlineCode}" InlineCodeForeground="{DynamicResource Brush.InlineCodeFG}" Foreground="{Binding $parent[DataGridRow].Foreground}" LinkForeground="{DynamicResource Brush.Link}" Subject="{Binding Subject}" IssueTrackers="{Binding $parent[v:Histories].IssueTrackers}" FontWeight="{Binding IsCurrentHead, Converter={x:Static c:BoolConverters.IsBoldToFontWeight}}" Opacity="{Binding IsMerged, Converter={x:Static c:BoolConverters.IsMergedToOpacity}}"/>
                   </Grid>
                 </Border>
               </DataTemplate>

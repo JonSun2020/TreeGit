@@ -119,7 +119,7 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _graph, value);
         }
 
-        public double GraphWidth => _commits.Count > 0 ? Math.Max(64, _commits[0].LeftMargin + 8) : 64;
+        public double GraphWidth => _commits.Count > 0 ? Math.Max(48, _commits[0].LeftMargin + 8) : 48;
 
         public string GraphBranchRef => string.IsNullOrEmpty(_repo.UIStates.GraphBranchRef) ? "HEAD" : _repo.UIStates.GraphBranchRef;
         public string GraphBranchName => GraphBranchRef == "HEAD" ? CurrentBranch?.Name ?? "HEAD" : GraphBranchRef.Replace("refs/heads/", "").Replace("refs/remotes/", "");

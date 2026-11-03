@@ -35,6 +35,11 @@ namespace SourceGit
             }
             Native.OS.SetupBasicDirectories();
 #if INTEGRATION_TESTS
+            if (args.Length > 1 && args[0] == "--integration-graph-render")
+            {
+                Environment.Exit(Tests.GraphStyleProbe.Run(args[1]));
+                return;
+            }
             if (args.Length > 2 && args[0] == "--integration-auth-fetch")
             {
                 Environment.Exit(Tests.UpstreamProbe.FetchAsync(args[1], args[2]).GetAwaiter().GetResult());

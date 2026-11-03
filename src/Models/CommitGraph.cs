@@ -17,7 +17,7 @@ namespace SourceGit.Models
         SelectedCommitsOnlyFirstParent,
     }
 
-    public class CommitGraph
+    public partial class CommitGraph
     {
         public static List<Pen> Pens { get; } = [];
 
@@ -71,10 +71,10 @@ namespace SourceGit.Models
         public List<Link> Links { get; } = [];
         public List<Dot> Dots { get; } = [];
 
-        public static CommitGraph Generate(List<Commit> commits, bool firstParentOnlyEnabled, CommitGraphHighlighting highlighting, HashSet<string> highlightExtraCommits, string preferredHead = null)
+        private static CommitGraph GenerateLegacy(List<Commit> commits, bool firstParentOnlyEnabled, CommitGraphHighlighting highlighting, HashSet<string> highlightExtraCommits, string preferredHead)
         {
-            const double unitWidth = 16;
-            const double halfWidth = 8;
+            const double unitWidth = 11;
+            const double halfWidth = 5.5;
             const double unitHeight = 1;
             const double halfHeight = 0.5;
 
@@ -112,7 +112,7 @@ namespace SourceGit.Models
                 offsetY += unitHeight;
 
                 // Find first curves that links to this commit and marks others that links to this commit ended.
-                var offsetX = 4 - halfWidth;
+                var offsetX = 0.5 - halfWidth;
                 // Reserve column zero even when newer commits from other branches
                 // precede the selected head. Do not draw a fabricated line above it.
                 if (spine.Count > 0 && !unsolved.Exists(x => x.IsPreferred))
@@ -204,7 +204,7 @@ namespace SourceGit.Models
                 // Otherwise, create new curve for new merged commit
                 if (major == null)
                 {
-                    var nodeX = onSpine ? 4 + halfWidth : offsetX + unitWidth;
+                    var nodeX = onSpine ? 0.5 + halfWidth : offsetX + unitWidth;
                     offsetX = Math.Max(offsetX, nodeX);
 
                     if (commit.Parents.Count > 0)
@@ -474,16 +474,17 @@ namespace SourceGit.Models
 
         private static int s_penCount = 0;
         private static readonly List<Color> s_defaultPenColors = [
-            Color.Parse("#497BFF"),
-            Color.Parse("#36B37E"),
-            Color.Parse("#6554C0"),
-            Color.Parse("#FF8B00"),
-            Color.Parse("#00B8D9"),
-            Color.Parse("#FF5630"),
-            Color.Parse("#8777D9"),
-            Color.Parse("#57D9A3"),
-            Color.Parse("#FFC400"),
-            Color.Parse("#008DA6"),
+            Color.Parse("#3572B0"),
+            Color.Parse("#F05C75"),
+            Color.Parse("#67AB49"),
+            Color.Parse("#F79232"),
+            Color.Parse("#F6C342"),
+            Color.Parse("#84BBC6"),
+            Color.Parse("#654982"),
+            Color.Parse("#FFB300"),
+            Color.Parse("#59AFE1"),
+            Color.Parse("#F13A13"),
+            Color.Parse("#14892C"),
         ];
     }
 }
