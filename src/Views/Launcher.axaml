@@ -31,7 +31,7 @@
       <!-- Bottom border -->
       <Border Grid.Column="0" Grid.ColumnSpan="6" Grid.RowSpan="2"
               BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Brush.Border0}"
-              Background="#23527C"
+              Background="{DynamicResource Brush.TreeGit.Chrome}"
               DoubleTapped="MaximizeOrRestoreWindow"
               PointerPressed="BeginMoveWindow"/>
 
@@ -153,7 +153,7 @@
               </ControlTemplate>
             </Setter>
           </Style>
-          <Style Selector="Menu &gt; MenuItem:selected /template/ Border#PART_LayoutRoot"><Setter Property="Background" Value="#3877A5"/></Style>
+          <Style Selector="Menu &gt; MenuItem:selected /template/ Border#PART_LayoutRoot"><Setter Property="Background" Value="{DynamicResource Brush.TreeGit.ChromeHover}"/></Style>
           <Style Selector="Menu &gt; MenuItem:selected /template/ ContentPresenter#PART_HeaderPresenter"><Setter Property="Foreground" Value="White"/></Style>
         </Menu.Styles>
         <MenuItem Header="文件">

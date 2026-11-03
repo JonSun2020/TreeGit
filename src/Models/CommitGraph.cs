@@ -474,7 +474,7 @@ namespace SourceGit.Models
 
         private static int s_penCount = 0;
         private static readonly List<Color> s_defaultPenColors = [
-            Color.Parse("#2684FF"),
+            Color.Parse("#497BFF"),
             Color.Parse("#36B37E"),
             Color.Parse("#6554C0"),
             Color.Parse("#FF8B00"),

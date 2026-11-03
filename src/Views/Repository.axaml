@@ -171,7 +171,7 @@
             <Setter Property="Background" Value="#18888888"/>
           </Style>
           <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
-            <Setter Property="Background" Value="#220052CC"/>
+            <Setter Property="Background" Value="{DynamicResource Brush.AccentHovered}"/>
           </Style>
         </ListBox.Styles>
 

@@ -2,10 +2,17 @@
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <ResourceDictionary.ThemeDictionaries>
     <ResourceDictionary x:Key="Light">
+      <Color x:Key="SystemAccentColor">#FF497BFF</Color>
+      <Color x:Key="SystemListLowColor">#FFE8EFFF</Color>
+      <Color x:Key="Color.TreeGit.Chrome">#FF5B88FF</Color>
+      <Color x:Key="Color.TreeGit.ChromeHover">#FF7199FF</Color>
+      <Color x:Key="Color.TreeGit.ToolbarIconTop">#FFA2BFFF</Color>
+      <Color x:Key="Color.TreeGit.ToolbarIconBottom">#FF628EFF</Color>
+      <Color x:Key="Color.TreeGit.ToolbarLabel">#FF42526E</Color>
       <Color x:Key="Color.Window">#FFF4F5F7</Color>
       <Color x:Key="Color.WindowBorder">#FFB3BAC5</Color>
       <Color x:Key="Color.TitleBar">#FFEBECF0</Color>
-      <Color x:Key="Color.ToolBar">#FFFAFBFC</Color>
+      <Color x:Key="Color.ToolBar">#FFF4F5F7</Color>
       <Color x:Key="Color.Popup">#FFFAFAFA</Color>
       <Color x:Key="Color.PopupBorder">#FFDFE1E6</Color>
       <Color x:Key="Color.Contents">#FFFFFFFF</Color>
@@ -29,13 +36,20 @@
       <Color x:Key="Color.Diff.AddedHighlight">#A7E1A7</Color>
       <Color x:Key="Color.Diff.DeletedHighlight">#F19B9D</Color>
       <Color x:Key="Color.Diff.BlockBorderHighlight">DarkCyan</Color>
-      <Color x:Key="Color.Link">#FF0052CC</Color>
+      <Color x:Key="Color.Link">#FF497BFF</Color>
       <Color x:Key="Color.InlineCode">#FFE4E4E4</Color>
       <Color x:Key="Color.InlineCodeFG">Black</Color>
       <Color x:Key="Color.SubPanel">#FFFAFBFC</Color>
     </ResourceDictionary>
 
     <ResourceDictionary x:Key="Dark">
+      <Color x:Key="SystemAccentColor">#FF729DFF</Color>
+      <Color x:Key="SystemListLowColor">#FF293A5B</Color>
+      <Color x:Key="Color.TreeGit.Chrome">#FF365FAE</Color>
+      <Color x:Key="Color.TreeGit.ChromeHover">#FF4978CC</Color>
+      <Color x:Key="Color.TreeGit.ToolbarIconTop">#FFB8CDFF</Color>
+      <Color x:Key="Color.TreeGit.ToolbarIconBottom">#FF7DA4FF</Color>
+      <Color x:Key="Color.TreeGit.ToolbarLabel">#FFD1DCF2</Color>
       <Color x:Key="Color.Window">#FF252525</Color>
       <Color x:Key="Color.WindowBorder">#FF606060</Color>
       <Color x:Key="Color.TitleBar">#FF1F1F1F</Color>
@@ -69,6 +83,14 @@
       <Color x:Key="Color.SubPanel">#FF272727</Color>
     </ResourceDictionary>
   </ResourceDictionary.ThemeDictionaries>
+
+  <SolidColorBrush x:Key="Brush.TreeGit.Chrome" Color="{DynamicResource Color.TreeGit.Chrome}"/>
+  <SolidColorBrush x:Key="Brush.TreeGit.ChromeHover" Color="{DynamicResource Color.TreeGit.ChromeHover}"/>
+  <SolidColorBrush x:Key="Brush.TreeGit.ToolbarLabel" Color="{DynamicResource Color.TreeGit.ToolbarLabel}"/>
+  <LinearGradientBrush x:Key="Brush.TreeGit.ToolbarIcon" StartPoint="0%,0%" EndPoint="0%,100%">
+    <GradientStop Offset="0" Color="{DynamicResource Color.TreeGit.ToolbarIconTop}"/>
+    <GradientStop Offset="1" Color="{DynamicResource Color.TreeGit.ToolbarIconBottom}"/>
+  </LinearGradientBrush>
 
   <SolidColorBrush x:Key="Brush.Window" Color="{DynamicResource Color.Window}"/>
   <SolidColorBrush x:Key="Brush.WindowBorder" Color="{DynamicResource Color.WindowBorder}"/>
