@@ -25,6 +25,8 @@ for name, count in [('protocol-results.json',18), ('mcp-results.json',45), ('ui-
 assert read('concurrency-results.json')['all_passed']
 assert read('credentials-results.json')['actual_gui_git_fetch_authentication']
 assert read('credentials-prompt-results.json')['expired_credential_reprompts_and_retries']
+comparison=read('graph-style-comparison.json')
+assert comparison['coordinates_match'] and comparison['colors_match']
 assert (app/'TreeGit.exe').exists() and not (app/'git').exists()
 
 helptext = '''TreeGit 2026.23 · Windows x64 便携版
@@ -67,6 +69,7 @@ preview=delivery/'界面预览'
 preview.mkdir(exist_ok=True)
 for name in ['main-interface.png','only-main.png','main-1024.png','main-dark.png','working-copy.png','about.png']:
     shutil.copy2(qa/name,preview/name)
+shutil.copy2(base/'reference/graph-comparison.png',preview/'路线图组件对照.png')
 backup=delivery/'开发备份'
 backup.mkdir(exist_ok=True)
 subprocess.run(['git','archive','--format=zip','--prefix=TreeGit-source/','-o',str(backup/'TreeGit-定制源码.zip'),'HEAD'],cwd=repo,check=True)
@@ -80,6 +83,7 @@ with zipfile.ZipFile(portable) as z:
     assert z.read('TreeGit/TreeGit.exe') == (app/'TreeGit.exe').read_bytes()
 assert payload < 45*1024*1024 and portable.stat().st_size < 35*1024*1024
 manifest={'name':'TreeGit','upstream':upstream,'production_source':production,'source_checkpoint':subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip(),'portable_bytes':portable.stat().st_size,'extracted_program_bytes':payload,'optional_git_zip_bytes':gitpart.stat().st_size,'previous_zip_bytes':oldzip.stat().st_size,'checks':counts,'default_package_includes_git':False,'zip_crc_verified':True,'executable_matches_tested_build':True}
+manifest['graph_reference']=comparison
 (delivery/'package-verification.json').write_text(json.dumps(manifest,indent=2,ensure_ascii=False),encoding='utf-8')
 mb=lambda n:f'{n/1024/1024:.1f} MiB'
 report=f'''TreeGit 验收说明 · 2026-11-03
