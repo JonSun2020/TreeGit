@@ -20,7 +20,9 @@ if($LASTEXITCODE -ne 0){throw 'TreeGit publish failed'}
 Move-Item -LiteralPath (Join-Path $Destination 'SourceGit.exe') -Destination (Join-Path $Destination 'TreeGit.exe') -Force
 New-Item -ItemType Directory -Force (Join-Path $Destination 'data') | Out-Null
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'LICENSE'),(Join-Path $PSScriptRoot 'THIRD-PARTY-LICENSES.md') -Destination $Destination -Force
-$config=@{mcpServers=@{treegit=@{command=(Join-Path $Destination 'TreeGit.exe');args=@('--mcp','--read-only')}}}
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/PORTABLE.md') -Destination (Join-Path $Destination '使用说明.md') -Force
+Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/MCP.md') -Destination (Join-Path $Destination 'MCP-使用说明.md') -Force
+$config=@{mcpServers=@{treegit=@{command='C:\Tools\TreeGit\TreeGit.exe';args=@('--mcp','--read-only')}}}
 $config | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 (Join-Path $Destination 'mcp-readonly.json')
 $config.mcpServers.treegit.args=@('--mcp')
 $config | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 (Join-Path $Destination 'mcp-readwrite.json')

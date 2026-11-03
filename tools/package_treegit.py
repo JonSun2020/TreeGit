@@ -25,6 +25,9 @@ for name, count in [('protocol-results.json',18), ('mcp-results.json',45), ('ui-
 assert read('concurrency-results.json')['all_passed']
 assert read('credentials-results.json')['actual_gui_git_fetch_authentication']
 assert read('credentials-prompt-results.json')['expired_credential_reprompts_and_retries']
+overview=read('overview-results.json')
+assert overview['passed'] >= 23
+counts['overview-results.json']=overview['passed']
 comparison=read('graph-style-comparison.json')
 assert comparison['coordinates_match'] and comparison['colors_match']
 assert (app/'TreeGit.exe').exists() and not (app/'git').exists()
@@ -67,7 +70,7 @@ gitpart = delivery/'TreeGit-便携Git组件.zip'
 archive(base/'optional/git',gitpart,'git')
 preview=delivery/'界面预览'
 preview.mkdir(exist_ok=True)
-for name in ['main-interface.png','only-main.png','main-1024.png','main-dark.png','working-copy.png','about.png']:
+for name in ['main-interface.png','only-main.png','main-1024.png','main-dark.png','working-copy.png','about.png','sourcetree-theme.png','uncommitted-overview.png']:
     shutil.copy2(qa/name,preview/name)
 shutil.copy2(base/'reference/graph-comparison.png',preview/'图谱组件对照.png')
 backup=delivery/'开发备份'
