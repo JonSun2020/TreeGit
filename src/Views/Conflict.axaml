@@ -1,14 +1,5 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:m="using:SourceGit.Models"
-             xmlns:v="using:SourceGit.Views"
-             xmlns:vm="using:SourceGit.ViewModels"
-             xmlns:c="using:SourceGit.Converters"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="SourceGit.Views.Conflict"
-             x:DataType="vm:Conflict">
+﻿<?xml version='1.0' encoding='utf-8'?>
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:m="using:SourceGit.Models" xmlns:v="using:SourceGit.Views" xmlns:vm="using:SourceGit.ViewModels" xmlns:c="using:SourceGit.Converters" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SourceGit.Views.Conflict" x:DataType="vm:Conflict">
   <Border CornerRadius="4" Background="{DynamicResource Brush.Window}" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border2}">
     <Grid VerticalAlignment="Center">
       <StackPanel Orientation="Vertical" IsVisible="{Binding State, Mode=OneWay, Converter={x:Static ObjectConverters.NotEqual}, ConverterParameter={x:Static m:ConflictFileState.Resolved}}">
@@ -27,17 +18,8 @@
           <Border.DataTemplates>
             <DataTemplate DataType="m:Commit">
               <StackPanel Orientation="Horizontal">
-                <v:CommitRefsPresenter Foreground="{DynamicResource Brush.FG1}"
-                                       FontSize="12"
-                                       VerticalAlignment="Center"
-                                       UseGraphColor="False"/>
-                <TextBlock Margin="4,0,0,0"
-                           Text="{Binding SHA, Converter={x:Static c:StringConverters.ToShortSHA}}"
-                           FontFamily="{DynamicResource Fonts.Monospace}"
-                           Foreground="DarkOrange"
-                           TextDecorations="Underline"
-                           Cursor="Hand"
-                           PointerPressed="OnPressedSHA"/>
+                <v:CommitRefsPresenter Foreground="{DynamicResource Brush.FG1}" FontSize="12" VerticalAlignment="Center" UseGraphColor="False"/>
+                <TextBlock Margin="4,0,0,0" Text="{Binding SHA, Converter={x:Static c:StringConverters.ToShortSHA}}" FontFamily="{DynamicResource Fonts.Monospace}" Foreground="DarkOrange" TextDecorations="Underline" Cursor="Hand" PointerPressed="OnPressedSHA"/>
                 <TextBlock Margin="4,0,0,0" Text="{Binding Subject}"/>
               </StackPanel>
             </DataTemplate>
@@ -51,9 +33,9 @@
           </Border.DataTemplates>
 
           <Grid Margin="8,0,0,0" RowDefinitions="32,32" ColumnDefinitions="Auto,*">
-            <TextBlock Grid.Row="0" Grid.Column="0" Classes="info_label" Text="MINE"/>
+            <TextBlock Grid.Row="0" Grid.Column="0" Classes="info_label" Text="{DynamicResource Text.Conflict.MineLabel}"/>
             <ContentControl Grid.Row="0" Grid.Column="1" Margin="16,0,0,0" Content="{Binding Mine}"/>
-            <TextBlock Grid.Row="1" Grid.Column="0" Classes="info_label" Text="THEIRS"/>
+            <TextBlock Grid.Row="1" Grid.Column="0" Classes="info_label" Text="{DynamicResource Text.Conflict.TheirsLabel}"/>
             <ContentControl Grid.Row="1" Grid.Column="1" Margin="16,0,0,0" Content="{Binding Theirs}"/>
           </Grid>
         </Border>
@@ -71,45 +53,17 @@
               <TextBlock Margin="6,0,0,0" Text="{DynamicResource Text.WorkingCopy.Conflicts.UseMine}" VerticalAlignment="Center"/>
             </StackPanel>
           </Button>
-          <SplitButton Height="28"
-                       Margin="8,0,0,0" Padding="8,0"
-                       Click="OnMerge"
-                       IsVisible="{Binding State, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:ConflictFileState.UnmergedText}}">
+          <SplitButton Height="28" Margin="8,0,0,0" Padding="8,0" Click="OnMerge" IsVisible="{Binding State, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:ConflictFileState.UnmergedText}}">
             <SplitButton.Styles>
               <Style Selector="SplitButton">
                 <Setter Property="MinHeight" Value="24"/>
                 <Setter Property="Template">
                   <ControlTemplate>
                     <Grid ColumnDefinitions="*,1,Auto">
-                      <Button x:Name="PART_PrimaryButton"
-                              Grid.Column="0"
-                              Classes="flat primary"
-                              MinWidth="32"
-                              HorizontalAlignment="Stretch"
-                              VerticalAlignment="Stretch"
-                              Content="{TemplateBinding Content}"
-                              ContentTemplate="{TemplateBinding ContentTemplate}"
-                              Command="{TemplateBinding Command}"
-                              CommandParameter="{TemplateBinding CommandParameter}"
-                              CornerRadius="3,0,0,3"
-                              Padding="{TemplateBinding Padding}"
-                              Focusable="False"
-                              KeyboardNavigation.IsTabStop="False" />
+                      <Button x:Name="PART_PrimaryButton" Grid.Column="0" Classes="flat primary" MinWidth="32" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Command="{TemplateBinding Command}" CommandParameter="{TemplateBinding CommandParameter}" CornerRadius="3,0,0,3" Padding="{TemplateBinding Padding}" Focusable="False" KeyboardNavigation.IsTabStop="False"/>
 
-                      <Button x:Name="PART_SecondaryButton"
-                              Grid.Column="2"
-                              Classes="flat primary"
-                              Width="32"
-                              CornerRadius="0,3,3,0"
-                              Padding="0"
-                              Focusable="False"
-                              HorizontalAlignment="Stretch"
-                              VerticalAlignment="Stretch"
-                              KeyboardNavigation.IsTabStop="False">
-                        <Path Height="12" Width="12"
-                              Margin="0,4,0,0"
-                              Fill="{DynamicResource AccentButtonForeground}"
-                              Data="{DynamicResource Icons.Down}"/>
+                      <Button x:Name="PART_SecondaryButton" Grid.Column="2" Classes="flat primary" Width="32" CornerRadius="0,3,3,0" Padding="0" Focusable="False" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" KeyboardNavigation.IsTabStop="False">
+                        <Path Height="12" Width="12" Margin="0,4,0,0" Fill="{DynamicResource AccentButtonForeground}" Data="{DynamicResource Icons.Down}"/>
                       </Button>
                     </Grid>
                   </ControlTemplate>
@@ -133,8 +87,7 @@
 
             <SplitButton.Flyout>
               <MenuFlyout Placement="BottomEdgeAlignedLeft">
-                <MenuItem Header="{DynamicResource Text.WorkingCopy.Conflicts.MergeExternal}"
-                          Click="OnMergeExternal">
+                <MenuItem Header="{DynamicResource Text.WorkingCopy.Conflicts.MergeExternal}" Click="OnMergeExternal">
                   <MenuItem.Icon>
                     <Path Width="12" Height="12" Data="{StaticResource Icons.OpenWith}"/>
                   </MenuItem.Icon>

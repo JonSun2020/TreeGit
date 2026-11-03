@@ -10,6 +10,10 @@
             new ApplyWhiteSpaceMode("Error All", "Similar to 'error', but shows more", "error-all"),
         ];
 
+        private string ResourceKey => "Options.ApplyWhiteSpaceMode." + (string.IsNullOrEmpty(Arg) ? "default" : Arg.Replace("--", "").Replace(" ", "_"));
+        public string DisplayName => App.Text(ResourceKey + ".Name");
+        public string DisplayDescription => App.Text(ResourceKey + ".Desc");
+
         public string Name { get; set; } = n;
         public string Desc { get; set; } = d;
         public string Arg { get; set; } = a;

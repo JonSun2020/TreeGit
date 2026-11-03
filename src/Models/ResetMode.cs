@@ -13,6 +13,10 @@ namespace SourceGit.Models
             new ResetMode("Hard", "Discard all changes", "--hard", "H", Brushes.Red),
         ];
 
+        private string ResourceKey => "Options.ResetMode." + (string.IsNullOrEmpty(Arg) ? "default" : Arg.Replace("--", "").Replace(" ", "_"));
+        public string DisplayName => App.Text(ResourceKey + ".Name");
+        public string DisplayDescription => App.Text(ResourceKey + ".Desc");
+
         public string Name { get; set; } = n;
         public string Desc { get; set; } = d;
         public string Arg { get; set; } = a;

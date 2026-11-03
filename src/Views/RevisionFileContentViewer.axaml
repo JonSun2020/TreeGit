@@ -1,13 +1,5 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:m="using:SourceGit.Models"
-             xmlns:v="using:SourceGit.Views"
-             xmlns:c="using:SourceGit.Converters"
-             xmlns:vm="using:SourceGit.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="SourceGit.Views.RevisionFileContentViewer">
+﻿<?xml version='1.0' encoding='utf-8'?>
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:m="using:SourceGit.Models" xmlns:v="using:SourceGit.Views" xmlns:c="using:SourceGit.Converters" xmlns:vm="using:SourceGit.ViewModels" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SourceGit.Views.RevisionFileContentViewer">
   <UserControl.DataTemplates>
     <DataTemplate DataType="m:RevisionBinaryFile">
       <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -16,19 +8,12 @@
         <StackPanel Margin="0,8,0,0" Orientation="Horizontal" HorizontalAlignment="Center">
           <TextBlock Text="{Binding Size, Converter={x:Static c:LongConverters.ToFileSize}}" Foreground="{DynamicResource Brush.FG2}"/>
         </StackPanel>
-        <Button Classes="flat"
-                Margin="0,16,0,0"
-                HorizontalAlignment="Center"
-                Content="{DynamicResource Text.File.HexViewer}"
-                Click="OnOpenBinaryFileViewer"/>
+        <Button Classes="flat" Margin="0,16,0,0" HorizontalAlignment="Center" Content="{DynamicResource Text.File.HexViewer}" Click="OnOpenBinaryFileViewer"/>
       </StackPanel>
     </DataTemplate>
 
     <DataTemplate DataType="m:RevisionTextFile">
-      <v:RevisionTextFileView FontFamily="{DynamicResource Fonts.Monospace}"
-                              FontSize="{Binding Source={x:Static vm:Preferences.Instance}, Path=EditorFontSize}"
-                              TabWidth="{Binding Source={x:Static vm:Preferences.Instance}, Path=EditorTabWidth}"
-                              Background="{DynamicResource Brush.Contents}"/>
+      <v:RevisionTextFileView FontFamily="{DynamicResource Fonts.Monospace}" FontSize="{Binding Source={x:Static vm:Preferences.Instance}, Path=EditorFontSize}" TabWidth="{Binding Source={x:Static vm:Preferences.Instance}, Path=EditorTabWidth}" Background="{DynamicResource Brush.Contents}"/>
     </DataTemplate>
 
     <DataTemplate DataType="m:RevisionImageFile">
@@ -75,7 +60,7 @@
     <DataTemplate DataType="vm:RevisionLFSImage">
       <TabControl Margin="0,8,0,0" SelectedIndex="{Binding Source={x:Static vm:Preferences.Instance}, Path=LFSImageActiveIdx, Mode=TwoWay}">
         <TabControl.Styles>
-          <Style Selector="TabControl /template/ ItemsPresenter#PART_ItemsPresenter > WrapPanel">
+          <Style Selector="TabControl /template/ ItemsPresenter#PART_ItemsPresenter &gt; WrapPanel">
             <Setter Property="HorizontalAlignment" Value="Center"/>
           </Style>
         </TabControl.Styles>
@@ -90,7 +75,7 @@
 
         <TabItem>
           <TabItem.Header>
-            <TextBlock Text="IMAGE" FontWeight="Bold"/>
+            <TextBlock Text="{DynamicResource Text.Diff.ImageLabel}" FontWeight="Bold"/>
           </TabItem.Header>
 
           <ContentControl Content="{Binding Image}"/>
@@ -101,11 +86,7 @@
     <DataTemplate DataType="m:Null">
       <StackPanel Orientation="Vertical" VerticalAlignment="Center">
         <Path Width="64" Height="64" Data="{StaticResource Icons.File.Preview}" Fill="{DynamicResource Brush.FG2}"/>
-        <TextBlock Margin="0,16,0,0"
-                   Text="{DynamicResource Text.CommitDetail.Files.Tips}"
-                   FontSize="18" FontWeight="Bold"
-                   Foreground="{DynamicResource Brush.FG2}"
-                   HorizontalAlignment="Center"/>
+        <TextBlock Margin="0,16,0,0" Text="{DynamicResource Text.CommitDetail.Files.Tips}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Brush.FG2}" HorizontalAlignment="Center"/>
       </StackPanel>
     </DataTemplate>
   </UserControl.DataTemplates>

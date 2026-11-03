@@ -1,12 +1,5 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:vm="using:SourceGit.ViewModels"
-             xmlns:v="using:SourceGit.Views"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="SourceGit.Views.CommitChanges"
-             x:DataType="vm:CommitDetail">
+﻿<?xml version='1.0' encoding='utf-8'?>
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:vm="using:SourceGit.ViewModels" xmlns:v="using:SourceGit.Views" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SourceGit.Views.CommitChanges" x:DataType="vm:CommitDetail">
   <Grid>
     <Grid.ColumnDefinitions>
       <ColumnDefinition Width="{Binding Source={x:Static vm:Preferences.Instance}, Path=Layout.CommitDetailChangesLeftWidth, Mode=TwoWay}" MinWidth="200"/>
@@ -17,87 +10,53 @@
     <Grid Grid.Column="0" RowDefinitions="Auto,26,*,26">
       <Border Grid.Row="0" BorderBrush="{DynamicResource Brush.Border0}" BorderThickness="0,0,0,1" Padding="8,6" Margin="0,0,0,4">
         <StackPanel Spacing="3">
-          <TextBlock FontSize="12" TextWrapping="Wrap"><Run FontWeight="Bold" Text="Commit: "/><Run Text="{Binding Commit.SHA}"/></TextBlock>
-          <TextBlock FontSize="12" TextWrapping="Wrap"><Run FontWeight="Bold" Text="Author: "/><Run Text="{Binding Commit.Author.Name}"/><Run Text=" &lt;"/><Run Text="{Binding Commit.Author.Email}"/><Run Text="&gt;"/></TextBlock>
-          <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock FontSize="12" FontWeight="Bold" Text="Date:"/><v:DateTimePresenter Timestamp="{Binding Commit.CommitterTime}" FontSize="12"/></StackPanel>
+          <TextBlock FontSize="12" TextWrapping="Wrap"><Run FontWeight="Bold" Text="{DynamicResource Text.CommitChanges.CommitLabel}"/><Run Text="{Binding Commit.SHA}"/></TextBlock>
+          <TextBlock FontSize="12" TextWrapping="Wrap"><Run FontWeight="Bold" Text="{DynamicResource Text.CommitChanges.AuthorLabel}"/><Run Text="{Binding Commit.Author.Name}"/><Run Text=" &lt;"/><Run Text="{Binding Commit.Author.Email}"/><Run Text="&gt;"/></TextBlock>
+          <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock FontSize="12" FontWeight="Bold" Text="{DynamicResource Text.CommitChanges.DateLabel}"/><v:DateTimePresenter Timestamp="{Binding Commit.CommitterTime}" FontSize="12"/></StackPanel>
           <TextBlock Text="{Binding Commit.Subject}" Margin="0,5,0,2" TextWrapping="Wrap" FontWeight="SemiBold"/>
         </StackPanel>
       </Border>
       <!-- Search & Display Mode -->
       <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
-        <TextBox Grid.Column="0"
-                 x:Name="CommitChangeSearchBox"
-                 Height="26"
-                 BorderThickness="1" BorderBrush="{DynamicResource Brush.Border2}"
-                 Background="Transparent"
-                 CornerRadius="0"
-                 Watermark="{DynamicResource Text.CommitDetail.Changes.Search}"
-                 Text="{Binding SearchChangeFilter, Mode=TwoWay}">
+        <TextBox Grid.Column="0" x:Name="CommitChangeSearchBox" Height="26" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border2}" Background="Transparent" CornerRadius="0" Watermark="{DynamicResource Text.CommitDetail.Changes.Search}" Text="{Binding SearchChangeFilter, Mode=TwoWay}">
           <TextBox.InnerLeftContent>
             <Path Width="14" Height="14" Margin="4,0,0,0" Fill="{DynamicResource Brush.FG2}" Data="{StaticResource Icons.Search}"/>
           </TextBox.InnerLeftContent>
 
           <TextBox.InnerRightContent>
-            <Button Classes="icon_button"
-                    Focusable="False"
-                    IsVisible="{Binding SearchChangeFilter, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                    Command="{Binding ClearSearchChangeFilter}">
+            <Button Classes="icon_button" Focusable="False" IsVisible="{Binding SearchChangeFilter, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" Command="{Binding ClearSearchChangeFilter}">
               <Path Width="14" Height="14" Fill="{DynamicResource Brush.FG2}" Data="{StaticResource Icons.Clear}"/>
             </Button>
           </TextBox.InnerRightContent>
         </TextBox>
 
-        <v:ChangeViewModeSwitcher Grid.Column="1"
-                                  Width="18" Height="18"
-                                  Margin="4,0,0,0"
-                                  ViewMode="{Binding Source={x:Static vm:Preferences.Instance}, Path=ChangeViewMode, Mode=TwoWay}"/>
+        <v:ChangeViewModeSwitcher Grid.Column="1" Width="18" Height="18" Margin="4,0,0,0" ViewMode="{Binding Source={x:Static vm:Preferences.Instance}, Path=ChangeViewMode, Mode=TwoWay}"/>
       </Grid>
 
       <!-- Changes -->
-      <Border Grid.Row="2"
-              Margin="0,4,0,0"
-              BorderBrush="{DynamicResource Brush.Border2}"
-              BorderThickness="1"
-              CornerRadius="0">
-        <Border CornerRadius="0"
-                Background="{DynamicResource Brush.Contents}"
-                ClipToBounds="True">
-          <v:ChangeCollectionView ViewMode="{Binding Source={x:Static vm:Preferences.Instance}, Path=ChangeViewMode}"
-                                  EnableCompactFolders="{Binding Source={x:Static vm:Preferences.Instance}, Path=EnableCompactFoldersInChangesTree}"
-                                  Changes="{Binding VisibleChanges, Mode=OneWay}"
-                                  Selection="{Binding ChangeSelection, Mode=TwoWay}"
-                                  ContextRequested="OnChangeContextRequested"
-                                  KeyDown="OnChangeCollectionViewKeyDown"/>
+      <Border Grid.Row="2" Margin="0,4,0,0" BorderBrush="{DynamicResource Brush.Border2}" BorderThickness="1" CornerRadius="0">
+        <Border CornerRadius="0" Background="{DynamicResource Brush.Contents}" ClipToBounds="True">
+          <v:ChangeCollectionView ViewMode="{Binding Source={x:Static vm:Preferences.Instance}, Path=ChangeViewMode}" EnableCompactFolders="{Binding Source={x:Static vm:Preferences.Instance}, Path=EnableCompactFoldersInChangesTree}" Changes="{Binding VisibleChanges, Mode=OneWay}" Selection="{Binding ChangeSelection, Mode=TwoWay}" ContextRequested="OnChangeContextRequested" KeyDown="OnChangeCollectionViewKeyDown"/>
         </Border>
       </Border>
       
 
       <!-- Summary -->
       <Border Grid.Row="3" CornerRadius="0" BorderBrush="{DynamicResource Brush.Border2}" BorderThickness="1,0,1,1" Background="Transparent">
-        <TextBlock Margin="4,0,0,0"
-                   Foreground="{DynamicResource Brush.FG2}"
-                   HorizontalAlignment="Left" VerticalAlignment="Center">
+        <TextBlock Margin="4,0,0,0" Foreground="{DynamicResource Brush.FG2}" HorizontalAlignment="Left" VerticalAlignment="Center">
           <Run Text="{Binding Changes.Count, Mode=OneWay}" FontWeight="Bold"/>
           <Run Text="{DynamicResource Text.CommitDetail.Changes.Count}"/>
         </TextBlock>
       </Border>
     </Grid>
 
-    <GridSplitter Grid.Column="1"
-                  MinWidth="1"
-                  HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
-                  Background="Transparent"
-                  Focusable="False"/>
+    <GridSplitter Grid.Column="1" MinWidth="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent" Focusable="False"/>
 
     <Grid Grid.Column="2">
       <Border CornerRadius="0" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border2}">
         <StackPanel Orientation="Vertical" VerticalAlignment="Center">
           <Path Width="64" Height="64" Data="{StaticResource Icons.Diff}" Fill="{DynamicResource Brush.FG2}"/>
-          <TextBlock Margin="0,16,0,0"
-                     Text="{DynamicResource Text.Diff.Welcome}"
-                     FontSize="18" FontWeight="Bold"
-                     Foreground="{DynamicResource Brush.FG2}"
-                     HorizontalAlignment="Center"/>
+          <TextBlock Margin="0,16,0,0" Text="{DynamicResource Text.Diff.Welcome}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Brush.FG2}" HorizontalAlignment="Center"/>
         </StackPanel>
       </Border>
 

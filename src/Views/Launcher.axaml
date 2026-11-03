@@ -17,7 +17,7 @@
     <Grid Grid.Row="0" Classes="treegit_title" RowDefinitions="30,*" ColumnDefinitions="32,*,32,32,Auto,Auto">
       <Grid.Styles><Style Selector="Grid.treegit_title &gt; Button.icon_button &gt; Path"><Setter Property="Fill" Value="{DynamicResource Brush.TreeGit.ChromeForeground}"/></Style></Grid.Styles>
       <!-- Bottom border -->
-      <Border Grid.Column="0" Grid.ColumnSpan="6" Grid.RowSpan="2" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Brush.Border0}" Background="{DynamicResource Brush.TreeGit.Chrome}" DoubleTapped="MaximizeOrRestoreWindow" PointerPressed="BeginMoveWindow"/>
+      <Border Grid.Column="0" Grid.ColumnSpan="6" Grid.RowSpan="2" BorderThickness="0" BorderBrush="{DynamicResource Brush.Border0}" Background="{DynamicResource Brush.TreeGit.Chrome}" DoubleTapped="MaximizeOrRestoreWindow" PointerPressed="BeginMoveWindow"/>
 
       <!-- Caption Buttons (macOS) -->
       <v:MacOSTrafficLightsSpacer Grid.Column="0" Zoom="{Binding Source={x:Static vm:Preferences.Instance}, Path=Zoom, Mode=OneWay}" IsFullScreen="{Binding #ThisControl.WindowState, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static WindowState.FullScreen}}" IsVisible="{OnPlatform False, macOS=True}"/>
@@ -149,7 +149,7 @@
         <MenuItem Header="工具(T)"><MenuItem Header="MCP · AI 连接" Command="{x:Static s:App.OpenMcpConnectionCommand}"/><MenuItem Header="SSH 密钥" Command="{x:Static s:App.OpenSSHKeyHelperCommand}"/></MenuItem>
         <MenuItem Header="帮助(H)"><MenuItem Header="快捷键" Command="{x:Static s:App.OpenHotkeysCommand}"/><MenuItem Header="关于 TreeGit" Command="{x:Static s:App.OpenAboutCommand}"/></MenuItem>
       </Menu>
-      <v:LauncherTabBar Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="6" Height="30" Margin="10,0,110,0" VerticalAlignment="Bottom"/>
+      <v:LauncherTabBar Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="6" Height="26" Margin="10,0,110,0" VerticalAlignment="Bottom"/>
 
       <!-- Update Available Button -->
       <Button Grid.Column="4" Classes="icon_button" Height="30" Margin="0,0,4,0" VerticalAlignment="Top" IsVisible="{Binding NewVersion, Converter={x:Static ObjectConverters.IsNotNull}}" Click="OnShowNewVersion" ToolTip.Tip="{DynamicResource Text.Launcher.NewVersion}">

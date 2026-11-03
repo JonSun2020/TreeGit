@@ -4,6 +4,10 @@ namespace SourceGit.Models
 {
     public class CRLFMode(string name, string value, string desc)
     {
+        private string ResourceKey => "Options.CRLFMode." + Value;
+        public string DisplayName => App.Text(ResourceKey + ".Name");
+        public string DisplayDescription => App.Text(ResourceKey + ".Desc");
+
         public string Name { get; set; } = name;
         public string Value { get; set; } = value;
         public string Desc { get; set; } = desc;

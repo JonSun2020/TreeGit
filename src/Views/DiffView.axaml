@@ -1,17 +1,5 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             xmlns:m="using:SourceGit.Models"
-             xmlns:vm="using:SourceGit.ViewModels"
-             xmlns:v="using:SourceGit.Views"
-             xmlns:c="using:SourceGit.Converters"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-             x:Class="SourceGit.Views.DiffView"
-             x:DataType="vm:DiffContext"
-             CornerRadius="4"
-             BorderThickness="1"
-             BorderBrush="{DynamicResource Brush.Border2}">
+﻿<?xml version='1.0' encoding='utf-8'?>
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:m="using:SourceGit.Models" xmlns:vm="using:SourceGit.ViewModels" xmlns:v="using:SourceGit.Views" xmlns:c="using:SourceGit.Converters" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SourceGit.Views.DiffView" x:DataType="vm:DiffContext" CornerRadius="4" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border2}">
   <Border CornerRadius="4" Background="{DynamicResource Brush.Window}" ClipToBounds="True">
     <Grid RowDefinitions="26,*">
       <!-- Toolbar -->
@@ -21,47 +9,26 @@
           <Path Grid.Column="0" Width="12" Height="12" Data="{StaticResource Icons.File}" Margin="8,0,0,0"/>
 
           <!-- File Mode Change -->
-          <v:FileModeChange Grid.Column="1"
-                            VerticalAlignment="Center"
-                            Foreground="{DynamicResource Brush.BadgeFG}"
-                            Background="{DynamicResource Brush.Badge}"
-                            FontSize="10"
-                            OldMode="{Binding OldMode, Mode=OneWay}"
-                            NewMode="{Binding NewMode, Mode=OneWay}"/>
+          <v:FileModeChange Grid.Column="1" VerticalAlignment="Center" Foreground="{DynamicResource Brush.BadgeFG}" Background="{DynamicResource Brush.Badge}" FontSize="10" OldMode="{Binding OldMode, Mode=OneWay}" NewMode="{Binding NewMode, Mode=OneWay}"/>
 
           <!-- Line Changes Summary -->
           <ContentControl Grid.Column="2" Margin="4,0,0,0" Content="{Binding Content, Mode=OneWay}" IsVisible="{Binding IsTextDiff}">
             <ContentControl.DataTemplates>
               <DataTemplate DataType="vm:TextDiffContext">
                 <StackPanel Orientation="Horizontal" Spacing="4">
-                  <TextBlock FontSize="11"
-                             Foreground="Green"
-                             Text="{Binding Data.AddedLines, Mode=OneWay, StringFormat=+{0}}"
-                             IsVisible="{Binding Data.AddedLines, Converter={x:Static c:IntConverters.IsGreaterThanZero}}"/>
-                  <TextBlock FontSize="11"
-                             Foreground="Red"
-                             Text="{Binding Data.DeletedLines, Mode=OneWay, StringFormat=-{0}}"
-                             IsVisible="{Binding Data.DeletedLines, Converter={x:Static c:IntConverters.IsGreaterThanZero}}"/>
+                  <TextBlock FontSize="11" Foreground="Green" Text="{Binding Data.AddedLines, Mode=OneWay, StringFormat=+{0}}" IsVisible="{Binding Data.AddedLines, Converter={x:Static c:IntConverters.IsGreaterThanZero}}"/>
+                  <TextBlock FontSize="11" Foreground="Red" Text="{Binding Data.DeletedLines, Mode=OneWay, StringFormat=-{0}}" IsVisible="{Binding Data.DeletedLines, Converter={x:Static c:IntConverters.IsGreaterThanZero}}"/>
                 </StackPanel>
               </DataTemplate>
             </ContentControl.DataTemplates>
           </ContentControl>
 
           <!-- Title -->
-          <TextBlock Grid.Column="3"
-                     Margin="4,0,0,0"
-                     Text="{Binding Title}"
-                     ToolTip.Tip="{Binding Title}"
-                     FontSize="11"
-                     TextTrimming="CharacterEllipsis"/>
+          <TextBlock Grid.Column="3" Margin="4,0,0,0" Text="{Binding Title}" ToolTip.Tip="{Binding Title}" FontSize="11" TextTrimming="CharacterEllipsis"/>
 
           <!-- Toolbar Buttons -->
           <StackPanel Grid.Column="4" Margin="8,0,0,0" Orientation="Horizontal" VerticalAlignment="Center">
-            <Button x:Name="BtnGotoFirstChange"
-                    Classes="icon_button"
-                    Width="28"
-                    Click="OnGotoFirstChange"
-                    IsVisible="{Binding IsTextDiff}">
+            <Button x:Name="BtnGotoFirstChange" Classes="icon_button" Width="28" Click="OnGotoFirstChange" IsVisible="{Binding IsTextDiff}">
               <ToolTip.Tip>
                 <TextBlock>
                   <Run Text="{DynamicResource Text.Diff.First}"/>
@@ -72,11 +39,7 @@
               <Path Width="12" Height="12" Stretch="Uniform" Margin="0,6,0,0" Data="{StaticResource Icons.Top}"/>
             </Button>
 
-            <Button x:Name="BtnGotoPrevChange"
-                    Classes="icon_button"
-                    Width="28"
-                    Click="OnGotoPrevChange"
-                    IsVisible="{Binding IsTextDiff}">
+            <Button x:Name="BtnGotoPrevChange" Classes="icon_button" Width="28" Click="OnGotoPrevChange" IsVisible="{Binding IsTextDiff}">
               <ToolTip.Tip>
                 <TextBlock>
                   <Run Text="{DynamicResource Text.Diff.Prev}"/>
@@ -95,11 +58,7 @@
               </ContentControl.DataTemplates>
             </ContentControl>
 
-            <Button x:Name="BtnGotoNextChange"
-                    Classes="icon_button"
-                    Width="28"
-                    Click="OnGotoNextChange"
-                    IsVisible="{Binding IsTextDiff}">
+            <Button x:Name="BtnGotoNextChange" Classes="icon_button" Width="28" Click="OnGotoNextChange" IsVisible="{Binding IsTextDiff}">
               <ToolTip.Tip>
                 <TextBlock>
                   <Run Text="{DynamicResource Text.Diff.Next}"/>
@@ -110,11 +69,7 @@
               <Path Width="12" Height="12" Stretch="Uniform" Margin="0,6,0,0" Data="{StaticResource Icons.Down}"/>
             </Button>
 
-            <Button x:Name="BtnGotoLastChange"
-                    Classes="icon_button"
-                    Width="28"
-                    Click="OnGotoLastChange"
-                    IsVisible="{Binding IsTextDiff}">
+            <Button x:Name="BtnGotoLastChange" Classes="icon_button" Width="28" Click="OnGotoLastChange" IsVisible="{Binding IsTextDiff}">
               <ToolTip.Tip>
                 <TextBlock>
                   <Run Text="{DynamicResource Text.Diff.Last}"/>
@@ -125,20 +80,11 @@
               <Path Width="12" Height="12" Stretch="Uniform" Margin="0,6,0,0" Data="{StaticResource Icons.Bottom}"/>
             </Button>
 
-            <Button Classes="icon_button"
-                    Width="28"
-                    Command="{Binding IncrUnified}"
-                    IsVisible="{Binding IsTextDiff}"
-                    IsEnabled="{Binding Source={x:Static vm:Preferences.Instance}, Path=UseFullTextDiff, Mode=OneWay, Converter={x:Static BoolConverters.Not}}"
-                    ToolTip.Tip="{DynamicResource Text.Diff.VisualLines.Incr}">
+            <Button Classes="icon_button" Width="28" Command="{Binding IncrUnified}" IsVisible="{Binding IsTextDiff}" IsEnabled="{Binding Source={x:Static vm:Preferences.Instance}, Path=UseFullTextDiff, Mode=OneWay, Converter={x:Static BoolConverters.Not}}" ToolTip.Tip="{DynamicResource Text.Diff.VisualLines.Incr}">
               <Path Width="12" Height="12" Stretch="Uniform" Margin="0,6,0,0" Data="{StaticResource Icons.Lines.Incr}"/>
             </Button>
 
-            <Button Classes="icon_button"
-                    Width="28"
-                    Command="{Binding DecrUnified}"
-                    IsVisible="{Binding IsTextDiff}"
-                    ToolTip.Tip="{DynamicResource Text.Diff.VisualLines.Decr}">
+            <Button Classes="icon_button" Width="28" Command="{Binding DecrUnified}" IsVisible="{Binding IsTextDiff}" ToolTip.Tip="{DynamicResource Text.Diff.VisualLines.Decr}">
               <Button.IsEnabled>
                 <MultiBinding Converter="{x:Static BoolConverters.And}">
                   <Binding Path="UnifiedLines" Mode="OneWay" Converter="{x:Static c:IntConverters.IsGreaterThanFour}"/>
@@ -148,28 +94,15 @@
               <Path Width="12" Height="12" Stretch="Uniform" Margin="0,6,0,0" Data="{StaticResource Icons.Lines.Decr}"/>
             </Button>
 
-            <ToggleButton Classes="line_path"
-                          Width="28"
-                          IsChecked="{Binding Source={x:Static vm:Preferences.Instance}, Path=UseFullTextDiff, Mode=TwoWay}"
-                          IsVisible="{Binding IsTextDiff}"
-                          ToolTip.Tip="{DynamicResource Text.Diff.VisualLines.All}"
-                          PropertyChanged="OnToggleButtonPropertyChanged">
+            <ToggleButton Classes="line_path" Width="28" IsChecked="{Binding Source={x:Static vm:Preferences.Instance}, Path=UseFullTextDiff, Mode=TwoWay}" IsVisible="{Binding IsTextDiff}" ToolTip.Tip="{DynamicResource Text.Diff.VisualLines.All}" PropertyChanged="OnToggleButtonPropertyChanged">
               <Path Width="13" Height="13" Data="{StaticResource Icons.Lines.All}" Margin="0,3,0,0"/>
             </ToggleButton>
 
-            <ToggleButton Classes="line_path"
-                          Width="28"
-                          Background="Transparent"
-                          IsChecked="{Binding Source={x:Static vm:Preferences.Instance}, Path=UseSyntaxHighlighting, Mode=TwoWay}"
-                          IsVisible="{Binding IsTextDiff}"
-                          ToolTip.Tip="{DynamicResource Text.Diff.SyntaxHighlight}">
+            <ToggleButton Classes="line_path" Width="28" Background="Transparent" IsChecked="{Binding Source={x:Static vm:Preferences.Instance}, Path=UseSyntaxHighlighting, Mode=TwoWay}" IsVisible="{Binding IsTextDiff}" ToolTip.Tip="{DynamicResource Text.Diff.SyntaxHighlight}">
               <Path Width="13" Height="13" Data="{StaticResource Icons.SyntaxHighlight}" Margin="0,3,0,0"/>
             </ToggleButton>
 
-            <ToggleButton Classes="line_path"
-                          Width="28"
-                          IsChecked="{Binding Source={x:Static vm:Preferences.Instance}, Path=EnableDiffViewWordWrap, Mode=TwoWay}"
-                          ToolTip.Tip="{DynamicResource Text.Diff.ToggleWordWrap}">
+            <ToggleButton Classes="line_path" Width="28" IsChecked="{Binding Source={x:Static vm:Preferences.Instance}, Path=EnableDiffViewWordWrap, Mode=TwoWay}" ToolTip.Tip="{DynamicResource Text.Diff.ToggleWordWrap}">
               <ToggleButton.IsVisible>
                 <MultiBinding Converter="{x:Static BoolConverters.And}">
                   <Binding Path="IsTextDiff" Mode="OneWay"/>
@@ -180,37 +113,19 @@
               <Path Width="12" Height="12" Data="{StaticResource Icons.WordWrap}" Margin="0,2,0,0"/>
             </ToggleButton>
 
-            <ToggleButton Classes="line_path"
-                          Width="28"
-                          IsChecked="{Binding Source={x:Static vm:Preferences.Instance}, Path=ShowHiddenSymbolsInDiffView, Mode=TwoWay}"
-                          IsVisible="{Binding IsTextDiff}"
-                          ToolTip.Tip="{DynamicResource Text.Diff.ShowHiddenSymbols}">
+            <ToggleButton Classes="line_path" Width="28" IsChecked="{Binding Source={x:Static vm:Preferences.Instance}, Path=ShowHiddenSymbolsInDiffView, Mode=TwoWay}" IsVisible="{Binding IsTextDiff}" ToolTip.Tip="{DynamicResource Text.Diff.ShowHiddenSymbols}">
               <Path Width="11" Height="11" Stretch="Uniform" Data="{StaticResource Icons.HiddenSymbol}" Margin="0,1,0,0"/>
             </ToggleButton>
 
-            <ToggleButton Classes="line_path"
-                          x:Name="ToggleBtnUseSideBySide"
-                          Width="28" Height="18"
-                          IsChecked="{Binding Source={x:Static vm:Preferences.Instance}, Path=UseSideBySideDiff, Mode=TwoWay}"
-                          IsVisible="{Binding IsTextDiff}"
-                          ToolTip.Tip="{DynamicResource Text.Diff.SideBySide}"
-                          PropertyChanged="OnToggleButtonPropertyChanged">
+            <ToggleButton Classes="line_path" x:Name="ToggleBtnUseSideBySide" Width="28" Height="18" IsChecked="{Binding Source={x:Static vm:Preferences.Instance}, Path=UseSideBySideDiff, Mode=TwoWay}" IsVisible="{Binding IsTextDiff}" ToolTip.Tip="{DynamicResource Text.Diff.SideBySide}" PropertyChanged="OnToggleButtonPropertyChanged">
               <Path Width="12" Height="12" Data="{StaticResource Icons.Layout}" Margin="0,2,0,0"/>
             </ToggleButton>
 
-            <ToggleButton Classes="line_path"
-                          Width="28"
-                          IsChecked="{Binding Source={x:Static vm:Preferences.Instance}, Path=IgnoreWhitespaceChangesInDiff, Mode=TwoWay}"
-                          IsVisible="{Binding IsIgnoreWhitespaceVisible, Mode=OneWay}"
-                          ToolTip.Tip="{DynamicResource Text.Diff.IgnoreWhitespace}"
-                          PropertyChanged="OnToggleButtonPropertyChanged">
+            <ToggleButton Classes="line_path" Width="28" IsChecked="{Binding Source={x:Static vm:Preferences.Instance}, Path=IgnoreWhitespaceChangesInDiff, Mode=TwoWay}" IsVisible="{Binding IsIgnoreWhitespaceVisible, Mode=OneWay}" ToolTip.Tip="{DynamicResource Text.Diff.IgnoreWhitespace}" PropertyChanged="OnToggleButtonPropertyChanged">
               <Path Width="14" Height="14" Stretch="Uniform" Data="{StaticResource Icons.Whitespace}"/>
             </ToggleButton>
 
-            <Button x:Name="BtnOpenExternalMergeTool"
-                    Classes="icon_button"
-                    Width="28"
-                    Command="{Binding OpenExternalMergeTool}">
+            <Button x:Name="BtnOpenExternalMergeTool" Classes="icon_button" Width="28" Command="{Binding OpenExternalMergeTool}">
               <ToolTip.Tip>
                 <TextBlock>
                   <Run Text="{DynamicResource Text.Diff.UseMerger}"/>
@@ -230,11 +145,7 @@
           <!-- Binary Diff -->
           <DataTemplate DataType="m:BinaryDiff">
             <StackPanel Orientation="Vertical" VerticalAlignment="Center">
-              <TextBlock Text="{DynamicResource Text.Diff.Binary}"
-                         Margin="0,0,0,32"
-                         FontSize="18" FontWeight="Bold"
-                         Foreground="{DynamicResource Brush.FG2}"
-                         HorizontalAlignment="Center"/>
+              <TextBlock Text="{DynamicResource Text.Diff.Binary}" Margin="0,0,0,32" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Brush.FG2}" HorizontalAlignment="Center"/>
               <Path Width="64" Height="64" Data="{StaticResource Icons.Binary}" Fill="{DynamicResource Brush.FG2}"/>
               <Grid Margin="0,16,0,0" HorizontalAlignment="Center" RowDefinitions="32,32" ColumnDefinitions="Auto,Auto">
                 <Border Grid.Row="0" Grid.Column="0" Height="16" Background="{DynamicResource Brush.Badge}" CornerRadius="8" VerticalAlignment="Center">
@@ -250,23 +161,14 @@
                 <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding NewSize, Converter={x:Static c:LongConverters.ToFileSize}}" Foreground="{DynamicResource Brush.FG2}" HorizontalAlignment="Right" FontSize="16" Margin="8,0"/>
               </Grid>
 
-              <Button Classes="flat"
-                      Margin="0,16,0,0"
-                      HorizontalAlignment="Center"
-                      Content="{DynamicResource Text.Diff.Binary.ViewContentOfNew}"
-                      IsVisible="{Binding NewSize, Mode=OneWay, Converter={x:Static c:LongConverters.IsGreaterThanZero}}"
-                      Click="OnOpenBinaryFileViewer"/>
+              <Button Classes="flat" Margin="0,16,0,0" HorizontalAlignment="Center" Content="{DynamicResource Text.Diff.Binary.ViewContentOfNew}" IsVisible="{Binding NewSize, Mode=OneWay, Converter={x:Static c:LongConverters.IsGreaterThanZero}}" Click="OnOpenBinaryFileViewer"/>
             </StackPanel>
           </DataTemplate>
 
           <!-- LFS Diff -->
           <DataTemplate DataType="m:LFSDiff">
             <StackPanel Orientation="Vertical" VerticalAlignment="Center">
-              <TextBlock Text="{DynamicResource Text.Diff.LFS}"
-                         Margin="0,0,0,32"
-                         FontSize="18" FontWeight="Bold"
-                         Foreground="{DynamicResource Brush.FG2}"
-                         HorizontalAlignment="Center"/>
+              <TextBlock Text="{DynamicResource Text.Diff.LFS}" Margin="0,0,0,32" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Brush.FG2}" HorizontalAlignment="Center"/>
               <Path Width="64" Height="64" Data="{StaticResource Icons.LFS}" Fill="{DynamicResource Brush.FG2}"/>
               <Grid Margin="0,16,0,0" HorizontalAlignment="Center" RowDefinitions="32,32" ColumnDefinitions="Auto,Auto">
                 <Border Grid.Row="0" Grid.Column="0" Height="16" Background="{DynamicResource Brush.Badge}" CornerRadius="8" VerticalAlignment="Center">
@@ -287,12 +189,7 @@
           <!-- Submodule Diff -->
           <DataTemplate DataType="m:SubmoduleDiff">
             <Grid Background="{DynamicResource Brush.Contents}" RowDefinitions="Auto,*">
-              <TextBlock Grid.Row="0"
-                         Text="{DynamicResource Text.Diff.Submodule}"
-                         Margin="8,8,8,8"
-                         FontSize="18" FontWeight="Bold"
-                         Foreground="{DynamicResource Brush.FG2}"
-                         HorizontalAlignment="Center"/>
+              <TextBlock Grid.Row="0" Text="{DynamicResource Text.Diff.Submodule}" Margin="8,8,8,8" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Brush.FG2}" HorizontalAlignment="Center"/>
 
               <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                 <StackPanel Orientation="Vertical" Margin="8,0">
@@ -300,11 +197,7 @@
                     <TextBlock Text="{DynamicResource Text.Diff.Submodule.Deleted}" Margin="8,0" FontSize="10" Foreground="White"/>
                   </Border>
 
-                  <Border Margin="0,8"
-                          BorderThickness="1" BorderBrush="{DynamicResource Brush.Border2}"
-                          CornerRadius="4"
-                          Background="{DynamicResource Brush.Window}"
-                          IsVisible="{Binding Old, Converter={x:Static ObjectConverters.IsNotNull}}">
+                  <Border Margin="0,8" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border2}" CornerRadius="4" Background="{DynamicResource Brush.Window}" IsVisible="{Binding Old, Converter={x:Static ObjectConverters.IsNotNull}}">
                     <ContentControl Content="{Binding Old}">
                       <ContentControl.DataTemplates>
                         <DataTemplate DataType="m:RevisionSubmodule">
@@ -327,21 +220,12 @@
                     <TextBlock Text="{DynamicResource Text.Diff.Submodule.New}" Margin="8,0" FontSize="10" Foreground="White"/>
                   </Border>
 
-                  <Border Margin="0,8"
-                          BorderThickness="1" BorderBrush="Green"
-                          CornerRadius="4"
-                          Background="{DynamicResource Brush.Window}"
-                          IsVisible="{Binding New, Converter={x:Static ObjectConverters.IsNotNull}}">
+                  <Border Margin="0,8" BorderThickness="1" BorderBrush="Green" CornerRadius="4" Background="{DynamicResource Brush.Window}" IsVisible="{Binding New, Converter={x:Static ObjectConverters.IsNotNull}}">
                     <ContentControl Content="{Binding New}">
                       <ContentControl.DataTemplates>
                         <DataTemplate DataType="m:RevisionSubmodule">
                           <StackPanel Orientation="Vertical">
-                            <TextBlock Margin="0,8,0,4"
-                                       HorizontalAlignment="Center"
-                                       Foreground="OrangeRed"
-                                       FontFamily="{DynamicResource Fonts.Monospace}"
-                                       Text="{Binding UncommittedChanges, Converter={x:Static c:StringConverters.FormatByResourceKey}, ConverterParameter='Diff.Submodule.UncommittedChanges'}"
-                                       IsVisible="{Binding UncommittedChanges, Converter={x:Static c:IntConverters.IsGreaterThanZero}}"/>
+                            <TextBlock Margin="0,8,0,4" HorizontalAlignment="Center" Foreground="OrangeRed" FontFamily="{DynamicResource Fonts.Monospace}" Text="{Binding UncommittedChanges, Converter={x:Static c:StringConverters.FormatByResourceKey}, ConverterParameter='Diff.Submodule.UncommittedChanges'}" IsVisible="{Binding UncommittedChanges, Converter={x:Static c:IntConverters.IsGreaterThanZero}}"/>
                             <v:CommitBaseInfo Margin="0,4,8,6" Content="{Binding Commit}" FullMessage="{Binding FullMessage}"/>
                           </StackPanel>
                         </DataTemplate>
@@ -349,12 +233,7 @@
                     </ContentControl>
                   </Border>
 
-                  <Button Classes="flat"
-                          Margin="0,8"
-                          HorizontalAlignment="Center"
-                          Content="{DynamicResource Text.SubmoduleRevisionCompare.OpenDetails}"
-                          Click="OnOpenSubmoduleRevisionCompare"
-                          IsEnabled="{Binding CanOpenDetails, Mode=OneWay}"/>
+                  <Button Classes="flat" Margin="0,8" HorizontalAlignment="Center" Content="{DynamicResource Text.SubmoduleRevisionCompare.OpenDetails}" Click="OnOpenSubmoduleRevisionCompare" IsEnabled="{Binding CanOpenDetails, Mode=OneWay}"/>
                 </StackPanel>
               </ScrollViewer>
             </Grid>
@@ -369,7 +248,7 @@
           <DataTemplate DataType="vm:LFSImageDiff">
             <TabControl Margin="0,8,0,0" SelectedIndex="{Binding Source={x:Static vm:Preferences.Instance}, Path=LFSImageActiveIdx, Mode=TwoWay}">
               <TabControl.Styles>
-                <Style Selector="TabControl /template/ ItemsPresenter#PART_ItemsPresenter > WrapPanel">
+                <Style Selector="TabControl /template/ ItemsPresenter#PART_ItemsPresenter &gt; WrapPanel">
                   <Setter Property="HorizontalAlignment" Value="Center"/>
                 </Style>
               </TabControl.Styles>
@@ -384,7 +263,7 @@
 
               <TabItem>
                 <TabItem.Header>
-                  <TextBlock Text="IMAGE" FontWeight="Bold"/>
+                  <TextBlock Text="{DynamicResource Text.Diff.ImageLabel}" FontWeight="Bold"/>
                 </TabItem.Header>
 
                 <ContentControl Content="{Binding Image}"/>
@@ -400,14 +279,8 @@
           <!-- New Empty File -->
           <DataTemplate DataType="m:EmptyFile">
             <StackPanel Orientation="Vertical" VerticalAlignment="Center">
-              <Path Width="64" Height="64"
-                    Data="{StaticResource Icons.File.Empty}"
-                    Fill="{DynamicResource Brush.FG2}"/>
-              <TextBlock Margin="0,16,0,0"
-                         Text="{DynamicResource Text.Diff.EmptyFile}"
-                         FontSize="18" FontWeight="Bold"
-                         Foreground="{DynamicResource Brush.FG2}"
-                         HorizontalAlignment="Center"/>
+              <Path Width="64" Height="64" Data="{StaticResource Icons.File.Empty}" Fill="{DynamicResource Brush.FG2}"/>
+              <TextBlock Margin="0,16,0,0" Text="{DynamicResource Text.Diff.EmptyFile}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Brush.FG2}" HorizontalAlignment="Center"/>
             </StackPanel>
           </DataTemplate>
 
@@ -415,11 +288,7 @@
           <DataTemplate DataType="m:NoOrEOLChange">
             <StackPanel Orientation="Vertical" VerticalAlignment="Center">
               <Path Width="64" Height="64" Data="{StaticResource Icons.Check}" Fill="{DynamicResource Brush.FG2}"/>
-              <TextBlock Margin="0,16,0,0"
-                         Text="{DynamicResource Text.Diff.NoChange}"
-                         FontSize="18" FontWeight="Bold"
-                         Foreground="{DynamicResource Brush.FG2}"
-                         HorizontalAlignment="Center"/>
+              <TextBlock Margin="0,16,0,0" Text="{DynamicResource Text.Diff.NoChange}" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Brush.FG2}" HorizontalAlignment="Center"/>
             </StackPanel>
           </DataTemplate>
         </ContentControl.DataTemplates>

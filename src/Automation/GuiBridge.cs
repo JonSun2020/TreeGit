@@ -348,6 +348,12 @@ namespace SourceGit.Automation
                         case "create_tag":
                             repo.CreateNewTag();
                             break;
+                        case "reset_dialog":
+                            var target = repo.Histories.Commits.Find(c => c.IsCurrentHead);
+                            if (target == null || repo.CurrentBranch == null)
+                                throw new InvalidOperationException("Wait for the current branch history to load before opening reset.");
+                            repo.ShowPopup(new ViewModels.Reset(repo, repo.CurrentBranch, target));
+                            break;
                         case "fetch_dialog":
                             _ = repo.FetchAsync(false);
                             break;
@@ -366,7 +372,7 @@ namespace SourceGit.Automation
                         default:
                             throw new ArgumentException("Unknown GUI command.");
                     }
-                    return (object)new { opened = command, repo = path };
+                    return (object)new { opened = command, repo = path, resetModes = command == "reset_dialog" ? Models.ResetMode.Supported.Select(m => new { name = m.DisplayName, description = m.DisplayDescription, argument = m.Arg }).ToArray() : null };
                 });
 
             if (name == "ui_select_view")

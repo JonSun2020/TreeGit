@@ -5,13 +5,13 @@
       <Path Width="8" Height="14" Stretch="Fill" Data="{StaticResource Icons.TriangleLeft}"/>
     </RepeatButton>
 
-    <ScrollViewer Grid.Column="1" Margin="6,0" x:Name="LauncherTabsScroller" HorizontalAlignment="Left" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" PointerWheelChanged="ScrollTabs">
+    <ScrollViewer Grid.Column="1" Margin="6,0" x:Name="LauncherTabsScroller" HorizontalAlignment="Left" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" PointerWheelChanged="ScrollTabs" Padding="0" VerticalContentAlignment="Bottom">
       <StackPanel Orientation="Horizontal">
-        <ListBox x:Name="LauncherTabsList" Background="Transparent" ItemsSource="{Binding Pages}" SelectionMode="AlwaysSelected" SelectedItem="{Binding ActivePage, Mode=TwoWay}" SelectionChanged="OnTabsSelectionChanged" LayoutUpdated="OnTabsLayoutUpdated">
+        <ListBox x:Name="LauncherTabsList" Background="Transparent" ItemsSource="{Binding Pages}" SelectionMode="AlwaysSelected" SelectedItem="{Binding ActivePage, Mode=TwoWay}" SelectionChanged="OnTabsSelectionChanged" LayoutUpdated="OnTabsLayoutUpdated" Padding="0" BorderThickness="0" VerticalContentAlignment="Stretch">
           <ListBox.Styles>
             <Style Selector="ListBoxItem">
               <Setter Property="Padding" Value="0"/><Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/><Setter Property="CornerRadius" Value="0"/><Setter Property="Margin" Value="0,0,3,0"/><Setter Property="BorderThickness" Value="0"/><Setter Property="BorderBrush" Value="Transparent"/>
-            </Style>
+            <Setter Property="Height" Value="26"/><Setter Property="VerticalContentAlignment" Value="Stretch"/><Setter Property="Template"><ControlTemplate><ContentPresenter x:Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Padding="0" Margin="0" BorderThickness="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/></ControlTemplate></Setter></Style>
             <Style Selector="ListBoxItem /template/ ContentPresenter#PART_ContentPresenter">
               <Setter Property="Background" Value="{DynamicResource Brush.ToolBar}"/>
               <Setter Property="Opacity" Value="1"/>

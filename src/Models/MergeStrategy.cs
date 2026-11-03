@@ -4,6 +4,10 @@ namespace SourceGit.Models
 {
     public class MergeStrategy
     {
+        private string ResourceKey => "Options.MergeStrategy." + (string.IsNullOrEmpty(Arg) ? "default" : Arg.Replace("--", "").Replace(" ", "_"));
+        public string DisplayName => App.Text(ResourceKey + ".Name");
+        public string DisplayDescription => App.Text(ResourceKey + ".Desc");
+
         public string Name { get; internal set; }
         public string Desc { get; internal set; }
         public string Arg { get; internal set; }
