@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using Avalonia;
 using Avalonia.Controls;
@@ -37,9 +37,9 @@ namespace SourceGit.Views
             if (OperatingSystem.IsMacOS())
                 CaptionHeight = new GridLength(34);
             else if (UseSystemWindowFrame)
-                CaptionHeight = new GridLength(64);
+                CaptionHeight = new GridLength(56);
             else
-                CaptionHeight = new GridLength(68);
+                CaptionHeight = new GridLength(56);
 
             InitializeComponent();
             PositionChanged += OnPositionChanged;

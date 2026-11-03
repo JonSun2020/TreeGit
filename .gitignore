@@ -5,3 +5,9 @@
 *.user
 *.suo
 __pycache__/
+
+# Portable user data and release output
+/artifacts/
+/data/
+*.zip
+*.bundle

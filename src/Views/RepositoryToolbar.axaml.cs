@@ -24,6 +24,25 @@ namespace SourceGit.Views
             e.Handled = true;
         }
 
+        private void OpenRemotesDirect(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && DataContext is ViewModels.Repository repo)
+            {
+                var menu = new ContextMenu { Placement = PlacementMode.BottomEdgeAlignedLeft };
+                foreach (var remote in repo.Remotes)
+                {
+                    var candidate = remote;
+                    var item = new MenuItem { Header = candidate.Name };
+                    item.Click += (_, _) => { if (repo.CanCreatePopup()) repo.ShowPopup(new ViewModels.EditRemote(repo, candidate)); };
+                    menu.Items.Add(item);
+                }
+                var add = new MenuItem { Header = App.Text("Repository.Remotes.Add") };
+                add.Click += (_, _) => repo.AddRemote();
+                menu.Items.Add(add);
+                menu.Open(button);
+            }
+        }
+
         private void OpenExplorerDirect(object sender, RoutedEventArgs e)
         {
             if (DataContext is ViewModels.Repository repo) Native.OS.OpenInFileManager(repo.FullPath);

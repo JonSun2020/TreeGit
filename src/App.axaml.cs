@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Net.Http;
 using System.Text.Json;
@@ -582,7 +582,8 @@ namespace SourceGit
                     using var client = new HttpClient();
                     client.Timeout = TimeSpan.FromSeconds(5);
 
-                    var data = await client.GetStringAsync("https://sourcegit-scm.github.io/data/version.json");
+                    client.DefaultRequestHeaders.UserAgent.ParseAdd("TreeGit/" + Models.TreeGitRelease.Version);
+                    var data = await client.GetStringAsync("https://api.github.com/repos/JonSun2020/TreeGit/releases/latest");
                     var ver = JsonSerializer.Deserialize(data, JsonCodeGen.Default.Version);
                     if (ver == null)
                         return;

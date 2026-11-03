@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -77,7 +77,7 @@ namespace SourceGit.Views
 
         private void GotoDownload(object _, RoutedEventArgs e)
         {
-            Native.OS.OpenBrowser("https://github.com/sourcegit-scm/sourcegit/releases/latest");
+            Native.OS.OpenBrowser("https://github.com/JonSun2020/TreeGit/releases/latest");
             e.Handled = true;
         }
 

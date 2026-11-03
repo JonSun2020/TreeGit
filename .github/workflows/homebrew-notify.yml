@@ -6,6 +6,7 @@ on:
 
 jobs:
   notify-homebrew:
+    if: github.repository == 'sourcegit-scm/sourcegit'
     runs-on: ubuntu-latest
     steps:
       - name: Notify Homebrew tap

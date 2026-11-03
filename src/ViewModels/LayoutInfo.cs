@@ -1,4 +1,4 @@
-using Avalonia.Controls;
+﻿using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace SourceGit.ViewModels
@@ -39,7 +39,7 @@ namespace SourceGit.ViewModels
         {
             get;
             set;
-        } = 240;
+        } = 219;
 
         public double RepositorySearchCommitWidth
         {

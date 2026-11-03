@@ -1,9 +1,10 @@
-<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <x:String x:Key="Text.About" xml:space="preserve">About</x:String>
   <x:String x:Key="Text.About.Menu" xml:space="preserve">About TreeGit</x:String>
   <x:String x:Key="Text.About.ReleaseDate" xml:space="preserve">Release Date: {0}</x:String>
   <x:String x:Key="Text.About.ReleaseNotes" xml:space="preserve">Release Notes</x:String>
   <x:String x:Key="Text.About.SubTitle" xml:space="preserve">Opensource &amp; Free Git GUI Client</x:String>
+  <x:String x:Key="Text.About.Mcp">Built on SourceGit with a redesigned interface. Includes MCP support: AI can read and write repositories, control TreeGit, and execute all Git operations. Copy the connection configuration from Tools → MCP · AI Connection.</x:String>
   <x:String x:Key="Text.About.BasedOnSourceGit" xml:space="preserve">Based on SourceGit, with a redesigned main interface for TreeGit. Original project copyright and MIT license are retained.</x:String>
   <x:String x:Key="Text.AddToIgnore" xml:space="preserve">Add File(s) To Ignore</x:String>
   <x:String x:Key="Text.AddToIgnore.Pattern" xml:space="preserve">Pattern:</x:String>

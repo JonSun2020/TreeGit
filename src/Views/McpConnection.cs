@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
@@ -20,16 +20,16 @@ namespace SourceGit.Views
             panel.Children.Add(new TextBlock { Text = "MCP · AI 连接", FontSize = 22 });
             panel.Children.Add(new TextBlock
             {
-                Text = "将下面的配置添加到支持 stdio MCP 的 AI 客户端。连接后，AI 可以打开仓库、查看历史和差异、切换界面；启用读写后还可暂存、提交和推送。操作会同步到本软件的界面和命令日志。",
+                Text = "将下面的配置添加到支持 stdio MCP 的 AI 客户端。连接后，AI 可以打开仓库、查看历史和差异、切换界面；默认支持读写，可执行全部 Git 操作，包括暂存、提交、推送、重置和分支管理。操作会同步到本软件的界面和命令日志。",
                 TextWrapping = TextWrapping.Wrap,
             });
-            var write = new CheckBox { Content = "在此连接配置中启用 Git 读写操作" };
+            var write = new CheckBox { Content = "只读连接（禁止 Git 写入）" };
             var configuration = new TextBox { IsReadOnly = true, AcceptsReturn = true, Height = 235, VerticalContentAlignment = VerticalAlignment.Top, FontFamily = new FontFamily("Cascadia Mono,Consolas"), FontSize = 12, TextWrapping = TextWrapping.Wrap };
             void Update() => configuration.Text = JsonSerializer.Serialize(new
             {
                 mcpServers = new
                 {
-                    treegit = new { command = Environment.ProcessPath, args = write.IsChecked == true ? new[] { "--mcp", "--allow-write" } : ["--mcp"] },
+                    treegit = new { command = Environment.ProcessPath, args = write.IsChecked == true ? new[] { "--mcp", "--read-only" } : ["--mcp"] },
                 },
             }, new JsonSerializerOptions { WriteIndented = true, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
             write.IsCheckedChanged += (_, _) => Update();

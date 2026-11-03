@@ -35,15 +35,15 @@ helptext = '''TreeGit 2026.23 · Windows x64 便携版
 默认使用电脑上已有的 Git，与原版 SourceGit 的使用方式相同。
 没有 Git 时，将单独提供的 TreeGit-便携Git组件.zip 解压到本目录，形成 git/cmd/git.exe；不需要运行安装程序。
 
-主界面按 SourceTree Windows 布局重排：菜单与标签栏、操作工具栏、工作区/分支侧栏、路线图与提交表、下方文件列表和差异预览。
-单击左侧分支即可将它的主线放在路线图最左侧，不会切换检出分支。
+主界面按 SourceTree Windows 布局重排：菜单与标签栏、操作工具栏、工作区/分支侧栏、图谱与提交表、下方文件列表和差异预览。
+单击左侧分支即可将它的主线放在图谱最左侧，不会切换检出分支。
 历史上方下拉框：全部分支 / 仅所选分支（仅一条主线）/ 所选分支及合并历史。
 双击分支仍执行原来的检出操作。更多、工具及上下文菜单保留补丁、LFS、二分查找、日志、统计等功能。
 
 仓库账号：右上角钥匙按钮。不同仓库独立保存 HTTPS 账号；缺少账号或密码失效时自动弹出输入窗。
 密码保存在当前 Windows 用户的系统凭据库，不随便携目录复制。SSH 使用 OpenSSH；便携 Git 组件中的 OpenSSH 使用 OpenSSL。
 
-MCP：工具 → MCP · AI 连接，复制配置到 AI 客户端。默认只读；需要 Git 写操作时在连接配置中启用读写。
+MCP：工具 → MCP · AI 连接，复制配置到 AI 客户端。默认完整读写，AI 可执行全部 Git 操作；可勾选只读连接限制写入。
 目录移动或重新解压后，请在新位置重新复制 MCP 配置。旁边的 JSON 仅适用于生成时的可执行文件路径。
 用户偏好保存在 data 目录。复制旧版 data/preference.json 可保留原偏好；仓库中的 SourceGit 配置和 UI 状态继续兼容。
 
@@ -69,7 +69,7 @@ preview=delivery/'界面预览'
 preview.mkdir(exist_ok=True)
 for name in ['main-interface.png','only-main.png','main-1024.png','main-dark.png','working-copy.png','about.png']:
     shutil.copy2(qa/name,preview/name)
-shutil.copy2(base/'reference/graph-comparison.png',preview/'路线图组件对照.png')
+shutil.copy2(base/'reference/graph-comparison.png',preview/'图谱组件对照.png')
 backup=delivery/'开发备份'
 backup.mkdir(exist_ok=True)
 subprocess.run(['git','archive','--format=zip','--prefix=TreeGit-source/','-o',str(backup/'TreeGit-定制源码.zip'),'HEAD'],cwd=repo,check=True)
@@ -97,7 +97,7 @@ report=f'''TreeGit 验收说明 · 2026-11-03
 本次修正
 1. 软件名称改为 TreeGit；主界面整体按 SourceTree Windows 的布局重排。使用独立的深青色树形 Logo；关于窗口明确注明基于 SourceGit 开发并修改界面，保留原项目链接、版权和 MIT 许可证。
 2. 改用本机 SourceTree ADG3 主题的深蓝 #0747A6 顶栏、#0052CC 强调色和 #F4F5F7 功能栏底色。保留提交、推送、拉取、获取、分支、合并、贮藏、丢弃、标签及终端/浏览/设置/工具入口。
-3. 路线图改为 19 像素行高、11 像素列距、2 像素折线，以及半径 4 像素、白色 1 像素边框的实心节点，使用本机 SourceTree 的原始分支配色。保留左侧工作区/分支树与右侧独立路线图、描述、提交时间、作者和指纹列。
+3. 图谱改为 19 像素行高、11 像素列距、2 像素折线，以及半径 4 像素、白色 1 像素边框的实心节点，使用本机 SourceTree 的原始分支配色。保留左侧工作区/分支树与右侧独立图谱、描述、提交时间、作者和指纹列。
 4. 下方默认显示紧凑提交信息、变更文件和差异；文件状态页改为文件/差异区及底部提交区。
 5. 单击分支后，该分支 first-parent 主线固定在最左侧；选择仅所选分支时隐藏其他提交和分支标签。
 6. 另保留所选分支及合并历史模式，切回全部分支可恢复其他历史；图形选择不会检出分支。

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 using Avalonia;
 using Avalonia.Controls;
@@ -86,6 +86,39 @@ namespace SourceGit.Views
         {
             base.OnLoaded(e);
             UpdateLeftSidebarLayout();
+        }
+
+        private void OnShowWorkingCopyOverview(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is ViewModels.Repository { IsBare: false } repo)
+            {
+                repo.SelectedViewIndex = 0;
+                repo.Histories.ShowWorkingCopyOverview();
+            }
+        }
+
+        private void OnShowHistory(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is ViewModels.Repository repo)
+            {
+                repo.SelectedViewIndex = 0;
+                if (repo.Histories.IsWorkingCopySelected && repo.Histories.Commits.Count > 0)
+                    repo.Histories.SelectedCommits = [repo.Histories.Commits.Find(c => c.IsCurrentHead) ?? repo.Histories.Commits[0]];
+            }
+        }
+
+        private void OnShowSearch(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is ViewModels.Repository repo)
+            {
+                repo.SelectedViewIndex = 0;
+                repo.Histories.IsSearchingCommits = true;
+            }
+        }
+
+        private void OnShowStashes(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is ViewModels.Repository { IsBare: false } repo) repo.SelectedViewIndex = 2;
         }
 
         private async void OnOpenConfigure(object sender, RoutedEventArgs e)
@@ -250,7 +283,7 @@ namespace SourceGit.Views
             if (DataContext is not ViewModels.Repository { UIStates: { } } vm)
                 return;
 
-            var leftHeight = LeftSidebarGroups.Bounds.Height - 28.0 * 5 - 4;
+            var leftHeight = LeftSidebarGroups.Bounds.Height - 28.0 * 5 - 36;
             if (leftHeight <= 0)
                 return;
 

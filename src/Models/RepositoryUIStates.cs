@@ -39,6 +39,8 @@ namespace SourceGit.Models
             set;
         } = true;
 
+        public Dictionary<string, double> HistoryColumnWidths { get; set; } = [];
+
         public double AuthorColumnWidth
         {
             get;
@@ -60,6 +62,7 @@ namespace SourceGit.Models
         public string GraphBranchRef { get; set; } = string.Empty;
         public bool ShowOnlyGraphBranch { get; set; } = false;
         public bool GraphIncludeMergedHistory { get; set; } = false;
+        public bool ShowRemoteBranchesInHistory { get; set; } = true;
 
         public BranchSortMode LocalBranchSortMode
         {
@@ -441,7 +444,7 @@ namespace SourceGit.Models
 
             var mode = GetHistoryFilterMode();
             if (mode == FilterMode.None)
-                builder.Append("--branches --remotes --tags HEAD");
+                builder.Append(ShowRemoteBranchesInHistory ? "--branches --remotes --tags HEAD" : "--branches --tags HEAD");
             else if (mode == FilterMode.Included)
                 BuildHistoryParamsForIncluded(builder);
             else
@@ -458,9 +461,9 @@ namespace SourceGit.Models
                     builder.Append(filter.Pattern).Append(' ');
                 else if (filter.Type == FilterType.LocalBranchFolder)
                     builder.Append($"--branches={filter.Pattern.AsSpan(11)}/* ");
-                else if (filter.Type == FilterType.RemoteBranch)
+                else if (filter.Type == FilterType.RemoteBranch && ShowRemoteBranchesInHistory)
                     builder.Append(filter.Pattern).Append(' ');
-                else if (filter.Type == FilterType.RemoteBranchFolder)
+                else if (filter.Type == FilterType.RemoteBranchFolder && ShowRemoteBranchesInHistory)
                     builder.Append($"--remotes={filter.Pattern.AsSpan(13)}/* ");
                 else if (filter.Type == FilterType.Tag)
                     builder.Append($"refs/tags/{filter.Pattern} ");
@@ -502,7 +505,7 @@ namespace SourceGit.Models
             foreach (var r in excludedRemotes)
                 builder.Append(r);
 
-            builder.Append("--exclude=origin/HEAD --remotes ");
+            if (ShowRemoteBranchesInHistory) builder.Append("--exclude=origin/HEAD --remotes ");
 
             foreach (var t in excludedTags)
                 builder.Append(t);

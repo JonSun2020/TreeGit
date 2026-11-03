@@ -42,7 +42,7 @@ run('--git-dir='+str(remote),'symbolic-ref','HEAD','refs/heads/main')
 
 class Mcp:
     def __init__(self, write=False):
-        self.p = subprocess.Popen([str(exe), '--mcp', *(['--allow-write'] if write else [])], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', creationflags=subprocess.CREATE_NO_WINDOW)
+        self.p = subprocess.Popen([str(exe), '--mcp', *([] if write else ['--read-only'])], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', creationflags=subprocess.CREATE_NO_WINDOW)
         self.i = 0
         result = self.call('initialize', {'protocolVersion':'2025-11-25', 'capabilities':{}, 'clientInfo':{'name':'integration-test','version':'1'}})
         assert result['protocolVersion'] == '2025-11-25'

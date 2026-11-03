@@ -119,7 +119,60 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _graph, value);
         }
 
-        public double GraphWidth => _commits.Count > 0 ? Math.Max(48, _commits[0].LeftMargin + 8) : 48;
+        public double GraphWidth => GetHistoryColumnWidth("graph") ?? (_commits.Count > 0 ? Math.Max(48, _commits[0].LeftMargin + 8) : 48);
+
+        public double? GetHistoryColumnWidth(string name)
+            => _repo.UIStates.HistoryColumnWidths.TryGetValue(name, out var width) && double.IsFinite(width) && width >= 40 && width <= 8192 ? width : null;
+
+        public void SaveHistoryColumnWidths(Dictionary<string, double> widths)
+        {
+            foreach (var pair in widths)
+                _repo.UIStates.HistoryColumnWidths[pair.Key] = pair.Value;
+            _repo.UIStates.Save();
+        }
+
+        public void ResetHistoryColumnWidths()
+        {
+            _repo.UIStates.HistoryColumnWidths.Clear();
+            _repo.UIStates.Save();
+            OnPropertyChanged(nameof(GraphWidth));
+        }
+
+        public bool HasWorkingCopy => !_repo.IsBare;
+        public bool ShowRemoteBranches
+        {
+            get => _repo.UIStates.ShowRemoteBranchesInHistory;
+            set
+            {
+                if (value == ShowRemoteBranches) return;
+                _repo.UIStates.ShowRemoteBranchesInHistory = value;
+                _repo.UIStates.Save();
+                OnPropertyChanged();
+                _repo.RefreshCommits();
+            }
+        }
+
+        public int SortMode
+        {
+            get => EnableTopoOrder ? 1 : 0;
+            set { EnableTopoOrder = value == 1; OnPropertyChanged(); }
+        }
+        public bool IsWorkingCopySelected
+        {
+            get => _isWorkingCopySelected;
+            private set => SetProperty(ref _isWorkingCopySelected, value);
+        }
+
+        public void ShowWorkingCopyOverview()
+        {
+            if (!HasWorkingCopy) return;
+            SelectedCommits = [];
+            IsWorkingCopySelected = true;
+            IsCollapseDetails = false;
+            DetailContext = _repo.WorkingCopy;
+        }
+
+        private bool _isWorkingCopySelected;
 
         public string GraphBranchRef => string.IsNullOrEmpty(_repo.UIStates.GraphBranchRef) ? "HEAD" : _repo.UIStates.GraphBranchRef;
         public string GraphBranchName => GraphBranchRef == "HEAD" ? CurrentBranch?.Name ?? "HEAD" : GraphBranchRef.Replace("refs/heads/", "").Replace("refs/remotes/", "");
@@ -573,6 +626,8 @@ namespace SourceGit.ViewModels
         {
             if (_ignoreSelectionChange)
                 return;
+
+            IsWorkingCopySelected = false;
 
             if (_selectedCommits.Count == 0)
             {

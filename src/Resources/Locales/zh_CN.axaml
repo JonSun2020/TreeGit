@@ -1,3 +1,4 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
 <ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <ResourceDictionary.MergedDictionaries>
     <ResourceInclude Source="avares://SourceGit/Resources/Locales/en_US.axaml"/>
@@ -8,6 +9,7 @@
   <x:String x:Key="Text.About.ReleaseDate" xml:space="preserve">发布日期：{0}</x:String>
   <x:String x:Key="Text.About.ReleaseNotes" xml:space="preserve">浏览版本更新说明</x:String>
   <x:String x:Key="Text.About.SubTitle" xml:space="preserve">开源免费的Git客户端</x:String>
+  <x:String x:Key="Text.About.Mcp">内置 MCP 服务，支持 AI 读取和写入仓库、控制 TreeGit 并执行全部 Git 操作。通过“工具 → MCP · AI 连接”复制连接配置。</x:String>
   <x:String x:Key="Text.About.BasedOnSourceGit" xml:space="preserve">基于 SourceGit 开发，修改了主界面风格。保留原项目版权声明与 MIT 许可证。</x:String>
   <x:String x:Key="Text.AddToIgnore" xml:space="preserve">新增忽略文件</x:String>
   <x:String x:Key="Text.AddToIgnore.Pattern" xml:space="preserve">匹配模式 ：</x:String>
@@ -522,9 +524,9 @@
   <x:String x:Key="Text.Histories.AdvancedOptions" xml:space="preserve">高级设置</x:String>
   <x:String x:Key="Text.Histories.Header.Author" xml:space="preserve">作者</x:String>
   <x:String x:Key="Text.Histories.Header.AuthorTime" xml:space="preserve">修改时间</x:String>
-  <x:String x:Key="Text.Histories.Header.CommitTime" xml:space="preserve">提交时间</x:String>
+  <x:String x:Key="Text.Histories.Header.CommitTime" xml:space="preserve">日期</x:String>
   <x:String x:Key="Text.Histories.Header.GraphAndSubject" xml:space="preserve">路线图与主题</x:String>
-  <x:String x:Key="Text.Histories.Header.SHA" xml:space="preserve">提交指纹</x:String>
+  <x:String x:Key="Text.Histories.Header.SHA" xml:space="preserve">提交</x:String>
   <x:String x:Key="Text.Histories.HighlightsInGraph" xml:space="preserve">高亮分支</x:String>
   <x:String x:Key="Text.Histories.HighlightsInGraph.All" xml:space="preserve">全部</x:String>
   <x:String x:Key="Text.Histories.HighlightsInGraph.CurrentBranchOnly" xml:space="preserve">仅当前分支</x:String>
@@ -832,14 +834,14 @@
   <x:String x:Key="Text.Repository.HistoriesOrder" xml:space="preserve">提交列表排序规则</x:String>
   <x:String x:Key="Text.Repository.HistoriesOrder.ByDate" xml:space="preserve">按提交时间</x:String>
   <x:String x:Key="Text.Repository.HistoriesOrder.Topo" xml:space="preserve">按拓扑排序</x:String>
-  <x:String x:Key="Text.Repository.LocalBranches" xml:space="preserve">本地分支</x:String>
+  <x:String x:Key="Text.Repository.LocalBranches" xml:space="preserve">分支</x:String>
   <x:String x:Key="Text.Repository.NavigateToCurrentHead" xml:space="preserve">定位HEAD</x:String>
   <x:String x:Key="Text.Repository.NewBranch" xml:space="preserve">新建分支</x:String>
   <x:String x:Key="Text.Repository.Notifications.Clear" xml:space="preserve">清空通知列表</x:String>
   <x:String x:Key="Text.Repository.OpenAsFolder" xml:space="preserve">本仓库（文件夹）</x:String>
   <x:String x:Key="Text.Repository.OpenIn" xml:space="preserve">在 {0} 中打开</x:String>
   <x:String x:Key="Text.Repository.OpenWithExternalTools" xml:space="preserve">使用外部工具打开</x:String>
-  <x:String x:Key="Text.Repository.Remotes" xml:space="preserve">远程列表</x:String>
+  <x:String x:Key="Text.Repository.Remotes" xml:space="preserve">远程</x:String>
   <x:String x:Key="Text.Repository.Remotes.Add" xml:space="preserve">添加远程</x:String>
   <x:String x:Key="Text.Repository.Resolve" xml:space="preserve">解决冲突</x:String>
   <x:String x:Key="Text.Repository.Search" xml:space="preserve">查找提交</x:String>
@@ -862,7 +864,7 @@
   <x:String x:Key="Text.Repository.Submodules" xml:space="preserve">子模块列表</x:String>
   <x:String x:Key="Text.Repository.Submodules.Add" xml:space="preserve">添加子模块</x:String>
   <x:String x:Key="Text.Repository.Submodules.Update" xml:space="preserve">更新子模块</x:String>
-  <x:String x:Key="Text.Repository.Tags" xml:space="preserve">标签列表</x:String>
+  <x:String x:Key="Text.Repository.Tags" xml:space="preserve">标签</x:String>
   <x:String x:Key="Text.Repository.Tags.Add" xml:space="preserve">新建标签</x:String>
   <x:String x:Key="Text.Repository.Tags.OrderByCreatorDate" xml:space="preserve">按创建时间</x:String>
   <x:String x:Key="Text.Repository.Tags.OrderByName" xml:space="preserve">按名称</x:String>
@@ -1119,7 +1121,7 @@
   <x:String x:Key="Text.Toolbar.Merge">合并</x:String>
   <x:String x:Key="Text.Toolbar.Tag">标签</x:String>
   <x:String x:Key="Text.Toolbar.NoMergeBranches">没有其他本地分支</x:String>
-  <x:String x:Key="Text.Graph.AllBranches">全部分支</x:String>
+  <x:String x:Key="Text.Graph.AllBranches">所有分支</x:String>
   <x:String x:Key="Text.Graph.OnlyBranch">仅所选分支</x:String>
   <x:String x:Key="Text.Graph.MergedHistory">所选分支（含合并历史）</x:String>
 </ResourceDictionary>

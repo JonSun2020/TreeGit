@@ -18,6 +18,26 @@ namespace SourceGit.Views
             InitializeComponent();
         }
 
+        public static readonly Avalonia.StyledProperty<bool> IsOverviewProperty = Avalonia.AvaloniaProperty.Register<WorkingCopy, bool>(nameof(IsOverview));
+        public bool IsOverview { get => GetValue(IsOverviewProperty); set => SetValue(IsOverviewProperty, value); }
+
+        protected override void OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs change)
+        {
+            base.OnPropertyChanged(change);
+            if (change.Property == IsOverviewProperty && MainLayout != null)
+            {
+                MainLayout.RowDefinitions = new RowDefinitions(IsOverview ? "*,0,0,0" : "*,4,128,40");
+                foreach (var child in MainLayout.Children)
+                    if (Grid.GetRow(child) > 0) child.IsVisible = !IsOverview;
+                if (IsOverview)
+                {
+                    MainLayout.ColumnDefinitions[0].ClearValue(ColumnDefinition.WidthProperty);
+                    MainLayout.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
+                    OverviewEmptyHint.IsVisible = false;
+                }
+            }
+        }
+
         private void OnMainLayoutSizeChanged(object sender, SizeChangedEventArgs e)
         {
             if (sender is not Grid grid)
@@ -25,6 +45,8 @@ namespace SourceGit.Views
 
             var layout = ViewModels.Preferences.Instance.Layout;
             var width = grid.Bounds.Width;
+            if (IsOverview || !IsEffectivelyVisible || width < 600)
+                return;
             var leftWidth = Math.Max(width - 304, 300);
 
             if (layout.WorkingCopyLeftWidth.Value - leftWidth > 1.0)

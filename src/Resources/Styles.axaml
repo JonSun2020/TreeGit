@@ -1,4 +1,4 @@
-<Styles xmlns="https://github.com/avaloniaui"
+﻿<Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:SourceGit.ViewModels"
         xmlns:v="using:SourceGit.Views"
@@ -1544,6 +1544,12 @@
         </Border>
       </ControlTemplate>
     </Setter>
+  </Style>
+  <Style Selector="Button.treegit_bottom_tab">
+    <Setter Property="Height" Value="26"/><Setter Property="Padding" Value="8,0"/>
+    <Setter Property="CornerRadius" Value="0"/><Setter Property="BorderThickness" Value="1"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border2}"/>
+    <Setter Property="Background" Value="{DynamicResource Brush.SubPanel}"/>
   </Style>
 </Styles>
 

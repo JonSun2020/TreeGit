@@ -4,7 +4,7 @@ import subprocess
 import sys
 
 exe=Path(sys.argv[1]).resolve()
-p=subprocess.Popen([str(exe),'--mcp'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',creationflags=subprocess.CREATE_NO_WINDOW)
+p=subprocess.Popen([str(exe),'--mcp','--read-only'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',creationflags=subprocess.CREATE_NO_WINDOW)
 checks=[]
 def exchange(value):
     p.stdin.write((value if isinstance(value,str) else json.dumps(value))+'\n')

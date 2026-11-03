@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -21,7 +21,7 @@ namespace SourceGit.Automation
         internal static readonly HashSet<string> ReadTools = new(StringComparer.Ordinal)
         { "ui_state", "ui_screenshot", "git_status", "git_log", "git_diff", "git_refs", "git_show" };
         internal static readonly HashSet<string> UiTools = new(StringComparer.Ordinal)
-        { "ui_open_repository", "ui_select_view", "ui_select_commit", "ui_refresh", "ui_window", "ui_command", "ui_graph" };
+        { "ui_open_repository", "ui_select_view", "ui_select_commit", "ui_refresh", "ui_window", "ui_command", "ui_graph", "ui_history_columns", "ui_working_copy" };
 
         private static object Field(string description, string type = "string", string[] values = null)
             => values == null ? new { type, description } : (object)new { type, description, @enum = values };
@@ -32,7 +32,7 @@ namespace SourceGit.Automation
                 name,
                 description,
                 inputSchema = new { type = "object", properties, required = required ?? [], additionalProperties = false },
-                annotations = new { readOnlyHint = ReadTools.Contains(name), destructiveHint = name == "git_action", idempotentHint = name is not ("git_action" or "git_clone"), openWorldHint = name is "git_action" or "git_clone" },
+                annotations = new { readOnlyHint = ReadTools.Contains(name), destructiveHint = name is "git_action" or "git_run", idempotentHint = name is not ("git_action" or "git_clone" or "git_run"), openWorldHint = name is "git_action" or "git_clone" or "git_run" },
             };
 
         private static object[] Tools(bool allowWrite)
@@ -46,6 +46,8 @@ namespace SourceGit.Automation
                 Tool("ui_select_view", "Select history, working copy or stashes in the TreeGit GUI.", new() { ["repo"] = repo, ["view"] = Field("View to display.", values: ["history", "working_copy", "stashes"]) }, ["repo", "view"]),
                 Tool("ui_select_commit", "Navigate to a commit in TreeGit's history and details view.", new() { ["repo"] = repo, ["revision"] = Field("Commit hash or reference.") }, ["repo", "revision"]),
                 Tool("ui_graph", "Choose the branch pinned to the leftmost graph lane and the visible history. Does not check out or modify Git refs. all shows all branches; only shows just the selected first-parent line; merged includes its merged ancestry.", new() { ["repo"] = repo, ["branch"] = Field("Existing local/remote branch name, full ref, or HEAD for the checked-out branch."), ["mode"] = Field("History visibility.", values: ["all", "only", "merged"]) }, ["repo"]),
+                Tool("ui_working_copy", "Select the uncommitted-changes row at the top of history and show staged/unstaged files and diff beneath the graph.", new() { ["repo"] = repo }, ["repo"]),
+                Tool("ui_history_columns", "Inspect, resize and save history column widths for this repository. Widths are pixels; reset restores defaults. Graph minimum 40, description 100, other columns 60; maximum 8192.", new() { ["repo"] = repo, ["reset"] = Field("Restore default widths before applying supplied values.", "boolean"), ["graph"] = Field("Graph width.", "integer"), ["description"] = Field("Description width.", "integer"), ["date"] = Field("Commit date width.", "integer"), ["author"] = Field("Author width.", "integer"), ["commit"] = Field("Commit hash width.", "integer"), ["authorDate"] = Field("Author date width.", "integer") }, ["repo"]),
                 Tool("ui_refresh", "Refresh the repository's branches, history, files, stashes, submodules and worktrees in the GUI.", new() { ["repo"] = repo }, ["repo"]),
                 Tool("ui_window", "Adjust the desktop window size, theme or working-copy branch sidebar. All are optional; supplied preferences are saved.", new() { ["width"] = Field("Window width, 1024 to 3840.", "integer"), ["height"] = Field("Window height, 640 to 2160.", "integer"), ["theme"] = Field("TreeGit theme.", values: ["Light", "Dark", "Default"]), ["collapseBranches"] = Field("Collapse branch groups in the working-copy view, retaining compact workspace navigation.", "boolean") }),
                 Tool("ui_command", "Open TreeGit's original dialogs or dismiss notifications. No Git operation is submitted by this tool. Repository commands require repo. Opening another dialog is rejected while one is already open.", new() { ["repo"] = repo, ["command"] = Field("GUI command.", values: ["about", "mcp_connection", "preferences", "repository_settings", "credentials", "clear_notifications", "close_dialog", "create_branch", "create_tag", "fetch_dialog", "pull_dialog", "push_dialog", "stash_dialog", "apply_patch", "cancel_popup"]) }, ["command"]),
@@ -57,6 +59,11 @@ namespace SourceGit.Automation
             };
             if (allowWrite)
             {
+                tools.Add(Tool("git_run", "Execute any Git operation in an opened repository and refresh TreeGit. Supports all Git subcommands, including reset, clean, branch/tag deletion and force push. Arguments are passed directly to Git, without a shell. Uses normal repository credentials and authentication dialogs.", new()
+                {
+                    ["repo"] = repo,
+                    ["arguments"] = new { type = "array", items = new { type = "string" }, description = "Git argument vector, e.g. ['status', '--short'] or ['reset', '--hard', 'HEAD']." },
+                }, ["repo", "arguments"]));
                 tools.Add(Tool("git_clone", "Clone through TreeGit's original clone dialog/workflow, show progress in the GUI, then open the resulting repository. Destination must not exist; parent directory must already exist. Authentication uses normal prompts. Credentials must not be embedded in the URL.", new()
                 {
                     ["url"] = Field("Git remote URL or existing local repository path."),
@@ -88,7 +95,7 @@ namespace SourceGit.Automation
             var tools = JsonSerializer.SerializeToElement(Tools(allowWrite));
             var tool = tools.EnumerateArray().FirstOrDefault(t => t.GetProperty("name").GetString() == name);
             if (tool.ValueKind == JsonValueKind.Undefined)
-                throw new RpcException(-32602, "Unknown or disabled tool. Git writes require --allow-write.");
+                throw new RpcException(-32602, "Unknown or disabled tool. This connection may use --read-only.");
             if (arguments.ValueKind != JsonValueKind.Object)
                 throw new RpcException(-32602, "arguments must be an object.");
             var schema = tool.GetProperty("inputSchema");
@@ -120,7 +127,7 @@ namespace SourceGit.Automation
 
         public static async Task<int> RunAsync(string[] args)
         {
-            var allowWrite = args.Contains("--allow-write", StringComparer.Ordinal);
+            var allowWrite = !args.Contains("--read-only", StringComparer.Ordinal);
             using var input = new StreamReader(Console.OpenStandardInput(), new UTF8Encoding(false));
             await using var output = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false)) { AutoFlush = true };
             var initialized = false;
@@ -154,7 +161,7 @@ namespace SourceGit.Automation
                             initialized = true;
                             var requestedVersion = request.TryGetProperty("params", out var init) && init.TryGetProperty("protocolVersion", out var requested) ? requested.GetString() : null;
                             var negotiatedVersion = requestedVersion is "2024-11-05" or "2025-03-26" or "2025-06-18" or "2025-11-25" ? requestedVersion : "2025-11-25";
-                            result = new { protocolVersion = negotiatedVersion, capabilities = new { tools = new { listChanged = false } }, serverInfo = new { name = "treegit-desktop", version = "0.1.0" }, instructions = "Controls the running TreeGit desktop. Open a repository before using Git tools. Read-only by default; --allow-write exposes explicit mutation tools. Credentials are never exposed as tools." };
+                            result = new { protocolVersion = negotiatedVersion, capabilities = new { tools = new { listChanged = false } }, serverInfo = new { name = "treegit-desktop", version = "0.1.0" }, instructions = "Controls the running TreeGit desktop. Open a repository before using Git tools. Read/write by default, including all Git operations through git_run. Use --read-only to disable mutations. Credentials are never exposed as tools." };
                             break;
                         case "ping":
                             result = new { };

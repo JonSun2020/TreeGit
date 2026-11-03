@@ -461,7 +461,8 @@ namespace SourceGit.ViewModels
             _histories = new Histories(this);
             _workingCopy = new WorkingCopy(this) { CommitMessage = _uiStates.LastCommitMessage };
             _stashesPage = new StashesPage(this);
-            _selectedViewIndex = Preferences.Instance.ShowLocalChangesByDefault ? 1 : 0;
+            _selectedViewIndex = 0;
+            if (!IsBare && Preferences.Instance.ShowLocalChangesByDefault) _histories.ShowWorkingCopyOverview();
             _lastFetchTime = DateTime.Now;
             _autoFetchTimer = new Timer(AutoFetchByTimer, null, 5000, 5000);
             RefreshAll();
@@ -1263,6 +1264,9 @@ namespace SourceGit.ViewModels
                             merged.Add(p);
                     }
                 }
+
+                if (!_uiStates.ShowRemoteBranchesInHistory)
+                    foreach (var commit in commits) commit.Decorators.RemoveAll(d => d.Type == Models.DecoratorType.RemoteBranchHead);
 
                 if (graphView.OnlyBranch)
                 {

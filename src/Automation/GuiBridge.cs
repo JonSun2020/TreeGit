@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
 using System.Linq;
@@ -93,8 +94,13 @@ namespace SourceGit.Automation
                     return (object)new
                     {
                         application = "TreeGit",
+                        processId = Environment.ProcessId,
+#if INTEGRATION_TESTS
+                        layoutProbe = UiLayoutProbe.Inspect(((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow),
+#endif
                         mcp = "server",
-                        writesRequire = "--allow-write",
+                        defaultReadWrite = true,
+                        readOnlyFlag = "--read-only",
                         activePage = new { kind = launcher.ActivePage.Data.GetType().Name, pendingDialog = launcher.ActivePage.Popup?.GetType().Name, notifications = launcher.ActivePage.Notifications.Count },
                         dialogs = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).Windows
                             .Where(w => w != ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow && w.IsVisible)
@@ -109,6 +115,8 @@ namespace SourceGit.Automation
                                 view = r.SelectedViewIndex,
                                 branch = r.CurrentBranch?.Name,
                                 changes = r.LocalChangesCount,
+                                workingCopySelected = r.Histories?.IsWorkingCopySelected,
+                                detailView = r.Histories?.DetailContext?.GetType().Name,
                                 graphBranch = r.Histories?.GraphBranchName,
                                 graphMode = r.Histories?.BranchDisplayMode,
                                 graphLoading = r.Histories?.IsLoading,
@@ -272,6 +280,28 @@ namespace SourceGit.Automation
                 return found;
             });
 
+            if (name == "ui_working_copy")
+                return await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (repo.IsBare) throw new ArgumentException("Bare repositories have no working copy.");
+                    repo.SelectedViewIndex = 0;
+                    repo.Histories.ShowWorkingCopyOverview();
+                    return (object)new { selected = "uncommitted_changes", repo = path };
+                });
+
+            if (name == "ui_history_columns")
+                return await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    repo.SelectedViewIndex = 0;
+                    var owner = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow;
+                    var histories = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(owner).OfType<Views.Histories>().FirstOrDefault(v => v.DataContext == repo.Histories);
+                    if (histories == null) throw new InvalidOperationException("History view is not ready; retry after opening the repository.");
+                    var widths = new Dictionary<string, double>();
+                    foreach (var property in args.EnumerateObject())
+                        if (property.Name is not ("repo" or "reset")) widths[property.Name] = property.Value.GetDouble();
+                    return (object)histories.ConfigureColumns(widths, Flag(args, "reset"));
+                });
+
             if (name == "ui_graph")
                 return await Dispatcher.UIThread.InvokeAsync(() =>
                 {
@@ -367,7 +397,8 @@ namespace SourceGit.Automation
             }
 
             string command;
-            var write = name == "git_action";
+            var write = name is "git_action" or "git_run";
+            var activity = name == "git_action" ? Text(args, "action") : name;
             string remote = null;
             Models.Remote selectedRemote = null;
             string tempMessage = null;
@@ -392,6 +423,21 @@ namespace SourceGit.Automation
                         break;
                     case "git_show":
                         command = Join("show", "--no-ext-diff", "--no-textconv", "--format=fuller", Revision(args), "--");
+                        break;
+                    case "git_run":
+                        if (!request.TryGetProperty("allowWrite", out var permission) || !permission.GetBoolean())
+                            throw new InvalidOperationException("Writes are disabled.");
+                        var arguments = args.GetProperty("arguments").EnumerateArray().Select(a => a.GetString()).ToArray();
+                        if (arguments.Length == 0 || arguments.Length > 4096 || string.IsNullOrWhiteSpace(arguments[0]) || arguments.Any(a => a == null || a.Contains('\0')))
+                            throw new ArgumentException("arguments must contain a Git command and no NUL characters.");
+                        command = string.Join(' ', arguments.Select(Quote));
+                        if (arguments[0] is "fetch" or "pull" or "push" or "ls-remote")
+                        {
+                            var configuredRemotes = await new Commands.QueryRemotes(path).GetResultAsync().ConfigureAwait(false);
+                            selectedRemote = configuredRemotes.FirstOrDefault(r => arguments.Skip(1).Contains(r.Name)) ??
+                                configuredRemotes.FirstOrDefault(r => r.Name == repo.Settings.DefaultRemote) ??
+                                configuredRemotes.FirstOrDefault(r => r.Name == "origin");
+                        }
                         break;
                     case "git_action":
                         if (!request.TryGetProperty("allowWrite", out var allow) || !allow.GetBoolean())
@@ -494,8 +540,8 @@ namespace SourceGit.Automation
                 {
                     log = await Dispatcher.UIThread.InvokeAsync(() =>
                     {
-                        repo.McpActivity = "MCP · " + Text(args, "action") + " …";
-                        return repo.CreateLog("MCP · " + Text(args, "action"));
+                        repo.McpActivity = "MCP · " + activity + " …";
+                        return repo.CreateLog("MCP · " + activity);
                     });
                     log.AppendLine("$ git " + Redact(command));
                 }
@@ -511,7 +557,7 @@ namespace SourceGit.Automation
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         repo.RefreshAll();
-                        repo.McpActivity = "MCP · " + Text(args, "action") + (result.IsSuccess ? " ✓" : " ✕ · 查看命令日志");
+                        repo.McpActivity = "MCP · " + activity + (result.IsSuccess ? " ✓" : " ✕ · 查看命令日志");
                     });
                 }
                 var stdout = Redact(result.StdOut);

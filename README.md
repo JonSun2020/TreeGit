@@ -1,318 +1,82 @@
-# TreeGit — SourceGit-based desktop Git client
+# TreeGit
 
-TreeGit keeps SourceGit's repository workflows and uses a SourceTree-inspired Windows main-window layout: blue menus and tabs, a full-width action toolbar, workspace/branch sidebar, separate graph and description columns, and file/diff panes below the history.
+基于 [SourceGit](https://github.com/sourcegit-scm/sourcegit) 的桌面 Git 客户端，面向工程师日常使用。保留 SourceGit 的 Git 工作流，调整主界面为接近 SourceTree Windows 的布局，并增加让 AI 直接控制软件的 MCP 服务。
 
-Click a branch to pin its first-parent line to the leftmost graph lane without checking it out. The history dropdown offers all branches, only the selected branch's first-parent line, or the selected branch with merged ancestry. Other branch labels are hidden in filtered views.
+**无需安装、无需登录软件账号。** 解压 Windows x64 便携版后运行 `TreeGit.exe`。访问需要授权的 Git 仓库时，使用对应仓库的账号或 SSH 密钥。
 
-The graph uses compact 19-pixel rows, 11-pixel lanes and straight diagonal joins. Filled commit nodes have a 4-pixel radius and a white 1-pixel outline. These display metrics and the branch palette were checked against the locally installed SourceTree 2.6.10 renderer using an isolated merge fixture. TreeGit independently computes its graph; SourceTree binaries and implementation are not included in the application.
+> TreeGit 是独立衍生项目，与 Atlassian SourceTree 没有隶属关系。界面和图谱独立实现，不包含 SourceTree 程序或图像资产。SourceGit 原版权和 MIT 许可证保留。
 
-Run `build-treegit.ps1` for a self-contained Windows x64 portable build. It uses a compressed, trimmed single-file .NET runtime and does not bundle Git. TreeGit detects an existing Git installation; an optional portable Git component can be extracted into `git/` beside `TreeGit.exe`. No .NET installation or application login is required. Portable preferences live in `data/`; repository passwords remain in the current Windows user's credential vault.
+## 界面与功能
 
-Choose **Tools → MCP · AI 连接** to copy a stdio MCP server configuration with the current executable path. Launching `TreeGit.exe --mcp` exposes UI/history/status tools; add `--allow-write` for Git operations. `ui_graph` selects the pinned branch and graph visibility. This is an MCP server for controlling the desktop application.
+- 墨青色菜单和不透明仓库标签、整行操作栏、左侧文件状态/分支/标签/远程/贮藏，下方文件与差异区。
+- 独立“图谱”列；单击分支将其主线放在最左侧，不会检出该分支。双击仍保留原有检出操作。
+- 可显示所有分支、仅所选分支主线，或所选分支及合并历史；过滤模式隐藏其他分支标签。
+- 图谱顶部为“未提交的更改”。选中后，下方显示已暂存、未暂存文件及差异，上方保留提交图谱。
+- 图谱、描述、日期、作者、提交等表头可拖动调整列宽，并按仓库保存。
+- 保留 SourceGit 的克隆、推拉、分支、标签、合并、变基、交互式变基、贮藏、冲突处理、补丁、文件历史、Blame、子模块、Worktree、GitFlow、LFS、Bisect、自定义操作和命令日志等功能。部分高级入口位于“更多”、工具和上下文菜单。
+- 使用 TreeGit 自有图标，帮助/关于注明上游来源及 MCP 支持。
 
-Upstream source: `sourcegit-scm/sourcegit`, commit `c0f40a2e78d81a7474628847727644fc0c56f558`, version `2026.23`. SourceGit namespaces, resource URIs and Git configuration keys remain compatible with upstream. Original upstream documentation follows.
+界面仍在迭代；目标是跟随 SourceGit 保持功能，同时持续完善熟悉的桌面 Git 操作布局。
 
-# SourceGit - Opensource Git GUI client.
+## 下载安装
 
-[![stars](https://img.shields.io/github/stars/sourcegit-scm/sourcegit.svg)](https://github.com/sourcegit-scm/sourcegit/stargazers)
-[![forks](https://img.shields.io/github/forks/sourcegit-scm/sourcegit.svg)](https://github.com/sourcegit-scm/sourcegit/forks)
-[![license](https://img.shields.io/github/license/sourcegit-scm/sourcegit.svg)](LICENSE)
-[![latest](https://img.shields.io/github/v/release/sourcegit-scm/sourcegit.svg)](https://github.com/sourcegit-scm/sourcegit/releases/latest)
-[![downloads](https://img.shields.io/github/downloads/sourcegit-scm/sourcegit/total)](https://github.com/sourcegit-scm/sourcegit/releases)
+从本仓库的 **Releases** 下载 `TreeGit-Windows-x64.zip`，完整解压后运行 `TreeGit/TreeGit.exe`。预发布构建也可从 **Actions → TreeGit Windows portable** 下载。
 
-## Screenshots
+- 自带裁剪和压缩后的 .NET 运行时，无需安装 .NET。
+- 主包不重复捆绑完整 Git，默认检测电脑上已有的 Git，与 SourceGit 的使用方式一致。
+- 没有 Git 时，可将 Git for Windows 便携组件放在程序目录的 `git/` 下，使 `git/cmd/git.exe` 存在；也可在偏好设置中指定现有 Git。
+- 偏好和缓存保存在旁边的 `data/` 中。复制旧版偏好即可保留个人配置；仓库内的 SourceGit 设置继续兼容。
+- 当前发布和主要验收平台为 **Windows x64**。
 
-* Dark Theme
+## 仓库账号与 SSH
 
-  ![Theme Dark](./screenshots/theme_dark.png)
+每个仓库可以独立配置 HTTPS 账号和密码；需要认证、账号缺失或密码失效时弹出输入框。已保存密码使用当前 Windows 用户的系统凭据库，不随便携目录复制。
 
-* Light Theme
+SSH 使用 OpenSSH，并支持每个远程独立选择私钥。HTTPS 使用 OpenSSL 后端；Git for Windows 自带的 OpenSSH 使用其配套加密组件。SSH 与 OpenSSL 分别承担连接协议和加密支持，不需要把它们作为同一种协议配置。
 
-  ![Theme Light](./screenshots/theme_light.png)
+## MCP：AI 控制软件
 
-* Custom
+在 **工具 → MCP · AI 连接** 复制配置，添加到支持 stdio MCP 的 AI 客户端。默认完整读写，可以查询、控制界面和执行全部 Git 操作。未启动时会自动打开 TreeGit。
 
-  You can find custom themes from [sourcegit-theme](https://github.com/sourcegit-scm/sourcegit-theme.git). And welcome to share your own themes.
-
-## Highlights
-
-* Supports Windows/macOS/Linux
-* Opensource/Free
-* Fast
-* Deutsch/English/Español/Bahasa Indonesia/Français/Italiano/Português/Русский/Українська/简体中文/繁體中文/日本語/தமிழ் (Tamil)/한국어
-* Built-in light/dark themes
-* Customize theme
-* Visual commit graph
-* Supports SSH access with each remote
-* GIT commands with GUI
-  * Clone/Fetch/Pull/Push...
-  * Merge/Rebase/Reset/Revert/Cherry-pick...
-  * Amend/Reword/Squash
-  * Interactive rebase
-  * Branches
-  * Remotes
-  * Tags
-  * Stashes
-  * Submodules
-  * Worktrees
-  * Archive
-  * Diff
-  * Save as patch/apply
-  * File histories
-  * Blame
-  * Revision Diffs
-  * Branch Diff
-  * Image Diff - Side-By-Side/Swipe/Blend
-* Git command logs
-* Search commits
-* GitFlow
-* Git LFS
-* Bisect
-* Issue Link
-* Workspace
-* Custom Action
-* Create PR on GitHub/Gitlab/Gitea/Gitee/Bitbucket...
-* Using AI to generate commit message
-* Built-in conventional commit message helper.
-
-> [!WARNING]
-> **Linux** only tested on **Debian 12** on both **X11** & **Wayland**.
-
-## How to Use
-
-**To use this tool, you need to install Git(>=2.25.1) first.**
-
-You can download the latest stable from [Releases](https://github.com/sourcegit-scm/sourcegit/releases/latest) or download workflow artifacts from [GitHub Actions](https://github.com/sourcegit-scm/sourcegit/actions) to try this app based on latest commits.
-
-This software creates a folder, which is platform-dependent, to store user settings, downloaded avatars and crash logs.
-
-| OS      | PATH                                                                                             |
-|---------|--------------------------------------------------------------------------------------------------|
-| Windows | `%APPDATA%\SourceGit`                                                                            |
-| Linux   | `${XDG_CONFIG_HOME}/SourceGit` (preference.json) `${XDG_CACHE_HOME}/SourceGit` (avatars & logs)  |
-| macOS   | `~/Library/Application Support/SourceGit`                                                        |
-
-> [!TIP]
-> * You can open this data storage directory from the main menu `Open Data Storage Directory`.
-> * You can create a `data` folder next to the `SourceGit` executable to force this app to store data (user settings, downloaded avatars and crash logs) into it (Portable-Mode). Only works with Windows packages and Linux AppImages.
-
-For **Windows** users:
-
-* **MSYS Git is NOT supported**. Please use official [Git for Windows](https://git-scm.com/download/win) instead.
-* You can install the latest stable by `scoop` with follow commands:
-  ```shell
-  scoop bucket add extras
-  scoop install sourcegit
-  ```
-* Pre-built binaries can be found in [Releases](https://github.com/sourcegit-scm/sourcegit/releases/latest)
-
-> [!NOTE]
-> `git-flow` is no longer shipped with **Git for Windows** since `2.51.1`. You can use it by following these steps:
->  * Download [git-flow-next](https://github.com/gittower/git-flow-next/releases)
->  * Unzip & Rename the `git-flow-next` to `git-flow`
->  * Copy to `$GIT_INSTALL_DIR/cmd` or just add its path to you `PATH` directly
-
-For **macOS** users:
-
-* Thanks [@ybeapps](https://github.com/ybeapps) for making `SourceGit` available on `Homebrew`:
-  ```shell
-  brew install --cask sourcegit
-  ```
-* If you want to install `SourceGit.app` from GitHub Release manually, you need run following command to make sure it works:
-  ```shell
-  sudo xattr -cr /Applications/SourceGit.app
-  ```
-> [!NOTE]
-> macOS packages in the `Release` page of this project are all unsigned. If you are worried about potential security issues with the above command, you can download the signed package from the [distribution repository](https://github.com/ybeapps/homebrew-sourcegit/releases) provided by [@ybeapps](https://github.com/ybeapps) (there is no need to execute the above command while installing `SourceGit`).
-
-* Make sure [git-credential-manager](https://github.com/git-ecosystem/git-credential-manager/releases) is installed on your mac.
-* You can run `echo $PATH > ~/Library/Application\ Support/SourceGit/PATH` to generate a custom PATH env file to introduce `PATH` env to SourceGit.
-
-For **Linux** users:
-
-* Thanks [@aikawayataro](https://github.com/aikawayataro) for providing `rpm` and `deb` repositories, hosted on [Codeberg](https://codeberg.org/yataro/-/packages).
-
-  `deb` how to:
-  ```shell
-  sudo mkdir -p /etc/apt/keyrings
-  curl https://codeberg.org/api/packages/yataro/debian/repository.key | sudo tee /etc/apt/keyrings/sourcegit.asc
-  echo "deb [signed-by=/etc/apt/keyrings/sourcegit.asc, arch=amd64,arm64] https://codeberg.org/api/packages/yataro/debian generic main" | sudo tee /etc/apt/sources.list.d/sourcegit.list
-  sudo apt update
-  sudo apt install sourcegit
-  ```
-
-  `rpm` how to:
-  ```shell
-  curl https://codeberg.org/api/packages/yataro/rpm.repo | sed -e 's/gpgcheck=1/gpgcheck=0/' > sourcegit.repo
-
-  # Fedora 41 and newer
-  sudo dnf config-manager addrepo --from-repofile=./sourcegit.repo
-  # Fedora 40 and earlier
-  sudo dnf config-manager --add-repo ./sourcegit.repo
-
-  sudo dnf install sourcegit
-  ```
-
-  If your distribution isn't using `dnf`, please refer to the documentation of your distribution on how to add an `rpm` repository.
-
-* `AOSC OS`: In addition to AMD64 and ARM64, support for LoongArch and RISC-V has been added.
-  ```shell
-  sudo oma install sourcegit
-  ```
-  
-> [!NOTE]
-> RISC-V support is untested.
-
-* `AppImage` files can be found on [AppImage hub](https://appimage.github.io/SourceGit/), `xdg-open` (`xdg-utils`) must be installed to support open native file manager.
-* Make sure [git-credential-manager](https://github.com/git-ecosystem/git-credential-manager/releases) or [git-credential-libsecret](https://pkgs.org/search/?q=git-credential-libsecret) is installed on your Linux.
-* Maybe you need to set environment variable `AVALONIA_SCREEN_SCALE_FACTORS`. See https://github.com/AvaloniaUI/Avalonia/wiki/Configuring-X11-per-monitor-DPI.
-* If you can NOT type accented characters, such as `ê`, `ó`, try to set the environment variable `AVALONIA_IM_MODULE` to `none`.
-
-## Commandline arguments
-
-Users can also launcher `SourceGit` from commandline. Usage:
-
-```
-<SOURCEGIT_EXEC> <DIR>                       // Open repository in existing `SourceGit` instance or a new one
-<SOURCEGIT_EXEC> --history <FILE_OR_DIR>     // Launch `SourceGit` to see the history of a file or dir
-<SOURCEGIT_EXEC> --blame <FILE_PATH>         // Launch `SourceGit` to blame a file (HEAD version only) 
-```
-
-## OpenAI
-
-This software supports using OpenAI or other AI service that has an OpenAI compatible HTTP API to generate commit message. You need configurate the service in `Preference` window.
-
-For `OpenAI`:
-
-* `Server` must be `https://api.openai.com/v1`
-
-For `OrcaRouter`:
-
-* `Server` should be `https://api.orcarouter.ai/v1`
-* `API Key` should be an OrcaRouter API key (prefixed with `sk-orca-`)
-* A good starting `Model` is `orcarouter/auto`, which routes each request to the best available model
-
-For `Cheaper Inference`:
-
-* `Server` should be `https://api.cheaperinference.com/v1`
-* `API Key` should be a Cheaper Inference API key (prefixed with `ci_live_`)
-* A good starting `Model` is `gpt-5.4-mini`
-
-For `Opper`:
-
-* `Server` should be `https://api.opper.ai/v3/compat`
-* `API Key` should be an Opper API key, created at https://platform.opper.ai
-* A good starting `Model` is `gpt-5.4-mini`
-
-For `API Route`:
-
-* `Server` should be `https://global.api-route.com/v1`
-* `API Key` should be your API Route API key
-* `Model` can be `gpt-6.1-sol` if it is available to your key; otherwise select an available chat model from the fetched catalog
-* See the [API documentation](https://github.com/DennyHo0917/api-route/blob/main/API.md) for authentication and model discovery
-
-For other AI service:
-
-* The `Server` should fill in a URL equivalent to OpenAI's `https://api.openai.com/v1`. For example, when using `Ollama`, it should be `http://localhost:11434/v1` instead of `http://localhost:11434/api/generate`
-* The `API Key` is optional that depends on the service
-
-## External Tools
-
-This app supports open repository in external tools listed in the table below.
-
-| Tool                          | Windows | macOS | Linux |
-|-------------------------------|---------|-------|-------|
-| Visual Studio Code            | YES     | YES   | YES   |
-| Visual Studio Code - Insiders | YES     | YES   | YES   |
-| VSCodium                      | YES     | YES   | YES   |
-| Cursor                        | YES     | YES   | YES   |
-| Sublime Text                  | YES     | YES   | YES   |
-| Zed                           | YES     | YES   | YES   |
-| Visual Studio                 | YES     | NO    | NO    |
-
-> [!NOTE]
-> This app will try to find those tools based on some pre-defined or expected locations automatically. If you are using one portable version of these tools, it will not be detected by this app.  
-> To solve this problem you can add a file named `external_editors.json` in app data storage directory (config dir for Linux) and provide the path directly.  
-> User can also exclude some editors by using `external_editors.json`.
-
-The format of `external_editors.json`:
 ```json
 {
-    "tools": {
-        "Visual Studio Code": "D:\\VSCode\\Code.exe"
-    },
-    "excludes": [
-        "Visual Studio Community 2019"
-    ]
+  "mcpServers": {
+    "treegit": {
+      "command": "D:\\Tools\\TreeGit\\TreeGit.exe",
+      "args": ["--mcp"]
+    }
+  }
 }
 ```
 
-> [!NOTE]
-> This app also supports a lot of `JetBrains` IDEs, installing `JetBrains Toolbox` will help this app to find them.
+将路径替换为自己的实际路径。需要只读时，把 `args` 改成 `["--mcp", "--read-only"]`。工具表、调用示例、认证与操作行为见 [MCP 使用说明](docs/MCP.md)。
 
-## Conventional Commit Helper
+## 从源码构建
 
-You can define your own conventional commit types (per-repository) by following steps:
+需要 Git、Windows、PowerShell 和 .NET 10 SDK。依赖源码已保存在仓库中。
 
-1. Create a json file with your own conventional commit type definitions. For example:
-```json
-[
-  {
-    "Name": "New Feature",
-    "Type": "Feature",
-    "Description": "Adding a new feature",
-    "PrefillShortDesc": "this is a test"
-  },
-  {
-    "Name": "Bug Fixes",
-    "Type": "Fix",
-    "Description": "Fixing a bug"
-  }
-]
-```
-2. Configure the `Conventional Commit Types` in repository configuration window.  
-
-## Contributing
-
-Everyone is welcome to submit a PR. Please make sure your PR is based on the latest `develop` branch and the target branch of PR is `develop`.
-
-This project has a submodule in `depends/AvaloniaEdit` which is a custom fork of [Official AvaloniaEdit](https://github.com/AvaloniaUI/AvaloniaEdit). 
-Please make sure it is initialized - enable `--recurse-submodules` option while cloning or run `git submodule update --init` after cloned.
-
-In short, here are the commands to get started once [.NET tools are installed](https://dotnet.microsoft.com/en-us/download):
-
-```sh
-dotnet nuget add source https://api.nuget.org/v3/index.json -n nuget.org
-dotnet restore
-dotnet build
-dotnet run --project src/SourceGit.csproj
+```powershell
+git clone https://github.com/JonSun2020/TreeGit.git
+cd TreeGit
+./build-treegit.ps1 -Destination ./artifacts/TreeGit
 ```
 
-Thanks to all the people who contribute.
+该脚本构建压缩、裁剪的自包含单文件程序，并生成 `data/`、许可证、构建信息和 MCP 配置。内部程序集暂保留 `SourceGit` 名称，以兼容资源和上游代码；对外程序名为 `TreeGit.exe`。
 
-[![Contributors](https://contrib.rocks/image?repo=sourcegit-scm/sourcegit&columns=20)](https://github.com/sourcegit-scm/sourcegit/graphs/contributors)
+普通开发构建：
 
-## Translation Status
-
-You can find the current translation status in [TRANSLATION.md](https://github.com/sourcegit-scm/sourcegit/blob/develop/TRANSLATION.md)
-
-### Translate Utility Script
-
-A script that assists with translations by reading the target language, comparing it with the base language, and going through missing keys one by one, so the translator can provide the translations interactively without needing to check each key manually.
-
-#### Usage
-
-Check for a given language (e.g., `pt_BR`) and optionally check for missing translations:
-
-```bash
-python translate_helper.py pt_BR [--check]
+```powershell
+dotnet build src/SourceGit.csproj -c Release -r win-x64 -p:PublishAot=false
 ```
 
-- `pt_BR` is the target language code (change as needed), it should correspond to a file named `pt_BR.axaml` in the `src/Resources/Locales/` directory, so you can replace it with any other language code you want to translate, e.g., `de_DE`, `es_ES`, etc.
-- `--check` is an optional flag used to only check for missing keys without prompting for translations, useful for getting a list of missing translations.
+构建脚本也支持本机已有的便携 SDK。测试用驱动仅在显式启用 `-IntegrationTests` 时编入，正常发布不包含这些入口。
 
-The script will read the base language file (`en_US.axaml`) and the target language file (e.g., `pt_BR.axaml`), identify missing keys, and prompt you to provide translations for those keys. If the `--check` flag is used, it will only list the missing keys without prompting for translations.
+## 跟随上游迭代
 
-## Third-Party Components
+当前基线为 SourceGit **2026.23**，提交 `c0f40a2e78d81a7474628847727644fc0c56f558`。保留上游提交历史，后续通过独立同步分支合并上游更新，再验证 TreeGit 的界面、认证和 MCP。
 
-For detailed license information, see [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md).
+具体步骤、依赖兼容边界和需要审查的修改点见 [上游同步维护说明](docs/UPSTREAM.md)。TreeGit 发布使用 `treegit-v...` 标签，与 SourceGit 的版本区分。
+
+## 许可证与贡献
+
+遵循 [MIT](LICENSE)，第三方声明见 [THIRD-PARTY-LICENSES.md](THIRD-PARTY-LICENSES.md)。原版文档保存在 [上游原始 README](docs/UPSTREAM-README.md)。欢迎通过 Issues 报告问题，或通过 Pull Request 改进界面、兼容性和工程师常用工作流。

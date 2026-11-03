@@ -22,18 +22,17 @@ namespace SourceGit.Models
         public System.Version CurrentVersion { get; }
 
         [JsonIgnore]
-        public string CurrentVersionStr => $"v{CurrentVersion.Major}.{CurrentVersion.Minor:D2}";
+        public string CurrentVersionStr => "TreeGit " + CurrentVersion.ToString(3);
 
         [JsonIgnore]
-        public bool IsNewVersion => CurrentVersion.CompareTo(new System.Version(TagName.Substring(1))) < 0;
+        public bool IsNewVersion => TagName != null && System.Version.TryParse(TagName.StartsWith("treegit-v", StringComparison.Ordinal) ? TagName.Substring(9) : TagName.TrimStart('v'), out var release) && CurrentVersion.CompareTo(release) < 0;
 
         [JsonIgnore]
         public string ReleaseDateStr => DateTimeFormat.Format(PublishedAt, true);
 
         public Version()
         {
-            var assembly = Assembly.GetExecutingAssembly().GetName();
-            CurrentVersion = assembly.Version ?? new System.Version();
+            CurrentVersion = new System.Version(TreeGitRelease.Version);
         }
     }
 

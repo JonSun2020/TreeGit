@@ -1,17 +1,5 @@
-<v:ChromelessWindow xmlns="https://github.com/avaloniaui"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-                    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-                    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-                    xmlns:s="using:SourceGit"
-                    xmlns:vm="using:SourceGit.ViewModels"
-                    xmlns:v="using:SourceGit.Views"
-                    xmlns:c="using:SourceGit.Converters"
-                    mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
-                    x:Class="SourceGit.Views.Launcher"
-                    x:DataType="vm:Launcher"
-                    x:Name="ThisControl"
-                    Icon="/App.ico"
-                    MinWidth="1024" MinHeight="600">
+﻿<?xml version='1.0' encoding='utf-8'?>
+<v:ChromelessWindow xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:s="using:SourceGit" xmlns:vm="using:SourceGit.ViewModels" xmlns:v="using:SourceGit.Views" xmlns:c="using:SourceGit.Converters" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SourceGit.Views.Launcher" x:DataType="vm:Launcher" x:Name="ThisControl" Icon="/App.ico" MinWidth="1024" MinHeight="600">
   <v:ChromelessWindow.Title>
     <MultiBinding Converter="{x:Static c:StringConverters.ToWindowTitle}">
       <Binding Path="ActivePage?.Node.Name" Mode="OneWay"/>
@@ -26,23 +14,16 @@
     </Grid.RowDefinitions>
 
     <!-- Custom TitleBar -->
-    <Grid Grid.Row="0" Classes="treegit_title" RowDefinitions="32,*" ColumnDefinitions="Auto,32,32,*,Auto,Auto">
-      <Grid.Styles><Style Selector="Grid.treegit_title &gt; Button.icon_button &gt; Path"><Setter Property="Fill" Value="White"/></Style></Grid.Styles>
+    <Grid Grid.Row="0" Classes="treegit_title" RowDefinitions="30,*" ColumnDefinitions="32,*,32,32,Auto,Auto">
+      <Grid.Styles><Style Selector="Grid.treegit_title &gt; Button.icon_button &gt; Path"><Setter Property="Fill" Value="{DynamicResource Brush.TreeGit.ChromeForeground}"/></Style></Grid.Styles>
       <!-- Bottom border -->
-      <Border Grid.Column="0" Grid.ColumnSpan="6" Grid.RowSpan="2"
-              BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Brush.Border0}"
-              Background="{DynamicResource Brush.TreeGit.Chrome}"
-              DoubleTapped="MaximizeOrRestoreWindow"
-              PointerPressed="BeginMoveWindow"/>
+      <Border Grid.Column="0" Grid.ColumnSpan="6" Grid.RowSpan="2" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Brush.Border0}" Background="{DynamicResource Brush.TreeGit.Chrome}" DoubleTapped="MaximizeOrRestoreWindow" PointerPressed="BeginMoveWindow"/>
 
       <!-- Caption Buttons (macOS) -->
-      <v:MacOSTrafficLightsSpacer Grid.Column="0"
-                                  Zoom="{Binding Source={x:Static vm:Preferences.Instance}, Path=Zoom, Mode=OneWay}"
-                                  IsFullScreen="{Binding #ThisControl.WindowState, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static WindowState.FullScreen}}"
-                                  IsVisible="{OnPlatform False, macOS=True}"/>
+      <v:MacOSTrafficLightsSpacer Grid.Column="0" Zoom="{Binding Source={x:Static vm:Preferences.Instance}, Path=Zoom, Mode=OneWay}" IsFullScreen="{Binding #ThisControl.WindowState, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static WindowState.FullScreen}}" IsVisible="{OnPlatform False, macOS=True}"/>
 
       <!-- Menu (Windows/Linux) -->
-      <Button Grid.Column="0" Classes="icon_button" VerticalAlignment="Bottom" Margin="6,0,0,3" IsVisible="{OnPlatform True, macOS=False}">
+      <Button Grid.Column="4" Classes="icon_button" VerticalAlignment="Bottom" Margin="6,0,0,3" IsVisible="{OnPlatform True, macOS=False}">
         <Button.Flyout>
           <MenuFlyout Placement="BottomEdgeAlignedLeft" VerticalOffset="-6">
             <MenuItem Header="MCP · AI 连接" Command="{x:Static s:App.OpenMcpConnectionCommand}">
@@ -99,44 +80,33 @@
       </Button>
 
       <!-- Workspace Dropdown Menu -->
-      <Button Grid.Column="1" Classes="icon_button" VerticalAlignment="Bottom" Margin="0,0,0,1" Click="OnOpenWorkspaceMenu" HotKey="{OnPlatform Ctrl+Alt+P, macOS=⌘+Alt+P}">
+      <Button Grid.Column="2" Classes="icon_button" VerticalAlignment="Bottom" Margin="0,0,0,1" Click="OnOpenWorkspaceMenu" HotKey="{OnPlatform Ctrl+Alt+P, macOS=⌘+Alt+P}">
         <ToolTip.Tip>
           <StackPanel Orientation="Horizontal">
             <TextBlock Text="{DynamicResource Text.Workspace}" FontWeight="Bold" Foreground="{DynamicResource MenuFlyoutItemKeyboardAcceleratorTextForeground}"/>
             <TextBlock Text="{Binding ActiveWorkspace.Name}"/>
-            <TextBlock Margin="16,0,0,0"
-                       Text="{OnPlatform Ctrl+Alt+P, macOS=⌘+Alt+P}"
-                       FontSize="11"
-                       Foreground="{DynamicResource MenuFlyoutItemKeyboardAcceleratorTextForeground}"
-                       VerticalAlignment="Center"/>
+            <TextBlock Margin="16,0,0,0" Text="{OnPlatform Ctrl+Alt+P, macOS=⌘+Alt+P}" FontSize="11" Foreground="{DynamicResource MenuFlyoutItemKeyboardAcceleratorTextForeground}" VerticalAlignment="Center"/>
           </StackPanel>
         </ToolTip.Tip>
-        <Path Width="14" Height="14"
-              Data="{StaticResource Icons.Workspace}"
-              Fill="{Binding ActiveWorkspace.Brush}"/>
+        <Path Width="14" Height="14" Data="{StaticResource Icons.Workspace}" Fill="{Binding ActiveWorkspace.Brush}"/>
       </Button>
 
       <!-- Pages Switcher Toggle Button -->
-      <Button Grid.Column="2" Classes="icon_button" VerticalAlignment="Bottom" Margin="0,0,0,1" Click="OnOpenPagesCommandPalette" HotKey="{OnPlatform Ctrl+P, macOS=⌘+P}">
+      <Button Grid.Column="3" Classes="icon_button" VerticalAlignment="Bottom" Margin="0,0,0,1" Click="OnOpenPagesCommandPalette" HotKey="{OnPlatform Ctrl+P, macOS=⌘+P}">
         <ToolTip.Tip>
           <StackPanel Orientation="Horizontal">
-            <TextBlock Text="{DynamicResource Text.Launcher.Pages}"
-                       VerticalAlignment="Center"/>
-            <TextBlock Margin="8,0,0,0"
-                       Text="{OnPlatform Ctrl+P, macOS=⌘+P}"
-                       FontSize="11"
-                       Foreground="{DynamicResource MenuFlyoutItemKeyboardAcceleratorTextForeground}"
-                       VerticalAlignment="Center"/>
+            <TextBlock Text="{DynamicResource Text.Launcher.Pages}" VerticalAlignment="Center"/>
+            <TextBlock Margin="8,0,0,0" Text="{OnPlatform Ctrl+P, macOS=⌘+P}" FontSize="11" Foreground="{DynamicResource MenuFlyoutItemKeyboardAcceleratorTextForeground}" VerticalAlignment="Center"/>
           </StackPanel>
         </ToolTip.Tip>
-        <Path Width="13" Height="13" Margin="0,2,0,0" Data="{StaticResource Icons.Tabs}"/>
+        <Path Width="13" Height="13" Margin="0,2,0,0" Data="{StaticResource Icons.List}"/>
       </Button>
 
       <!-- Pages Tabs -->
-      <Menu Grid.Column="3" VerticalAlignment="Center" Background="Transparent">
+      <Menu Grid.Column="1" VerticalAlignment="Center" Background="Transparent">
         <Menu.Styles>
           <Style Selector="Menu &gt; MenuItem">
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.ChromeForeground}"/>
             <Setter Property="Padding" Value="12,4"/>
             <Setter Property="Template">
               <ControlTemplate>
@@ -154,50 +124,43 @@
             </Setter>
           </Style>
           <Style Selector="Menu &gt; MenuItem:selected /template/ Border#PART_LayoutRoot"><Setter Property="Background" Value="{DynamicResource Brush.TreeGit.ChromeHover}"/></Style>
-          <Style Selector="Menu &gt; MenuItem:selected /template/ ContentPresenter#PART_HeaderPresenter"><Setter Property="Foreground" Value="White"/></Style>
+          <Style Selector="Menu &gt; MenuItem:selected /template/ ContentPresenter#PART_HeaderPresenter"><Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.ChromeForeground}"/></Style>
         </Menu.Styles>
-        <MenuItem Header="文件">
+        <MenuItem Header="文件(F)">
           <MenuItem Header="新标签页" Command="{Binding AddNewTab}"/>
           <MenuItem Header="打开 / 克隆仓库" Click="OnTreeGitShowRepositories"/>
           <MenuItem Header="退出" Command="{x:Static s:App.QuitCommand}"/>
         </MenuItem>
-        <MenuItem Header="编辑"><MenuItem Header="偏好设置" Command="{x:Static s:App.OpenPreferencesCommand}"/></MenuItem>
-        <MenuItem Header="查看">
+        <MenuItem Header="编辑(E)"><MenuItem Header="偏好设置" Command="{x:Static s:App.OpenPreferencesCommand}"/></MenuItem>
+        <MenuItem Header="查看(V)">
           <MenuItem Header="文件状态" Click="OnTreeGitWorkingCopy"/>
           <MenuItem Header="历史" Click="OnTreeGitHistory"/>
           <MenuItem Header="搜索" Click="OnTreeGitSearch"/>
         </MenuItem>
-        <MenuItem Header="仓库">
+        <MenuItem Header="仓库(R)">
           <MenuItem Header="仓库设置" Click="OnTreeGitRepositorySettings"/>
           <MenuItem Header="在文件管理器中打开" Click="OnTreeGitExplorer"/>
           <MenuItem Header="打开终端" Click="OnTreeGitTerminal"/>
         </MenuItem>
-        <MenuItem Header="操作">
+        <MenuItem Header="操作(A)">
           <MenuItem Header="获取" Click="OnTreeGitFetch"/><MenuItem Header="拉取" Click="OnTreeGitPull"/><MenuItem Header="推送" Click="OnTreeGitPush"/>
           <MenuItem Header="新建分支" Click="OnTreeGitBranch"/><MenuItem Header="新建标签" Click="OnTreeGitTag"/>
         </MenuItem>
-        <MenuItem Header="工具"><MenuItem Header="MCP · AI 连接" Command="{x:Static s:App.OpenMcpConnectionCommand}"/><MenuItem Header="SSH 密钥" Command="{x:Static s:App.OpenSSHKeyHelperCommand}"/></MenuItem>
-        <MenuItem Header="帮助"><MenuItem Header="快捷键" Command="{x:Static s:App.OpenHotkeysCommand}"/><MenuItem Header="关于 TreeGit" Command="{x:Static s:App.OpenAboutCommand}"/></MenuItem>
+        <MenuItem Header="工具(T)"><MenuItem Header="MCP · AI 连接" Command="{x:Static s:App.OpenMcpConnectionCommand}"/><MenuItem Header="SSH 密钥" Command="{x:Static s:App.OpenSSHKeyHelperCommand}"/></MenuItem>
+        <MenuItem Header="帮助(H)"><MenuItem Header="快捷键" Command="{x:Static s:App.OpenHotkeysCommand}"/><MenuItem Header="关于 TreeGit" Command="{x:Static s:App.OpenAboutCommand}"/></MenuItem>
       </Menu>
       <v:LauncherTabBar Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="6" Height="30" Margin="10,0,110,0" VerticalAlignment="Bottom"/>
 
       <!-- Update Available Button -->
-      <Button Grid.Column="4"
-              Classes="icon_button"
-              Height="30"
-              Margin="0,0,4,0"
-              VerticalAlignment="Top"
-              IsVisible="{Binding NewVersion, Converter={x:Static ObjectConverters.IsNotNull}}"
-              Click="OnShowNewVersion"
-              ToolTip.Tip="{DynamicResource Text.Launcher.NewVersion}">
+      <Button Grid.Column="4" Classes="icon_button" Height="30" Margin="0,0,4,0" VerticalAlignment="Top" IsVisible="{Binding NewVersion, Converter={x:Static ObjectConverters.IsNotNull}}" Click="OnShowNewVersion" ToolTip.Tip="{DynamicResource Text.Launcher.NewVersion}">
         <Path Width="15" Height="15" Margin="0,4,0,0" Data="{StaticResource Icons.SoftwareUpdate}" Fill="{DynamicResource Brush.Accent}"/>
       </Button>
 
       <!-- Caption Buttons (Windows/Linux) -->
       <Border Grid.Column="5" IsVisible="{Binding #ThisControl.HasRightCaptionButton}">
-        <v:CaptionButtons Height="30" VerticalAlignment="Top"><v:CaptionButtons.Styles><Style Selector="Button.caption_button &gt; Path"><Setter Property="Fill" Value="White"/></Style></v:CaptionButtons.Styles></v:CaptionButtons>
+        <v:CaptionButtons Height="30" VerticalAlignment="Top"><v:CaptionButtons.Styles><Style Selector="Button.caption_button &gt; Path"><Setter Property="Fill" Value="{DynamicResource Brush.TreeGit.ChromeForeground}"/></Style></v:CaptionButtons.Styles></v:CaptionButtons>
       </Border>
-    </Grid>
+    <Image Grid.Column="0" Width="22" Height="22" Source="/Resources/Images/TreeGit.png"/></Grid>
 
     <!-- Page -->
     <ContentControl Grid.Row="1" Content="{Binding ActivePage}" Background="{DynamicResource Brush.Window}">
@@ -209,14 +172,9 @@
     </ContentControl>
 
     <!-- Command Palette -->
-    <Border Grid.Row="0" Grid.RowSpan="2"
-            Background="Transparent"
-            IsVisible="{Binding CommandPalette, Converter={x:Static ObjectConverters.IsNotNull}}"
-            PointerPressed="OnCloseCommandPalette">
+    <Border Grid.Row="0" Grid.RowSpan="2" Background="Transparent" IsVisible="{Binding CommandPalette, Converter={x:Static ObjectConverters.IsNotNull}}" PointerPressed="OnCloseCommandPalette">
       <Border Width="420" HorizontalAlignment="Center" VerticalAlignment="Center" Effect="drop-shadow(0 0 12 #60000000)">
-        <Border Background="{DynamicResource Brush.Popup}"
-                BorderThickness="1" BorderBrush="{DynamicResource Brush.PopupBorder}"
-                CornerRadius="8">
+        <Border Background="{DynamicResource Brush.Popup}" BorderThickness="1" BorderBrush="{DynamicResource Brush.PopupBorder}" CornerRadius="8">
           <ContentControl Margin="16,10,16,12" Content="{Binding CommandPalette}">
             <ContentControl.DataTemplates>
               <v:CommandPaletteDataTemplates/>

@@ -42,6 +42,7 @@
     <Compile Include="../tests/AskpassProbe.cs" />
     <Compile Include="../tests/UpstreamProbe.cs" />
     <Compile Include="../tests/GraphStyleProbe.cs" />
+    <Compile Include="../tests/UiLayoutProbe.cs" />
   </ItemGroup>
 
   <ItemGroup>

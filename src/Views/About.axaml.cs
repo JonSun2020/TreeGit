@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using Avalonia.Interactivity;
@@ -35,6 +35,8 @@ namespace SourceGit.Views
                     TxtVersion.Text = $"v{ver.Major}.{ver.Minor:D2}";
             }
 
+            TxtVersion.Text = "v" + Models.TreeGitRelease.Version;
+
             var copyright = assembly.GetCustomAttribute<AssemblyCopyrightAttribute>();
             if (copyright != null)
                 TxtCopyright.Text = copyright.Copyright;
@@ -47,7 +49,7 @@ namespace SourceGit.Views
             if (endOfTagIdx > 0)
                 ver = ver.Substring(0, endOfTagIdx);
 
-            Native.OS.OpenBrowser($"https://github.com/sourcegit-scm/sourcegit/releases/tag/{ver}");
+            Native.OS.OpenBrowser("https://github.com/JonSun2020/TreeGit/releases/latest");
             e.Handled = true;
         }
 

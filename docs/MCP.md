@@ -1,0 +1,50 @@
+# MCP：让 AI 控制 TreeGit
+
+TreeGit 是一个 **MCP 服务端**。AI 客户端通过 stdio 连接，再由本机通信通道控制实际运行的 TreeGit 窗口。未启动界面时会自动启动。
+
+在 **工具 → MCP · AI 连接** 复制配置。也可手工填写：
+
+```json
+{
+  "mcpServers": {
+    "treegit": {
+      "command": "D:\\Tools\\TreeGit\\TreeGit.exe",
+      "args": ["--mcp"]
+    }
+  }
+}
+```
+
+请把 `command` 替换为自己的绝对路径；目录移动后需更新。连接默认完整读写，兼容旧参数 `--allow-write`。需要只读连接时使用 `["--mcp", "--read-only"]`；只读连接保留界面导航和查询，隐藏并拒绝 Git 写入工具。
+
+## 能力
+
+| 工具 | 用途 |
+| --- | --- |
+| `ui_state` / `ui_screenshot` | 查看真实窗口、仓库标签、分支、图谱及弹窗状态；获取窗口图片 |
+| `ui_open_repository` | 打开或切换已有仓库 |
+| `ui_select_view` / `ui_select_commit` | 切换历史、工作副本、贮藏及提交详情 |
+| `ui_working_copy` | 选中图谱顶部“未提交的更改”，下方显示暂存/未暂存文件与差异 |
+| `ui_graph` | 指定最左侧分支、显示所有分支/仅所选分支/包含合并历史 |
+| `ui_history_columns` | 读取、调整、重置图谱、描述、日期、作者、提交等列宽；按仓库保存 |
+| `ui_refresh` / `ui_window` | 刷新、调整窗口尺寸、主题和侧栏 |
+| `ui_command` | 打开关于、偏好、仓库设置、账号及原有 Git 操作对话框 |
+| `git_status` / `git_log` / `git_diff` / `git_refs` / `git_show` | 查询状态、历史、差异和引用 |
+| `git_clone` | 使用原有克隆流程；完成后打开仓库 |
+| `git_action` | 暂存、提交、推拉、检出、合并、变基、贮藏和冲突恢复等常用操作 |
+| `git_run` | 传入 Git 参数数组，执行全部 Git 子命令，包括强制推送、硬重置、清理以及删除分支/标签 |
+
+例如调用 `git_run`：
+
+```json
+{
+  "repo": "D:\\Projects\\example",
+  "arguments": ["commit", "-m", "修复串口超时"]
+}
+```
+
+`repo` 必须先通过 `ui_open_repository` 打开。参数直接传给 Git，不经过系统 shell；已有 Git hooks、过滤器和自定义 Git 配置仍按 Git 本身的行为执行。长输出有大小限制，并返回 `truncated` 标志。
+
+修改完成后界面自动刷新，命令记录进入 TreeGit 日志。认证使用软件现有的仓库账号和正常输入框；服务端不提供读取已保存密码的工具。多个 AI 连接的操作在 GUI 端依次执行。
+
+MCP 的完整读写意味着 AI 可以修改甚至删除 Git 数据。应在 AI 客户端按自己的习惯设置工具审批；TreeGit 不额外限制 `git_run` 的子命令。
