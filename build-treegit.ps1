@@ -8,6 +8,7 @@ $env:DOTNET_ROOT=$sdk
 $env:DOTNET_CLI_HOME=Join-Path $workspace 'output/dotnet-home'
 $env:NUGET_PACKAGES=Join-Path $workspace 'output/nuget'
 $env:DOTNET_CLI_TELEMETRY_OPTOUT='1'
+$treeGitSourceCommit=(& git -C $PSScriptRoot rev-parse HEAD).Trim()
 $testProperty='-p:EnableIntegrationTests='+$IntegrationTests.IsPresent.ToString().ToLowerInvariant()
 & (Join-Path $sdk 'dotnet.exe') publish (Join-Path $PSScriptRoot 'src/SourceGit.csproj') -c Release -r win-x64 -p:PublishAot=false -p:PublishTrimmed=true -p:TrimMode=link -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -p:DebugSymbols=false $testProperty -o $Destination
 if($LASTEXITCODE -ne 0){throw 'TreeGit publish failed'}
@@ -18,4 +19,5 @@ $config=@{mcpServers=@{treegit=@{command=(Join-Path $Destination 'TreeGit.exe');
 $config | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 (Join-Path $Destination 'mcp-readonly.json')
 $config.mcpServers.treegit.args=@('--mcp','--allow-write')
 $config | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 (Join-Path $Destination 'mcp-readwrite.json')
+@{product='TreeGit';sourceCommit=$treeGitSourceCommit;upstreamCommit='c0f40a2e78d81a7474628847727644fc0c56f558';integrationTests=$IntegrationTests.IsPresent;selfContained=$true;trimmed=$true;singleFileCompression=$true} | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $Destination 'build-info.json')
 Write-Output ('TreeGit portable program: '+$Destination)

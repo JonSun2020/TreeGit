@@ -68,6 +68,11 @@ def wait(expected):
 rpc('initialize',{'protocolVersion':'2025-11-25'})
 tool('ui_open_repository',{'repo':str(repo)});tool('ui_window',{'width':1440,'height':900,'theme':'Light'})
 allsha=set(run('rev-list','--all').splitlines())
+wait(allsha)
+for _ in range(100):
+    if state()['branch']=='main': break
+    time.sleep(.1)
+else: raise AssertionError('Repository branch refresh did not complete')
 for branch in ['main','feature/auth','release/1.0','origin/feature/auth']:
     tool('ui_graph',{'repo':str(repo),'branch':branch,'mode':'all'})
     s=wait(allsha)

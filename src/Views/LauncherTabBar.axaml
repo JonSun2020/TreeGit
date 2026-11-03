@@ -109,6 +109,7 @@
 
                     <TextBlock Grid.Column="1"
                                VerticalAlignment="Center"
+                               Foreground="{Binding $parent[ListBoxItem].Foreground}"
                                FontSize="{Binding Source={x:Static vm:Preferences.Instance}, Path=DefaultFontSize, Converter={x:Static c:DoubleConverters.Decrease}}"
                                TextAlignment="Center"
                                Text="{Binding Node.Name}"
@@ -117,6 +118,7 @@
 
                   <TextBlock Grid.Column="1"
                              HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                             Foreground="{Binding $parent[ListBoxItem].Foreground}"
                              FontSize="{Binding Source={x:Static vm:Preferences.Instance}, Path=DefaultFontSize, Converter={x:Static c:DoubleConverters.Decrease}}"
                              TextAlignment="Center"
                              Text="{DynamicResource Text.PageTabBar.Welcome.Title}"
@@ -137,7 +139,7 @@
                                    Foreground="{DynamicResource MenuFlyoutItemKeyboardAcceleratorTextForeground}"/>
                       </StackPanel>
                     </ToolTip.Tip>
-                    <Path Width="9" Height="9" Data="{StaticResource Icons.Close}"/>
+                    <Path Width="9" Height="9" Data="{StaticResource Icons.Close}" Fill="{Binding $parent[ListBoxItem].Foreground}"/>
                   </Button>
                 </Grid>
               </v:LauncherTabSizeBox>
