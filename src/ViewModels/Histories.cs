@@ -179,12 +179,11 @@ namespace SourceGit.ViewModels
         public string GraphBranchName => GraphBranchRef == "HEAD" ? CurrentBranch?.Name ?? "HEAD" : GraphBranchRef.Replace("refs/heads/", "").Replace("refs/remotes/", "");
         public int BranchDisplayMode
         {
-            get => _repo.UIStates.ShowOnlyGraphBranch || GraphHighlighting == Models.CommitGraphHighlighting.CurrentBranchOnly ? (_repo.UIStates.GraphIncludeMergedHistory ? 2 : 1) : 0;
+            get => _repo.UIStates.ShowOnlyGraphBranch || GraphHighlighting == Models.CommitGraphHighlighting.CurrentBranchOnly ? 1 : 0;
             set
             {
-                if (value == BranchDisplayMode) return;
+                if (value is < 0 or > 1 || value == BranchDisplayMode) return;
                 _repo.UIStates.ShowOnlyGraphBranch = value != 0;
-                _repo.UIStates.GraphIncludeMergedHistory = value == 2;
                 if (value == 0 && GraphHighlighting == Models.CommitGraphHighlighting.CurrentBranchOnly)
                     _repo.UIStates.GraphHighlighting = Models.CommitGraphHighlighting.All;
                 OnPropertyChanged();
@@ -226,7 +225,6 @@ namespace SourceGit.ViewModels
                 {
                     _repo.UIStates.GraphHighlighting = value;
                     _repo.UIStates.ShowOnlyGraphBranch = value == Models.CommitGraphHighlighting.CurrentBranchOnly;
-                    _repo.UIStates.GraphIncludeMergedHistory = false;
                     OnPropertyChanged(nameof(BranchDisplayMode));
                     _repo.RefreshCommits();
                 }
@@ -682,9 +680,10 @@ namespace SourceGit.ViewModels
             }
 
             if (BranchDisplayMode != 0)
+            {
                 highlighting = Models.CommitGraphHighlighting.All;
-            if (BranchDisplayMode == 1)
-                firstParentOnly = true;
+                firstParentOnly = false;
+            }
             Graph = Models.CommitGraph.Generate(commits, firstParentOnly, highlighting, extraHeads, _preferredGraphHead);
         }
 

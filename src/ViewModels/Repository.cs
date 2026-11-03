@@ -1234,7 +1234,7 @@ namespace SourceGit.ViewModels
                 var graphView = await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     _histories.IsLoading = true;
-                    return (Reference: _histories.GraphBranchRef, Name: _histories.GraphBranchName, OnlyBranch: _histories.BranchDisplayMode != 0, FirstParentOnly: _histories.BranchDisplayMode == 1);
+                    return (Reference: _histories.GraphBranchRef, Name: _histories.GraphBranchName, OnlyBranch: _histories.BranchDisplayMode != 0);
                 });
                 var preferredHead = await new Commands.QueryRevisionByRefName(FullPath, graphView.Reference).GetResultAsync().ConfigureAwait(false);
                 var resetMissingBranch = false;
@@ -1248,7 +1248,7 @@ namespace SourceGit.ViewModels
                 var builder = new StringBuilder();
                 builder
                     .Append('-').Append(Preferences.Instance.MaxHistoryCommits).Append(' ')
-                    .Append(_uiStates.BuildHistoryParams(GitDir, graphView.Reference, graphView.OnlyBranch, graphView.FirstParentOnly));
+                    .Append(_uiStates.BuildHistoryParams(GitDir, graphView.Reference, graphView.OnlyBranch));
 
                 var commits = await new Commands.QueryCommits(FullPath, builder.ToString())
                     .GetResultAsync()

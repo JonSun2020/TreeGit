@@ -944,6 +944,6 @@ ${pure_files:N} Come ${files:N}, ma senza cartelle</x:String>
   <x:String x:Key="Text.Toolbar.Tag">Tag</x:String>
   <x:String x:Key="Text.Toolbar.NoMergeBranches">No other local branches</x:String>
   <x:String x:Key="Text.Graph.AllBranches">All branches</x:String>
-  <x:String x:Key="Text.Graph.OnlyBranch">Selected branch only</x:String>
+  <x:String x:Key="Text.Graph.OnlyBranch">Current branch</x:String>
   <x:String x:Key="Text.Graph.MergedHistory">Selected branch with merges</x:String>
 </ResourceDictionary>

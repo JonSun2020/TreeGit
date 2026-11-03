@@ -1,4 +1,4 @@
-"""Real desktop graph regression: branch pinning, strict filtering and merged ancestry."""
+"""Real desktop graph regression: branch pinning, current-branch filtering and merged ancestry."""
 import base64
 import datetime
 import json
@@ -79,25 +79,26 @@ for branch in ['main','feature/auth','release/1.0','origin/feature/auth']:
     spine=set(run('rev-list','--first-parent',branch).splitlines())
     check(branch+' first-parent commits occupy leftmost lane',all(c['x']==6 for c in s['graphCommits'] if c['sha'] in spine))
     check(branch+' subjects have a fixed aligned graph area',len({c['subjectLeft'] for c in s['graphCommits']})==1)
-    tool('ui_graph',{'repo':str(repo),'mode':'only'})
-    s=wait(spine)
-    check(branch+' only mode hides other commits',s['graphTotal']==len(spine))
-    check(branch+' only mode has exactly one graph lane',all(c['x']==6 for c in s['graphCommits']))
-    check(branch+' only mode hides other branch labels',all(all(ref in [branch,'v1.0'] for ref in c['refs']) for c in s['graphCommits']))
+    tool('ui_graph',{'repo':str(repo),'mode':'current'})
+    ancestry=set(run('rev-list',branch).splitlines())
+    s=wait(ancestry)
+    check(branch+' current mode hides unrelated commits',s['graphTotal']==len(ancestry))
+    check(branch+' current mode keeps the first-parent line at the left',all(c['x']==6 for c in s['graphCommits'] if c['sha'] in spine))
+    check(branch+' current mode hides other branch labels',all(all(ref in [branch,'v1.0'] for ref in c['refs']) for c in s['graphCommits']))
     if branch=='main':
         tool('ui_select_commit',{'repo':str(repo),'revision':'main'});time.sleep(.6)
         (out/'only-main.png').write_bytes(tool('ui_screenshot'))
     tool('ui_graph',{'repo':str(repo),'mode':'merged'})
     s=wait(set(run('rev-list',branch).splitlines()))
-    check(branch+' merged mode retains merged ancestry',s['graphTotal']==len(run('rev-list',branch).splitlines()))
+    check(branch+' legacy mode uses the same current-branch history',s['graphTotal']==len(run('rev-list',branch).splitlines()))
     check(branch+' filtering never checks out the branch',run('branch','--show-current')=='main')
-tool('ui_graph',{'repo':str(repo),'branch':'feature/auth','mode':'only'})
-wait(set(run('rev-list','--first-parent','feature/auth').splitlines()))
+tool('ui_graph',{'repo':str(repo),'branch':'feature/auth','mode':'current'})
+wait(set(run('rev-list','feature/auth').splitlines()))
 run('branch','-D','feature/auth')
 tool('ui_refresh',{'repo':str(repo)})
-s=wait(set(run('rev-list','--first-parent','main').splitlines()))
+s=wait(set(run('rev-list','main').splitlines()))
 check('deleting the selected branch falls back to HEAD history',s['graphBranch']=='main')
-check('fallback keeps the current branch pinned to lane zero',all(c['x']==6 for c in s['graphCommits']))
+check('fallback keeps the current branch pinned to lane zero',all(c['x']==6 for c in s['graphCommits'] if c['sha'] in set(run('rev-list','--first-parent','main').splitlines())))
 tool('ui_graph',{'repo':str(repo),'branch':'HEAD','mode':'all'});wait(allsha)
 tool('ui_select_commit',{'repo':str(repo),'revision':'main'});time.sleep(.8)
 (out/'main-interface.png').write_bytes(tool('ui_screenshot'))

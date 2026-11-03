@@ -61,7 +61,6 @@ namespace SourceGit.Models
 
         public string GraphBranchRef { get; set; } = string.Empty;
         public bool ShowOnlyGraphBranch { get; set; } = false;
-        public bool GraphIncludeMergedHistory { get; set; } = false;
         public bool ShowRemoteBranchesInHistory { get; set; } = true;
 
         public BranchSortMode LocalBranchSortMode
@@ -430,7 +429,7 @@ namespace SourceGit.Models
             if (!onlyGraphBranch && HistoryShowFlags.HasFlag(HistoryShowFlags.Reflog))
                 builder.Append("--reflog ");
 
-            if (graphFirstParentOnly || HistoryShowFlags.HasFlag(HistoryShowFlags.FirstParentOnly))
+            if (graphFirstParentOnly || (!onlyGraphBranch && HistoryShowFlags.HasFlag(HistoryShowFlags.FirstParentOnly)))
                 builder.Append("--first-parent ");
 
             if (HistoryShowFlags.HasFlag(HistoryShowFlags.SimplifyByDecoration))

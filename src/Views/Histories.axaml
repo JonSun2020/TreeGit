@@ -19,7 +19,6 @@
           <ComboBox Grid.Column="0" Width="142" Height="22" Padding="4,0" SelectedIndex="{Binding BranchDisplayMode, Mode=TwoWay}">
             <ComboBoxItem Content="{DynamicResource Text.Graph.AllBranches}"/>
             <ComboBoxItem Content="{DynamicResource Text.Graph.OnlyBranch}"/>
-            <ComboBoxItem Content="{DynamicResource Text.Graph.MergedHistory}"/>
           </ComboBox>
           <CheckBox Grid.Column="1" Content="显示远程分支" Margin="12,0" IsChecked="{Binding ShowRemoteBranches, Mode=TwoWay}"/><ComboBox Grid.Column="2" Width="98" Height="22" Padding="4,0" SelectedIndex="{Binding SortMode, Mode=TwoWay}"><ComboBoxItem Content="按日期排序"/><ComboBoxItem Content="按拓扑排序"/></ComboBox><TextBlock Grid.Column="3" Margin="12,0,0,0" Foreground="{DynamicResource Brush.FG2}" Text="{Binding GraphBranchName}" FontSize="11" TextTrimming="CharacterEllipsis"/>
         </Grid>

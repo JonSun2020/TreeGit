@@ -331,7 +331,7 @@ namespace SourceGit.Automation
                         }
                     }
                     if (args.TryGetProperty("mode", out var mode))
-                        repo.Histories.BranchDisplayMode = mode.GetString() switch { "all" => 0, "only" => 1, "merged" => 2, _ => throw new ArgumentException("Invalid graph mode.") };
+                        repo.Histories.BranchDisplayMode = mode.GetString() switch { "all" => 0, "current" or "only" or "merged" => 1, _ => throw new ArgumentException("Invalid graph mode.") };
                     return (object)new { branch = repo.Histories.GraphBranchName, mode = repo.Histories.BranchDisplayMode, loading = repo.Histories.IsLoading };
                 });
 
