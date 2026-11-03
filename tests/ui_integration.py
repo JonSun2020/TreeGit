@@ -34,7 +34,7 @@ tool('ui_open_repository',{'repo':repo})
 tool('ui_command',{'command':'clear_notifications'})
 tool('ui_select_view',{'repo':repo,'view':'history'})
 time.sleep(1)
-for command,kind in [('mcp_connection','McpConnection'),('preferences','Preferences'),('repository_settings','RepositoryConfigure'),('credentials','RepositoryCredentials')]:
+for command,kind in [('about','About'),('mcp_connection','McpConnection'),('preferences','Preferences'),('repository_settings','RepositoryConfigure'),('credentials','RepositoryCredentials')]:
     tool('ui_command',{'command':command,'repo':repo})
     time.sleep(0.6)
     state=tool('ui_state')

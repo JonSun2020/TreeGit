@@ -170,6 +170,11 @@ namespace SourceGit.Automation
                         App.OpenPreferencesCommand.Execute(null);
                         return (object)new { opened = uiCommand };
                     }
+                    if (uiCommand == "about")
+                    {
+                        App.OpenAboutCommand.Execute(null);
+                        return (object)new { opened = uiCommand };
+                    }
                     return null;
                 });
                 if (globalResult != null)

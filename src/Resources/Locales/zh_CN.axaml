@@ -8,6 +8,7 @@
   <x:String x:Key="Text.About.ReleaseDate" xml:space="preserve">发布日期：{0}</x:String>
   <x:String x:Key="Text.About.ReleaseNotes" xml:space="preserve">浏览版本更新说明</x:String>
   <x:String x:Key="Text.About.SubTitle" xml:space="preserve">开源免费的Git客户端</x:String>
+  <x:String x:Key="Text.About.BasedOnSourceGit" xml:space="preserve">基于 SourceGit 开发，修改了主界面风格。保留原项目版权声明与 MIT 许可证。</x:String>
   <x:String x:Key="Text.AddToIgnore" xml:space="preserve">新增忽略文件</x:String>
   <x:String x:Key="Text.AddToIgnore.Pattern" xml:space="preserve">匹配模式 ：</x:String>
   <x:String x:Key="Text.AddToIgnore.Storage" xml:space="preserve">保存位置 ：</x:String>

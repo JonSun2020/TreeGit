@@ -18,7 +18,7 @@ production = build['sourceCommit']
 
 def read(name): return json.loads((qa/name).read_text(encoding='utf-8-sig'))
 counts = {}
-for name, count in [('protocol-results.json',18), ('mcp-results.json',45), ('ui-results.json',28), ('graph-results.json',31), ('preserve-upstream.json',28), ('upstream2-results.json',35)]:
+for name, count in [('protocol-results.json',18), ('mcp-results.json',45), ('ui-results.json',31), ('graph-results.json',31), ('preserve-upstream.json',28), ('upstream2-results.json',35)]:
     result = read(name)
     assert result['passed'] == count, (name,result)
     counts[name] = count
@@ -65,7 +65,7 @@ gitpart = delivery/'TreeGit-便携Git组件.zip'
 archive(base/'optional/git',gitpart,'git')
 preview=delivery/'界面预览'
 preview.mkdir(exist_ok=True)
-for name in ['main-interface.png','only-main.png','main-1024.png','main-dark.png','working-copy.png']:
+for name in ['main-interface.png','only-main.png','main-1024.png','main-dark.png','working-copy.png','about.png']:
     shutil.copy2(qa/name,preview/name)
 backup=delivery/'开发备份'
 backup.mkdir(exist_ok=True)
@@ -91,7 +91,7 @@ report=f'''TreeGit 验收说明 · 2026-11-03
 标准包不捆绑 Git，默认复用现有 Git；可选便携 Git 组件单独提供，大小 {mb(gitpart.stat().st_size)}。
 
 本次修正
-1. 软件名称改为 TreeGit；主界面整体按 SourceTree Windows 的布局重排。
+1. 软件名称改为 TreeGit；主界面整体按 SourceTree Windows 的布局重排。使用独立的深青色树形 Logo；关于窗口明确注明基于 SourceGit 开发并修改界面，保留原项目链接、版权和 MIT 许可证。
 2. 蓝色菜单/仓库标签栏；提交、推送、拉取、获取、分支、合并、贮藏、丢弃、标签操作栏；右侧终端、浏览、设置、工具。
 3. 左侧工作区及分支树；右侧独立路线图、描述、提交时间、作者、提交指纹列。
 4. 下方默认显示紧凑提交信息、变更文件和差异；文件状态页改为文件/差异区及底部提交区。
@@ -101,7 +101,7 @@ report=f'''TreeGit 验收说明 · 2026-11-03
 8. .NET 自包含运行库裁剪、压缩；完整 Git 与开发/源码文件从主程序包中分离。
 
 验证结果
-- MCP 协议 18 项；真实 Git/MCP 操作 45 项；界面/弹窗 28 项：通过。
+- MCP 协议 18 项；真实 Git/MCP 操作 45 项；界面/弹窗 31 项：通过。
 - 多分支图形 31 项，包括远端分支、仅主线、合并历史、删除所选分支回退：通过。
 - 28 项原有控件/操作/绑定及语言资源保留检查：通过。
 - 35 项原有命令与图形模型检查，含子模块、工作树、LFS、Git Flow、80 个复杂 DAG 选择、单色主题：通过。

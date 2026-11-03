@@ -4,6 +4,7 @@
   <x:String x:Key="Text.About.ReleaseDate" xml:space="preserve">Release Date: {0}</x:String>
   <x:String x:Key="Text.About.ReleaseNotes" xml:space="preserve">Release Notes</x:String>
   <x:String x:Key="Text.About.SubTitle" xml:space="preserve">Opensource &amp; Free Git GUI Client</x:String>
+  <x:String x:Key="Text.About.BasedOnSourceGit" xml:space="preserve">Based on SourceGit, with a redesigned main interface for TreeGit. Original project copyright and MIT license are retained.</x:String>
   <x:String x:Key="Text.AddToIgnore" xml:space="preserve">Add File(s) To Ignore</x:String>
   <x:String x:Key="Text.AddToIgnore.Pattern" xml:space="preserve">Pattern:</x:String>
   <x:String x:Key="Text.AddToIgnore.Storage" xml:space="preserve">Storage File:</x:String>
