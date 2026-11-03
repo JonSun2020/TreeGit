@@ -110,7 +110,8 @@ namespace SourceGit.Automation
                         repositories = launcher.Pages.Where(p => p.Data is ViewModels.Repository).Select(p =>
                         {
                             var r = (ViewModels.Repository)p.Data;
-                            var repositoryView = launcher.GetVisualDescendants().OfType<Views.Repository>().FirstOrDefault(v => v.DataContext == r);
+                            var mainWindow = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow;
+                            var repositoryView = mainWindow.GetVisualDescendants().OfType<Views.Repository>().FirstOrDefault(v => v.DataContext == r);
                             return new
                             {
                                 repo = r.FullPath,
