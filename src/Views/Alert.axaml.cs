@@ -1,6 +1,8 @@
 ﻿using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.Controls.Primitives;
+using Avalonia.Media;
 
 namespace SourceGit.Views
 {
@@ -18,6 +20,7 @@ namespace SourceGit.Views
             Title = title;
             TxtTitle.Text = title;
             Message.Text = message;
+            AlertIcon.Data = this.FindResource(isError ? "Icons.Error" : "Icons.Info") as Geometry;
             await ShowDialog(owner);
         }
 

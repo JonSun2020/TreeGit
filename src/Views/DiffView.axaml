@@ -1,4 +1,4 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:m="using:SourceGit.Models" xmlns:vm="using:SourceGit.ViewModels" xmlns:v="using:SourceGit.Views" xmlns:c="using:SourceGit.Converters" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SourceGit.Views.DiffView" x:DataType="vm:DiffContext" CornerRadius="4" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border2}">
   <Border CornerRadius="4" Background="{DynamicResource Brush.Window}" ClipToBounds="True">
     <Grid RowDefinitions="26,*">
@@ -144,25 +144,7 @@
         <ContentControl.DataTemplates>
           <!-- Binary Diff -->
           <DataTemplate DataType="m:BinaryDiff">
-            <StackPanel Orientation="Vertical" VerticalAlignment="Center">
-              <TextBlock Text="{DynamicResource Text.Diff.Binary}" Margin="0,0,0,32" FontSize="18" FontWeight="Bold" Foreground="{DynamicResource Brush.FG2}" HorizontalAlignment="Center"/>
-              <Path Width="64" Height="64" Data="{StaticResource Icons.Binary}" Fill="{DynamicResource Brush.FG2}"/>
-              <Grid Margin="0,16,0,0" HorizontalAlignment="Center" RowDefinitions="32,32" ColumnDefinitions="Auto,Auto">
-                <Border Grid.Row="0" Grid.Column="0" Height="16" Background="{DynamicResource Brush.Badge}" CornerRadius="8" VerticalAlignment="Center">
-                  <TextBlock Text="{DynamicResource Text.Diff.Old}" Margin="8,0" FontSize="10" Foreground="{DynamicResource Brush.BadgeFG}"/>
-                </Border>
-
-                <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding OldSize, Converter={x:Static c:LongConverters.ToFileSize}}" Foreground="{DynamicResource Brush.FG2}" HorizontalAlignment="Right" FontSize="16" Margin="8,0"/>
-
-                <Border Grid.Row="1" Grid.Column="0" Height="16" Background="Green" CornerRadius="8" VerticalAlignment="Center">
-                  <TextBlock Text="{DynamicResource Text.Diff.New}" Margin="8,0" FontSize="10" Foreground="White"/>
-                </Border>
-
-                <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding NewSize, Converter={x:Static c:LongConverters.ToFileSize}}" Foreground="{DynamicResource Brush.FG2}" HorizontalAlignment="Right" FontSize="16" Margin="8,0"/>
-              </Grid>
-
-              <Button Classes="flat" Margin="0,16,0,0" HorizontalAlignment="Center" Content="{DynamicResource Text.Diff.Binary.ViewContentOfNew}" IsVisible="{Binding NewSize, Mode=OneWay, Converter={x:Static c:LongConverters.IsGreaterThanZero}}" Click="OnOpenBinaryFileViewer"/>
-            </StackPanel>
+            <v:BinaryDiffView/>
           </DataTemplate>
 
           <!-- LFS Diff -->

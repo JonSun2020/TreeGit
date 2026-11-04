@@ -26,11 +26,10 @@ jobs:
       - name: Package
         shell: pwsh
         run: |
-          Compress-Archive -Path "$env:RUNNER_TEMP/TreeGit" -DestinationPath TreeGit-Windows-x64.zip
-          (Get-FileHash TreeGit-Windows-x64.zip -Algorithm SHA256).Hash.ToLower() + '  TreeGit-Windows-x64.zip' | Set-Content -Encoding utf8 SHA256SUMS.txt
+          ./package-treegit.ps1 -Source "$env:RUNNER_TEMP/TreeGit" -Destination .
       - uses: actions/upload-artifact@v4
         with:
           name: TreeGit-Windows-x64
           path: |
-            TreeGit-Windows-x64.zip
+            TreeGit-*-Windows-x64.zip
             SHA256SUMS.txt

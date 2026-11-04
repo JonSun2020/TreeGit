@@ -65,6 +65,9 @@ namespace SourceGit.Models
     {
         public string Repository { get; set; } = string.Empty;
         public string FilePath { get; set; } = string.Empty;
+        public string OldFilePath { get; set; } = string.Empty;
+        // null = worktree, empty = index, otherwise a Git revision.
+        public string OldRevision { get; set; } = "HEAD";
         public string NewRevision { get; set; } = string.Empty;
 
         public long OldSize { get; set; } = 0;

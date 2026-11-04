@@ -123,7 +123,7 @@ namespace SourceGit.Automation
                                 var confirm = w.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "ConfirmRepositorySettings");
                                 var top = confirm?.TranslatePoint(new Point(0, 0), w);
                                 var bottom = confirm?.TranslatePoint(new Point(confirm.Bounds.Width, confirm.Bounds.Height), w);
-                                return new { title = w.Title, type = w.GetType().Name, width = w.Bounds.Width, height = w.Bounds.Height, x = w.Position.X, y = w.Position.Y, scaling = w.RenderScaling,
+                                return new { title = w.Title, type = w.GetType().Name, message = w is Views.Alert ? w.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name == "Message")?.Text : null, width = w.Bounds.Width, height = w.Bounds.Height, x = w.Position.X, y = w.Position.Y, scaling = w.RenderScaling,
                                     workArea = new { x = area?.X, y = area?.Y, width = area?.Width, height = area?.Height },
                                     confirmVisible = top.HasValue && bottom.HasValue && top.Value.Y >= 0 && bottom.Value.Y <= w.Bounds.Height && bottom.Value.X <= w.Bounds.Width };
                             }).ToArray(),
@@ -255,6 +255,19 @@ namespace SourceGit.Automation
                         App.OpenAboutCommand.Execute(null);
                         return (object)new { opened = uiCommand };
                     }
+                    if (uiCommand == "check_updates")
+                    {
+                        App.CheckForUpdateCommand.Execute(null);
+                        return (object)new { opened = uiCommand };
+                    }
+                    if (uiCommand == "external_diff")
+                    {
+                        var diff = lifetime.MainWindow.GetVisualDescendants().OfType<Views.DiffView>()
+                            .FirstOrDefault(v => v.IsEffectivelyVisible)?.DataContext as ViewModels.DiffContext;
+                        if (diff == null) throw new InvalidOperationException("Select a changed file first.");
+                        diff.OpenExternalMergeTool();
+                        return (object)new { opened = uiCommand };
+                    }
                     return null;
                 });
                 if (globalResult != null)
@@ -363,6 +376,49 @@ namespace SourceGit.Automation
                 launcher.ActivePage = page;
                 return found;
             });
+
+            if (name == "ui_diff")
+            {
+                var action = args.TryGetProperty("action", out var a) ? a.GetString() : "state";
+                if (action == "select")
+                    return await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        var file = Text(args, "file");
+                        var source = args.TryGetProperty("source", out var s) ? s.GetString() : "unstaged";
+                        if (source == "history")
+                        {
+                            if (repo.Histories.DetailContext is not ViewModels.CommitDetail detail)
+                                throw new InvalidOperationException("Select a commit first.");
+                            var change = detail.Changes?.FirstOrDefault(c => c.Path == file) ?? throw new ArgumentException("File is not in the selected commit.");
+                            detail.ActiveTabIndex = 1; detail.ChangeSelection = new ViewModels.ChangeSelection(new[] { change });
+                        }
+                        else
+                        {
+                            if (source is not ("staged" or "unstaged")) throw new ArgumentException("Unknown diff source.");
+                            repo.ShowWorkingCopyOverview();
+                            var copy = repo.WorkingCopy;
+                            var change = (source == "staged" ? copy.Staged : copy.Unstaged)?.FirstOrDefault(c => c.Path == file)
+                                ?? throw new ArgumentException("File is not in the selected change list.");
+                            if (source == "staged") copy.SelectedStaged = new ViewModels.ChangeSelection(new[] { change });
+                            else copy.SelectedUnstaged = new ViewModels.ChangeSelection(new[] { change });
+                        }
+                        return (object)new { selected = file, source };
+                    });
+                var view = await Dispatcher.UIThread.InvokeAsync(() =>
+                    ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).Windows.Where(w => w.IsVisible)
+                    .Reverse().SelectMany(w => w.GetVisualDescendants().OfType<Views.BinaryDiffView>()).FirstOrDefault(v => v.IsEffectivelyVisible));
+                if (view == null) return new { status = "not_binary" };
+                if (action is "first" or "last" or "next" or "previous")
+                {
+                    await Dispatcher.UIThread.InvokeAsync(() => view.NavigateAsync(action));
+                }
+                else if (action == "goto")
+                    await Dispatcher.UIThread.InvokeAsync(() => view.GoTo(args.GetProperty("offset").GetInt64()));
+                else if (action == "window")
+                    await Dispatcher.UIThread.InvokeAsync(view.OpenComparisonWindow);
+                else if (action != "state") throw new ArgumentException("Unknown diff action.");
+                return await Dispatcher.UIThread.InvokeAsync(view.Inspect);
+            }
 
             if (name == "ui_working_copy")
                 return await Dispatcher.UIThread.InvokeAsync(() =>

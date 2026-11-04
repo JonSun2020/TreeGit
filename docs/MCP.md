@@ -50,3 +50,6 @@ TreeGit 是一个 **MCP 服务端**。AI 客户端通过 stdio 连接，再由�
 修改完成后界面自动刷新，命令记录进入 TreeGit 日志。认证使用软件现有的仓库账号和正常输入框；服务端不提供读取已保存密码的工具。多个 AI 连接的操作在 GUI 端依次执行。
 
 MCP 的完整读写意味着 AI 可以修改甚至删除 Git 数据。应在 AI 客户端按自己的习惯设置工具审批；TreeGit 不额外限制 `git_run` 的子命令。
+
+`ui_diff`：选中暂存区、工作区或当前提交中的变更文件，并读取二进制对比状态、两侧最多 256 字节可见内容，执行 first / previous / next / last / goto（offset 为绝对字节偏移）。例如：`{"repo":"D:\\repo","action":"select","source":"unstaged","file":"firmware.bin"}`。历史文件先用 ui_select_commit 选中提交，再指定 source=history。
+`ui_command` 还支持 check_updates、external_diff（需要先选择变更文件），与界面对应按钮使用同一处理流程。

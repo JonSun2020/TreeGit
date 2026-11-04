@@ -17,11 +17,13 @@
 - 保留 SourceGit 的克隆、推拉、分支、标签、合并、变基、交互式变基、贮藏、冲突处理、补丁、文件历史、Blame、子模块、Worktree、GitFlow、LFS、Bisect、自定义操作和命令日志等功能。高级操作位于“仓库 → 高级操作”、偏好设置及对应的上下文菜单。
 - 使用 TreeGit 自有图标，帮助/关于注明上游来源及 MCP 支持。
 
-当前正式版为 **2026.23.2（Windows x64）**。后续继续跟随 SourceGit 上游更新，维护独立的界面、便携构建与 MCP 控制。
+当前正式版为 **2026.23.3（Windows x64）**。后续继续跟随 SourceGit 上游更新，维护独立的界面、便携构建与 MCP 控制。
+
+二进制变更提供旧版本 / 新版本左右对比，显示十六进制、ASCII、偏移与差异高亮，支持前后差异跳转及独立窗口。按相同偏移比较，插入 / 删除后的字节不自动重新对齐；图片和 LFS 保留原有专用视图。“使用外部合并程序查看”和手动“检查更新”目前显示“暂未支持”。
 
 ## 下载安装
 
-从 [最新正式版](https://github.com/JonSun2020/TreeGit/releases/latest) 下载 [TreeGit-Windows-x64.zip](https://github.com/JonSun2020/TreeGit/releases/latest/download/TreeGit-Windows-x64.zip)，完整解压后运行 `TreeGit/TreeGit.exe`。校验值见同页的 `SHA256SUMS.txt`。开发构建仍可从 **Actions → TreeGit Windows portable** 下载。
+从 [最新正式版](https://github.com/JonSun2020/TreeGit/releases/latest) 下载 [TreeGit-2026.23.3-Windows-x64.zip](https://github.com/JonSun2020/TreeGit/releases/latest/download/TreeGit-2026.23.3-Windows-x64.zip)，完整解压后运行 `TreeGit/TreeGit.exe`。校验值见同页的 `SHA256SUMS.txt`。开发构建仍可从 **Actions → TreeGit Windows portable** 下载。
 
 - 自带裁剪和压缩后的 .NET 运行时，无需安装 .NET。
 - 主包不重复捆绑完整 Git，默认检测电脑上已有的 Git，与 SourceGit 的使用方式一致。
@@ -60,6 +62,7 @@ SSH 使用 OpenSSH，并支持每个远程独立选择私钥。HTTPS 使用 Open
 git clone https://github.com/JonSun2020/TreeGit.git
 cd TreeGit
 ./build-treegit.ps1 -Destination ./artifacts/TreeGit
+./package-treegit.ps1 -Source ./artifacts/TreeGit -Destination ./artifacts
 ```
 
 该脚本构建压缩、裁剪的自包含单文件程序，并生成 `data/`、许可证、构建信息和 MCP 配置。内部程序集暂保留 `SourceGit` 名称，以兼容资源和上游代码；对外程序名为 `TreeGit.exe`。

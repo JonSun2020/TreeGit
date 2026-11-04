@@ -17,7 +17,7 @@
               BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Brush.Border0}"
               PointerPressed="BeginMoveWindow"/>
 
-      <Path Width="14" Height="14"
+      <Path x:Name="AlertIcon" Width="14" Height="14"
             Margin="10,0,0,0"
             HorizontalAlignment="Left"
             Data="{StaticResource Icons.Error}"

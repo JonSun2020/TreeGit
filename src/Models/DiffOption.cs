@@ -11,6 +11,10 @@ namespace SourceGit.Models
         public List<string> Revisions => _revisions;
         public string Path => _path;
         public string OrgPath => _orgPath;
+        public string BinaryOldRevision { get; }
+        public string BinaryNewRevision { get; }
+        public string BinaryOldPath => _binaryOldPath ?? (string.IsNullOrEmpty(_orgPath) ? _path : _orgPath);
+        public string BinaryNewPath => _binaryNewPath ?? _path;
 
         /// <summary>
         ///     Only used for working copy changes
@@ -22,6 +26,8 @@ namespace SourceGit.Models
             _isUnstaged = isUnstaged;
             _path = change.Path;
             _orgPath = change.OriginalPath;
+            BinaryOldRevision = isUnstaged ? string.Empty : change.DataForAmend?.ParentSHA ?? "HEAD";
+            BinaryNewRevision = isUnstaged ? null : string.Empty;
 
             if (isUnstaged)
             {
@@ -33,6 +39,7 @@ namespace SourceGit.Models
                         _orgPath = "/dev/null";
                         break;
                 }
+                _binaryOldPath = change.WorkTree == ChangeState.Renamed ? change.OriginalPath : _orgPath == "/dev/null" ? "/dev/null" : change.Path;
             }
             else
             {
@@ -50,6 +57,8 @@ namespace SourceGit.Models
         /// <param name="change"></param>
         public DiffOption(Commit commit, Change change)
         {
+            BinaryOldRevision = commit.FirstParentToCompare;
+            BinaryNewRevision = commit.SHA;
             _revisions.Add(commit.FirstParentToCompare);
             _revisions.Add(commit.SHA);
             _path = change.Path;
@@ -62,6 +71,9 @@ namespace SourceGit.Models
         /// <param name="ver"></param>
         public DiffOption(FileVersion ver)
         {
+            BinaryOldRevision = ver.HasParent ? $"{ver.SHA}^" : EmptyTreeHash.Guess(ver.SHA);
+            BinaryNewRevision = ver.SHA;
+            _binaryOldPath = string.IsNullOrEmpty(ver.OriginalPath) ? ver.Path : ver.OriginalPath;
             if (string.IsNullOrEmpty(ver.OriginalPath))
             {
                 _revisions.Add(ver.HasParent ? $"{ver.SHA}^" : EmptyTreeHash.Guess(ver.SHA));
@@ -85,6 +97,10 @@ namespace SourceGit.Models
         /// <param name="end"></param>
         public DiffOption(FileVersion start, FileVersion end)
         {
+            BinaryOldRevision = start.Change.Index == ChangeState.Deleted ? EmptyTreeHash.Guess(end.SHA) : start.SHA;
+            BinaryNewRevision = end.Change.Index == ChangeState.Deleted ? EmptyTreeHash.Guess(start.SHA) : end.SHA;
+            _binaryOldPath = start.Path;
+            _binaryNewPath = end.Path;
             if (start.Change.Index == ChangeState.Deleted)
             {
                 _revisions.Add(EmptyTreeHash.Guess(end.SHA));
@@ -121,6 +137,8 @@ namespace SourceGit.Models
         /// <param name="change"></param>
         public DiffOption(string baseRevision, string targetRevision, Change change)
         {
+            BinaryOldRevision = string.IsNullOrEmpty(baseRevision) ? null : baseRevision;
+            BinaryNewRevision = string.IsNullOrEmpty(targetRevision) ? null : targetRevision;
             _revisions.Add(string.IsNullOrEmpty(baseRevision) ? "-R" : baseRevision);
             _revisions.Add(targetRevision);
             _path = change.Path;
@@ -155,5 +173,7 @@ namespace SourceGit.Models
         private readonly string _extra = string.Empty;
         private readonly List<string> _revisions = [];
         private readonly bool _ignorePaths = false;
+        private readonly string _binaryOldPath;
+        private readonly string _binaryNewPath;
     }
 }

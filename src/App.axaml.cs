@@ -573,6 +573,12 @@ namespace SourceGit
         #region Check for Updates
         private void Check4Update(bool manually = false)
         {
+            if (manually)
+            {
+                ShowNotSupported();
+                return;
+            }
+
             if (_launcher != null)
                 _launcher.NewVersion = null;
 
@@ -631,6 +637,15 @@ namespace SourceGit
             {
                 // Ignore exceptions.
             }
+        }
+
+        public static void ShowNotSupported()
+        {
+            Dispatcher.UIThread.Post(async () =>
+            {
+                if (Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: { } owner })
+                    await new Views.Alert().ShowAsync(owner, "暂未支持", false);
+            });
         }
         #endregion
 

@@ -1,0 +1,150 @@
+"""Exercise the shipped GUI's binary snapshots, navigation and information dialogs."""
+import base64
+import json
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+
+exe = Path(sys.argv[1]).resolve()
+out = Path(sys.argv[2]).resolve(); out.mkdir(parents=True, exist_ok=True)
+repo = Path(tempfile.mkdtemp(prefix='TreeGit binary 中文 '))
+checks = []
+snapshot_baseline = set(Path(tempfile.gettempdir()).glob('TreeGit-binary-*'))
+
+def git(*args):
+    p = subprocess.run([shutil.which('git'), *args], cwd=repo, capture_output=True, text=True, encoding='utf-8')
+    assert not p.returncode, p.stderr
+    return p.stdout.strip()
+
+git('init', '-b', 'main'); git('config', 'user.name', 'TreeGit QA'); git('config', 'user.email', 'qa@example.invalid')
+name = "固件 old's version.bin"
+original = bytes(range(256)) * 512
+(repo/name).write_bytes(original); git('add', '.'); git('commit', '-m', 'Initial binary')
+initial = git('rev-parse', 'HEAD')
+staged = bytearray(original); staged[23] ^= 0x40
+(repo/name).write_bytes(staged); git('add', '.')
+working = bytearray(staged); working[17] ^= 0x40; working[65533:65540] = b'abcdefg'; working.extend(b'\x00\xac\xff')
+(repo/name).write_bytes(working)
+p = subprocess.Popen([str(exe), '--mcp'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', creationflags=subprocess.CREATE_NO_WINDOW)
+seq = 0
+
+def rpc(method, params={}):
+    global seq
+    seq += 1; p.stdin.write(json.dumps({'jsonrpc':'2.0','id':seq,'method':method,'params':params})+'\n'); p.stdin.flush()
+    response = json.loads(p.stdout.readline()); assert 'error' not in response, response
+    return response['result']
+
+def tool(name, args={}):
+    result = rpc('tools/call', {'name':name,'arguments':args}); assert not result.get('isError'), result
+    return base64.b64decode(result['content'][0]['data']) if name == 'ui_screenshot' else json.loads(result['content'][0]['text'])
+
+def diff(action='state', **args):
+    return tool('ui_diff', {'repo':str(repo), 'action':action, **args})
+
+def check(label, condition):
+    assert condition, label
+    checks.append(label); print('PASS', label, flush=True)
+
+def select(file=name, source='unstaged', revision=None):
+    for _ in range(100):
+        try: diff('select', file=file, source=source); break
+        except AssertionError: time.sleep(.1)
+    else: raise AssertionError('Change list did not load')
+    for _ in range(200):
+        state = diff()
+        expected_revision = '' if source == 'staged' else None if source == 'unstaged' else revision
+        if state['status'] == 'ready' and state['file'] == file and state['newRevision'] == expected_revision: return state
+        if state['status'] == 'error': raise AssertionError(state)
+        time.sleep(.1)
+    raise AssertionError('Binary comparison did not load')
+
+def refresh():
+    tool('ui_refresh', {'repo':str(repo)}); time.sleep(.8)
+
+rpc('initialize', {'protocolVersion':'2025-11-25'})
+tool('ui_open_repository', {'repo':str(repo)})
+tool('ui_window', {'width':1440, 'height':900, 'theme':'SourceTree'})
+state = select()
+expected = sum(a != b for a, b in zip(staged, working)) + len(working)-len(staged)
+check('unstaged binary compares against index, including changes across a 64 KiB boundary and append', state['differentBytes'] == expected and state['oldSize'] == len(staged) and state['newSize'] == len(working))
+check('binary comparison automatically selects the first difference', state['selectedOffset'] == 17)
+state = diff('next'); check('next difference navigates across page boundary', state['selectedOffset'] == 65533)
+state = diff('next'); check('next difference reaches appended bytes', state['selectedOffset'] == len(staged))
+state = diff('previous'); check('previous difference reaches the end of the preceding range', state['selectedOffset'] == 65539)
+state = diff('last'); check('last difference selects the final added byte', state['selectedOffset'] == len(working)-1)
+state = diff('goto', offset=16)
+check('address jump reads the two matching snapshot offsets', bytes.fromhex(state['oldHex']) == staged[state['topOffset']:state['topOffset']+256] and bytes.fromhex(state['newHex']) == working[state['topOffset']:state['topOffset']+256])
+(out/'binary-side-by-side.png').write_bytes(tool('ui_screenshot'))
+tool('ui_window', {'width':1024, 'height':720}); time.sleep(.3)
+(out/'binary-narrow.png').write_bytes(tool('ui_screenshot'))
+check('narrow viewport adapts bytes per row', diff()['bytesPerRow'] in (4, 8))
+tool('ui_window', {'theme':'Dark'}); time.sleep(.3)
+(out/'binary-dark.png').write_bytes(tool('ui_screenshot'))
+tool('ui_window', {'width':1440, 'height':900, 'theme':'SourceTree'})
+
+diff('window')
+for _ in range(200):
+    state = diff()
+    if state['status'] == 'ready' and state['bytesPerRow'] == 16: break
+    time.sleep(.1)
+check('independent comparison has two full-width panes and the same content', state['status'] == 'ready' and state['bytesPerRow'] == 16 and state['differentBytes'] == expected)
+(out/'binary-independent.png').write_bytes(tool('ui_screenshot', {'window':'active'}))
+tool('ui_command', {'command':'close_dialog'})
+
+for command in ['external_diff', 'check_updates']:
+    tool('ui_command', {'command':command})
+    for _ in range(60):
+        dialogs = tool('ui_state')['dialogs']
+        if dialogs: break
+        time.sleep(.1)
+    check(command+' uses a normal unsupported information dialog', len(dialogs) == 1 and dialogs[0]['type'] == 'Alert' and dialogs[0]['message'] == '暂未支持')
+    (out/(command+'.png')).write_bytes(tool('ui_screenshot', {'window':'active'}))
+    tool('ui_command', {'command':'close_dialog'})
+
+state = select(source='staged')
+check('staged binary compares HEAD against index', state['differentBytes'] == 1 and state['selectedOffset'] == 23)
+git('commit', '-m', 'Staged byte change')
+git('add', '.'); git('commit', '-m', 'Working binary changes')
+renamed = '固件 new name.bin'; git('mv', name, renamed)
+renamed_content = bytearray(working); renamed_content[29] ^= 0x80; (repo/renamed).write_bytes(renamed_content)
+git('add', '.'); git('commit', '-m', 'Rename and update binary')
+rename_commit = git('rev-parse', 'HEAD')
+changed = bytearray(renamed_content); changed[35] ^= 0x80; (repo/renamed).write_bytes(changed); git('add', '.'); git('commit', '-m', 'Binary revision')
+revision = git('rev-parse', 'HEAD'); refresh()
+tool('ui_select_commit', {'repo':str(repo), 'revision':revision}); time.sleep(.6)
+state = select(renamed, 'history', revision)
+check('committed binary compares its two revisions', state['differentBytes'] == 1 and state['selectedOffset'] == 35)
+tool('ui_select_commit', {'repo':str(repo), 'revision':rename_commit}); time.sleep(.6)
+state = select(renamed, 'history', rename_commit)
+check('renamed binary loads the original path from its parent revision', state['differentBytes'] == 1 and state['selectedOffset'] == 29 and state['oldSize'] == state['newSize'] == len(working))
+tool('ui_select_commit', {'repo':str(repo), 'revision':initial}); time.sleep(.6)
+state = select(name, 'history', initial)
+check('initial commit compares an absent file against the committed binary', state['oldSize'] == 0 and state['newSize'] == len(original) and state['differentBytes'] == len(original))
+
+second = '二次重命名.bin'; git('mv', renamed, second)
+modified = bytearray(changed); modified[41] ^= 0x40; (repo/second).write_bytes(modified); refresh()
+state = select(second)
+check('staged rename with additional worktree changes uses the new index path', state['differentBytes'] == 1 and state['selectedOffset'] == 41)
+git('add', '.'); git('commit', '-m', 'Rename and modify'); (repo/second).unlink(); refresh()
+state = select(second)
+check('deleted binary retains the complete old side', state['oldSize'] == len(modified) and state['newSize'] == 0 and state['differentBytes'] == len(modified))
+git('restore', second)
+added = '新添加.bin'; (repo/added).write_bytes(b'\x00\x01\x02\xff'); refresh()
+state = select(added)
+check('untracked binary has an absent old side', state['oldSize'] == 0 and state['newSize'] == 4 and state['differentBytes'] == 4)
+git('add', '.'); (repo/added).write_bytes(b''); refresh()
+state = select(added)
+check('empty worktree binary compares against its index content', state['oldSize'] == 4 and state['newSize'] == 0 and state['differentBytes'] == 4)
+tool('ui_select_view', {'repo':str(repo), 'view':'history'})
+time.sleep(.3)
+for _ in range(50):
+    leaked = set(Path(tempfile.gettempdir()).glob('TreeGit-binary-*')) - snapshot_baseline
+    if not leaked: break
+    time.sleep(.1)
+check('changing away from binary views cleans all comparison snapshots', not leaked)
+p.stdin.close(); p.wait(timeout=10)
+(out/'binary-results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'repo':str(repo),'exe':str(exe)},ensure_ascii=False,indent=2),encoding='utf-8')
+print('PASSED',len(checks))
