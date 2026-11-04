@@ -138,7 +138,6 @@ namespace SourceGit.Views
                 {
                     Header = new TextBlock { Text = name, MaxWidth = 350, TextTrimming = TextTrimming.CharacterEllipsis, FontWeight = selected ? FontWeight.Bold : FontWeight.Normal },
                     Icon = this.CreateMenuIcon(selected ? "Icons.Check" : "Icons.Repositories"),
-                    Tag = page,
                 };
                 ToolTip.SetTip(item, page.Data is ViewModels.Repository repo ? repo.FullPath : name);
                 item.Click += (_, e) => { ActivateTab(page); e.Handled = true; };
