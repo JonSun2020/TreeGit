@@ -32,7 +32,7 @@ namespace SourceGit.Automation
                 name,
                 description,
                 inputSchema = new { type = "object", properties, required = required ?? [], additionalProperties = false },
-                annotations = new { readOnlyHint = ReadTools.Contains(name), destructiveHint = name is "git_action" or "git_run", idempotentHint = name is not ("git_action" or "git_clone" or "git_run"), openWorldHint = name is "git_action" or "git_clone" or "git_run" },
+                annotations = new { readOnlyHint = ReadTools.Contains(name), destructiveHint = name is "git_action" or "git_run", idempotentHint = name is not ("git_action" or "git_clone" or "git_run" or "ui_command" or "ui_tabs"), openWorldHint = name is "git_action" or "git_clone" or "git_run" },
             };
 
         private static object[] Tools(bool allowWrite)

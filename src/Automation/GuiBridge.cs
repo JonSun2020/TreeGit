@@ -196,7 +196,7 @@ namespace SourceGit.Automation
                         else launcher.CloseTab(page);
                     }
                     else if (action != "list") throw new ArgumentException("Unknown tab action.");
-                    return (object)launcher.Pages.Select((page, index) => new { index, title = page.Node.IsRepository ? page.Node.Name : "TreeGit", repo = (page.Data as ViewModels.Repository)?.FullPath, selected = page == launcher.ActivePage }).ToArray();
+                    return (object)new { tabs = launcher.Pages.Select((page, index) => new { index, title = page.Node.IsRepository ? page.Node.Name : "TreeGit", repo = (page.Data as ViewModels.Repository)?.FullPath, selected = page == launcher.ActivePage }).ToArray() };
                 });
 
             if (name == "ui_command")
