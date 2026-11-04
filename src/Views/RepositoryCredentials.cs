@@ -13,6 +13,9 @@ namespace SourceGit.Views
             Width = 520;
             SizeToContent = SizeToContent.Height;
             CanResize = false;
+            Topmost = true;
+            ShowActivated = true;
+            Opened += (_, _) => Activate();
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             var panel = new StackPanel { Margin = new Thickness(24), Spacing = 12 };
             panel.Children.Add(new TextBlock { Text = "仓库认证", FontSize = 20 });

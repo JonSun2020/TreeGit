@@ -10,6 +10,8 @@
                     Title="{DynamicResource Text.Askpass}"
                     SizeToContent="WidthAndHeight"
                     CanResize="False"
+                    Topmost="True"
+                    ShowActivated="True"
                     WindowStartupLocation="CenterScreen">
   <Grid RowDefinitions="Auto,*">
     <!-- TitleBar -->

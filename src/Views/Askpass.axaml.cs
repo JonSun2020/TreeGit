@@ -17,6 +17,7 @@ namespace SourceGit.Views
         protected override void OnLoaded(RoutedEventArgs e)
         {
             base.OnLoaded(e);
+            Activate();
             TxtPassphrase.Focus(NavigationMethod.Directional);
 #if INTEGRATION_TESTS
             Tests.AskpassProbe.OnLoaded(this, () => EnterPassword(null, null));

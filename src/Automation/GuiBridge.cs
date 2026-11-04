@@ -123,7 +123,7 @@ namespace SourceGit.Automation
                                 var confirm = w.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "ConfirmRepositorySettings");
                                 var top = confirm?.TranslatePoint(new Point(0, 0), w);
                                 var bottom = confirm?.TranslatePoint(new Point(confirm.Bounds.Width, confirm.Bounds.Height), w);
-                                return new { title = w.Title, type = w.GetType().Name, message = w is Views.Alert ? w.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name == "Message")?.Text : null, width = w.Bounds.Width, height = w.Bounds.Height, x = w.Position.X, y = w.Position.Y, scaling = w.RenderScaling,
+                                return new { title = w.Title, type = w.GetType().Name, topmost = w.Topmost, message = w is Views.Alert ? w.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name == "Message")?.Text : null, width = w.Bounds.Width, height = w.Bounds.Height, x = w.Position.X, y = w.Position.Y, scaling = w.RenderScaling,
                                     workArea = new { x = area?.X, y = area?.Y, width = area?.Width, height = area?.Height },
                                     confirmVisible = top.HasValue && bottom.HasValue && top.Value.Y >= 0 && bottom.Value.Y <= w.Bounds.Height && bottom.Value.X <= w.Bounds.Width };
                             }).ToArray(),
