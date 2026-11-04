@@ -68,15 +68,15 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            _repo.ClearCommitMessage();
             ProgressDescription = "Cherry-Pick commit(s) ...";
 
             var log = _repo.CreateLog("Cherry-Pick");
             Use(log);
 
+            bool success;
             if (IsMergeCommit)
             {
-                await new Commands.CherryPick(
+                success = await new Commands.CherryPick(
                     _repo.FullPath,
                     Targets[0].SHA,
                     !AutoCommit,
@@ -87,7 +87,7 @@ namespace SourceGit.ViewModels
             }
             else
             {
-                await new Commands.CherryPick(
+                success = await new Commands.CherryPick(
                     _repo.FullPath,
                     string.Join(' ', Targets.ConvertAll(c => c.SHA)),
                     !AutoCommit,
@@ -96,7 +96,7 @@ namespace SourceGit.ViewModels
                     .Use(log)
                     .ExecAsync();
 
-                if (!AutoCommit && Targets.Count > 1)
+                if (success && !AutoCommit && Targets.Count > 1)
                 {
                     var builder = new StringBuilder();
                     foreach (var t in Targets)
@@ -109,6 +109,8 @@ namespace SourceGit.ViewModels
                     File.WriteAllText(Path.Combine(_repo.GitDir, "MERGE_MSG"), builder.ToString());
                 }
             }
+
+            if (success) _repo.ClearCommitMessage();
 
             log.Complete();
             return true;

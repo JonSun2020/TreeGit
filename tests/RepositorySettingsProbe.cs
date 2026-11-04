@@ -67,18 +67,33 @@ namespace SourceGit.Tests
                             case "native_merge":
                             case "native_revert":
                             case "native_cherry_pick":
+                            case "native_rebase":
                                 var targets = data.GetProperty("targets").EnumerateArray().Select((v, i) => new Models.Commit { SHA = v.GetString(), Subject = "Native fixture " + i }).ToList();
                                 repo.WorkingCopy.CommitMessage = data.GetProperty("draft").GetString();
                                 ViewModels.Popup popup = operation.GetString() switch
                                 {
                                     "native_merge" => new ViewModels.Merge(repo, targets[0], "main"),
                                     "native_revert" => new ViewModels.Revert(repo, targets[0]),
+                                    "native_rebase" => new ViewModels.Rebase(repo, repo.CurrentBranch ?? (await new Commands.QueryBranches(repo.FullPath).GetResultAsync()).First(b => b.Name == "main"), targets[0]) { AutoStash = false },
                                     _ => new ViewModels.CherryPick(repo, targets) { AutoCommit = false },
                                 };
                                 await popup.Sure(); popup.Cleanup(); repo.RefreshAll(); await Task.Delay(600);
                                 operationDetails = new { draft = repo.WorkingCopy.CommitMessage, log = repo.Logs.FirstOrDefault()?.Content, messageFileExists = File.Exists(Path.Combine(repo.GitDir, "MERGE_MSG")) };
                                 operationResult = true; break;
                             case "cleanup": operationResult = await new ViewModels.Cleanup(repo).Sure(); break;
+                            case "native_abort":
+                                for (var attempt = 0; attempt < 100 && repo.WorkingCopy.InProgressContext == null; attempt++) { repo.RefreshAll(); await Task.Delay(50); }
+                                if (repo.WorkingCopy.InProgressContext == null) throw new InvalidOperationException("No native operation context loaded");
+                                repo.WorkingCopy.CommitMessage = data.GetProperty("draft").GetString();
+                                if (!data.TryGetProperty("lock", out var takeLock) || takeLock.GetBoolean())
+                                {
+                                    using var indexLock = new FileStream(Path.Combine(repo.GitDir, "index.lock"), FileMode.CreateNew, FileAccess.Write, FileShare.Read, 1, FileOptions.DeleteOnClose);
+                                    await repo.WorkingCopy.AbortMergeAsync();
+                                }
+                                else await repo.WorkingCopy.AbortMergeAsync();
+                                repo.RefreshAll(); await Task.Delay(600);
+                                operationDetails = new { draft = repo.WorkingCopy.CommitMessage, log = repo.Logs.FirstOrDefault()?.Content, busy = repo.WorkingCopy.IsCommitting };
+                                operationResult = true; break;
                             case "stage": await repo.WorkingCopy.StageChangesAsync(changes, null); operationResult = true; break;
                             case "unstage": await repo.WorkingCopy.UnstageChangesAsync(changes, null); operationResult = true; break;
                             case "ours": await repo.WorkingCopy.UseMineAsync(changes); operationResult = true; break;

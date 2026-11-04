@@ -25,15 +25,16 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            _repo.ClearCommitMessage();
             ProgressDescription = $"Revert commit '{Target.SHA}' ...";
 
             var log = _repo.CreateLog($"Revert '{Target.SHA}'");
             Use(log);
 
-            await new Commands.Revert(_repo.FullPath, Target.SHA, AutoCommit)
+            var success = await new Commands.Revert(_repo.FullPath, Target.SHA, AutoCommit)
                 .Use(log)
                 .ExecAsync();
+
+            if (success) _repo.ClearCommitMessage();
 
             log.Complete();
             return true;

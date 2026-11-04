@@ -70,15 +70,16 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            _repo.ClearCommitMessage();
             ProgressDescription = "Rebasing ...";
 
             var log = _repo.CreateLog("Rebase");
             Use(log);
 
-            await new Commands.Rebase(_repo.FullPath, _revision, AutoStash, NoVerify)
+            var success = await new Commands.Rebase(_repo.FullPath, _revision, AutoStash, NoVerify)
                 .Use(log)
                 .ExecAsync();
+
+            if (success) _repo.ClearCommitMessage();
 
             log.Complete();
             return true;

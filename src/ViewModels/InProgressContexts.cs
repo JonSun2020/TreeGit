@@ -11,24 +11,21 @@ namespace SourceGit.ViewModels
             protected set;
         }
 
-        public async Task ContinueAsync(CommandLog log)
+        public async Task<bool> ContinueAsync(CommandLog log)
         {
-            if (_continueCmd != null)
-                await _continueCmd.Use(log).ExecAsync();
+            return _continueCmd != null && await _continueCmd.Use(log).ExecAsync();
         }
 
-        public async Task SkipAsync(CommandLog log)
+        public async Task<bool> SkipAsync(CommandLog log)
         {
-            if (_skipCmd != null)
-                await _skipCmd.Use(log).ExecAsync();
+            return _skipCmd != null && await _skipCmd.Use(log).ExecAsync();
         }
 
-        public async Task AbortAsync(CommandLog log)
+        public async Task<bool> AbortAsync(CommandLog log)
         {
-            if (_abortCmd != null)
-                await _abortCmd.Use(log).ExecAsync();
-
-            OnAborted();
+            var success = _abortCmd != null && await _abortCmd.Use(log).ExecAsync();
+            if (success) OnAborted();
+            return success;
         }
 
         protected virtual void OnAborted()
@@ -131,7 +128,6 @@ namespace SourceGit.ViewModels
                 WorkingDirectory = repo.FullPath,
                 Context = repo.FullPath,
                 Args = "rebase --abort",
-                RaiseError = false,
             };
 
             HeadName = File.ReadAllText(Path.Combine(repo.GitDir, "rebase-merge", "head-name")).Trim();

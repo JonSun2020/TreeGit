@@ -40,10 +40,10 @@ def check(name,condition):
     if not condition:failures.append(name)
 try:
     rpc('initialize',{'protocolVersion':'2025-11-25'});tool('ui_open_repository',{'repo':str(repo)});pid=tool('ui_state')['processId']
-    for operation,revisions in [('merge',[targets[-1]]),('revert',[revert]),('cherry_pick',targets)]:
+    for operation,revisions in [('merge',[targets[-1]]),('revert',[revert]),('cherry_pick',targets),('rebase',[targets[-1]])]:
         before_head=git('rev-parse','HEAD');before_index=git('write-tree');before_bytes=file.read_bytes();draft='Do not lose my draft\n未提交的工作说明'
         reference=root/('reference-'+operation);shutil.copytree(repo,reference)
-        args=['merge','--no-edit',*revisions] if operation=='merge' else ['revert','--no-edit',*revisions] if operation=='revert' else ['cherry-pick','--no-commit','-x',*revisions]
+        args=['merge','--no-edit',*revisions] if operation=='merge' else ['revert','--no-edit',*revisions] if operation=='revert' else ['rebase','--no-autostash',*revisions] if operation=='rebase' else ['cherry-pick','--no-commit','-x',*revisions]
         direct=subprocess.run(['git','-C',str(reference),*args],env=env,capture_output=True)
         assert direct.returncode!=0,direct.stdout+direct.stderr
         reference_message=(reference/'.git/MERGE_MSG').exists()

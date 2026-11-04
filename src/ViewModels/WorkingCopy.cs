@@ -559,67 +559,34 @@ namespace SourceGit.ViewModels
             new Commands.DiffTool(_repo.FullPath, new Models.DiffOption(change, isUnstaged)).Open();
         }
 
-        public async Task ContinueMergeAsync()
-        {
-            if (_inProgressContext != null)
-            {
-                using var lockWatcher = _repo.LockWatcher();
-                IsCommitting = true;
+        public Task ContinueMergeAsync() => ProcessInProgressAsync("Continue", (context, log) => context.ContinueAsync(log), true);
 
+        public Task SkipMergeAsync() => ProcessInProgressAsync("Skip", (context, log) => context.SkipAsync(log));
+
+        public Task AbortMergeAsync() => ProcessInProgressAsync("Abort", (context, log) => context.AbortAsync(log));
+
+        private async Task ProcessInProgressAsync(string operation, Func<InProgressContext, CommandLog, Task<bool>> execute, bool writeMessage = false)
+        {
+            var context = _inProgressContext;
+            if (context == null)
+            {
+                _repo.MarkWorkingCopyDirtyManually();
+                return;
+            }
+            using var lockWatcher = _repo.LockWatcher();
+            IsCommitting = true;
+            var log = _repo.CreateLog($"{operation} {context.Name}");
+            try
+            {
                 var mergeMsgFile = Path.Combine(_repo.GitDir, "MERGE_MSG");
-                if (File.Exists(mergeMsgFile) && !string.IsNullOrWhiteSpace(_commitMessage))
+                if (writeMessage && File.Exists(mergeMsgFile) && !string.IsNullOrWhiteSpace(_commitMessage))
                     await File.WriteAllTextAsync(mergeMsgFile, _commitMessage);
-
-                var log = _repo.CreateLog($"Continue {_inProgressContext.Name}");
-                await _inProgressContext.ContinueAsync(log);
+                if (await execute(context, log)) CommitMessage = string.Empty;
+            }
+            finally
+            {
                 log.Complete();
-
-                CommitMessage = string.Empty;
                 IsCommitting = false;
-            }
-            else
-            {
-                _repo.MarkWorkingCopyDirtyManually();
-            }
-        }
-
-        public async Task SkipMergeAsync()
-        {
-            if (_inProgressContext != null)
-            {
-                using var lockWatcher = _repo.LockWatcher();
-                IsCommitting = true;
-
-                var log = _repo.CreateLog($"Skip {_inProgressContext.Name}");
-                await _inProgressContext.SkipAsync(log);
-                log.Complete();
-
-                CommitMessage = string.Empty;
-                IsCommitting = false;
-            }
-            else
-            {
-                _repo.MarkWorkingCopyDirtyManually();
-            }
-        }
-
-        public async Task AbortMergeAsync()
-        {
-            if (_inProgressContext != null)
-            {
-                using var lockWatcher = _repo.LockWatcher();
-                IsCommitting = true;
-
-                var log = _repo.CreateLog($"Abort {_inProgressContext.Name}");
-                await _inProgressContext.AbortAsync(log);
-                log.Complete();
-
-                CommitMessage = string.Empty;
-                IsCommitting = false;
-            }
-            else
-            {
-                _repo.MarkWorkingCopyDirtyManually();
             }
         }
 
@@ -844,8 +811,9 @@ namespace SourceGit.ViewModels
 
         private void SetAutoLoadedCommitMessage(string msg)
         {
+            var preserveDraft = !string.IsNullOrEmpty(_commitMessage) && !IsAutoLoadedCommitMessage();
             _autoLoadedCommitMessage = msg;
-            CommitMessage = msg;
+            if (!preserveDraft) CommitMessage = msg;
         }
 
         private bool IsAutoLoadedCommitMessage()

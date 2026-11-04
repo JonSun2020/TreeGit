@@ -93,7 +93,6 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            _repo.ClearCommitMessage();
             ProgressDescription = $"Merging '{_sourceName}' into '{Into}' ...";
 
             var log = _repo.CreateLog($"Merging '{_sourceName}' into '{Into}'");
@@ -105,6 +104,7 @@ namespace SourceGit.ViewModels
 
             if (succ)
             {
+                _repo.ClearCommitMessage();
                 var squashMsgFile = Path.Combine(_repo.GitDir, "SQUASH_MSG");
                 if (Mode == Models.MergeMode.Squash && File.Exists(squashMsgFile))
                 {
@@ -142,7 +142,7 @@ namespace SourceGit.ViewModels
                 return mode;
 
             var preferredMergeModeIdx = _repo.Settings.PreferredMergeMode;
-            if (preferredMergeModeIdx < 0 || preferredMergeModeIdx > Models.MergeMode.Supported.Length)
+            if (preferredMergeModeIdx < 0 || preferredMergeModeIdx >= Models.MergeMode.Supported.Length)
                 return Models.MergeMode.Default;
 
             return Models.MergeMode.Supported[preferredMergeModeIdx];

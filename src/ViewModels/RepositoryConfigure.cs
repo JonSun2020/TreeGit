@@ -132,7 +132,7 @@ namespace SourceGit.ViewModels
                 Remotes.Add(remote.Name);
 
             DefaultRemote = repo.Settings.DefaultRemote;
-            PreferredMergeMode = repo.Settings.PreferredMergeMode;
+            PreferredMergeMode = repo.Settings.PreferredMergeMode >= 0 && repo.Settings.PreferredMergeMode < Models.MergeMode.Supported.Length ? repo.Settings.PreferredMergeMode : 0;
             AskBeforeAutoUpdatingSubmodules = repo.Settings.AskBeforeAutoUpdatingSubmodules;
             EnableRecursiveWhenAutoUpdatingSubmodules = repo.Settings.EnableRecursiveWhenAutoUpdatingSubmodules;
             AutoRefreshEnabled = repo.Settings.AutoRefreshEnabled;
