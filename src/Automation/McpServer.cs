@@ -21,7 +21,7 @@ namespace SourceGit.Automation
         internal static readonly HashSet<string> ReadTools = new(StringComparer.Ordinal)
         { "ui_state", "ui_screenshot", "git_status", "git_log", "git_diff", "git_refs", "git_show" };
         internal static readonly HashSet<string> UiTools = new(StringComparer.Ordinal)
-        { "ui_open_repository", "ui_select_view", "ui_select_commit", "ui_refresh", "ui_window", "ui_command", "ui_search", "ui_graph", "ui_history_columns", "ui_working_copy" };
+        { "ui_open_repository", "ui_select_view", "ui_select_commit", "ui_refresh", "ui_window", "ui_command", "ui_tabs", "ui_search", "ui_graph", "ui_history_columns", "ui_working_copy" };
 
         private static object Field(string description, string type = "string", string[] values = null)
             => values == null ? new { type, description } : (object)new { type, description, @enum = values };
@@ -41,6 +41,7 @@ namespace SourceGit.Automation
             var tools = new List<object>
             {
                 Tool("ui_state", "Inspect the running TreeGit application's repository tabs, selected view, branch and pending dialog.", []),
+                Tool("ui_tabs", "List open tabs, open their dropdown, select a tab or close it. Index is zero-based.", new() { ["action"] = Field("Tab action.", values: ["list", "dropdown", "select", "close"]), ["index"] = Field("Tab index; required for select and close.", "integer") }, ["action"]),
                 Tool("ui_screenshot", "Capture the running TreeGit window or its open dialog as a PNG image.", new() { ["window"] = Field("Window to capture (default main).", values: ["main", "active"]) }),
                 Tool("ui_open_repository", "Open or activate a local Git repository in the TreeGit GUI. Does not initialize a repository.", new() { ["repo"] = repo }, ["repo"]),
                 Tool("ui_select_view", "Select history, working copy or stashes in the TreeGit GUI.", new() { ["repo"] = repo, ["view"] = Field("View to display.", values: ["history", "working_copy", "stashes", "search"]) }, ["repo", "view"]),

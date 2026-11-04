@@ -3,10 +3,12 @@ using System.IO;
 
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.Threading;
 
 namespace SourceGit.Views
 {
@@ -107,6 +109,51 @@ namespace SourceGit.Views
         private void ScrollTabsRight(object _, RoutedEventArgs e)
         {
             LauncherTabsScroller.Offset += _scrollStep;
+            e.Handled = true;
+        }
+
+        public ContextMenu TabListMenu { get; private set; }
+
+        public void ActivateTab(ViewModels.LauncherPage page)
+        {
+            if (DataContext is ViewModels.Launcher launcher && launcher.Pages.Contains(page))
+            {
+                launcher.ActivePage = page;
+                LauncherTabsList.ScrollIntoView(page);
+                TabListMenu?.Close();
+            }
+        }
+
+        public void OpenTabList()
+        {
+            if (DataContext is not ViewModels.Launcher launcher) return;
+            TabListMenu?.Close();
+            var menu = new ContextMenu { Placement = PlacementMode.BottomEdgeAlignedRight, MinWidth = 240, MaxWidth = 420, MaxHeight = 420 };
+            MenuItem active = null;
+            foreach (var page in launcher.Pages)
+            {
+                var selected = page == launcher.ActivePage;
+                var name = page.Node.IsRepository ? page.Node.Name : "TreeGit";
+                var item = new MenuItem
+                {
+                    Header = new TextBlock { Text = name, MaxWidth = 350, TextTrimming = TextTrimming.CharacterEllipsis, FontWeight = selected ? FontWeight.Bold : FontWeight.Normal },
+                    Icon = this.CreateMenuIcon(selected ? "Icons.Check" : "Icons.Repositories"),
+                    Tag = page,
+                };
+                ToolTip.SetTip(item, page.Data is ViewModels.Repository repo ? repo.FullPath : name);
+                item.Click += (_, e) => { ActivateTab(page); e.Handled = true; };
+                menu.Items.Add(item);
+                if (selected) active = item;
+            }
+            menu.Opened += (_, _) => Dispatcher.UIThread.Post(() => active?.BringIntoView(), DispatcherPriority.Background);
+            menu.Closed += (_, _) => { if (TabListMenu == menu) TabListMenu = null; };
+            TabListMenu = menu;
+            menu.Open(IsScrollButtonVisible ? OverflowTabListButton : NormalTabListButton);
+        }
+
+        private void OnOpenTabList(object _, RoutedEventArgs e)
+        {
+            OpenTabList();
             e.Handled = true;
         }
 

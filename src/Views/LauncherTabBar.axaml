@@ -86,7 +86,7 @@
           </ListBox.ItemTemplate>
         </ListBox>
 
-        <Button Classes="flat treegit_tab_add" Width="28" Height="24" Margin="6,0,6,0" Command="{Binding AddNewTab}" IsVisible="{Binding !#ThisControl.IsScrollButtonVisible}">
+        <Button Classes="flat treegit_tab_add" Width="28" Height="24" Margin="0,0,2,0" Command="{Binding AddNewTab}" IsVisible="{Binding !#ThisControl.IsScrollButtonVisible}">
           <ToolTip.Tip>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
               <TextBlock Text="{DynamicResource Text.PageTabBar.New}" VerticalAlignment="Center"/>
@@ -96,6 +96,9 @@
 
           <Path Width="12" Height="12" Fill="{DynamicResource Brush.FG1}" Data="{StaticResource Icons.Plus}"/>
         </Button>
+        <Button x:Name="NormalTabListButton" Classes="icon_button treegit_tab_dropdown" Width="22" Height="24" Padding="0" Click="OnOpenTabList" ToolTip.Tip="已打开的仓库" IsVisible="{Binding !#ThisControl.IsScrollButtonVisible}">
+          <Path Width="9" Height="6" Fill="{DynamicResource Brush.TreeGit.ChromeForeground}" Stretch="Fill" Data="M0 0L10 0L5 6z"/>
+        </Button>
       </StackPanel>
     </ScrollViewer>
 
@@ -104,7 +107,7 @@
         <Path Width="8" Height="14" Stretch="Fill" Fill="{DynamicResource Brush.TreeGit.ChromeForeground}" Data="{StaticResource Icons.TriangleRight}"/>
       </RepeatButton>
 
-      <Button Classes="flat treegit_tab_add" Width="28" Height="24" Margin="4,0,4,0" Command="{Binding AddNewTab}">
+      <Button Classes="flat treegit_tab_add" Width="28" Height="24" Margin="0,0,2,0" Command="{Binding AddNewTab}">
         <ToolTip.Tip>
           <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
             <TextBlock Text="{DynamicResource Text.PageTabBar.New}" VerticalAlignment="Center"/>
@@ -113,6 +116,9 @@
         </ToolTip.Tip>
 
         <Path Width="12" Height="12" Fill="{DynamicResource Brush.FG1}" Data="{StaticResource Icons.Plus}"/>
+      </Button>
+      <Button x:Name="OverflowTabListButton" Classes="icon_button treegit_tab_dropdown" Width="22" Height="24" Padding="0" Click="OnOpenTabList" ToolTip.Tip="已打开的仓库">
+        <Path Width="9" Height="6" Fill="{DynamicResource Brush.TreeGit.ChromeForeground}" Stretch="Fill" Data="M0 0L10 0L5 6z"/>
       </Button>
     </StackPanel>
   </Grid>

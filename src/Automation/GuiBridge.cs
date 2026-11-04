@@ -104,6 +104,7 @@ namespace SourceGit.Automation
 #endif
                         mcp = "server",
                         defaultReadWrite = true,
+                        tabDropdownOpen = window.GetVisualDescendants().OfType<Views.LauncherTabBar>().FirstOrDefault()?.TabListMenu?.IsOpen == true,
                         tabs = tabs?.GetVisualDescendants().OfType<ListBoxItem>().Select(item =>
                         {
                             var close = item.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Classes.Contains("treegit_tab_close"));
@@ -165,13 +166,37 @@ namespace SourceGit.Automation
                     var window = lifetime.MainWindow;
                     if (args.TryGetProperty("window", out var target) && target.GetString() == "active")
                         window = lifetime.Windows.LastOrDefault(w => w.IsVisible && w != lifetime.MainWindow) ?? window;
-                    var width = Math.Max(1, (int)window.Bounds.Width);
-                    var height = Math.Max(1, (int)window.Bounds.Height);
+                    Visual surface = window;
+                    if (args.TryGetProperty("window", out target) && target.GetString() == "active" &&
+                        lifetime.MainWindow.GetVisualDescendants().OfType<Views.LauncherTabBar>().FirstOrDefault()?.TabListMenu is { IsOpen: true } tabMenu)
+                        surface = tabMenu;
+                    var width = Math.Max(1, (int)Math.Ceiling(surface.Bounds.Width));
+                    var height = Math.Max(1, (int)Math.Ceiling(surface.Bounds.Height));
                     using var image = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96));
-                    image.Render(window);
+                    image.Render(surface);
                     using var stream = new MemoryStream();
                     image.Save(stream);
                     return (object)new { png = Convert.ToBase64String(stream.ToArray()), width, height };
+                });
+
+            if (name == "ui_tabs")
+                return await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    var launcher = App.GetLauncher();
+                    var window = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow;
+                    var tabBar = window.GetVisualDescendants().OfType<Views.LauncherTabBar>().FirstOrDefault() ?? throw new InvalidOperationException("Tab bar is not ready.");
+                    var action = Text(args, "action");
+                    if (action == "dropdown") tabBar.OpenTabList();
+                    else if (action is "select" or "close")
+                    {
+                        if (!args.TryGetProperty("index", out var index) || index.GetInt32() < 0 || index.GetInt32() >= launcher.Pages.Count)
+                            throw new ArgumentException("Tab index is out of range.");
+                        var page = launcher.Pages[index.GetInt32()];
+                        if (action == "select") tabBar.ActivateTab(page);
+                        else launcher.CloseTab(page);
+                    }
+                    else if (action != "list") throw new ArgumentException("Unknown tab action.");
+                    return (object)launcher.Pages.Select((page, index) => new { index, title = page.Node.IsRepository ? page.Node.Name : "TreeGit", repo = (page.Data as ViewModels.Repository)?.FullPath, selected = page == launcher.ActivePage }).ToArray();
                 });
 
             if (name == "ui_command")
