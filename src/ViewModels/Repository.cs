@@ -1403,11 +1403,12 @@ namespace SourceGit.ViewModels
 
             _cancellationRefreshWorkingCopyChanges = new CancellationTokenSource();
             var token = _cancellationRefreshWorkingCopyChanges.Token;
-            var noOptionalLocks = Interlocked.Add(ref _queryLocalChangesTimes, 1) > 1;
 
             Task.Run(async () =>
             {
-                var changes = await new Commands.QueryLocalChanges(FullPath, _uiStates.IncludeUntrackedInLocalChanges, noOptionalLocks)
+                // Background status must not contend with foreground index writes,
+                // including during the first refresh of a newly opened repository.
+                var changes = await new Commands.QueryLocalChanges(FullPath, _uiStates.IncludeUntrackedInLocalChanges)
                     .WithCancellation(token)
                     .GetResultAsync()
                     .ConfigureAwait(false);
@@ -2019,7 +2020,6 @@ namespace SourceGit.ViewModels
         private Models.RepositoryUIStates _uiStates = null;
         private Models.FilterMode _historyFilterMode = Models.FilterMode.None;
         private bool _hasAllowedSignersFile = false;
-        private ulong _queryLocalChangesTimes = 0;
 
         private Models.Watcher _watcher = null;
         private Histories _histories = null;

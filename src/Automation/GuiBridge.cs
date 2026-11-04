@@ -514,7 +514,7 @@ namespace SourceGit.Automation
                 switch (name)
                 {
                     case "git_status":
-                        command = "status --porcelain=v2 --branch --untracked-files=all";
+                        command = "--no-optional-locks status --porcelain=v2 --branch --untracked-files=all";
                         break;
                     case "git_log":
                         var count = args.TryGetProperty("count", out var n) ? n.GetInt32() : 50;
