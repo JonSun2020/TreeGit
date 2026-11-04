@@ -1163,23 +1163,32 @@ namespace SourceGit.ViewModels
 
         public async Task ExecBisectCommandAsync(string subcmd)
         {
+            if (IsBisectCommandRunning) return;
             using var lockWatcher = _watcher?.Lock();
             IsBisectCommandRunning = true;
-
             var log = CreateLog($"Bisect({subcmd})");
-
-            var succ = await new Commands.Bisect(FullPath, subcmd).Use(log).ExecAsync();
-            log.Complete();
-
-            var head = await new Commands.QueryRevisionByRefName(FullPath, "HEAD").GetResultAsync();
-            if (!succ)
-                SendNotification(log.Content.Substring(log.Content.IndexOf('\n')).Trim(), true);
-            else if (log.Content.Contains("is the first bad commit"))
-                SendNotification(log.Content.Substring(log.Content.IndexOf('\n')).Trim());
-
-            MarkBranchesDirtyManually();
-            NavigateToCommit(head, true);
-            IsBisectCommandRunning = false;
+            try
+            {
+                var success = await new Commands.Bisect(FullPath, subcmd).Use(log).ExecAsync();
+                BisectState = _histories.UpdateBisectInfo();
+                var head = await new Commands.QueryRevisionByRefName(FullPath, "HEAD").GetResultAsync();
+                var output = log.Content;
+                var newline = output.IndexOf('\n');
+                if (newline >= 0) output = output[(newline + 1)..].Trim();
+                if (!success) SendNotification(output, true);
+                else if (BisectState == Models.BisectState.Completed)
+                {
+                    SendNotification(output);
+                    head = _histories.Bisect.FirstBadSHA;
+                }
+                MarkBranchesDirtyManually();
+                if (!string.IsNullOrEmpty(head)) NavigateToCommit(head, true);
+            }
+            finally
+            {
+                log.Complete();
+                IsBisectCommandRunning = false;
+            }
         }
 
         public bool MayHaveSubmodules()

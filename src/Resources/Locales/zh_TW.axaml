@@ -48,6 +48,8 @@
   <x:String x:Key="Text.Avatar.Load" xml:space="preserve">載入本機圖片...</x:String>
   <x:String x:Key="Text.Avatar.Refetch" xml:space="preserve">重新載入</x:String>
   <x:String x:Key="Text.Bisect">二分搜尋 (bisect)</x:String>
+  <x:String x:Key="Text.Bisect.Completed">已找到第一個有問題的提交，可檢視結果並返回原分支。</x:String>
+  <x:String x:Key="Text.Bisect.Finish">返回原分支</x:String>
   <x:String x:Key="Text.Bisect.Abort">中止</x:String>
   <x:String x:Key="Text.Bisect.Bad">標記為錯誤</x:String>
   <x:String x:Key="Text.Bisect.Good">標記為良好</x:String>

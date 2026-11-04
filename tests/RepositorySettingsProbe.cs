@@ -81,6 +81,31 @@ namespace SourceGit.Tests
                                 operationDetails = new { draft = repo.WorkingCopy.CommitMessage, log = repo.Logs.FirstOrDefault()?.Content, messageFileExists = File.Exists(Path.Combine(repo.GitDir, "MERGE_MSG")) };
                                 operationResult = true; break;
                             case "cleanup": operationResult = await new ViewModels.Cleanup(repo).Sure(); break;
+                            case "native_archive":
+                                var archive = new ViewModels.Archive(repo, new Models.Commit { SHA = data.GetProperty("revision").GetString() }) { SaveFile = data.GetProperty("destination").GetString() };
+                                operationResult = await archive.Sure(); archive.Cleanup();
+                                operationDetails = new { log = repo.Logs.FirstOrDefault()?.Content }; break;
+                            case "native_bisect":
+                                await repo.ExecBisectCommandAsync(data.GetProperty("arguments").GetString());
+                                repo.RefreshAll(); await Task.Delay(600);
+                                for (var attempt = 0; attempt < 100 && repo.BisectState == Models.BisectState.Completed && repo.Histories.SelectedCommits.FirstOrDefault()?.SHA != repo.Histories.Bisect?.FirstBadSHA; attempt++) await Task.Delay(50);
+                                operationDetails = new { log = repo.Logs.FirstOrDefault()?.Content, state = repo.BisectState.ToString(), busy = repo.IsBisectCommandRunning, firstBad = repo.Histories.Bisect?.FirstBadSHA, selected = repo.Histories.SelectedCommits.FirstOrDefault()?.SHA };
+                                operationResult = true; break;
+                            case "native_patch":
+                                var patch = new ViewModels.Apply(repo) { PatchFile = data.GetProperty("file").GetString() };
+                                operationResult = await patch.Sure(); patch.Cleanup(); operationDetails = new { log = repo.Logs.FirstOrDefault()?.Content }; break;
+                            case "native_blame":
+                                var blame = await new Commands.Blame(repo.FullPath, paths.Single(), "HEAD", false).ReadAsync();
+                                operationDetails = new { content = blame.Content, lines = blame.LineInfos.Select(l => l.CommitSHA).ToArray(), binary = blame.IsBinary }; operationResult = true; break;
+                            case "native_diff_race":
+                                var originalDiff = new ViewModels.DiffContext(repo.FullPath, new Models.DiffOption(changes.Single(), true));
+                                // A busy UI frame can delay publication while Git has
+                                // already returned. Select again before that frame runs.
+                                System.Threading.Thread.Sleep(500);
+                                var selectedAgain = new ViewModels.DiffContext(repo.FullPath, new Models.DiffOption(changes.Single(), true), originalDiff);
+                                await Task.Delay(1000);
+                                operationDetails = new { original = originalDiff.Content?.GetType().Name, repeated = selectedAgain.Content?.GetType().Name };
+                                operationResult = true; break;
                             case "native_commit":
                                 repo.WorkingCopy.SetData(await new Commands.QueryLocalChanges(repo.FullPath).GetResultAsync());
                                 repo.WorkingCopy.CommitMessage = data.GetProperty("draft").GetString();

@@ -51,6 +51,8 @@
   <x:String x:Key="Text.Avatar.Load" xml:space="preserve">加载本地图片</x:String>
   <x:String x:Key="Text.Avatar.Refetch" xml:space="preserve">重新加载</x:String>
   <x:String x:Key="Text.Bisect">二分定位(bisect)</x:String>
+  <x:String x:Key="Text.Bisect.Completed">已定位首个问题提交，可查看结果并返回原分支。</x:String>
+  <x:String x:Key="Text.Bisect.Finish">返回原分支</x:String>
   <x:String x:Key="Text.Bisect.Abort">终止</x:String>
   <x:String x:Key="Text.Bisect.Bad">标记错误</x:String>
   <x:String x:Key="Text.Bisect.Good">标记正确</x:String>

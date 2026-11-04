@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -116,6 +117,7 @@ namespace SourceGit.ViewModels
 
         private void LoadContent()
         {
+            var loadVersion = Interlocked.Increment(ref _loadVersion);
             if (_option.Path.EndsWith('/'))
             {
                 OldMode = 0;
@@ -141,8 +143,6 @@ namespace SourceGit.ViewModels
                 var info = new Info(_option, numLines, ignoreWhitespace, latest);
                 if (_info != null && info.IsSame(_info))
                     return;
-
-                _info = info;
 
                 object rs = null;
                 if (latest.TextDiff is { } textDiff)
@@ -180,6 +180,7 @@ namespace SourceGit.ViewModels
 
                 Dispatcher.UIThread.Post(() =>
                 {
+                    if (loadVersion != Volatile.Read(ref _loadVersion)) return;
                     OldMode = latest.OldMode;
                     NewMode = latest.NewMode;
 
@@ -199,6 +200,11 @@ namespace SourceGit.ViewModels
                         IsIgnoreWhitespaceVisible = (rs is Models.NoOrEOLChange);
                         Content = rs;
                     }
+
+                    // Publish the cache identity with its content on the UI
+                    // thread. A newly selected context must never inherit a
+                    // completed identity while the matching content is pending.
+                    _info = info;
                 });
             });
         }
@@ -357,5 +363,6 @@ namespace SourceGit.ViewModels
         private bool _isIgnoreWhitespaceVisible = true;
         private object _content = null;
         private Info _info = null;
+        private int _loadVersion;
     }
 }

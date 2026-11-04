@@ -52,15 +52,34 @@ namespace SourceGit.ViewModels
             var log = _repo.CreateLog("Archive");
             Use(log);
 
-            var succ = await new Commands.Archive(_repo.FullPath, _revision, _saveFile)
-                .Use(log)
-                .ExecAsync();
+            string stagedFile = null;
+            try
+            {
+                var destination = Path.GetFullPath(Path.IsPathRooted(_saveFile) ? _saveFile : Path.Combine(_repo.FullPath, _saveFile));
+                stagedFile = Path.Combine(Path.GetDirectoryName(destination)!, ".treegit-archive-" + Guid.NewGuid().ToString("N") + ".tmp");
+                using (File.Open(stagedFile, FileMode.CreateNew, FileAccess.Write, FileShare.None)) { }
 
-            log.Complete();
-
-            if (succ)
+                // Git opens --output before validating the revision. Build next
+                // to the destination and replace it only after a complete archive.
+                if (!await new Commands.Archive(_repo.FullPath, _revision, stagedFile).Use(log).ExecAsync())
+                    return false;
+                File.Move(stagedFile, destination, true);
                 _repo.SendNotification($"Save archive to : {_saveFile}");
-            return succ;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                log.AppendLine(ex.Message);
+                _repo.SendNotification(ex.Message, true);
+                return false;
+            }
+            finally
+            {
+                log.Complete();
+                try { if (stagedFile != null) File.Delete(stagedFile); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+            }
         }
 
         private readonly Repository _repo = null;

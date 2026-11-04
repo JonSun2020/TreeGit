@@ -47,6 +47,8 @@
   <x:String x:Key="Text.Avatar.Load" xml:space="preserve">Load Image...</x:String>
   <x:String x:Key="Text.Avatar.Refetch" xml:space="preserve">Refresh</x:String>
   <x:String x:Key="Text.Bisect">Bisect</x:String>
+  <x:String x:Key="Text.Bisect.Completed">The first bad commit has been found. Review it, then return to the original branch.</x:String>
+  <x:String x:Key="Text.Bisect.Finish">Return to original branch</x:String>
   <x:String x:Key="Text.Bisect.Abort">Abort</x:String>
   <x:String x:Key="Text.Bisect.Bad">Bad</x:String>
   <x:String x:Key="Text.Bisect.Good">Good</x:String>

@@ -380,26 +380,22 @@ namespace SourceGit.ViewModels
             var head = new Commands.QueryRevisionByRefName(_repo.FullPath, "HEAD").GetResult();
             var info = new Models.Bisect();
             var markedHead = false;
-            var dir = Path.Combine(_repo.GitDir, "refs", "bisect");
-            if (Directory.Exists(dir))
+            foreach (var reference in new Commands.QueryBisectRefs(_repo.FullPath).GetResult())
             {
-                var files = new DirectoryInfo(dir).GetFiles();
-                foreach (var file in files)
-                {
-                    var sha = File.ReadAllText(file.FullName).Trim();
-                    if (!markedHead)
-                        markedHead = head.Equals(sha, StringComparison.Ordinal);
-
-                    if (file.Name.StartsWith("bad"))
-                        info.Bads.Add(sha);
-                    else if (file.Name.StartsWith("good"))
-                        info.Goods.Add(sha);
-                    else if (file.Name.StartsWith("skip"))
-                        info.Skipped.Add(sha);
-                }
+                var sha = reference.Value;
+                if (!markedHead) markedHead = head.Equals(sha, StringComparison.Ordinal);
+                if (reference.Key.StartsWith("bad", StringComparison.Ordinal)) info.Bads.Add(sha);
+                else if (reference.Key.StartsWith("good", StringComparison.Ordinal)) info.Goods.Add(sha);
+                else if (reference.Key.StartsWith("skip", StringComparison.Ordinal)) info.Skipped.Add(sha);
             }
 
+            var completed = System.Text.RegularExpressions.Regex.Match(
+                InProgressContext.ReadStateFile(Path.Combine(_repo.GitDir, "BISECT_LOG")),
+                @"(?m)^# first [^\r\n]+ commit: \[([0-9a-f]{40,64})\]");
+            if (completed.Success) info.FirstBadSHA = completed.Groups[1].Value;
             Bisect = info;
+
+            if (!string.IsNullOrEmpty(info.FirstBadSHA)) return Models.BisectState.Completed;
 
             if (info.Bads.Count == 0)
                 return Models.BisectState.WaitingForFirstBad;

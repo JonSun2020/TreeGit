@@ -10,6 +10,7 @@ namespace SourceGit.Models
         WaitingForCheckoutAnother,
         WaitingForFirstGood,
         WaitingForMark,
+        Completed,
     }
 
     [Flags]
@@ -23,6 +24,8 @@ namespace SourceGit.Models
 
     public class Bisect
     {
+        public string FirstBadSHA { get; set; }
+
         public HashSet<string> Bads
         {
             get;
