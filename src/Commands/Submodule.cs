@@ -10,26 +10,27 @@ namespace SourceGit.Commands
         {
             WorkingDirectory = repo;
             Context = repo;
+            PreserveSubmoduleArguments = true;
         }
 
         public async Task<bool> AddAsync(string url, string relativePath, bool recursive)
         {
-            Args = $"-c protocol.file.allow=always submodule add {url.Quoted()} {relativePath.Quoted()}";
+            Args = $"--literal-pathspecs -c protocol.file.allow=always submodule add -- {NormalizeURL(url).Quoted()} {relativePath.Quoted()}";
 
             var succ = await ExecAsync().ConfigureAwait(false);
             if (!succ)
                 return false;
 
             if (recursive)
-                Args = $"submodule update --init --recursive -- {relativePath.Quoted()}";
+                Args = $"submodule update --init --recursive -- {LiteralPath(relativePath)}";
             else
-                Args = $"submodule update --init -- {relativePath.Quoted()}";
+                Args = $"submodule update --init -- {LiteralPath(relativePath)}";
             return await ExecAsync().ConfigureAwait(false);
         }
 
         public async Task<bool> SetURLAsync(string path, string url)
         {
-            Args = $"submodule set-url -- {path.Quoted()} {url.Quoted()}";
+            Args = $"submodule set-url -- {path.Quoted()} {NormalizeURL(url).Quoted()}";
             return await ExecAsync().ConfigureAwait(false);
         }
 
@@ -58,7 +59,7 @@ namespace SourceGit.Commands
             {
                 builder.Append(" --");
                 foreach (var module in modules)
-                    builder.Append(' ').Append(module.Quoted());
+                    builder.Append(' ').Append(LiteralPath(module));
             }
 
             Args = builder.ToString();
@@ -67,13 +68,19 @@ namespace SourceGit.Commands
 
         public async Task<bool> DeinitAsync(string module, bool force)
         {
-            Args = force ? $"submodule deinit -f -- {module.Quoted()}" : $"submodule deinit -- {module.Quoted()}";
+            Args = force ? $"submodule deinit -f -- {LiteralPath(module)}" : $"submodule deinit -- {LiteralPath(module)}";
             return await ExecAsync().ConfigureAwait(false);
         }
 
+        // Explicit pathspec magic keeps each selected module literal across
+        // git-submodule's shell wrapper and its helper commands.
+        private static string LiteralPath(string path) => (":(top,literal)" + path).Quoted();
+
+        private static string NormalizeURL(string url) => System.OperatingSystem.IsWindows() && System.IO.Path.IsPathRooted(url) ? url.Replace('\\', '/') : url;
+
         public async Task<bool> DeleteAsync(string module)
         {
-            Args = $"rm -rf {module.Quoted()}";
+            Args = $"--literal-pathspecs rm -rf -- {module.Quoted()}";
             return await ExecAsync().ConfigureAwait(false);
         }
     }

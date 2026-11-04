@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -81,6 +81,19 @@ namespace SourceGit.Tests
                                 operationDetails = new { draft = repo.WorkingCopy.CommitMessage, log = repo.Logs.FirstOrDefault()?.Content, messageFileExists = File.Exists(Path.Combine(repo.GitDir, "MERGE_MSG")) };
                                 operationResult = true; break;
                             case "cleanup": operationResult = await new ViewModels.Cleanup(repo).Sure(); break;
+                            case "read_draft":
+                            case "set_draft":
+                            case "native_continue":
+                                if (data.TryGetProperty("draft", out var draft)) repo.WorkingCopy.CommitMessage = draft.GetString();
+                                if (operation.GetString() == "native_continue")
+                                {
+                                    if (repo.WorkingCopy.InProgressContext == null) throw new InvalidOperationException("No operation to continue");
+                                    await repo.WorkingCopy.ContinueMergeAsync();
+                                }
+                                repo.RefreshAll(); await Task.Delay(600);
+                                operationDetails = new { draft = repo.WorkingCopy.CommitMessage, context = repo.WorkingCopy.InProgressContext?.GetType().Name,
+                                    step = (repo.WorkingCopy.InProgressContext as ViewModels.RebaseInProgress)?.StoppedAt?.SHA ?? (repo.WorkingCopy.InProgressContext as ViewModels.PatchInProgress)?.Step, log = repo.Logs.FirstOrDefault()?.Content, busy = repo.WorkingCopy.IsCommitting };
+                                operationResult = true; break;
                             case "native_abort":
                                 for (var attempt = 0; attempt < 100 && repo.WorkingCopy.InProgressContext == null; attempt++) { repo.RefreshAll(); await Task.Delay(50); }
                                 if (repo.WorkingCopy.InProgressContext == null) throw new InvalidOperationException("No native operation context loaded");
@@ -95,6 +108,26 @@ namespace SourceGit.Tests
                                 operationDetails = new { draft = repo.WorkingCopy.CommitMessage, log = repo.Logs.FirstOrDefault()?.Content, busy = repo.WorkingCopy.IsCommitting };
                                 operationResult = true; break;
                             case "stage": await repo.WorkingCopy.StageChangesAsync(changes, null); operationResult = true; break;
+                            case "submodule_state":
+                                operationDetails = (await new Commands.QuerySubmodules(repo.FullPath).GetResultAsync()).Select(m => new { path = m.Path, url = m.URL, branch = m.Branch, status = m.Status.ToString() }).ToArray(); operationResult = true; break;
+                            case "submodule_url": operationResult = await new Commands.Submodule(repo.FullPath).SetURLAsync(paths.Single(), data.GetProperty("value").GetString()); break;
+                            case "submodule_branch": operationResult = await new Commands.Submodule(repo.FullPath).SetBranchAsync(paths.Single(), data.GetProperty("value").GetString()); break;
+                            case "submodule_add":
+                                var moduleLog = repo.CreateLog("Add module audit");
+                                operationResult = await new Commands.Submodule(repo.FullPath).Use(moduleLog).AddAsync(data.GetProperty("value").GetString(), paths.Single(), false);
+                                moduleLog.Complete(); operationDetails = new { log = moduleLog.Content }; break;
+                            case "credential_mode":
+                                var modes = new System.Collections.Generic.List<bool> { Native.RepositoryCredentials.UsesCredentialManager(repo.FullPath) };
+                                foreach (var enabled in new[] { true, false })
+                                {
+                                    await new Commands.Config(repo.FullPath).SetAsync("sourcegit.credentialmanager", enabled ? "true" : "false");
+                                    repo.RefreshAll(); await Task.Delay(650);
+                                    modes.Add(Native.RepositoryCredentials.UsesCredentialManager(repo.FullPath));
+                                }
+                                operationDetails = modes; operationResult = true; break;
+                            case "submodule_update": operationResult = await new Commands.Submodule(repo.FullPath).UpdateAsync(paths.ToList(), true, false, false); break;
+                            case "submodule_deinit": operationResult = await new Commands.Submodule(repo.FullPath).DeinitAsync(paths.Single(), true); break;
+                            case "submodule_delete": operationResult = await new ViewModels.DeleteSubmodule(repo, paths.Single()).Sure(); break;
                             case "unstage": await repo.WorkingCopy.UnstageChangesAsync(changes, null); operationResult = true; break;
                             case "ours": await repo.WorkingCopy.UseMineAsync(changes); operationResult = true; break;
                             case "theirs": await repo.WorkingCopy.UseTheirsAsync(changes); operationResult = true; break;

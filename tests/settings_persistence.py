@@ -208,4 +208,4 @@ finally:
     except subprocess.TimeoutExpired:
         p.kill()
     if pid:
-        subprocess.run(['taskkill','/PID',str(pid)], capture_output=True)
+        subprocess.run(['taskkill','/PID',str(pid),'/F'], capture_output=True)

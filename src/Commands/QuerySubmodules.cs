@@ -10,9 +10,7 @@ namespace SourceGit.Commands
     {
         [GeneratedRegex(@"^([U\-\+ ])([0-9a-f]+)\s(.*?)(\s\(.*\))?$")]
         private static partial Regex REG_FORMAT_STATUS();
-        [GeneratedRegex(@"^\s?[\w\?]{1,4}\s+(.+)$")]
-        private static partial Regex REG_FORMAT_DIRTY();
-        [GeneratedRegex(@"^submodule\.(\S*)\.(\w+)=(.*)$")]
+        [GeneratedRegex(@"^submodule\.(.*)\.(\w+)=(.*)$")]
         private static partial Regex REG_FORMAT_MODULE_INFO();
 
         public QuerySubmodules(string repo)
@@ -128,21 +126,19 @@ namespace SourceGit.Commands
                         builder.Append(kv.Key.Quoted()).Append(' ');
                 }
 
-                Args = $"--no-optional-locks status --porcelain -- {builder}";
+                Args = $"--literal-pathspecs --no-optional-locks status --porcelain -z -- {builder}";
                 rs = await ReadToEndAsync().ConfigureAwait(false);
                 if (!rs.IsSuccess)
                     return submodules;
 
-                lines = rs.StdOut.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
-                foreach (var line in lines)
+                lines = rs.StdOut.Split('\0', StringSplitOptions.RemoveEmptyEntries);
+                for (var i = 0; i < lines.Length; i++)
                 {
-                    var match = REG_FORMAT_DIRTY().Match(line);
-                    if (match.Success)
-                    {
-                        var path = match.Groups[1].Value;
-                        if (map.TryGetValue(path, out var m))
-                            m.Status = Models.SubmoduleStatus.Modified;
-                    }
+                    var line = lines[i];
+                    if (line.Length < 4 || line[2] != ' ') continue;
+                    if (map.TryGetValue(line[3..], out var m)) m.Status = Models.SubmoduleStatus.Modified;
+                    // Porcelain -z places a rename/copy source in the next record.
+                    if (line[0] is 'R' or 'C' || line[1] is 'R' or 'C') i++;
                 }
             }
 

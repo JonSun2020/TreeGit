@@ -32,6 +32,9 @@ namespace SourceGit.Commands
         public bool? UseCredentialManager { get; set; } = null;
         public EditorType Editor { get; set; } = EditorType.CoreEditor;
         public string SSHKey { get; set; } = string.Empty;
+        internal string EditorMessageFile { get; set; }
+        internal string EditorMessageGitDirectory { get; set; }
+        internal bool PreserveSubmoduleArguments { get; set; }
         public string Args { get; set; } = string.Empty;
 
         // Only used in `ExecAsync` mode.
@@ -215,6 +218,14 @@ namespace SourceGit.Commands
             start.Arguments = builder.ToString();
             start.UseShellExecute = false;
             start.CreateNoWindow = true;
+            if (OperatingSystem.IsWindows() && PreserveSubmoduleArguments)
+            {
+                // MSYS expands wildcard-looking arguments when Git launches its
+                // shell helpers. Keep the supplied argv intact; Git itself still
+                // interprets intentional pathspecs in commands that support them.
+                start.Environment.TryGetValue("MSYS", out var msys);
+                start.Environment["MSYS"] = string.IsNullOrWhiteSpace(msys) ? "noglob" : msys + " noglob";
+            }
 
             if (redirect)
             {
@@ -230,6 +241,11 @@ namespace SourceGit.Commands
             start.Environment["SOURCEGIT_LAUNCH_AS_ASKPASS"] = "TRUE";
             start.Environment["SOURCEGIT_AUTHENTICATION_RETRY"] = IsAuthenticationRetry ? "TRUE" : "FALSE";
             start.Environment["GIT_ASKPASS"] = selfExecFile;
+            if (!string.IsNullOrEmpty(EditorMessageFile))
+            {
+                start.Environment["TREEGIT_REBASE_MESSAGE_FILE"] = EditorMessageFile;
+                start.Environment["TREEGIT_REBASE_MESSAGE_GIT_DIR"] = EditorMessageGitDirectory;
+            }
             start.Environment["SOURCEGIT_CREDENTIAL_SCOPE"] = CredentialScope ?? WorkingDirectory ?? Context;
             if (!OperatingSystem.IsLinux())
                 start.Environment["DISPLAY"] = "required";

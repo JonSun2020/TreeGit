@@ -48,6 +48,11 @@ namespace SourceGit.Native
         public static void SetCredentialManagerMode(string repo, bool enabled)
             => _managerModes[Path.GetFullPath(repo)] = enabled;
 
+        public static void InvalidateMode(string repo)
+        {
+            if (!string.IsNullOrEmpty(repo)) _managerModes.TryRemove(Path.GetFullPath(repo), out _);
+        }
+
         [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
         private struct Credential
         {

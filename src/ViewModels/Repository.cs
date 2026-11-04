@@ -700,6 +700,7 @@ namespace SourceGit.ViewModels
                 });
 
                 var config = await new Commands.Config(FullPath).ReadAllAsync().ConfigureAwait(false);
+                Native.RepositoryCredentials.InvalidateMode(FullPath);
                 _hasAllowedSignersFile = config.TryGetValue("gpg.ssh.allowedsignersfile", out var allowedSignersFile) && !string.IsNullOrEmpty(allowedSignersFile);
                 GitFlow.Parse(config);
             });

@@ -616,6 +616,7 @@ namespace SourceGit.Automation
             string remote = null;
             Models.Remote selectedRemote = null;
             string tempMessage = null;
+            var preserveSubmoduleArguments = false;
             try
             {
                 switch (name)
@@ -644,6 +645,9 @@ namespace SourceGit.Automation
                         var arguments = args.GetProperty("arguments").EnumerateArray().Select(a => a.GetString()).ToArray();
                         if (arguments.Length == 0 || arguments.Length > 4096 || string.IsNullOrWhiteSpace(arguments[0]) || arguments.Any(a => a == null || a.Contains('\0')))
                             throw new ArgumentException("arguments must contain a Git command and no NUL characters.");
+                        preserveSubmoduleArguments = arguments[0] == "submodule";
+                        if (preserveSubmoduleArguments && OperatingSystem.IsWindows())
+                            arguments = arguments.Select(a => Path.IsPathRooted(a) ? a.Replace('\\', '/') : a).ToArray();
                         command = string.Join(' ', arguments.Select(Quote));
                         if (arguments[0] is "fetch" or "pull" or "push" or "ls-remote")
                         {
@@ -746,7 +750,7 @@ namespace SourceGit.Automation
                     default:
                         throw new ArgumentException("Unknown tool.");
                 }
-                var query = new Query(path, command);
+                var query = new Query(path, command) { PreserveSubmoduleArguments = preserveSubmoduleArguments };
                 if (selectedRemote != null)
                     query.SSHKey = selectedRemote.PrivateSSHKey;
                 ViewModels.CommandLog log = null;

@@ -350,6 +350,17 @@ namespace SourceGit
                 return true;
 
             var gitDir = Path.GetDirectoryName(file)!;
+            var overrideFile = Environment.GetEnvironmentVariable("TREEGIT_REBASE_MESSAGE_FILE");
+            var overrideDirectory = Environment.GetEnvironmentVariable("TREEGIT_REBASE_MESSAGE_GIT_DIR");
+            if (!string.IsNullOrEmpty(overrideFile) && !string.IsNullOrEmpty(overrideDirectory) && File.Exists(overrideFile) &&
+                string.Equals(Path.GetFullPath(gitDir), Path.GetFullPath(overrideDirectory), OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+            {
+                File.WriteAllText(file, File.ReadAllText(overrideFile));
+                // One continue may reach later reword jobs. Only the current
+                // commit should consume the message edited in the GUI.
+                File.Delete(overrideFile);
+                return true;
+            }
             var origHeadFile = Path.Combine(gitDir, "rebase-merge", "orig-head");
             var ontoFile = Path.Combine(gitDir, "rebase-merge", "onto");
             var doneFile = Path.Combine(gitDir, "rebase-merge", "done");

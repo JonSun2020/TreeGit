@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -87,6 +87,7 @@ namespace SourceGit.Tests
                 root = Path.GetFullPath(root);
                 Directory.CreateDirectory(root);
                 Native.OS.GitExecutable = Path.Combine(AppContext.BaseDirectory, "git", "cmd", "git.exe");
+                if (!File.Exists(Native.OS.GitExecutable)) Native.OS.GitExecutable = Native.OS.FindGitExecutable();
                 var repo = Path.Combine(root, "original 中文");
                 Directory.CreateDirectory(repo);
                 Check("upstream Command initializes repository", await Git(repo, "init -b main"));

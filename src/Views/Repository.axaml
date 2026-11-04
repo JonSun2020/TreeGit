@@ -61,6 +61,16 @@
                   </Grid>
                 </DataTemplate>
 
+                <DataTemplate DataType="vm:PatchInProgress">
+                  <Grid ColumnDefinitions="*,Auto">
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                      <TextBlock FontWeight="Bold" Foreground="{DynamicResource Brush.Conflict.Foreground}" Text="{DynamicResource Text.InProgress.AM}"/>
+                      <TextBlock FontWeight="Bold" Margin="4,0,0,0" Foreground="DarkOrange" Text="{Binding Subject}"/>
+                    </StackPanel>
+                    <Button Grid.Column="1" Classes="flat" FontWeight="Regular" BorderThickness="0" Content="{DynamicResource Text.Repository.Skip}" Padding="8,2" Click="OnSkipInProgress"/>
+                  </Grid>
+                </DataTemplate>
+
                 <DataTemplate DataType="vm:MergeInProgress">
                   <StackPanel Orientation="Horizontal">
                     <TextBlock FontWeight="Bold" Foreground="{DynamicResource Brush.Conflict.Foreground}" Text="{DynamicResource Text.InProgress.Merge}"/>

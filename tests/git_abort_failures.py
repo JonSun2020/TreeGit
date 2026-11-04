@@ -50,7 +50,7 @@ def probe(repo,draft,locked):
     return result['operationDetails']
 try:
     rpc('initialize',{'protocolVersion':'2025-11-25'})
-    for operation in ['merge','cherry-pick','revert','rebase']:
+    for operation in ['merge','cherry-pick','revert','rebase','rebase-apply','am']:
         repo=root/operation;repo.mkdir();file=repo/'file.txt'
         git(repo,'init','-b','main');git(repo,'config','user.name','Abort QA');git(repo,'config','user.email','abort@example.invalid')
         file.write_text('base\n');git(repo,'add','.');git(repo,'commit','-m','Base')
@@ -58,11 +58,15 @@ try:
         git(repo,'switch','-c','feature');file.write_text('feature\n');git(repo,'add','.');git(repo,'commit','-m','Feature');feature=git(repo,'rev-parse','HEAD').stdout.strip()
         git(repo,'switch','main');file.write_text('main two\n');git(repo,'add','.');git(repo,'commit','-m','Main two')
         args=['merge','--no-edit','feature'] if operation=='merge' else ['cherry-pick',feature] if operation=='cherry-pick' else ['revert','--no-edit',one] if operation=='revert' else ['rebase','feature']
+        if operation=='rebase-apply':args=['rebase','--apply','feature']
+        if operation=='am':
+            patch=root/'conflict.patch';patch.write_text(git(repo,'format-patch','--stdout',one+'..feature').stdout,encoding='utf-8');args=['am','-3',str(patch)]
+        command='am' if operation=='am' else 'rebase' if operation=='rebase-apply' else operation
         original_head=git(repo,'rev-parse','HEAD').stdout
         conflicted=git(repo,*args,success=False);assert conflicted.returncode!=0,conflicted.stdout
         reference=root/('reference-'+operation);shutil.copytree(repo,reference)
         (reference/'.git/index.lock').write_text('owned test lock')
-        direct=git(reference,operation,'--abort',success=False);assert direct.returncode!=0,direct.stdout+direct.stderr
+        direct=git(reference,command,'--abort',success=False);assert direct.returncode!=0,direct.stdout+direct.stderr
         reference_state=states(reference)
         before_head=git(repo,'rev-parse','HEAD').stdout;before_index=(repo/'.git/index').read_bytes();before_file=file.read_bytes();draft='Abort failure must preserve this draft'
         tool('ui_open_repository',{'repo':str(repo)});pid=tool('ui_state')['processId']
@@ -80,4 +84,4 @@ finally:
     p.stdin.close()
     try:p.wait(timeout=10)
     except subprocess.TimeoutExpired:p.kill()
-    if pid:subprocess.run(['taskkill','/PID',str(pid)],capture_output=True)
+    if pid:subprocess.run(['taskkill','/PID',str(pid),'/F'],capture_output=True)

@@ -284,6 +284,13 @@ namespace SourceGit.Models
 
         private void HandleGitDirFileChanged(string name)
         {
+            if (name.Equals("config", StringComparison.Ordinal) || name.Equals("config.worktree", StringComparison.Ordinal) || name.EndsWith("/config.worktree", StringComparison.Ordinal))
+            {
+                Native.RepositoryCredentials.InvalidateMode(_root);
+                Interlocked.Exchange(ref _updateBranch, DateTime.Now.AddSeconds(.5).ToFileTime());
+                return;
+            }
+
             if (name.Contains("fsmonitor--daemon/", StringComparison.Ordinal) ||
                 name.EndsWith(".lock", StringComparison.Ordinal) ||
                 name.StartsWith("lfs/", StringComparison.Ordinal))

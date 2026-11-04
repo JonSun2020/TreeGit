@@ -559,7 +559,7 @@ namespace SourceGit.ViewModels
             new Commands.DiffTool(_repo.FullPath, new Models.DiffOption(change, isUnstaged)).Open();
         }
 
-        public Task ContinueMergeAsync() => ProcessInProgressAsync("Continue", (context, log) => context.ContinueAsync(log), true);
+        public Task ContinueMergeAsync() => ProcessInProgressAsync("Continue", (context, log) => context.ContinueAsync(log, IsAutoLoadedCommitMessage() ? null : _commitMessage), true);
 
         public Task SkipMergeAsync() => ProcessInProgressAsync("Skip", (context, log) => context.SkipAsync(log));
 
@@ -762,10 +762,13 @@ namespace SourceGit.ViewModels
 
         private void UpdateInProgressState()
         {
-            var oldType = _inProgressContext != null ? _inProgressContext.GetType() : null;
+            var oldContext = _inProgressContext;
+            var oldType = oldContext?.GetType();
 
             if (File.Exists(Path.Combine(_repo.GitDir, "CHERRY_PICK_HEAD")))
                 InProgressContext = new CherryPickInProgress(_repo);
+            else if (File.Exists(Path.Combine(_repo.GitDir, "rebase-apply", "applying")))
+                InProgressContext = new PatchInProgress(_repo);
             else if (Directory.Exists(Path.Combine(_repo.GitDir, "rebase-merge")) || Directory.Exists(Path.Combine(_repo.GitDir, "rebase-apply")))
                 InProgressContext = new RebaseInProgress(_repo);
             else if (File.Exists(Path.Combine(_repo.GitDir, "REVERT_HEAD")))
@@ -775,8 +778,14 @@ namespace SourceGit.ViewModels
             else
                 InProgressContext = null;
 
-            if (_inProgressContext != null && _inProgressContext.GetType() == oldType && !string.IsNullOrEmpty(_commitMessage))
-                return;
+            if (_inProgressContext != null && _inProgressContext.GetType() == oldType)
+            {
+                if (InProgressStep(_inProgressContext) == InProgressStep(oldContext))
+                {
+                    if (!string.IsNullOrEmpty(_commitMessage)) return;
+                }
+                else CommitMessage = string.Empty;
+            }
 
             // The operation that filled the commit message ended outside SourceGit (for example, a
             // rebase or merge finished/aborted from the terminal). Drop the stale message unless the
@@ -787,13 +796,20 @@ namespace SourceGit.ViewModels
             if (LoadCommitMessageFromFile(Path.Combine(_repo.GitDir, "MERGE_MSG")))
                 return;
 
+            if (_inProgressContext is PatchInProgress patching)
+            {
+                LoadCommitMessageFromFile(patching.MessageFile);
+                return;
+            }
+
             if (_inProgressContext is not RebaseInProgress { } rebasing)
                 return;
 
-            if (LoadCommitMessageFromFile(Path.Combine(_repo.GitDir, "rebase-merge", "message")))
+            if (LoadCommitMessageFromFile(rebasing.MessageFile))
                 return;
 
-            SetAutoLoadedCommitMessage(new Commands.QueryCommitFullMessage(_repo.FullPath, rebasing.StoppedAt.SHA).GetResult());
+            if (rebasing.StoppedAt != null)
+                SetAutoLoadedCommitMessage(new Commands.QueryCommitFullMessage(_repo.FullPath, rebasing.StoppedAt.SHA).GetResult());
         }
 
         private bool LoadCommitMessageFromFile(string file)
@@ -808,6 +824,16 @@ namespace SourceGit.ViewModels
             SetAutoLoadedCommitMessage(msg);
             return true;
         }
+
+        private static string InProgressStep(InProgressContext context) => context switch
+        {
+            RebaseInProgress rebase => rebase.StoppedAt?.SHA,
+            PatchInProgress patch => patch.Step,
+            CherryPickInProgress cherryPick => cherryPick.Head?.SHA,
+            RevertInProgress revert => revert.Head?.SHA,
+            MergeInProgress merge => merge.Source?.SHA,
+            _ => null,
+        };
 
         private void SetAutoLoadedCommitMessage(string msg)
         {
