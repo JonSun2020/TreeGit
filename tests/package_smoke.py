@@ -9,11 +9,13 @@ info={'product':'TreeGit','version':'0.0.1','integrationTests':False};(source/'b
 for name in ['.env','preference.json','notes.txt','debug.pdb','old.zip']:(source/name).write_bytes(b'local fixture; must not ship')
 (source/'data/preference.json').write_bytes(b'private preferences fixture');(source/'git/cmd/git.exe').write_bytes(b'optional git fixture')
 script=Path(__file__).resolve().parents[1]/'package-treegit.ps1'
-def pack(destination):return subprocess.run(['powershell','-NoProfile','-File',str(script),'-Source',str(source),'-Destination',str(destination)],capture_output=True)
+def pack(destination):return subprocess.run(['powershell','-NoProfile','-ExecutionPolicy','Bypass','-File',str(script),'-Source',str(source),'-Destination',str(destination)],capture_output=True)
 checks=[]
 def check(name,condition):
     assert condition,name;checks.append(name);print('PASS',name,flush=True)
-first=root/'assets';r=pack(first);check('a normal build creates a versioned archive',r.returncode==0 and (first/'TreeGit-0.0.1-Windows-x64.zip').is_file())
+first=root/'assets';r=pack(first)
+if r.returncode!=0:raise RuntimeError(r.stdout.decode('utf-8',errors='replace')+r.stderr.decode('utf-8',errors='replace'))
+check('a normal build creates a versioned archive',(first/'TreeGit-0.0.1-Windows-x64.zip').is_file())
 archive=first/'TreeGit-0.0.1-Windows-x64.zip'
 with zipfile.ZipFile(archive) as z:
     check('only program files and an empty data directory enter the ZIP',set(z.namelist())=={'TreeGit/'+name for name in files}|{'TreeGit/data/'})
