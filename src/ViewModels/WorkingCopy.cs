@@ -366,32 +366,37 @@ namespace SourceGit.ViewModels
             UpdateDetail();
         }
 
-        public async Task StageChangesAsync(List<Models.Change> changes, Models.Change next)
+        public async Task<bool> StageChangesAsync(List<Models.Change> changes, Models.Change next)
         {
+            if (IsStaging) return false;
             var canStaged = await GetCanStageChangesAsync(changes);
-            var count = canStaged.Count;
-            if (count == 0)
-                return;
+            if (IsStaging) return false;
+            if (canStaged.Count == 0) return changes.Count == 0;
 
             IsStaging = true;
             _selectedUnstaged = new(next != null ? new List<Models.Change> { next } : null);
-
             using var lockWatcher = _repo.LockWatcher();
-
             var log = _repo.CreateLog("Stage");
-            var pathSpecFile = Path.GetTempFileName();
-            await using (var writer = new StreamWriter(pathSpecFile))
+            string pathSpecFile = null;
+            try
             {
-                foreach (var c in canStaged)
-                    await writer.WriteLineAsync(c.Path);
+                pathSpecFile = Path.GetTempFileName();
+                await using (var writer = new StreamWriter(pathSpecFile))
+                {
+                    foreach (var c in canStaged) await writer.WriteLineAsync(c.Path);
+                }
+                var success = await new Commands.Add(_repo.FullPath, pathSpecFile).Use(log).ExecAsync();
+                return success && canStaged.Count == changes.Count;
             }
-
-            await new Commands.Add(_repo.FullPath, pathSpecFile).Use(log).ExecAsync();
-            File.Delete(pathSpecFile);
-            log.Complete();
-
-            _repo.MarkWorkingCopyDirtyManually();
-            IsStaging = false;
+            finally
+            {
+                try { if (pathSpecFile != null) File.Delete(pathSpecFile); }
+                catch (IOException) { }
+                catch (UnauthorizedAccessException) { }
+                log.Complete();
+                _repo.MarkWorkingCopyDirtyManually();
+                IsStaging = false;
+            }
         }
 
         public async Task UnstageChangesAsync(List<Models.Change> changes, Models.Change next)
@@ -604,7 +609,7 @@ namespace SourceGit.ViewModels
 
         public async Task CommitAsync(bool autoStage, bool autoPush)
         {
-            if (string.IsNullOrWhiteSpace(_commitMessage))
+            if (IsCommitting || string.IsNullOrWhiteSpace(_commitMessage))
                 return;
 
             if (!_repo.CanCreatePopup())
@@ -646,46 +651,52 @@ namespace SourceGit.ViewModels
                     if (rs == Models.ConfirmEmptyCommitResult.StageAllAndCommit)
                         autoStage = true;
                     else if (rs == Models.ConfirmEmptyCommitResult.StageSelectedAndCommit)
-                        await StageChangesAsync(_selectedUnstaged.Changes, null);
+                        if (!await StageChangesAsync(_selectedUnstaged.Changes, null)) return;
                 }
             }
 
+            if (IsCommitting) return;
             using var lockWatcher = _repo.LockWatcher();
             IsCommitting = true;
-            _repo.UIStates.AddRecentCommitMessage(_commitMessage);
-
-            if (autoStage && _unstaged.Count > 0)
-                await StageChangesAsync(_unstaged, null);
-
-            var log = _repo.CreateLog("Commit");
-            var succ = await new Commands.Commit(_repo.FullPath, _commitMessage, EnableSignOff, NoVerifyOnCommit, _useAmend, _resetAuthor)
-                    .Use(log)
-                    .RunAsync();
-
-            log.Complete();
-
-            if (succ)
+            CommandLog log = null;
+            try
             {
-                UseAmend = false;
-                CommitMessage = string.Empty;
+                _repo.UIStates.AddRecentCommitMessage(_commitMessage);
 
-                if (autoPush && _repo.Remotes.Count > 0)
+                if (autoStage && _unstaged.Count > 0 && !await StageChangesAsync(_unstaged, null))
+                    return;
+
+                log = _repo.CreateLog("Commit");
+                var succ = await new Commands.Commit(_repo.FullPath, _commitMessage, EnableSignOff, NoVerifyOnCommit, _useAmend, _resetAuthor)
+                        .Use(log)
+                        .RunAsync();
+
+                if (succ)
                 {
-                    Models.Branch pushBranch = null;
-                    if (_repo.CurrentBranch == null)
-                    {
-                        var currentBranchName = await new Commands.QueryCurrentBranch(_repo.FullPath).GetResultAsync();
-                        pushBranch = new Models.Branch() { Name = currentBranchName };
-                    }
+                    UseAmend = false;
+                    CommitMessage = string.Empty;
 
-                    if (_repo.CanCreatePopup())
-                        await _repo.ShowAndStartPopupAsync(new Push(_repo, pushBranch));
+                    if (autoPush && _repo.Remotes.Count > 0)
+                    {
+                        Models.Branch pushBranch = null;
+                        if (_repo.CurrentBranch == null)
+                        {
+                            var currentBranchName = await new Commands.QueryCurrentBranch(_repo.FullPath).GetResultAsync();
+                            pushBranch = new Models.Branch() { Name = currentBranchName };
+                        }
+
+                        if (_repo.CanCreatePopup())
+                            await _repo.ShowAndStartPopupAsync(new Push(_repo, pushBranch));
+                    }
                 }
             }
-
-            _repo.MarkBranchesDirtyManually();
-            _repo.RefreshSubmodules(); // Committing will not change submodule's HEAD (stage already changes it), So we need refresh submodules here manually.
-            IsCommitting = false;
+            finally
+            {
+                log?.Complete();
+                _repo.MarkBranchesDirtyManually();
+                _repo.RefreshSubmodules();
+                IsCommitting = false;
+            }
         }
 
         private List<Models.Change> GetVisibleChanges(List<Models.Change> changes)

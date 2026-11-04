@@ -81,6 +81,30 @@ namespace SourceGit.Tests
                                 operationDetails = new { draft = repo.WorkingCopy.CommitMessage, log = repo.Logs.FirstOrDefault()?.Content, messageFileExists = File.Exists(Path.Combine(repo.GitDir, "MERGE_MSG")) };
                                 operationResult = true; break;
                             case "cleanup": operationResult = await new ViewModels.Cleanup(repo).Sure(); break;
+                            case "native_commit":
+                                repo.WorkingCopy.SetData(await new Commands.QueryLocalChanges(repo.FullPath).GetResultAsync());
+                                repo.WorkingCopy.CommitMessage = data.GetProperty("draft").GetString();
+                                if (data.TryGetProperty("twice", out var twice) && twice.GetBoolean())
+                                    await Task.WhenAll(repo.WorkingCopy.CommitAsync(data.GetProperty("autoStage").GetBoolean(), false), repo.WorkingCopy.CommitAsync(data.GetProperty("autoStage").GetBoolean(), false));
+                                else await repo.WorkingCopy.CommitAsync(data.GetProperty("autoStage").GetBoolean(), false);
+                                repo.RefreshAll(); await Task.Delay(600);
+                                operationDetails = new { draft = repo.WorkingCopy.CommitMessage, busy = repo.WorkingCopy.IsCommitting,
+                                    staging = repo.WorkingCopy.IsStaging, logs = repo.Logs.Take(3).Select(l => l.Content).ToArray() };
+                                operationResult = true; break;
+                            case "native_interactive":
+                                for (var attempt = 0; attempt < 100 && repo.CurrentBranch == null; attempt++) { repo.RefreshBranches(); await Task.Delay(50); }
+                                var interactive = new ViewModels.InteractiveRebase(repo, new Models.Commit { SHA = data.GetProperty("onto").GetString() }) { AutoStash = false };
+                                for (var attempt = 0; attempt < 200 && interactive.IsLoading; attempt++) await Task.Delay(25);
+                                if (interactive.IsLoading) throw new InvalidOperationException("Interactive history did not load");
+                                foreach (var job in data.GetProperty("jobs").EnumerateArray())
+                                {
+                                    var item = interactive.Items.Single(i => i.Commit.SHA == job.GetProperty("sha").GetString());
+                                    interactive.ChangeAction([item], Enum.Parse<Models.InteractiveRebaseAction>(job.GetProperty("action").GetString()));
+                                    if (job.TryGetProperty("message", out var message)) { item.FullMessage = message.GetString(); item.IsMessageUserEdited = true; }
+                                }
+                                operationResult = await interactive.Start(); repo.RefreshAll(); await Task.Delay(600);
+                                operationDetails = new { log = repo.Logs.FirstOrDefault()?.Content, draft = repo.WorkingCopy.CommitMessage };
+                                break;
                             case "read_draft":
                             case "set_draft":
                             case "native_continue":

@@ -41,13 +41,19 @@ namespace SourceGit.Commands
             try
             {
                 await File.WriteAllTextAsync(_tmpFile, _message).ConfigureAwait(false);
-                var succ = await ExecAsync().ConfigureAwait(false);
-                File.Delete(_tmpFile);
-                return succ;
+                return await ExecAsync().ConfigureAwait(false);
             }
-            catch
+            catch (System.Exception ex)
             {
+                Log?.AppendLine(ex.Message);
+                if (RaiseError) RaiseException(ex.Message);
                 return false;
+            }
+            finally
+            {
+                try { File.Delete(_tmpFile); }
+                catch (IOException) { }
+                catch (System.UnauthorizedAccessException) { }
             }
         }
 
