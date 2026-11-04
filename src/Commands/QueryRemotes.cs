@@ -13,13 +13,20 @@ namespace SourceGit.Commands
 
         public async Task<List<Models.Remote>> GetResultAsync()
         {
+            var config = await new Config(_repo).ReadAllAsync().ConfigureAwait(false);
+            return Parse(config);
+        }
+
+        public List<Models.Remote> GetResult() => Parse(new Config(_repo).ReadAll());
+
+        private static List<Models.Remote> Parse(Dictionary<string, string> config)
+        {
             var names = new HashSet<string>();
             var urls = new Dictionary<string, string>();
             var pushUrls = new Dictionary<string, string>();
             var privateSSHKeys = new Dictionary<string, string>();
             var disableAutoFetchRemotes = new HashSet<string>();
 
-            var config = await new Config(_repo).ReadAllAsync().ConfigureAwait(false);
             foreach (var (k, v) in config)
             {
                 if (!k.StartsWith("remote.", StringComparison.Ordinal))

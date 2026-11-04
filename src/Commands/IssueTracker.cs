@@ -47,27 +47,34 @@ namespace SourceGit.Commands
                     if (parts.Length < 2)
                         continue;
 
-                    var key = parts[0];
-                    var value = parts[1];
-
-                    if (!key.StartsWith("issuetracker.", StringComparison.Ordinal))
-                        continue;
-
-                    if (key.EndsWith(".regex", StringComparison.Ordinal))
-                    {
-                        var prefixLen = "issuetracker.".Length;
-                        var suffixLen = ".regex".Length;
-                        var ruleName = key.Substring(prefixLen, key.Length - prefixLen - suffixLen);
-                        FindOrAdd(outs, ruleName, isShared).RegexString = value;
-                    }
-                    else if (key.EndsWith(".url", StringComparison.Ordinal))
-                    {
-                        var prefixLen = "issuetracker.".Length;
-                        var suffixLen = ".url".Length;
-                        var ruleName = key.Substring(prefixLen, key.Length - prefixLen - suffixLen);
-                        FindOrAdd(outs, ruleName, isShared).URLTemplate = value;
-                    }
+                    ReadEntry(outs, isShared, parts[0], parts[1]);
                 }
+            }
+        }
+
+        public static void ReadFromConfig(IEnumerable<KeyValuePair<string, string>> config, List<Models.IssueTracker> outs, bool isShared)
+        {
+            foreach (var pair in config) ReadEntry(outs, isShared, pair.Key, pair.Value);
+        }
+
+        private static void ReadEntry(List<Models.IssueTracker> outs, bool isShared, string key, string value)
+        {
+            if (!key.StartsWith("issuetracker.", StringComparison.Ordinal))
+                return;
+
+            if (key.EndsWith(".regex", StringComparison.Ordinal))
+            {
+                var prefixLen = "issuetracker.".Length;
+                var suffixLen = ".regex".Length;
+                var ruleName = key.Substring(prefixLen, key.Length - prefixLen - suffixLen);
+                FindOrAdd(outs, ruleName, isShared).RegexString = value;
+            }
+            else if (key.EndsWith(".url", StringComparison.Ordinal))
+            {
+                var prefixLen = "issuetracker.".Length;
+                var suffixLen = ".url".Length;
+                var ruleName = key.Substring(prefixLen, key.Length - prefixLen - suffixLen);
+                FindOrAdd(outs, ruleName, isShared).URLTemplate = value;
             }
         }
 
@@ -106,7 +113,7 @@ namespace SourceGit.Commands
             return await ExecAsync().ConfigureAwait(false);
         }
 
-        private Models.IssueTracker FindOrAdd(List<Models.IssueTracker> rules, string ruleName, bool isShared)
+        private static Models.IssueTracker FindOrAdd(List<Models.IssueTracker> rules, string ruleName, bool isShared)
         {
             var rule = rules.Find(x => x.Name.Equals(ruleName, StringComparison.Ordinal));
             if (rule != null)

@@ -256,7 +256,7 @@ namespace SourceGit.Views
 
         internal static Button Action(string caption, Func<Task> action)
         {
-            var button = new Button { Content = caption, Classes = { "flat" }, MinWidth = 70, Padding = new Thickness(10, 2) };
+            var button = new Button { Content = caption, IsDefault = caption == "确定", Classes = { "flat" }, MinWidth = 70, Padding = new Thickness(10, 2) };
             button.Click += async (_, _) => { button.IsEnabled = false; try { await action(); } catch (Exception error) { await new RepositoryForm("操作未完成", [error.Message], []).ShowDialog(TopLevel.GetTopLevel(button) as Window); } finally { button.IsEnabled = true; } };
             return button;
         }
@@ -346,19 +346,12 @@ namespace SourceGit.Views
                 _fields[multilineIndex].TextWrapping = TextWrapping.Wrap;
                 _fields[multilineIndex].VerticalContentAlignment = VerticalAlignment.Top;
             }
-            Opened += (_, _) =>
-            {
-                var screen = Screens.ScreenFromWindow(this);
-                if (screen == null) return;
-                MaxWidth = Math.Max(1, screen.WorkingArea.Width / screen.Scaling - 32);
-                MaxHeight = Math.Max(1, screen.WorkingArea.Height / screen.Scaling - 32);
-                Width = Math.Min(510 * ViewModels.Preferences.Instance.Zoom, MaxWidth);
-            };
             if (values.Length == 0) panel.Children.Add(new TextBlock { Text = labels[0], TextWrapping = TextWrapping.Wrap });
             for (var i = 0; i < _fields.Length; i++) { panel.Children.Add(new TextBlock { Text = labels[i] }); panel.Children.Add(_fields[i]); }
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8 };
             buttons.Children.Add(RepositorySettings.Action("确定", () => { Close(true); return Task.CompletedTask; }));
-            buttons.Children.Add(RepositorySettings.Action("取消", () => { Close(false); return Task.CompletedTask; })); panel.Children.Add(buttons); Content = panel;
+            buttons.Children.Add(RepositorySettings.Action("取消", () => { Close(false); return Task.CompletedTask; }));
+            RepositoryDialogLayout.Apply(this, panel, buttons, 510);
         }
     }
 }

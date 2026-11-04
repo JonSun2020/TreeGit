@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 
 using Avalonia.Collections;
@@ -156,15 +157,16 @@ namespace SourceGit.ViewModels
             if (_cached.TryGetValue("fetch.prune", out var prune))
                 EnablePruneOnFetch = (prune == "true");
 
-            foreach (var rule in _repo.IssueTrackers)
+            // Read the actual sources, including before background repository metadata has loaded.
+            var rules = new List<Models.IssueTracker>();
+            var sharedFile = Path.Combine(repo.FullPath, ".issuetracker");
+            if (File.Exists(sharedFile))
+                Commands.IssueTracker.ReadFromConfig(new Commands.Config(repo.FullPath, sharedFile) { RaiseError = false }.ReadAll(), rules, true);
+            Commands.IssueTracker.ReadFromConfig(_cachedLocal, rules, false);
+            foreach (var rule in rules)
             {
-                IssueTrackers.Add(new()
-                {
-                    IsShared = rule.IsShared,
-                    Name = rule.Name,
-                    RegexString = rule.RegexString,
-                    URLTemplate = rule.URLTemplate,
-                });
+                IssueTrackers.Add(CopyRule(rule));
+                _originalIssueTrackers.Add(CopyRule(rule));
             }
         }
 
@@ -330,7 +332,7 @@ namespace SourceGit.ViewModels
 
             var changed = false;
             var oldRules = new Dictionary<string, Models.IssueTracker>();
-            foreach (var rule in _repo.IssueTrackers)
+            foreach (var rule in _originalIssueTrackers)
                 oldRules.Add(rule.Name, rule);
 
             foreach (var rule in IssueTrackers)
@@ -378,6 +380,12 @@ namespace SourceGit.ViewModels
             return changed;
         }
 
+        private static Models.IssueTracker CopyRule(Models.IssueTracker rule) => new()
+        {
+            IsShared = rule.IsShared, Name = rule.Name, RegexString = rule.RegexString, URLTemplate = rule.URLTemplate,
+        };
+
+        private readonly List<Models.IssueTracker> _originalIssueTrackers = [];
         private Models.RepositoryConfigurationTransaction _saveTransaction;
         private readonly Repository _repo;
         private readonly Dictionary<string, string> _cached;

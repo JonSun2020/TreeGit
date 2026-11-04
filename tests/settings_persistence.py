@@ -38,6 +38,8 @@ git('config', 'user.email', 'local@example.invalid')
 git('remote', 'add', 'origin', str(root / 'origin.git'))
 git('remote', 'add', 'backup', str(root / 'backup.git'))
 (repo / 'initial.txt').write_text('initial\n', encoding='utf-8')
+shared_file=repo/'.issuetracker'
+shared_file.write_text('[issuetracker "SHARED"]\n\tregex = "#([0-9]+)"\n\turl = "https://example.invalid/shared/$1"\n',encoding='utf-8')
 git('add', '.')
 git('commit', '-m', 'Initial')
 settings_file = repo / '.git/sourcegit.settings'
@@ -70,10 +72,10 @@ def check(name, value=True):
     checks.append(name)
     print('PASS', name, flush=True)
 
-def edit(action, fields=None, templates=None, links=None, operation=None):
+def edit(action, fields=None, templates=None, links=None, operation=None, external_link=None):
     result_file = Path(str(fixture)+'.result')
     result_file.unlink(missing_ok=True)
-    fixture.write_text(json.dumps({'action':action, 'fields':fields or {}, 'templates':templates or [], 'links':links or [], 'operation':operation}), encoding='utf-8')
+    fixture.write_text(json.dumps({'action':action, 'fields':fields or {}, 'templates':templates or [], 'links':links or [], 'operation':operation, 'externalLink':external_link}), encoding='utf-8')
     tool('ui_command', {'repo':str(repo), 'command':'repository_settings'})
     deadline = time.monotonic()+30
     while time.monotonic() < deadline:
@@ -92,6 +94,10 @@ try:
     rpc('initialize', {'protocolVersion':'2025-11-25'})
     tool('ui_open_repository', {'repo':str(repo)})
     pid = tool('ui_state')['processId']
+    shared_before=shared_file.read_bytes()
+    result=edit('save')
+    check('cold settings load the actual shared rules before background metadata is ready',{'name':'SHARED','shared':True} in result['links'])
+    check('confirming unchanged settings preserves shared rules byte-for-byte',not result['staysOpen'] and shared_file.read_bytes()==shared_before)
     before_git = (repo/'.git/config').read_bytes()
     before_settings = settings_file.read_bytes()
     result = edit('cancel', {'UseGlobalIdentity':False, 'CommitterName':'Cancelled user',
@@ -154,9 +160,10 @@ try:
     settings_file.chmod(stat.S_IREAD)
     try:
         result = edit('save', {'DefaultRemote':'origin', 'UseGlobalIdentity':False, 'CommitterName':'Atomic rollback', 'CommitterEmail':'atomic@example.invalid'},
-            links=[{'name':'ROLLBACK','regex':r'#(\d+)','url':'https://example.invalid/$1'}])
+            links=[{'name':'ROLLBACK','regex':r'#(\d+)','url':'https://example.invalid/$1','shared':True}])
         check('a failure during final replacement remains visible',result['staysOpen'] and bool(result['error']))
         check('a final settings failure restores Git configuration and issue links', (repo/'.git/config').read_bytes()==before_git and settings_file.read_bytes()==before_settings)
+        check('a final settings failure also restores the shared rules file',shared_file.read_bytes()==shared_before)
         check('failed saves release all owned Git and settings locks',not any(p.exists() for p in [repo/'.git/config.lock',repo/'.issuetracker.lock',repo/'.git/sourcegit.settings.lock']))
     finally:
         settings_file.chmod(stat.S_IREAD|stat.S_IWRITE)
@@ -178,6 +185,10 @@ try:
         lock.unlink()
     result = edit('save',links=[link])
     check('a valid issue link persists after a previous failure',not result['staysOpen'] and git('config','issuetracker.ISSUE.regex')==r'#(\d+)' and git('config','issuetracker.ISSUE.url')=='https://example.invalid/$1')
+    result=edit('save',external_link={'name':'EXTERNAL','regex':r'EXT-([0-9]+)','url':'https://example.invalid/external/$1'})
+    check('confirming an open settings window preserves a newly loaded external rule',not result['staysOpen'] and git('config','issuetracker.EXTERNAL.url')=='https://example.invalid/external/$1')
+    result=edit('cancel')
+    check('reopening settings displays the preserved external rule',{'name':'EXTERNAL','shared':False} in result['links'])
     gc_lock=repo/'.git/gc.pid'
     gc_lock.write_text(f'{os.getpid()} {socket.gethostname()}\n',encoding='utf-8')
     try:

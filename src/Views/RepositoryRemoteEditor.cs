@@ -61,7 +61,8 @@ namespace SourceGit.Views
                 if (success) Close(true);
                 else { error.Text = "保存失败，请查看仓库命令日志。"; error.IsVisible = true; }
             }));
-            buttons.Children.Add(RepositorySettings.Action("取消", () => { Close(false); return System.Threading.Tasks.Task.CompletedTask; })); panel.Children.Add(buttons); Content = panel;
+            buttons.Children.Add(RepositorySettings.Action("取消", () => { Close(false); return System.Threading.Tasks.Task.CompletedTask; }));
+            RepositoryDialogLayout.Apply(this, panel, buttons, 550);
         }
     }
 }

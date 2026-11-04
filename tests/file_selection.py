@@ -82,6 +82,22 @@ try:
     (repo/other).write_text('other history\n',encoding='utf-8');git('add','--',other);git('commit','-m','Other only')
     history=native('file_history',[selected])['operationDetails']
     check('native file history follows only the literal selected filename',history==[bracket,initial])
+    git('switch','-c','conflict/theirs')
+    for n in [selected,other]:(repo/n).write_text('their version\n',encoding='utf-8')
+    git('add','.');git('commit','-m','Their conflict changes');git('switch','main')
+    for n in [selected,other]:(repo/n).write_text('our version\n',encoding='utf-8')
+    git('add','.');git('commit','-m','Our conflict changes')
+    def merge_conflict():
+        result=subprocess.run(['git','-C',str(repo),'merge','--no-edit','conflict/theirs'],capture_output=True,env=env)
+        assert result.returncode==1,result.stdout+result.stderr
+    merge_conflict();unselected_conflict=(repo/other).read_bytes();native('ours',[selected])
+    check('native use-ours changes only the selected conflicting bracket file',(repo/selected).read_text(encoding='utf-8')=='our version\n' and (repo/other).read_bytes()==unselected_conflict)
+    check('native use-ours stages only the selected resolution',git('diff','--name-only','--diff-filter=U')==other)
+    git('merge','--abort');merge_conflict();unselected_conflict=(repo/other).read_bytes();native('theirs',[selected])
+    check('native use-theirs preserves the matching unselected conflict',(repo/selected).read_text(encoding='utf-8')=='their version\n' and (repo/other).read_bytes()==unselected_conflict)
+    check('native use-theirs stages only the selected resolution',git('diff','--name-only','--diff-filter=U')==other)
+    native('ours',[other]);git('commit','--no-edit')
+    check('individually resolved files can complete the real merge',len(git('show','-s','--format=%P','HEAD').split())==2 and (repo/selected).read_text(encoding='utf-8')=='their version\n' and (repo/other).read_text(encoding='utf-8')=='our version\n')
     for n in names[2:]:
         git('reset','--hard','HEAD');(repo/n).write_text('changed\n',encoding='utf-8');native('stage',[n])
         raw=subprocess.run(['git','-C',str(repo),'diff','--cached','--name-only','-z'],capture_output=True,env=env).stdout
