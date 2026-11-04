@@ -4,7 +4,8 @@ from pathlib import Path
 exe=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
 seconds=float(sys.argv[3]) if len(sys.argv)>3 else 600
 root=Path(tempfile.mkdtemp(prefix='TreeGit sustained desktop audit '));env=os.environ.copy()
-env.update(GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'),GIT_CONFIG_NOSYSTEM='1')
+snapshot_root=root/'snapshots';snapshot_root.mkdir()
+env.update(GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'),GIT_CONFIG_NOSYSTEM='1',TEMP=str(snapshot_root),TMP=str(snapshot_root))
 def git(repo,*args):
     r=subprocess.run(['git','-C',str(repo),*args],env=env,capture_output=True,text=True,encoding='utf-8');assert r.returncode==0,r.stderr;return r.stdout.strip()
 def make_repo(index):
@@ -28,7 +29,9 @@ def close_repositories():
         if tab['repo']:tool('ui_tabs',{'action':'close','index':tab['index']})
 def save_result():
     ordered=sorted(latencies)
-    (out/'desktop-soak-results.json').write_text(json.dumps({'exe':str(exe),'root':str(root),'seconds':round(time.monotonic()-start,1),'cycles':cycle,'requests':len(latencies),'maxRequestSeconds':max(latencies,default=0),'p95RequestSeconds':ordered[int(len(ordered)*.95)] if ordered else 0,'samples':samples,'ownedSnapshotCount':len(snapshots),'remainingSnapshots':[str(s) for s in snapshots if s.exists()],'failure':failure},ensure_ascii=False,indent=2),encoding='utf-8')
+    pending=out/'desktop-soak-results.tmp'
+    pending.write_text(json.dumps({'exe':str(exe),'root':str(root),'seconds':round(time.monotonic()-start,1),'cycles':cycle,'requests':len(latencies),'maxRequestSeconds':max(latencies,default=0),'p95RequestSeconds':ordered[int(len(ordered)*.95)] if ordered else 0,'samples':samples,'ownedSnapshotCount':len(snapshots),'remainingSnapshots':[str(s) for s in snapshots if s.exists()],'failure':failure},ensure_ascii=False,indent=2),encoding='utf-8')
+    pending.replace(out/'desktop-soak-results.json')
 def sample(label):
     state=tool('ui_state');assert state['processId']==pid and not state['dialogs'],state['dialogs']
     script="[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new($false); Get-Process -Id "+str(pid)+" | Select-Object Id,Path,HandleCount,PrivateMemorySize64,WorkingSet64 | ConvertTo-Json -Compress"
@@ -68,6 +71,7 @@ try:
         assert state['selectedOffset']==offset and state['oldSize']==len(old) and state['newSize']==len(new),state
         top=state['topOffset'];assert bytes.fromhex(state['oldHex'])==old[top:top+256] and bytes.fromhex(state['newHex'])==new[top:top+256],state
         if state.get('snapshotDirectory'):snapshots.add(Path(state['snapshotDirectory']))
+        snapshots.update(snapshot_root.glob('TreeGit-binary-*'))
         for action,paths in [('stage',['note.txt','firmware.bin']),('unstage',['firmware.bin']),('stage',['firmware.bin'])]:
             assert tool('git_action',{'repo':str(repo),'action':action,'paths':paths})['isSuccess']
         assert tool('git_action',{'repo':str(repo),'action':'commit','message':'Soak cycle '+str(cycle)})['isSuccess']

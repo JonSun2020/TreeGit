@@ -116,11 +116,12 @@ namespace SourceGit.Views
             {
                 var comparison = await Commands.BinarySnapshots.LoadAsync(diff, cancellation.Token);
                 if (_cancel != cancellation) { comparison.Dispose(); return; }
-                _comparison = comparison; Status = "ready"; _selected = -1;
+                _comparison = comparison; _selected = -1;
                 _summary.Text = $"旧：{comparison.OldSize:N0} 字节    新：{comparison.NewSize:N0} 字节    差异：{comparison.DifferentBytes:N0} 字节 · 按相同偏移比较（只读）";
                 _oldTitle.Text += $" · {comparison.OldSize:N0} 字节";
                 _newTitle.Text += $" · {comparison.NewSize:N0} 字节";
                 ResizeRows(); await NavigateAsync("first");
+                if (_cancel == cancellation) Status = "ready";
             }
             catch (OperationCanceledException) { }
             catch (Exception ex)

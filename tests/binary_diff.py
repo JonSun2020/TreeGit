@@ -1,6 +1,7 @@
 """Exercise the shipped GUI's binary snapshots, navigation and information dialogs."""
 import base64
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -12,7 +13,8 @@ exe = Path(sys.argv[1]).resolve()
 out = Path(sys.argv[2]).resolve(); out.mkdir(parents=True, exist_ok=True)
 repo = Path(tempfile.mkdtemp(prefix='TreeGit binary 中文 '))
 checks = []
-snapshot_baseline = set(Path(tempfile.gettempdir()).glob('TreeGit-binary-*'))
+snapshot_root=Path(tempfile.mkdtemp(prefix='TreeGit isolated binary snapshots '))
+snapshot_baseline = set(snapshot_root.glob('TreeGit-binary-*'))
 owned_snapshots=set()
 
 def git(*args):
@@ -29,7 +31,8 @@ staged = bytearray(original); staged[23] ^= 0x40
 (repo/name).write_bytes(staged); git('add', '.')
 working = bytearray(staged); working[17] ^= 0x40; working[65533:65540] = b'abcdefg'; working.extend(b'\x00\xac\xff')
 (repo/name).write_bytes(working)
-p = subprocess.Popen([str(exe), '--mcp'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', creationflags=subprocess.CREATE_NO_WINDOW)
+env=os.environ.copy();env.update(TEMP=str(snapshot_root),TMP=str(snapshot_root))
+p = subprocess.Popen([str(exe), '--mcp'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', env=env, creationflags=subprocess.CREATE_NO_WINDOW)
 seq = 0
 
 def rpc(method, params={}):
@@ -45,13 +48,21 @@ def tool(name, args={}):
 def diff(action='state', **args):
     result=tool('ui_diff', {'repo':str(repo), 'action':action, **args})
     if result.get('snapshotDirectory'):owned_snapshots.add(Path(result['snapshotDirectory']))
+    owned_snapshots.update(snapshot_root.glob('TreeGit-binary-*'))
     return result
 
 def check(label, condition):
+    if not condition:
+        observation={'label':label,'first':globals().get('state'),'following':[]}
+        for _ in range(30):
+            try:time.sleep(.1);observation['following'].append(diff())
+            except AssertionError as error:observation['observationError']=str(error);break
+        (out/'failed-comparison-observation.json').write_text(json.dumps(observation,ensure_ascii=False,indent=2),encoding='utf-8')
+        (out/'failed-comparison.png').write_bytes(tool('ui_screenshot'))
     assert condition, label
     checks.append(label); print('PASS', label, flush=True)
 
-def select(file=name, source='unstaged', revision=None):
+def select(file=name, source='unstaged', revision=None, expected=None):
     for _ in range(100):
         try: diff('select', file=file, source=source); break
         except AssertionError: time.sleep(.1)
@@ -59,7 +70,8 @@ def select(file=name, source='unstaged', revision=None):
     for _ in range(200):
         state = diff()
         expected_revision = '' if source == 'staged' else None if source == 'unstaged' else revision
-        if state['status'] == 'ready' and state['file'] == file and state['newRevision'] == expected_revision: return state
+        if state['status'] == 'ready' and state['file'] == file and state['newRevision'] == expected_revision and (state['differentBytes']==0 or state['selectedOffset']>=0):
+            if expected is None or expected(state):return state
         if state['status'] == 'error': raise AssertionError(state)
         time.sleep(.1)
     raise AssertionError('Binary comparison did not load')
@@ -137,20 +149,20 @@ check('initial commit compares an absent file against the committed binary', sta
 
 second = '二次重命名.bin'; git('mv', renamed, second)
 modified = bytearray(changed); modified[41] ^= 0x40; (repo/second).write_bytes(modified); refresh()
-state = select(second)
+state = select(second,expected=lambda s:s['differentBytes']==1 and s['selectedOffset']==41)
 check('staged rename with additional worktree changes uses the new index path', state['differentBytes'] == 1 and state['selectedOffset'] == 41)
 git('add', '.'); git('commit', '-m', 'Rename and modify'); (repo/second).unlink(); refresh()
-state = select(second)
+state = select(second,expected=lambda s:s['oldSize']==len(modified) and s['newSize']==0)
 check('deleted binary retains the complete old side', state['oldSize'] == len(modified) and state['newSize'] == 0 and state['differentBytes'] == len(modified))
 git('restore', second)
 added = '新添加.bin'; (repo/added).write_bytes(b'\x00\x01\x02\xff'); refresh()
 state = select(added)
 check('untracked binary has an absent old side', state['oldSize'] == 0 and state['newSize'] == 4 and state['differentBytes'] == 4)
 git('add', '.'); (repo/added).write_bytes(b''); refresh()
-state = select(added)
+state = select(added,expected=lambda s:s['oldSize']==4 and s['newSize']==0)
 check('empty worktree binary compares against its index content', state['oldSize'] == 4 and state['newSize'] == 0 and state['differentBytes'] == 4)
 tool('ui_select_view', {'repo':str(repo), 'view':'history'})
-snapshots_before_close=set(Path(tempfile.gettempdir()).glob('TreeGit-binary-*'))-snapshot_baseline
+snapshots_before_close=set(snapshot_root.glob('TreeGit-binary-*'))-snapshot_baseline
 tool('ui_command', {'command':'close_tab'})
 time.sleep(.3)
 for _ in range(50):
@@ -161,5 +173,5 @@ for _ in range(50):
     time.sleep(.1)
 check('closing the repository cleans its comparison snapshots', bool(owned_snapshots or snapshots_before_close) and not leaked)
 p.stdin.close(); p.wait(timeout=10)
-(out/'binary-results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'repo':str(repo),'exe':str(exe)},ensure_ascii=False,indent=2),encoding='utf-8')
+(out/'binary-results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'repo':str(repo),'exe':str(exe),'ownedSnapshotCount':len(owned_snapshots),'remainingSnapshots':[str(p) for p in owned_snapshots if p.exists()]},ensure_ascii=False,indent=2),encoding='utf-8')
 print('PASSED',len(checks))
