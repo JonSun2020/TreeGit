@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -688,7 +688,6 @@ namespace SourceGit.Views
             var conventionalTypesOverride = owner switch
             {
                 Launcher { DataContext: ViewModels.Launcher { ActivePage: { Data: ViewModels.Repository repo } } } => repo.Settings.ConventionalTypesOverride,
-                RepositoryConfigure { DataContext: ViewModels.RepositoryConfigure config } => config.ConventionalTypesOverride,
                 CommitMessageEditor editor => editor.ConventionalTypesOverride,
                 _ => string.Empty
             };

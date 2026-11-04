@@ -37,11 +37,12 @@ namespace SourceGit
             }
         }
 
-        public static readonly Command OpenPreferencesCommand = new Command(async _ =>
+        public static readonly Command OpenPreferencesCommand = new Command(async parameter =>
         {
             if (Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: { } owner })
             {
                 var dialog = new Views.Preferences();
+                if (parameter is string page) dialog.SelectPage(page);
                 await dialog.ShowDialog(owner);
             }
         });

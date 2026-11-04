@@ -157,7 +157,10 @@ namespace SourceGit.Views
         protected override void OnLoaded(RoutedEventArgs e)
         {
             base.OnLoaded(e);
+            if (!IsEffectivelyVisible) return;
+            _subscribed = true;
             Models.AvatarManager.Instance.Subscribe(this);
+            if (_user != null) _img = Models.AvatarManager.Instance.Request(_user.Email, false);
             ContextRequested += OnContextRequested;
         }
 
@@ -165,7 +168,8 @@ namespace SourceGit.Views
         {
             base.OnUnloaded(e);
             ContextRequested -= OnContextRequested;
-            Models.AvatarManager.Instance.Unsubscribe(this);
+            if (_subscribed) Models.AvatarManager.Instance.Unsubscribe(this);
+            _subscribed = false;
         }
 
         protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
@@ -174,7 +178,7 @@ namespace SourceGit.Views
 
             if (change.Property == UserProperty)
             {
-                if (_user == null)
+                if (_user == null || !IsLoaded || !IsEffectivelyVisible)
                     return;
 
                 _img = Models.AvatarManager.Instance.Request(_user.Email, false);
@@ -302,5 +306,6 @@ namespace SourceGit.Views
         private Models.User _user = null;
         private bool _useGitHubStyleAvatar = false;
         private Bitmap _img = null;
+        private bool _subscribed;
     }
 }

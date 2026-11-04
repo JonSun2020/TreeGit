@@ -103,20 +103,23 @@ namespace SourceGit.Models
         {
             try
             {
-                var content = JsonSerializer.Serialize(this, JsonCodeGen.Default.RepositorySettings);
-                var hash = HashContent(content);
-                if (!hash.Equals(_orgHash, StringComparison.Ordinal))
-                {
-                    var tmpfile = $"{_file}.tmp";
-                    File.WriteAllText(tmpfile, content);
-                    File.Move(tmpfile, _file, true);
-                    _orgHash = hash;
-                }
+                SaveChecked();
             }
             catch
             {
                 // Ignore save errors
             }
+        }
+
+        public void SaveChecked()
+        {
+            var content = JsonSerializer.Serialize(this, JsonCodeGen.Default.RepositorySettings);
+            var hash = HashContent(content);
+            if (hash.Equals(_orgHash, StringComparison.Ordinal)) return;
+            var tmpfile = $"{_file}.tmp";
+            File.WriteAllText(tmpfile, content);
+            File.Move(tmpfile, _file, true);
+            _orgHash = hash;
         }
 
         public CustomAction AddNewCustomAction()

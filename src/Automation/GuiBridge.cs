@@ -231,6 +231,11 @@ namespace SourceGit.Automation
                         settings.SelectPage(uiCommand == "repository_settings_advanced");
                         return (object)new { selected = uiCommand };
                     }
+                    if (uiCommand == "preferences" && dialog is Views.Preferences preferences && args.TryGetProperty("page", out var existingPage))
+                    {
+                        preferences.SelectPage(existingPage.GetString());
+                        return (object)new { selected = existingPage.GetString() };
+                    }
                     if (dialog != null)
                         throw new InvalidOperationException("Close the current dialog before opening another one.");
                     if (uiCommand == "new_tab")
@@ -251,7 +256,7 @@ namespace SourceGit.Automation
                     }
                     if (uiCommand == "preferences")
                     {
-                        App.OpenPreferencesCommand.Execute(null);
+                        App.OpenPreferencesCommand.Execute(args.TryGetProperty("page", out var preferencePage) ? preferencePage.GetString() : null);
                         return (object)new { opened = uiCommand };
                     }
                     if (uiCommand == "about")

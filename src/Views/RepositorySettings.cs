@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -16,7 +16,7 @@ namespace SourceGit.Views
     public sealed class RepositorySettings : ChromelessWindow
     {
         private readonly ViewModels.Repository _repo;
-        private ViewModels.RepositoryConfigure _configuration;
+        private readonly ViewModels.RepositoryConfigure _configuration;
         private readonly DataGrid _remotes;
         private readonly ListBox _links;
         private readonly CheckBox _global;
@@ -97,14 +97,14 @@ namespace SourceGit.Views
             var ignoreEdit = Action("编辑", () => { if (!File.Exists(ignorePath)) File.WriteAllText(ignorePath, ""); Native.OS.OpenWithDefaultEditor(ignorePath); return Task.CompletedTask; });
             Grid.SetColumn(ignoreEdit, 1); ignored.Children.Add(ignoreEdit); advancedPage.Children.Add(Group("仓库指定忽略列表", ignored));
             var identity = new StackPanel { Spacing = 4 };
-            _global = new CheckBox { Content = "使用全局用户配置", IsChecked = string.IsNullOrEmpty(LocalConfig("user.name")) && string.IsNullOrEmpty(LocalConfig("user.email")) };
+            _global = new CheckBox { Name = "UseGlobalIdentity", Content = "使用全局用户配置", IsChecked = _configuration.UseGlobalIdentity };
             identity.Children.Add(_global);
-            _name = new TextBox { Text = _configuration.UserName, Height = 26 };
-            _email = new TextBox { Text = _configuration.UserEmail, Height = 26 };
+            _name = new TextBox { Name = "CommitterName", Text = _configuration.UserName, Height = 26 };
+            _email = new TextBox { Name = "CommitterEmail", Text = _configuration.UserEmail, Height = 26 };
             identity.Children.Add(Field("全名：", _name)); identity.Children.Add(Field("电子邮件地址：", _email));
             void EnableIdentity() => _name.IsEnabled = _email.IsEnabled = _global.IsChecked != true;
             _global.IsCheckedChanged += (_, _) => EnableIdentity(); EnableIdentity();
-            advancedPage.Children.Add(Group("用户信息", identity));
+            advancedPage.Children.Add(Group("提交者信息", identity));
             var links = new StackPanel { Spacing = 6 };
             _links = new ListBox { Height = 64, ItemsSource = _configuration.IssueTrackers, DisplayMemberBinding = new Binding("Name"), Background = this.FindResource("Brush.Contents") as IBrush, BorderThickness = new Thickness(1), BorderBrush = Brushes.Gray };
             links.Children.Add(_links);
@@ -112,20 +112,53 @@ namespace SourceGit.Views
             linkActions.Children.Add(Action("添加", async () => await EditLinkAsync(null)));
             linkActions.Children.Add(Action("编辑", async () => { if (_links.SelectedItem is Models.IssueTracker tracker) await EditLinkAsync(tracker); }));
             linkActions.Children.Add(Action("删除", () => { if (_links.SelectedItem is Models.IssueTracker tracker) _configuration.IssueTrackers.Remove(tracker); return Task.CompletedTask; }));
-            links.Children.Add(linkActions); advancedPage.Children.Add(Group("提交文本链接", links));
-            var miscellaneous = new StackPanel { Spacing = 6 };
-            _autoRefresh = new CheckBox { Content = "自动刷新（关闭后需手动刷新此仓库）", IsChecked = repo.Settings.AutoRefreshEnabled };
-            _backgroundFetch = new CheckBox { Content = "在后台刷新远端状态（在全局设置中启用时）", IsChecked = repo.Settings.BackgroundFetchEnabled };
-            miscellaneous.Children.Add(_autoRefresh); miscellaneous.Children.Add(_backgroundFetch);
-            var original = Action("其他配置…", async () =>
+            links.Children.Add(linkActions); advancedPage.Children.Add(Optional("提交文本链接", links));
+            var sync = new StackPanel { Spacing = 4 };
+            var remoteNames = _configuration.Remotes.ToList();
+            if (!string.IsNullOrEmpty(_configuration.DefaultRemote) && !remoteNames.Contains(_configuration.DefaultRemote)) remoteNames.Add(_configuration.DefaultRemote);
+            var defaultRemote = new ComboBox { Name = "DefaultRemote", ItemsSource = new[] { "自动选择" }.Concat(remoteNames).ToArray(), HorizontalAlignment = HorizontalAlignment.Stretch, SelectedIndex = Math.Max(0, remoteNames.IndexOf(_configuration.DefaultRemote) + 1) };
+            defaultRemote.SelectionChanged += (_, _) => _configuration.DefaultRemote = defaultRemote.SelectedIndex > 0 ? remoteNames[defaultRemote.SelectedIndex - 1] : string.Empty;
+            sync.Children.Add(Field("默认远程：", defaultRemote));
+            var merge = new ComboBox { Name = "MergeMode", ItemsSource = Models.MergeMode.Supported.Select(m => m.DisplayName).ToArray(), HorizontalAlignment = HorizontalAlignment.Stretch, SelectedIndex = Math.Clamp(_configuration.PreferredMergeMode, 0, Models.MergeMode.Supported.Length - 1) };
+            merge.SelectionChanged += (_, _) => _configuration.PreferredMergeMode = merge.SelectedIndex;
+            sync.Children.Add(Field("合并方式：", merge));
+            var proxy = new TextBox { Name = "HttpProxy", Height = 28, Text = _configuration.HttpProxy, Watermark = "留空继承全局代理" };
+            proxy.TextChanged += (_, _) => _configuration.HttpProxy = proxy.Text ?? string.Empty;
+            sync.Children.Add(Field("HTTP 代理：", proxy));
+            sync.Children.Add(Option("PruneOnFetch", "获取时清理已删除的远程分支引用", _configuration.EnablePruneOnFetch, value => _configuration.EnablePruneOnFetch = value));
+            _autoRefresh = Option("AutoRefresh", "自动刷新文件状态", _configuration.AutoRefreshEnabled, value => _configuration.AutoRefreshEnabled = value);
+            _backgroundFetch = Option("BackgroundFetch", "允许后台获取远程状态（需全局开启）", _configuration.BackgroundFetchEnabled, value => _configuration.BackgroundFetchEnabled = value);
+            sync.Children.Add(_autoRefresh); sync.Children.Add(_backgroundFetch);
+            advancedPage.Children.Add(Group("同步与合并", sync));
+            var signing = new StackPanel { Spacing = 4 };
+            var signingKey = new TextBox { Name = "SigningKey", Height = 28, Text = _configuration.GPGUserSigningKey, Watermark = "留空使用全局签名密钥" };
+            signingKey.TextChanged += (_, _) => _configuration.GPGUserSigningKey = signingKey.Text ?? string.Empty;
+            signing.Children.Add(Field("签名密钥：", signingKey));
+            signing.Children.Add(Option("SignCommits", "签名提交", _configuration.GPGCommitSigningEnabled, value => _configuration.GPGCommitSigningEnabled = value));
+            signing.Children.Add(Option("SignTags", "签名标签", _configuration.GPGTagSigningEnabled, value => _configuration.GPGTagSigningEnabled = value));
+            advancedPage.Children.Add(Optional("提交与标签签名", signing));
+            var submodules = new StackPanel { Spacing = 4 };
+            submodules.Children.Add(Option("AskSubmodules", "自动更新子模块前询问", _configuration.AskBeforeAutoUpdatingSubmodules, value => _configuration.AskBeforeAutoUpdatingSubmodules = value));
+            submodules.Children.Add(Option("RecursiveSubmodules", "递归更新子模块", _configuration.EnableRecursiveWhenAutoUpdatingSubmodules, value => _configuration.EnableRecursiveWhenAutoUpdatingSubmodules = value));
+            advancedPage.Children.Add(Optional("子模块更新", submodules));
+            var templates = new StackPanel { Spacing = 4 };
+            var templateList = new ListBox { Name = "CommitTemplates", Height = 72, ItemsSource = _configuration.CommitTemplates, DisplayMemberBinding = new Binding("Name"), Background = this.FindResource("Brush.Contents") as IBrush };
+            templates.Children.Add(templateList);
+            async Task EditTemplate(Models.CommitTemplate template)
             {
-                await new RepositoryConfigure { DataContext = new ViewModels.RepositoryConfigure(repo) }.ShowDialog(this);
-                _configuration = new ViewModels.RepositoryConfigure(repo);
-                _name.Text = _configuration.UserName; _email.Text = _configuration.UserEmail;
-                _global.IsChecked = string.IsNullOrEmpty(LocalConfig("user.name")) && string.IsNullOrEmpty(LocalConfig("user.email"));
-                _links.ItemsSource = _configuration.IssueTrackers;
-            });
-            miscellaneous.Children.Add(original); advancedPage.Children.Add(Group("杂项", miscellaneous));
+                var editor = new RepositoryForm(template == null ? "添加提交模板" : "编辑提交模板", ["名称", "内容"], [template?.Name ?? "", template?.Content ?? ""], 1);
+                if (!await editor.ShowDialog<bool>(this) || string.IsNullOrWhiteSpace(editor.Values[0])) return;
+                if (template == null) _configuration.CommitTemplates.Add(new Models.CommitTemplate { Name = editor.Values[0], Content = editor.Values[1] });
+                else { template.Name = editor.Values[0]; template.Content = editor.Values[1]; }
+            }
+            var templateActions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+            templateActions.Children.Add(Action("添加", () => EditTemplate(null)));
+            var editTemplate = Action("编辑", () => templateList.SelectedItem is Models.CommitTemplate t ? EditTemplate(t) : Task.CompletedTask);
+            var removeTemplate = Action("删除", () => { if (templateList.SelectedItem is Models.CommitTemplate t) _configuration.CommitTemplates.Remove(t); return Task.CompletedTask; });
+            editTemplate.IsEnabled = removeTemplate.IsEnabled = false;
+            templateList.SelectionChanged += (_, _) => editTemplate.IsEnabled = removeTemplate.IsEnabled = templateList.SelectedItem != null;
+            templateActions.Children.Add(editTemplate); templateActions.Children.Add(removeTemplate); templates.Children.Add(templateActions);
+            advancedPage.Children.Add(Optional("提交模板", templates));
             var scroll = new ScrollViewer { Content = remotePage, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto };
             border.Child = scroll; Grid.SetRow(border, 2); root.Children.Add(border);
             void Select(bool advanced)
@@ -139,38 +172,39 @@ namespace SourceGit.Views
             }
             _selectPage = Select;
             remoteTab.Click += (_, _) => Select(false); advancedTab.Click += (_, _) => Select(true); Select(false);
-            _error = new TextBlock { Foreground = Brushes.IndianRed, TextWrapping = TextWrapping.Wrap, IsVisible = false };
+            _error = new TextBlock { Name = "RepositorySettingsError", Foreground = Brushes.IndianRed, TextWrapping = TextWrapping.Wrap, IsVisible = false };
             Grid.SetRow(_error, 3); root.Children.Add(_error);
             var footer = new Grid { Margin = new Thickness(0, 8, 0, 0), ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto") };
             footer.Children.Add(Action("编辑配置文件…", () => { Native.OS.OpenWithDefaultEditor(Path.Combine(repo.GitDir, "config")); return Task.CompletedTask; }));
             var ok = Action("确定", SaveAsync); ok.Name = "ConfirmRepositorySettings"; Grid.SetColumn(ok, 2); footer.Children.Add(ok);
             var cancel = new Button { Content = "取消", Classes = { "flat" }, MinWidth = 74, Margin = new Thickness(6, 0, 0, 0) }; cancel.Click += (_, _) => Close(); Grid.SetColumn(cancel, 3); footer.Children.Add(cancel);
             Grid.SetRow(footer, 4); root.Children.Add(footer); Content = root;
-            Opened += async (_, _) => { FitToScreen(); await RefreshRemotesAsync(); };
-        }
-
-        private string LocalConfig(string key) => new LocalConfigQuery(_repo.FullPath, key).ReadValue();
-        private sealed class LocalConfigQuery : Commands.Command
-        {
-            public LocalConfigQuery(string repo, string key)
+            Opened += async (_, _) =>
             {
-                WorkingDirectory = repo; Context = repo; Args = "config --local --get " + key; RaiseError = false;
-            }
-            public string ReadValue() => ReadToEnd().StdOut.Trim();
+                FitToScreen(); await RefreshRemotesAsync();
+#if INTEGRATION_TESTS
+                Tests.RepositorySettingsProbe.OnOpened(this, _configuration, SaveAsync);
+#endif
+            };
         }
 
         private async Task SaveAsync()
         {
-            _configuration.UserName = _name.Text ?? ""; _configuration.UserEmail = _email.Text ?? "";
-            await _configuration.SaveAsync();
-            if (_global.IsChecked == true)
+            try
             {
-                var config = new Commands.Config(_repo.FullPath) { RaiseError = false };
-                await config.SetAsync("user.name", null); await config.SetAsync("user.email", null);
+                _error.IsVisible = false;
+                _configuration.UserName = _name.Text ?? "";
+                _configuration.UserEmail = _email.Text ?? "";
+                _configuration.UseGlobalIdentity = _global.IsChecked == true;
+                await _configuration.SaveAsync();
+                _repo.RefreshAll();
+                Close();
             }
-            _repo.Settings.AutoRefreshEnabled = _autoRefresh.IsChecked == true;
-            _repo.Settings.BackgroundFetchEnabled = _backgroundFetch.IsChecked == true;
-            _repo.Settings.Save(); _repo.RefreshAll(); Close();
+            catch (Exception ex)
+            {
+                _error.Text = ex.Message;
+                _error.IsVisible = true;
+            }
         }
 
         private async Task RefreshRemotesAsync()
@@ -253,6 +287,19 @@ namespace SourceGit.Views
             };
         }
 
+        private static CheckBox Option(string name, string caption, bool value, Action<bool> update)
+        {
+            var option = new CheckBox { Name = name, Content = new TextBlock { Text = caption, TextWrapping = TextWrapping.Wrap }, IsChecked = value };
+            option.IsCheckedChanged += (_, _) => update(option.IsChecked == true);
+            return option;
+        }
+
+        private static Control Optional(string title, Control content) => new Expander
+        {
+            Header = title, IsExpanded = false, HorizontalAlignment = HorizontalAlignment.Stretch,
+            Content = new Border { Padding = new Thickness(6), Child = content },
+        };
+
         private static Control Group(string title, Control content)
             => new StackPanel { Spacing = 2, Children = { new TextBlock { Text = title }, new Border { BorderThickness = new Thickness(1), BorderBrush = new SolidColorBrush(Color.Parse("#CED8DF")), CornerRadius = new CornerRadius(3), Padding = new Thickness(6), Child = content } } };
 
@@ -268,12 +315,27 @@ namespace SourceGit.Views
     {
         private readonly TextBox[] _fields;
         public string[] Values => _fields.Select(f => f.Text ?? "").ToArray();
-        public RepositoryForm(string title, string[] labels, string[] values)
+        public RepositoryForm(string title, string[] labels, string[] values, int multilineIndex = -1)
         {
             Title = title; Width = 510; SizeToContent = SizeToContent.Height; WindowStartupLocation = WindowStartupLocation.CenterOwner; CanResize = false; CloseOnESC = true;
             var panel = new StackPanel { Margin = new Thickness(20), Spacing = 10 };
             panel.Children.Add(new TextBlock { Text = title, FontSize = 18, FontWeight = FontWeight.Bold });
             _fields = values.Select((v, i) => new TextBox { Text = v, Watermark = labels[i], Height = 28 }).ToArray();
+            if (multilineIndex >= 0 && multilineIndex < _fields.Length)
+            {
+                _fields[multilineIndex].AcceptsReturn = true;
+                _fields[multilineIndex].Height = 140;
+                _fields[multilineIndex].TextWrapping = TextWrapping.Wrap;
+                _fields[multilineIndex].VerticalContentAlignment = VerticalAlignment.Top;
+            }
+            Opened += (_, _) =>
+            {
+                var screen = Screens.ScreenFromWindow(this);
+                if (screen == null) return;
+                MaxWidth = Math.Max(1, screen.WorkingArea.Width / screen.Scaling - 32);
+                MaxHeight = Math.Max(1, screen.WorkingArea.Height / screen.Scaling - 32);
+                Width = Math.Min(510 * ViewModels.Preferences.Instance.Zoom, MaxWidth);
+            };
             if (values.Length == 0) panel.Children.Add(new TextBlock { Text = labels[0], TextWrapping = TextWrapping.Wrap });
             for (var i = 0; i < _fields.Length; i++) { panel.Children.Add(new TextBlock { Text = labels[i] }); panel.Children.Add(_fields[i]); }
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8 };

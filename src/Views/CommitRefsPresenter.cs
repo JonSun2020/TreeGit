@@ -113,6 +113,15 @@ namespace SourceGit.Views
             set => SetValue(ForegroundProperty, value);
         }
 
+        public static readonly StyledProperty<IBrush> TagIconBrushProperty =
+            AvaloniaProperty.Register<CommitRefsPresenter, IBrush>(nameof(TagIconBrush), new SolidColorBrush(Color.Parse("#103F47")));
+
+        public IBrush TagIconBrush
+        {
+            get => GetValue(TagIconBrushProperty);
+            set => SetValue(TagIconBrushProperty, value);
+        }
+
         public static readonly StyledProperty<bool> UseCompactBranchNamesProperty =
             AvaloniaProperty.Register<CommitRefsPresenter, bool>(nameof(UseCompactBranchNames));
 
@@ -254,7 +263,7 @@ namespace SourceGit.Views
 
                 var icon = CommitRefsIconCache.Instance.GetIcon(item.Decorator.Type);
                 using (context.PushTransform(Matrix.CreateTranslation(x + 3, y + 3)))
-                    context.DrawGeometry(fg, null, icon);
+                    context.DrawGeometry(item.Decorator.IsTag ? TagIconBrush : fg, null, icon);
 
                 x += item.Width + 4;
             }
@@ -263,6 +272,9 @@ namespace SourceGit.Views
         protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
         {
             base.OnPropertyChanged(change);
+
+            if (change.Property == TagIconBrushProperty)
+                InvalidateVisual();
 
             if (change.Property == FontFamilyProperty ||
                 change.Property == FontSizeProperty ||

@@ -13,7 +13,7 @@
           BorderBrush="{DynamicResource Brush.Border2}"
           CornerRadius="4">
     <Grid RowDefinitions="*,24">
-      <Grid Grid.Row="0">        
+      <Grid Grid.Row="0">
         <v:CommitMessageTextBox x:Name="Editor"
                                 Classes="no_border no_background"
                                 CornerRadius="4,4,0,0"
@@ -99,15 +99,7 @@
             <Path Width="12" Height="12" Data="{StaticResource Icons.Menu}"/>
           </Button>
 
-          <Button Grid.Column="1"
-                  Classes="icon_button"
-                  Width="28"
-                  Margin="0,0,4,0" Padding="0"
-                  Click="OnOpenOpenAIHelper"
-                  IsVisible="{Binding #ThisControl.ShowAdvancedOptions}"
-                  ToolTip.Tip="{DynamicResource Text.AIAssistant.Tip}">
-            <Path Width="13" Height="13" Data="{StaticResource Icons.AIAssist}"/>
-          </Button>
+
 
           <Button Grid.Column="2"
                   Classes="icon_button"

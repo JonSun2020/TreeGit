@@ -20,9 +20,11 @@ namespace SourceGit.Commands
             }
         }
 
-        public Dictionary<string, string> ReadAll()
+        public Dictionary<string, string> ReadAll() => ReadAll(false);
+
+        public Dictionary<string, string> ReadAll(bool localOnly)
         {
-            Args = "config -l";
+            Args = localOnly ? "config --local -l" : "config -l";
 
             var output = ReadToEnd();
             var rs = new Dictionary<string, string>();

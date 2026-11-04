@@ -157,6 +157,40 @@ namespace SourceGit.Views
 
             UpdateGitVersion();
             InitializeComponent();
+            Opened += (_, _) => FitToScreen();
+            ViewModels.Preferences.Instance.PropertyChanged += OnPreferencesChanged;
+            Closed += (_, _) => ViewModels.Preferences.Instance.PropertyChanged -= OnPreferencesChanged;
+        }
+
+        public void SelectPage(string page)
+        {
+            PreferenceTabs.SelectedIndex = page switch
+            {
+                "general" => 0, "appearance" => 1, "git" => 2, "signing" => 3, "integration" => 4,
+                _ => throw new ArgumentException("Unknown preferences page."),
+            };
+        }
+
+        private void OnPreferencesChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ViewModels.Preferences.Zoom)) FitToScreen();
+        }
+
+        private void FitToScreen()
+        {
+            if (!IsVisible) return;
+            var screen = Screens.ScreenFromWindow(this);
+            if (screen == null) return;
+            var area = screen.WorkingArea;
+            var scale = screen.Scaling;
+            var centerX = Position.X + Bounds.Width * scale / 2;
+            var centerY = Position.Y + Bounds.Height * scale / 2;
+            MaxWidth = Math.Max(1, area.Width / scale - 32);
+            MaxHeight = Math.Max(1, area.Height / scale - 32);
+            Width = Math.Min(680 * ViewModels.Preferences.Instance.Zoom, MaxWidth);
+            Height = Math.Min(570 * ViewModels.Preferences.Instance.Zoom, MaxHeight);
+            Position = new PixelPoint((int)Math.Clamp(centerX - Width * scale / 2, area.X + 8, Math.Max(area.X + 8, area.Right - Width * scale - 8)),
+                (int)Math.Clamp(centerY - Height * scale / 2, area.Y + 8, Math.Max(area.Y + 8, area.Bottom - Height * scale - 8)));
         }
 
         protected override async void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)

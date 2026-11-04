@@ -44,8 +44,8 @@ namespace SourceGit.Views
 
         private void OnTreeGitExtraAction(object sender, Avalonia.Interactivity.RoutedEventArgs e)
         {
-            if (sender is MenuItem { Tag: string action } && TreeGitRepository is { } repo)
-                this.GetVisualDescendants().OfType<RepositoryToolbar>().FirstOrDefault(v => v.DataContext == repo)?.ExecuteMenuAction(action, TitleChrome);
+            if (sender is MenuItem { Name: { } name } && name.StartsWith("GitAction_", System.StringComparison.Ordinal) && TreeGitRepository is { } repo)
+                this.GetVisualDescendants().OfType<RepositoryToolbar>().FirstOrDefault(v => v.DataContext == repo)?.ExecuteMenuAction(name["GitAction_".Length..], TitleChrome);
         }
 
         public void ToggleMaximizeRestore()

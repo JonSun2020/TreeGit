@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -26,31 +26,9 @@ namespace SourceGit.ViewModels
             get;
         }
 
-        public string DefaultRemote
-        {
-            get => _repo.Settings.DefaultRemote;
-            set
-            {
-                if (_repo.Settings.DefaultRemote != value)
-                {
-                    _repo.Settings.DefaultRemote = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
+        public string DefaultRemote { get; set; }
 
-        public int PreferredMergeMode
-        {
-            get => _repo.Settings.PreferredMergeMode;
-            set
-            {
-                if (_repo.Settings.PreferredMergeMode != value)
-                {
-                    _repo.Settings.PreferredMergeMode = value;
-                    OnPropertyChanged();
-                }
-            }
-        }
+        public int PreferredMergeMode { get; set; }
 
         public bool GPGCommitSigningEnabled
         {
@@ -95,22 +73,14 @@ namespace SourceGit.ViewModels
             set;
         }
 
-        public bool AskBeforeAutoUpdatingSubmodules
-        {
-            get => _repo.Settings.AskBeforeAutoUpdatingSubmodules;
-            set => _repo.Settings.AskBeforeAutoUpdatingSubmodules = value;
-        }
+        public bool AskBeforeAutoUpdatingSubmodules { get; set; }
 
-        public bool EnableRecursiveWhenAutoUpdatingSubmodules
-        {
-            get => _repo.Settings.EnableRecursiveWhenAutoUpdatingSubmodules;
-            set => _repo.Settings.EnableRecursiveWhenAutoUpdatingSubmodules = value;
-        }
+        public bool EnableRecursiveWhenAutoUpdatingSubmodules { get; set; }
 
-        public AvaloniaList<Models.CommitTemplate> CommitTemplates
-        {
-            get => _repo.Settings.CommitTemplates;
-        }
+        public AvaloniaList<Models.CommitTemplate> CommitTemplates { get; } = [];
+        public bool UseGlobalIdentity { get; set; }
+        public bool AutoRefreshEnabled { get; set; }
+        public bool BackgroundFetchEnabled { get; set; }
 
         public Models.CommitTemplate SelectedCommitTemplate
         {
@@ -160,13 +130,16 @@ namespace SourceGit.ViewModels
             foreach (var remote in _repo.Remotes)
                 Remotes.Add(remote.Name);
 
-            AvailableOpenAIServices = new List<string>() { "---" };
-            foreach (var service in Preferences.Instance.OpenAIServices)
-                AvailableOpenAIServices.Add(service.Name);
-
-            if (!AvailableOpenAIServices.Contains(PreferredOpenAIService))
-                PreferredOpenAIService = "---";
-
+            DefaultRemote = repo.Settings.DefaultRemote;
+            PreferredMergeMode = repo.Settings.PreferredMergeMode;
+            AskBeforeAutoUpdatingSubmodules = repo.Settings.AskBeforeAutoUpdatingSubmodules;
+            EnableRecursiveWhenAutoUpdatingSubmodules = repo.Settings.EnableRecursiveWhenAutoUpdatingSubmodules;
+            AutoRefreshEnabled = repo.Settings.AutoRefreshEnabled;
+            BackgroundFetchEnabled = repo.Settings.BackgroundFetchEnabled;
+            foreach (var template in repo.Settings.CommitTemplates)
+                CommitTemplates.Add(new Models.CommitTemplate { Name = template.Name, Content = template.Content });
+            _cachedLocal = new Commands.Config(repo.FullPath).ReadAll(true);
+            UseGlobalIdentity = !_cachedLocal.ContainsKey("user.name") && !_cachedLocal.ContainsKey("user.email");
             _cached = new Commands.Config(repo.FullPath).ReadAll();
             if (_cached.TryGetValue("user.name", out var name))
                 UserName = name;
@@ -203,14 +176,14 @@ namespace SourceGit.ViewModels
         public void AddCommitTemplate()
         {
             var template = new Models.CommitTemplate() { Name = "New Template" };
-            _repo.Settings.CommitTemplates.Add(template);
+            CommitTemplates.Add(template);
             SelectedCommitTemplate = template;
         }
 
         public void RemoveSelectedCommitTemplate()
         {
             if (_selectedCommitTemplate != null)
-                _repo.Settings.CommitTemplates.Remove(_selectedCommitTemplate);
+                CommitTemplates.Remove(_selectedCommitTemplate);
             SelectedCommitTemplate = null;
         }
 
@@ -272,10 +245,8 @@ namespace SourceGit.ViewModels
 
         public async Task SaveAsync()
         {
-            _repo.Settings.Save();
-
-            await SetIfChangedAsync("user.name", UserName, "");
-            await SetIfChangedAsync("user.email", UserEmail, "");
+            await SetIfChangedAsync("user.name", UseGlobalIdentity ? null : UserName, "", true);
+            await SetIfChangedAsync("user.email", UseGlobalIdentity ? null : UserEmail, "", true);
             await SetIfChangedAsync("commit.gpgsign", GPGCommitSigningEnabled ? "true" : "false", "false");
             await SetIfChangedAsync("tag.gpgsign", GPGTagSigningEnabled ? "true" : "false", "false");
             await SetIfChangedAsync("user.signingkey", GPGUserSigningKey, "");
@@ -283,12 +254,44 @@ namespace SourceGit.ViewModels
             await SetIfChangedAsync("fetch.prune", EnablePruneOnFetch ? "true" : "false", "false");
 
             await ApplyIssueTrackerChangesAsync();
+            var settings = _repo.Settings;
+            var old = (settings.DefaultRemote, settings.PreferredMergeMode, settings.AskBeforeAutoUpdatingSubmodules,
+                settings.EnableRecursiveWhenAutoUpdatingSubmodules, settings.AutoRefreshEnabled, settings.BackgroundFetchEnabled,
+                Templates: new AvaloniaList<Models.CommitTemplate>(settings.CommitTemplates));
+            try
+            {
+                settings.DefaultRemote = DefaultRemote ?? string.Empty;
+                settings.PreferredMergeMode = PreferredMergeMode;
+                settings.AskBeforeAutoUpdatingSubmodules = AskBeforeAutoUpdatingSubmodules;
+                settings.EnableRecursiveWhenAutoUpdatingSubmodules = EnableRecursiveWhenAutoUpdatingSubmodules;
+                settings.AutoRefreshEnabled = AutoRefreshEnabled;
+                settings.BackgroundFetchEnabled = BackgroundFetchEnabled;
+                settings.CommitTemplates = new AvaloniaList<Models.CommitTemplate>(CommitTemplates);
+                settings.SaveChecked();
+            }
+            catch
+            {
+                settings.DefaultRemote = old.DefaultRemote;
+                settings.PreferredMergeMode = old.PreferredMergeMode;
+                settings.AskBeforeAutoUpdatingSubmodules = old.AskBeforeAutoUpdatingSubmodules;
+                settings.EnableRecursiveWhenAutoUpdatingSubmodules = old.EnableRecursiveWhenAutoUpdatingSubmodules;
+                settings.AutoRefreshEnabled = old.AutoRefreshEnabled;
+                settings.BackgroundFetchEnabled = old.BackgroundFetchEnabled;
+                settings.CommitTemplates = old.Templates;
+                throw;
+            }
         }
 
-        private async Task SetIfChangedAsync(string key, string value, string defValue)
+        private async Task SetIfChangedAsync(string key, string value, string defValue, bool forceLocal = false)
         {
-            if (value != _cached.GetValueOrDefault(key, defValue))
-                await new Commands.Config(_repo.FullPath).SetAsync(key, value);
+            var remove = string.IsNullOrWhiteSpace(value);
+            if (remove && !_cachedLocal.ContainsKey(key)) return;
+            var current = forceLocal ? _cachedLocal.GetValueOrDefault(key) : _cached.GetValueOrDefault(key, defValue);
+            if (!remove && value == current) return;
+            if (!await new Commands.Config(_repo.FullPath) { RaiseError = false }.SetAsync(key, value))
+                throw new InvalidOperationException("无法保存仓库配置：" + key);
+            if (remove) { _cachedLocal.Remove(key); _cached.Remove(key); }
+            else { _cachedLocal[key] = value; _cached[key] = value; }
         }
 
         private async Task ApplyIssueTrackerChangesAsync()
@@ -349,6 +352,7 @@ namespace SourceGit.ViewModels
 
         private readonly Repository _repo;
         private readonly Dictionary<string, string> _cached;
+        private readonly Dictionary<string, string> _cachedLocal;
         private string _httpProxy;
         private Models.CommitTemplate _selectedCommitTemplate = null;
         private Models.IssueTracker _selectedIssueTracker = null;

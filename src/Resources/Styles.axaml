@@ -11,6 +11,11 @@
     </StackPanel>
   </Design.PreviewWith>
 
+  <Style Selector="v|CommitRefsPresenter">
+    <Setter Property="TagIconBrush" Value="{DynamicResource Brush.TreeGit.Chrome}"/>
+  </Style>
+
+
   <Style Selector="Window">
     <Style.Resources>
       <SolidColorBrush x:Key="SystemControlErrorTextForegroundBrush" Color="Red"/>
