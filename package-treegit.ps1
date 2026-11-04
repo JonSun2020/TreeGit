@@ -21,6 +21,9 @@ try {
     }
     $zip.CreateEntry('TreeGit/data/') | Out-Null
 } finally {$zip.Dispose()}
-$hash=(Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+$hashAlgorithm=[Security.Cryptography.SHA256]::Create()
+$archiveStream=[IO.File]::OpenRead($archive)
+try {$hash=([BitConverter]::ToString($hashAlgorithm.ComputeHash($archiveStream))).Replace('-','').ToLowerInvariant()}
+finally {$archiveStream.Dispose();$hashAlgorithm.Dispose()}
 [IO.File]::WriteAllText((Join-Path $Destination 'SHA256SUMS.txt'),($hash+'  '+$name+"`n"),[Text.UTF8Encoding]::new($false))
 Write-Output $archive
