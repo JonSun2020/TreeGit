@@ -42,7 +42,7 @@ namespace SourceGit
             }
             if (args.Length > 2 && args[0] == "--integration-auth-fetch")
             {
-                Environment.Exit(Tests.UpstreamProbe.FetchAsync(args[1], args[2]).GetAwaiter().GetResult());
+                Environment.Exit(Tests.UpstreamProbe.FetchAsync(args[1], args[2], args.Length > 3 ? args[3] : null, args.Length > 4 ? args[4] : null).GetAwaiter().GetResult());
                 return;
             }
             if (args.Length > 2 && args[0] == "--integration-probe")

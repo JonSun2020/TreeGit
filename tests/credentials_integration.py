@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import ssl
 import sys
 import tempfile
 import threading
@@ -18,6 +19,8 @@ if not git.exists():
     git = Path(shutil.which('git'))
 root = Path(tempfile.mkdtemp(prefix='SourceGit credential 中文 '))
 prompt_mode = '--prompt' in sys.argv[3:]
+https_mode = '--https' in sys.argv[3:]
+scheme = 'https' if https_mode else 'http'
 fixture = root/'askpass-fixture.json'
 seen = []
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -39,12 +42,21 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(data)
 server = http.server.ThreadingHTTPServer(('127.0.0.1',0), Handler)
+if https_mode:
+    openssl=git.parent.parent/'usr/bin/openssl.exe'
+    assert openssl.exists(),openssl
+    certificate=root/'localhost-cert.pem';private_key=root/'localhost-key.pem'
+    generated=subprocess.run([str(openssl),'req','-x509','-newkey','rsa:2048','-nodes','-days','1',
+        '-subj','/CN=localhost','-addext','subjectAltName=IP:127.0.0.1','-keyout',str(private_key),'-out',str(certificate)],capture_output=True)
+    assert generated.returncode==0,generated.stderr
+    context=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER);context.load_cert_chain(certificate,private_key)
+    server.socket=context.wrap_socket(server.socket,server_side=True)
 threading.Thread(target=server.serve_forever, daemon=True).start()
 host = f'127.0.0.1:{server.server_port}'
-url = f'http://{host}/repo.git'
+url = f'{scheme}://{host}/repo.git'
 def helper(repo, action, username='', password='', path='repo.git'):
     env = dict(os.environ, SOURCEGIT_CREDENTIAL_SCOPE=str(repo))
-    content = f'protocol=http\nhost={host}\npath={path}\n'
+    content = f'protocol={scheme}\nhost={host}\npath={path}\n'
     if username: content += f'username={username}\n'
     if password: content += f'password={password}\n'
     p = subprocess.run([str(exe),'--credential-helper',action], input=content+'\n', env=env, text=True, encoding='utf-8', capture_output=True, timeout=10)
@@ -66,6 +78,8 @@ try:
     if not prompt_mode:
         assert 'alice' in helper(repos[0],'get') and 'bob' in helper(repos[1],'get')
     env = dict(os.environ)
+    if https_mode:
+        env['GIT_SSL_CAINFO']=str(certificate)
     if prompt_mode:
         env['SOURCEGIT_TEST_ASKPASS_FIXTURE'] = str(fixture)
     p = subprocess.Popen([str(exe),'--mcp','--allow-write'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', creationflags=subprocess.CREATE_NO_WINDOW, env=env)
@@ -166,7 +180,9 @@ try:
         shutil.copy2(str(fixture)+'.png', artifacts/'combined-authentication.png')
     else:
         result.update(username_mismatch_ignored=True,different_remote_path_isolated=True)
-    (artifacts/('credentials-prompt-results.json' if prompt_mode else 'credentials-results.json')).write_text(json.dumps(result,indent=2),encoding='utf-8')
+    result['transport']=scheme
+    result['openssl_tls_with_verified_local_certificate']=https_mode
+    (artifacts/('credentials-https-prompt-results.json' if https_mode and prompt_mode else 'credentials-https-results.json' if https_mode else 'credentials-prompt-results.json' if prompt_mode else 'credentials-results.json')).write_text(json.dumps(result,indent=2),encoding='utf-8')
     print('PASS vault roundtrip, repository isolation, username/path isolation, real authenticated fetch for alice/bob, erase',flush=True)
 finally:
     for repo in repos: helper(repo,'erase')

@@ -243,14 +243,17 @@ namespace SourceGit.Commands
                 {
                     var ssh = "'" + bundledSSH.Replace('\\', '/').Replace("'", "'\\''", StringComparison.Ordinal) + "'";
                     if (!string.IsNullOrEmpty(SSHKey))
-                        ssh += " -i '" + SSHKey.Replace("'", "'\\''", StringComparison.Ordinal) + "' -o AddKeysToAgent=yes";
+                        ssh += " -i '" + SSHKey.Replace('\\', '/').Replace("'", "'\\''", StringComparison.Ordinal) + "' -o AddKeysToAgent=yes";
                     start.Environment["GIT_SSH_COMMAND"] = ssh;
                 }
             }
 
             // If an SSH private key was provided, sets the environment.
             if (!start.Environment.ContainsKey("GIT_SSH_COMMAND") && !string.IsNullOrEmpty(SSHKey))
-                start.Environment.Add("GIT_SSH_COMMAND", $"ssh -i '{SSHKey}' -o AddKeysToAgent=yes");
+            {
+                var key = SSHKey.Replace('\\', '/').Replace("'", "'\\''", StringComparison.Ordinal);
+                start.Environment.Add("GIT_SSH_COMMAND", $"ssh -i '{key}' -o AddKeysToAgent=yes");
+            }
 
             // Force the C locale on Unix, so that git's output (including fatal errors) can always be parsed.
             if (!OperatingSystem.IsWindows())

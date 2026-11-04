@@ -10,13 +10,16 @@ namespace SourceGit.Tests
 {
     internal static class UpstreamProbe
     {
-        public static async Task<int> FetchAsync(string repo, string url)
+        public static async Task<int> FetchAsync(string repo, string url, string key = null, string report = null)
         {
             Native.OS.GitExecutable = Path.Combine(AppContext.BaseDirectory, "git", "cmd", "git.exe");
             if (!File.Exists(Native.OS.GitExecutable))
                 Native.OS.GitExecutable = Native.OS.FindGitExecutable();
-            var remote = new Models.Remote { Name = "origin", URL = url };
-            return await new Commands.Fetch(repo, remote) { RaiseError = false }.ExecAsync() ? 0 : 1;
+            var remote = new Models.Remote { Name = "origin", URL = url, PrivateSSHKey = key };
+            var log = new Log();
+            var success = await new Commands.Fetch(repo, remote) { RaiseError = false, Log = log }.ExecAsync();
+            if (report != null) await File.WriteAllTextAsync(report, log.ToString());
+            return success ? 0 : 1;
         }
 
         private sealed class Log : Models.ICommandLog
