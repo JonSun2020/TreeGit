@@ -35,6 +35,16 @@ namespace SourceGit
             }
             Native.OS.SetupBasicDirectories();
 #if INTEGRATION_TESTS
+            if (args.Length > 2 && args[0] == "--integration-cancel-git")
+            {
+                Environment.Exit(Tests.ProcessCancellationProbe.RunGitAsync(args[1], args[2]).GetAwaiter().GetResult());
+                return;
+            }
+            if (args.Length > 4 && args[0] == "--integration-cancel-process")
+            {
+                Environment.Exit(Tests.ProcessCancellationProbe.Run(int.Parse(args[1]), int.Parse(args[2]), args[3], args[4]));
+                return;
+            }
             if (args.Length > 1 && args[0] == "--integration-graph-render")
             {
                 Environment.Exit(Tests.GraphStyleProbe.Run(args[1]));

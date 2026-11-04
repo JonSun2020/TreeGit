@@ -29,18 +29,6 @@ namespace SourceGit.Native
         [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = false)]
         private static extern int SHOpenFolderAndSelectItems(IntPtr pidlFolder, int cild, IntPtr apidl, int dwFlags);
 
-        [DllImport("kernel32.dll")]
-        private static extern bool SetConsoleCtrlHandler(IntPtr handler, bool add);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool AttachConsole(int dwProcessId);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool GenerateConsoleCtrlEvent(uint dwCtrlEvent, int dwProcessGroupId);
-
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool FreeConsole();
-
         public void SetupApp(AppBuilder builder)
         {
             // Do nothing for now.
@@ -236,27 +224,20 @@ namespace SourceGit.Native
 
         public void TerminateProcess(Process proc)
         {
-            var pid = proc.Id;
-            if (AttachConsole(pid))
+            // Console control events affect unrelated processes sharing the
+            // console and mutate this GUI process's own console state.
+            // Scope cancellation to the command and its descendants.
+            if (proc.HasExited)
+                return;
+            try
             {
-                SetConsoleCtrlHandler(IntPtr.Zero, true);
-                try
-                {
-                    if (!GenerateConsoleCtrlEvent(0, 0))
-                        proc.Kill(true);
-
-                    proc.WaitForExit(2000);
-                }
-                finally
-                {
-                    FreeConsole();
-                    SetConsoleCtrlHandler(IntPtr.Zero, false);
-                }
+                proc.Kill(entireProcessTree: true);
             }
-            else
+            catch (InvalidOperationException)
             {
-                proc.Kill(true);
+                // The command may finish between HasExited and Kill.
             }
+            catch (System.ComponentModel.Win32Exception) when (proc.HasExited) { }
         }
 
         #region HELPER_METHODS

@@ -10,6 +10,7 @@ import paramiko
 
 exe=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
 plain='--plain-only' in sys.argv[3:]
+trust_first_host='--trust-first-host' in sys.argv[3:]  # Requires the integration-only prompt driver.
 paramiko.util.log_to_file(str(out/'ssh-server-debug.log'))
 root=Path(tempfile.mkdtemp(prefix="TreeGit SSH E2E O'Brien "));bare=root/'remote.git';seed=root/'seed';fixture=root/'askpass.json'
 git_exe=Path(shutil.which('git')).resolve();ssh=git_exe.parent.parent/'usr/bin/ssh.exe';keygen=ssh.with_name('ssh-keygen.exe');assert ssh.exists() and keygen.exists()
@@ -109,6 +110,10 @@ def check(name,condition):
 try:
     direct=env.copy();direct['GIT_SSH_COMMAND']=shlex.quote(ssh.as_posix())+' -F '+shlex.quote(config.as_posix())+' -i '+shlex.quote(keys['qaA'].as_posix())+' -o BatchMode=yes'
     check('loopback SSH server serves the real Git wire protocol',initial in git(seed,'ls-remote',url('qaA'),extra_env=direct))
+    if trust_first_host:
+        known.write_text('')
+        config.write_text(config.read_text().replace('StrictHostKeyChecking yes','StrictHostKeyChecking ask'))
+        fixture.write_text(json.dumps({'username':'unused','password':'yes'}),encoding='utf-8')
     # Preserve the app's exact -i argument while isolating host trust and agent settings.
     preferences.parent.mkdir(exist_ok=True)
     settings=json.loads(preferences.read_text(encoding='utf-8-sig')) if preferences.exists() else {}
@@ -127,6 +132,10 @@ try:
     clone=root/'SSH clone 中文'
     tool('git_clone',{'url':url('qaA'),'destination':str(clone),'sshKey':str(keys['qaA']),'recursive':False})
     pid=tool('ui_state')['processId'];check('TreeGit clones through real OpenSSH with a spaced apostrophe key path',git(clone,'rev-parse','HEAD')==initial)
+    if trust_first_host:
+        events=Path(str(fixture)+'.events')
+        check('first SSH host trust is confirmed in a topmost prompt and stored only in the owned known-hosts file',host_key.get_base64() in known.read_text() and events.exists() and 'topmost-password-dialog' in events.read_text())
+        events.unlink();fixture.write_text(json.dumps({'username':'unused','password':phrase}),encoding='utf-8')
     alias_clone=root/'SSH alias clone'
     tool('git_clone',{'url':'treegit-qa:'+bare.as_posix(),'destination':str(alias_clone),'sshKey':str(keys['qaA']),'recursive':False})
     check('an SSH config alias clones through standard scp syntax',git(alias_clone,'rev-parse','HEAD')==initial)
@@ -170,4 +179,4 @@ finally:
     subprocess.run(['powershell','-NoProfile','-Command',"Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq '"+literal+"' } | Stop-Process"],capture_output=True)
     if saved_preferences is None:preferences.unlink(missing_ok=True)
     else:preferences.write_bytes(saved_preferences)
-    (out/'ssh-transport-results.json').write_text(json.dumps({'checks':checks,'passed':len(checks),'commands':commands,'serverErrors':server_errors,'root':str(root),'exe':str(exe),'paramiko':paramiko.__version__,'plainOnly':plain},ensure_ascii=False,indent=2),encoding='utf-8')
+    (out/'ssh-transport-results.json').write_text(json.dumps({'checks':checks,'passed':len(checks),'commands':commands,'serverErrors':server_errors,'root':str(root),'exe':str(exe),'paramiko':paramiko.__version__,'plainOnly':plain,'trustFirstHost':trust_first_host},ensure_ascii=False,indent=2),encoding='utf-8')
