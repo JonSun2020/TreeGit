@@ -107,6 +107,9 @@ mcp = Mcp(True)
 check('write endpoint advertises git_action', any(t['name']=='git_action' for t in mcp.call('tools/list')['tools']))
 cloned = testroot/'MCP clone 中文'
 check('clone uses original GUI workflow', mcp.tool('git_clone', {'url':str(remote),'destination':str(cloned),'recursive':False})['isSuccess'] and (cloned/'文件 with spaces.txt').exists())
+bundle=testroot/'offline backup.bundle';run('bundle','create',str(bundle),'--all')
+bundle_clone=testroot/'bundle clone 中文'
+check('clone accepts a local Git bundle through the same GUI workflow',mcp.tool('git_clone',{'url':str(bundle),'destination':str(bundle_clone),'recursive':False})['isSuccess'] and (bundle_clone/'文件 with spaces.txt').exists())
 mcp.tool('git_clone', {'url':str(remote),'destination':str(cloned)}, error=True)
 mcp.tool('git_clone', {'url':'https://user:secret@example.invalid/repo.git','destination':str(testroot/'bad-url')}, error=True)
 check('clone preserves existing destination and rejects embedded password', True)

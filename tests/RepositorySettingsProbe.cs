@@ -137,6 +137,15 @@ namespace SourceGit.Tests
                             case "native_patch":
                                 var patch = new ViewModels.Apply(repo) { PatchFile = data.GetProperty("file").GetString() };
                                 operationResult = await patch.Sure(); patch.Cleanup(); operationDetails = new { log = repo.Logs.FirstOrDefault()?.Content }; break;
+                            case "native_lfs_push":
+                                for (var attempt = 0; attempt < 100 && repo.Remotes.Count == 0; attempt++) await Task.Delay(50);
+                                var lfsOwner = App.GetLauncher().Pages.Single(p => ReferenceEquals(p.Data, repo));
+                                lfsOwner.Popup = new ViewModels.LFSPush(repo);
+                                window.Close();
+                                await lfsOwner.ProcessPopupAsync();
+                                operationResult = lfsOwner.Popup == null;
+                                operationDetails = new { popupClosed = lfsOwner.Popup == null, busy = lfsOwner.Popup?.InProgress == true, log = repo.Logs.FirstOrDefault()?.Content };
+                                break;
                             case "native_blame":
                                 var blame = await new Commands.Blame(repo.FullPath, paths.Single(), "HEAD", false).ReadAsync();
                                 operationDetails = new { content = blame.Content, lines = blame.LineInfos.Select(l => l.CommitSHA).ToArray(), binary = blame.IsBinary }; operationResult = true; break;

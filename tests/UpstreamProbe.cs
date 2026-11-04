@@ -42,6 +42,11 @@ namespace SourceGit.Tests
             async Task<bool> Git(string repo, string args) => await Prepare(new Commands.Command { WorkingDirectory = repo, Context = repo, Args = args, Editor = Commands.Command.EditorType.None }).ExecAsync();
             try
             {
+                foreach (var url in new[] { "ssh://git@127.0.0.1:2222/C:/work%20repo/repo.git", "ssh://user.name@[::1]:2222/中文/repo.git", "ssh://git@example.com/team/repo.git", "git@example.com:team/repo.git", "work-alias:team/repo.git", "user.name@example.com:中文 repo.git", "git@[::1]:/repo.git" })
+                    Check("valid SSH repository address " + url, Models.Remote.IsSSH(url) && Models.Remote.IsValidURL(url));
+                foreach (var url in new[] { "ssh:///repo.git", "ssh://host/", "ssh://host", "ssh://host/\nrepo.git", "ssh://user:secret@host/repo.git", "ssh://host/repo.git?query=1" })
+                    Check("invalid SSH repository address rejected", !Models.Remote.IsValidURL(url));
+                Check("Windows drive paths are not mistaken for SSH aliases", !Models.Remote.IsSSH("C:/repo.git") && !Models.Remote.IsSSH("D:\\repo.git"));
                 // Exercise branch pinning with crossing/merging histories, multiple
                 // roots and a preferred head below newer unrelated commits.
                 var random = new Random(7319);
@@ -108,6 +113,7 @@ namespace SourceGit.Tests
                 Check("upstream Clone working copy", await cloneCommand.ExecAsync() && File.Exists(Path.Combine(clone, "中文 file.txt")));
                 var bundle = Path.Combine(root, "backup.bundle");
                 Check("create repository bundle", await Git(repo, "bundle create " + bundle.Quoted() + " --all"));
+                Check("local bundle accepted by clone validation", Models.Remote.IsValidURL(bundle));
                 var bundleClone = Prepare(new Commands.Clone("probe", root, bundle, "", "", ""));
                 Check("bundle clone destination credential scope", bundleClone.CredentialScope == Path.Combine(root, "backup"));
                 Check("upstream Clone from bundle", await bundleClone.ExecAsync() && File.Exists(Path.Combine(root, "backup", "中文 file.txt")));
@@ -136,6 +142,27 @@ namespace SourceGit.Tests
                     await process.WaitForExitAsync();
                     Check("LFS stores pointer while preserving working bytes", pointer.Contains("https://git-lfs.github.com/spec/v1", StringComparison.Ordinal) && File.ReadAllBytes(Path.Combine(repo, "asset.bin")).SequenceEqual(new byte[] { 1, 2, 3, 4, 5, 6 }));
                 }
+                Check("LFS test remote configuration", await Git(repo, "remote add origin " + bare.Quoted()));
+                Check("LFS push returns the native command result", await lfs.PushAsync("origin"));
+                Check("LFS push reports an unavailable remote as a failure", !await Prepare(new Commands.LFS(repo)).PushAsync("missing-remote"));
+                var objectName = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(new byte[] { 1, 2, 3, 4, 5, 6 })).ToLowerInvariant();
+                Check("LFS push transfers the actual object to the bare remote", Directory.Exists(Path.Combine(bare, "lfs", "objects")) && Directory.EnumerateFiles(Path.Combine(bare, "lfs", "objects"), objectName, SearchOption.AllDirectories).Any());
+                Check("push references independently of the LFS pre-push hook", await Git(repo, "push --no-verify origin main"));
+                var lfsClonePath = Path.Combine(root, "LFS clone 中文");
+                var skipSmudge = Environment.GetEnvironmentVariable("GIT_LFS_SKIP_SMUDGE");
+                try
+                {
+                    Environment.SetEnvironmentVariable("GIT_LFS_SKIP_SMUDGE", "1");
+                    Check("clone with LFS smudge deliberately skipped", await Prepare(new Commands.Clone("probe", root, bare, "LFS clone 中文", "", "")).ExecAsync() && File.ReadAllText(Path.Combine(lfsClonePath, "asset.bin")).Contains("oid sha256:" + objectName, StringComparison.Ordinal));
+                }
+                finally { Environment.SetEnvironmentVariable("GIT_LFS_SKIP_SMUDGE", skipSmudge); }
+                var transferredLfs = Prepare(new Commands.LFS(lfsClonePath));
+                await transferredLfs.FetchAsync("origin");
+                Check("LFS fetch restores the exact cached object", Directory.EnumerateFiles(Path.Combine(lfsClonePath, ".git", "lfs", "objects"), objectName, SearchOption.AllDirectories).Any(f => File.ReadAllBytes(f).SequenceEqual(new byte[] { 1, 2, 3, 4, 5, 6 })));
+                await transferredLfs.PullAsync("origin");
+                Check("LFS pull replaces the pointer with the exact working bytes", File.ReadAllBytes(Path.Combine(lfsClonePath, "asset.bin")).SequenceEqual(new byte[] { 1, 2, 3, 4, 5, 6 }));
+                await transferredLfs.PruneAsync();
+                Check("LFS prune preserves the checked-out object", File.ReadAllBytes(Path.Combine(lfsClonePath, "asset.bin")).SequenceEqual(new byte[] { 1, 2, 3, 4, 5, 6 }));
                 for (var i = 0; i < 50 && Native.OS.GitFlowVersion == Models.GitFlowVersion.None; i++)
                     await Task.Delay(100);
                 Check("bundled Git Flow Next discovery", Native.OS.GitFlowVersion == Models.GitFlowVersion.Next);

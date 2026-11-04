@@ -42,10 +42,10 @@ namespace SourceGit.Commands
             await ExecAsync().ConfigureAwait(false);
         }
 
-        public async Task PushAsync(string remote)
+        public async Task<bool> PushAsync(string remote)
         {
-            Args = $"lfs push {remote}";
-            await ExecAsync().ConfigureAwait(false);
+            Args = $"lfs push {remote.Quoted()} HEAD";
+            return await ExecAsync().ConfigureAwait(false);
         }
 
         public async Task PruneAsync()

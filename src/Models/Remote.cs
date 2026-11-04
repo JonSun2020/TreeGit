@@ -13,7 +13,7 @@ namespace SourceGit.Models
         [GeneratedRegex(@"^git://[^/]+/.+[^/\.]$")]
         private static partial Regex REG_GIT();
 
-        [GeneratedRegex(@"^[\w\-]+@[\w\.\-]+(\:[0-9]+)?:([a-zA-z0-9~%][\w\-\./~%]*)?[a-zA-Z0-9](\.git)?$")]
+        [GeneratedRegex(@"^(?:[\w.\-]+@)?(?:[\w.\-]+|\[[0-9a-fA-F:.%]+\]):(?!//).+$")]
         private static partial Regex REG_SSH1();
 
         [GeneratedRegex(@"^ssh://([\w\-]+@)?[\w\.\-]+(\:[0-9]+)?/([a-zA-z0-9~%][\w\-\./~%]*)?[a-zA-Z0-9](\.git)?$")]
@@ -40,10 +40,13 @@ namespace SourceGit.Models
             if (string.IsNullOrWhiteSpace(url))
                 return false;
 
+            foreach (var character in url)
+                if (char.IsControl(character)) return false;
+            if (IsLocalDrivePath(url)) return false;
             if (REG_SSH1().IsMatch(url))
                 return true;
 
-            return REG_SSH2().IsMatch(url);
+            return IsSSHUri(url) || REG_SSH2().IsMatch(url);
         }
 
         public static bool IsValidURL(string url)
@@ -51,6 +54,10 @@ namespace SourceGit.Models
             if (string.IsNullOrWhiteSpace(url))
                 return false;
 
+            foreach (var character in url)
+                if (char.IsControl(character)) return false;
+            if (IsLocalDrivePath(url)) return Directory.Exists(url) || File.Exists(url);
+            if (IsSSHUri(url)) return true;
             foreach (var fmt in URL_FORMATS)
             {
                 if (fmt.IsMatch(url))
@@ -60,8 +67,19 @@ namespace SourceGit.Models
             return url.StartsWith("file://", StringComparison.Ordinal) ||
                 url.StartsWith("./", StringComparison.Ordinal) ||
                 url.StartsWith("../", StringComparison.Ordinal) ||
-                Directory.Exists(url);
+                Directory.Exists(url) || File.Exists(url);
         }
+
+        private static bool IsSSHUri(string url)
+        {
+            foreach (var character in url)
+                if (char.IsControl(character)) return false;
+            return Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme.Equals("ssh", StringComparison.OrdinalIgnoreCase) &&
+                !string.IsNullOrEmpty(uri.Host) && uri.AbsolutePath.Length > 1 && !uri.UserInfo.Contains(':') &&
+                string.IsNullOrEmpty(uri.Query) && string.IsNullOrEmpty(uri.Fragment);
+        }
+
+        private static bool IsLocalDrivePath(string url) => OperatingSystem.IsWindows() && url.Length >= 2 && char.IsAsciiLetter(url[0]) && url[1] == ':';
 
         public bool TryGetVisitURL(out string url)
         {
