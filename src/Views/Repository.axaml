@@ -343,8 +343,8 @@
                   <Grid ColumnDefinitions="16,*,Auto">
                     <Path Grid.Column="0" Width="11" Height="11" HorizontalAlignment="Left" Data="{StaticResource Icons.Stashes}" Fill="{DynamicResource Brush.FG2}"/>
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
-                      <TextBlock Classes="group_header_label" Text="{DynamicResource Text.Stashes}"/>
-                      <TextBlock Classes="group_header_label" Text="{Binding StashesCount}" Margin="4,0,0,0"/>
+                      <TextBlock Classes="group_header_label" Text="{DynamicResource Text.Toolbar.Stash}"/>
+                      <TextBlock Classes="group_header_label" Text="{Binding StashesPage.Stashes, Converter={x:Static c:ListConverters.ToCount}}" Margin="4,0,0,0"/>
                     </StackPanel>
                     <Button Grid.Column="2" Classes="icon_button" Width="14" Margin="8,0" Command="{Binding StashesPage.ClearStashes}" ToolTip.Tip="{DynamicResource Text.Repository.ClearStashes}" IsVisible="{Binding StashesCount, Converter={x:Static c:IntConverters.IsGreaterThanZero}}">
                       <Path Width="12" Height="12" Data="{StaticResource Icons.RemoveAll}"/>

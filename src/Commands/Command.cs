@@ -38,87 +38,91 @@ namespace SourceGit.Commands
         public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
         public bool RaiseError { get; set; } = true;
         public Models.ICommandLog Log { get; set; } = null;
+        protected bool IsAuthenticationRetry { get; set; }
 
-        public Task<bool> ExecAsync() => ExecAsync(true);
-
-        private async Task<bool> ExecAsync(bool allowAuthenticationRetry)
+        public async Task<bool> ExecAsync()
         {
-            Log?.AppendLine($"$ git {Args}\n");
-
-            var errs = new List<string>();
-
-            using var proc = new Process();
-            proc.StartInfo = CreateGitStartInfo(true);
-            proc.OutputDataReceived += (_, e) => HandleOutput(e.Data, errs);
-            proc.ErrorDataReceived += (_, e) => HandleOutput(e.Data, errs);
-
-            var captured = new CapturedProcess() { Process = proc };
-            var capturedLock = new object();
-            try
+            IsAuthenticationRetry = false;
+            while (true)
             {
-                proc.Start();
+                Log?.AppendLine($"$ git {Args}\n");
 
-                // Not safe, please only use `CancellationToken` in readonly commands.
-                if (CancellationToken.CanBeCanceled)
+                var errs = new List<string>();
+
+                using var proc = new Process();
+                proc.StartInfo = CreateGitStartInfo(true);
+                proc.OutputDataReceived += (_, e) => HandleOutput(e.Data, errs);
+                proc.ErrorDataReceived += (_, e) => HandleOutput(e.Data, errs);
+
+                var captured = new CapturedProcess() { Process = proc };
+                var capturedLock = new object();
+                try
                 {
-                    CancellationToken.Register(() =>
+                    proc.Start();
+
+                    // Not safe, please only use `CancellationToken` in readonly commands.
+                    if (CancellationToken.CanBeCanceled)
                     {
-                        lock (capturedLock)
+                        CancellationToken.Register(() =>
                         {
-                            if (captured is { Process: { HasExited: false } })
-                                Native.OS.TerminateProcess(captured.Process);
-                        }
-                    });
+                            lock (capturedLock)
+                            {
+                                if (captured is { Process: { HasExited: false } })
+                                    Native.OS.TerminateProcess(captured.Process);
+                            }
+                        });
+                    }
                 }
-            }
-            catch (Exception e)
-            {
-                if (RaiseError)
-                    RaiseException(e.Message);
+                catch (Exception e)
+                {
+                    if (RaiseError)
+                        RaiseException(e.Message);
+
+                    Log?.AppendLine(string.Empty);
+                    return false;
+                }
+
+                proc.BeginOutputReadLine();
+                proc.BeginErrorReadLine();
+
+                try
+                {
+                    await proc.WaitForExitAsync(CancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception e)
+                {
+                    HandleOutput(e.Message, errs);
+                }
+
+                lock (capturedLock)
+                {
+                    captured.Process = null;
+                }
 
                 Log?.AppendLine(string.Empty);
-                return false;
-            }
 
-            proc.BeginOutputReadLine();
-            proc.BeginErrorReadLine();
-
-            try
-            {
-                await proc.WaitForExitAsync(CancellationToken).ConfigureAwait(false);
-            }
-            catch (Exception e)
-            {
-                HandleOutput(e.Message, errs);
-            }
-
-            lock (capturedLock)
-            {
-                captured.Process = null;
-            }
-
-            Log?.AppendLine(string.Empty);
-
-            if (!CancellationToken.IsCancellationRequested && proc.ExitCode != 0)
-            {
-                var errMsg = string.Join("\n", errs).Trim();
-                // Git rejects/erases an invalid HTTP credential before returning this
-                // error. Retry once so the normal askpass flow can request a replacement.
-                if (allowAuthenticationRetry && OperatingSystem.IsWindows() && Native.RepositoryCredentials.IsAuthenticationFailure(errMsg))
+                if (!CancellationToken.IsCancellationRequested && proc.ExitCode != 0)
                 {
-                    Log?.AppendLine("Authentication was rejected; requesting updated credentials.");
-                    return await ExecAsync(false).ConfigureAwait(false);
-                }
-                if (RaiseError)
-                {
-                    if (!string.IsNullOrEmpty(errMsg))
-                        RaiseException(errMsg);
+                    var errMsg = string.Join("\n", errs).Trim();
+                    // Git rejects/erases an invalid HTTP credential before returning this
+                    // error. Keep requesting corrected credentials until success or cancellation.
+                    if (OperatingSystem.IsWindows() && Native.RepositoryCredentials.IsAuthenticationFailure(errMsg))
+                    {
+                        Log?.AppendLine("Authentication was rejected; requesting updated credentials.");
+                        IsAuthenticationRetry = true;
+                        continue;
+                    }
+                    if (RaiseError)
+                    {
+                        if (!string.IsNullOrEmpty(errMsg))
+                            RaiseException(errMsg);
+                    }
+
+                    return false;
                 }
 
-                return false;
+                return true;
             }
-
-            return true;
         }
 
         protected Result ReadToEnd()
@@ -224,6 +228,7 @@ namespace SourceGit.Commands
             start.Environment["SSH_ASKPASS"] = selfExecFile; // Raw executable path, including spaces, is required by exec.
             start.Environment["SSH_ASKPASS_REQUIRE"] = "prefer";
             start.Environment["SOURCEGIT_LAUNCH_AS_ASKPASS"] = "TRUE";
+            start.Environment["SOURCEGIT_AUTHENTICATION_RETRY"] = IsAuthenticationRetry ? "TRUE" : "FALSE";
             start.Environment["GIT_ASKPASS"] = selfExecFile;
             start.Environment["SOURCEGIT_CREDENTIAL_SCOPE"] = CredentialScope ?? WorkingDirectory ?? Context;
             if (!OperatingSystem.IsLinux())

@@ -22,6 +22,20 @@ namespace SourceGit.Views
 
             var layout = ViewModels.Preferences.Instance.Layout;
             var width = grid.Bounds.Width;
+            if (width <= 0) return;
+            var stacked = width < 640;
+            StashDetailsSplitter.IsVisible = !stacked;
+            grid.ColumnDefinitions[0].MinWidth = stacked ? 0 : 160;
+            grid.ColumnDefinitions[0].MaxWidth = stacked ? 0 : double.PositiveInfinity;
+            grid.ColumnDefinitions[2].MinWidth = stacked ? 0 : 160;
+            grid.RowDefinitions[1].Height = stacked ? GridLength.Auto : GridLength.Star;
+            grid.RowDefinitions[2].Height = stacked ? GridLength.Star : new GridLength(0);
+            Grid.SetColumnSpan(StashChangesPanel, stacked ? 3 : 1);
+            Grid.SetColumnSpan(StashDiffPanel, stacked ? 3 : 1);
+            Grid.SetColumn(StashDiffPanel, stacked ? 0 : 2);
+            Grid.SetRow(StashDiffPanel, stacked ? 2 : 1);
+            StashChangesPanel.Height = stacked ? Math.Clamp(grid.Bounds.Height * .28, 80, 160) : double.NaN;
+            if (stacked) return;
             var leftWidth = Math.Max(width - 164, 160);
 
             if (layout.StashesLeftWidth.Value - leftWidth > 1.0)

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using Avalonia;
 using Avalonia.Media.Imaging;
@@ -22,9 +23,14 @@ namespace SourceGit.Tests
             {
                 if (!view.UsernameSection.IsVisible || !view.TxtUsername.IsEffectivelyVisible || !view.TxtPassphrase.IsEffectivelyVisible)
                     throw new InvalidOperationException("Username and password must be visible in the same authentication window.");
-                var cancel = value.TryGetProperty("cancel", out var cancelValue) && cancelValue.GetBoolean();
-                view.TxtUsername.Text = value.GetProperty("username").GetString();
-                view.TxtPassphrase.Text = value.GetProperty("password").GetString();
+                var hasAttempts = value.TryGetProperty("attempts", out var attempts);
+                var attempt = hasAttempts ? attempts[0] : value;
+                var next = hasAttempts && attempts.GetArrayLength() > 1 ? JsonSerializer.Serialize(new { attempts = attempts.EnumerateArray().Skip(1).Select(a => a.Clone()).ToArray() }) : null;
+                var cancel = attempt.TryGetProperty("cancel", out var cancelValue) && cancelValue.GetBoolean();
+                view.TxtUsername.Text = attempt.GetProperty("username").GetString();
+                view.TxtPassphrase.Text = attempt.GetProperty("password").GetString();
+                if (view.ValidationMessage.IsVisible && view.ValidationMessage.Text.Contains("重新输入", StringComparison.Ordinal))
+                    File.AppendAllText(fixture + ".events", "retry-message\n");
                 File.AppendAllText(fixture + ".events", "combined-dialog\ntopmost-combined-dialog\n");
                 Dispatcher.UIThread.Post(() =>
                 {
@@ -40,6 +46,7 @@ namespace SourceGit.Tests
                     if (view.TxtPassphrase.RevealPassword || view.TxtPassphrase.PasswordChar != '*')
                         throw new InvalidOperationException("The eye toggle did not restore star masking.");
                     File.AppendAllText(fixture + ".events", "visibility-toggle\n");
+                    if (next != null) File.WriteAllText(fixture, next);
                     if (cancel) view.Close();
                     else submit();
                 }, DispatcherPriority.Background);

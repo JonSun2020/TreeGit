@@ -17,7 +17,7 @@ namespace SourceGit.Views
 
         public bool IsCredentialPrompt { get; private set; }
 
-        public void ConfigureCredentials(string repo, string remote, string username)
+        public void ConfigureCredentials(string repo, string remote, string username, bool retry = false)
         {
             IsCredentialPrompt = true;
             Title = "仓库认证";
@@ -25,6 +25,11 @@ namespace SourceGit.Views
             TxtDescription.Text = $"仓库：{repo}\n服务器：{remote}";
             UsernameSection.IsVisible = true;
             TxtUsername.Text = username ?? string.Empty;
+            if (retry)
+            {
+                ValidationMessage.Text = "账号或密码错误，请重新输入。";
+                ValidationMessage.IsVisible = true;
+            }
         }
 
         protected override void OnLoaded(RoutedEventArgs e)

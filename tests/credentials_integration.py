@@ -109,6 +109,28 @@ try:
         fetched=call('tools/call',{'name':'git_action','arguments':{'repo':str(passwordless),'action':'fetch'}});assert not fetched.get('isError'),fetched
         assert seen == ['alice','alice','bob','alice','charlie'],seen
         empty=helper(passwordless,'get'); assert 'username=charlie\n' in empty and 'password=\n' in empty,empty
+        retries = root/'retries'
+        retries.mkdir(); repos.append(retries)
+        subprocess.run([str(git),'init',str(retries)], capture_output=True, check=True)
+        subprocess.run([str(git),'-C',str(retries),'remote','add','origin',url], capture_output=True, check=True)
+        fixture.write_text(json.dumps({'attempts':[
+            {'username':'wrong-account','password':'bad-first'},
+            {'username':'alice','password':'bad-second'},
+            {'username':'alice','password':'alpha-test'}]}),encoding='utf-8')
+        opened=call('tools/call',{'name':'ui_open_repository','arguments':{'repo':str(retries)}});assert not opened.get('isError'),opened
+        fetched=call('tools/call',{'name':'git_action','arguments':{'repo':str(retries),'action':'fetch'}});assert not fetched.get('isError'),fetched
+        assert seen == ['alice','alice','bob','alice','charlie','alice'],seen
+        native_retries = root/'native-retries'
+        native_retries.mkdir(); repos.append(native_retries)
+        subprocess.run([str(git),'init',str(native_retries)], capture_output=True, check=True)
+        subprocess.run([str(git),'-C',str(native_retries),'remote','add','origin',url], capture_output=True, check=True)
+        fixture.write_text(json.dumps({'attempts':[
+            {'username':'wrong-account','password':'native-bad-first'},
+            {'username':'alice','password':'native-bad-second'},
+            {'username':'alice','password':'alpha-test'}]}),encoding='utf-8')
+        native=subprocess.run([str(exe),'--integration-auth-fetch',str(native_retries),url],env=env,capture_output=True,timeout=45)
+        assert native.returncode == 0,native.stderr
+        assert seen == ['alice','alice','bob','alice','charlie','alice','alice'],seen
         cancelled = root/'cancelled'
         cancelled.mkdir(); repos.append(cancelled)
         subprocess.run([str(git),'init',str(cancelled)], capture_output=True, check=True)
@@ -126,17 +148,20 @@ try:
     result={'windows_vault_roundtrip':True,'same_server_different_repository_accounts':seen,'actual_gui_git_fetch_authentication':True,'erase':True}
     if prompt_mode:
         events=Path(str(fixture)+'.events').read_text(encoding='utf-8').splitlines()
-        assert events.count('combined-dialog') == 6 and events.count('topmost-combined-dialog') == 6,events
-        assert events.count('visibility-toggle') == 6,events
+        assert events.count('combined-dialog') == 12 and events.count('topmost-combined-dialog') == 12,events
+        assert events.count('visibility-toggle') == 12,events
+        assert events.count('retry-message') == 6,events
         assert 'username-dialog' not in events and 'password-dialog' not in events,events
         result['automatic_missing_credential_dialog']=events
         result['expired_credential_reprompts_and_retries']=True
         result['upstream_native_fetch_reprompts_and_retries']=True
-        result['all_six_combined_authentication_prompts_stay_topmost']=True
+        result['all_twelve_combined_authentication_prompts_stay_topmost']=True
         result['username_and_password_in_one_window']=True
         result['empty_password_authenticates_and_is_saved']=True
         result['cancel_does_not_prompt_again_or_store_credentials']=True
         result['eye_toggle_restores_star_masking']=True
+        result['two_wrong_credentials_then_success_reprompt_until_correct']=True
+        result['native_fetch_two_wrong_credentials_then_success']=True
         import shutil
         shutil.copy2(str(fixture)+'.png', artifacts/'combined-authentication.png')
     else:

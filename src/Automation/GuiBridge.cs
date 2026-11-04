@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
@@ -338,7 +338,7 @@ namespace SourceGit.Automation
                     }
                     if (width.HasValue && (width < 1024 || width > 3840) || height.HasValue && (height < 640 || height > 2160))
                         throw new ArgumentException("Window size is out of range.");
-                    if (theme != null && theme is not ("Light" or "Dark" or "Default" or "SourceTree"))
+                    if (theme != null && theme is not ("Light" or "Dark" or "Default" or "SourceTree" or "Blue"))
                         throw new ArgumentException("Unknown theme.");
                     if (width.HasValue)
                         window.Width = width.Value;
@@ -850,15 +850,22 @@ namespace SourceGit.Automation
 
             public async Task<Result> RunAsync(bool allowAuthenticationRetry = true)
             {
-                using var process = new System.Diagnostics.Process { StartInfo = CreateGitStartInfo(true) };
-                process.Start();
-                var stdout = ReadCappedAsync(process.StandardOutput);
-                var stderr = ReadCappedAsync(process.StandardError);
-                await Task.WhenAll(stdout, stderr, process.WaitForExitAsync()).ConfigureAwait(false);
-                var result = new Result { IsSuccess = process.ExitCode == 0, StdOut = stdout.Result, StdErr = stderr.Result };
-                if (!result.IsSuccess && allowAuthenticationRetry && OperatingSystem.IsWindows() && Native.RepositoryCredentials.IsAuthenticationFailure(result.StdErr))
-                    return await RunAsync(false).ConfigureAwait(false);
-                return result;
+                IsAuthenticationRetry = false;
+                while (true)
+                {
+                    using var process = new System.Diagnostics.Process { StartInfo = CreateGitStartInfo(true) };
+                    process.Start();
+                    var stdout = ReadCappedAsync(process.StandardOutput);
+                    var stderr = ReadCappedAsync(process.StandardError);
+                    await Task.WhenAll(stdout, stderr, process.WaitForExitAsync()).ConfigureAwait(false);
+                    var result = new Result { IsSuccess = process.ExitCode == 0, StdOut = stdout.Result, StdErr = stderr.Result };
+                    if (!result.IsSuccess && allowAuthenticationRetry && OperatingSystem.IsWindows() && Native.RepositoryCredentials.IsAuthenticationFailure(result.StdErr))
+                    {
+                        IsAuthenticationRetry = true;
+                        continue;
+                    }
+                    return result;
+                }
             }
 
             private static async Task<string> ReadCappedAsync(StreamReader reader)

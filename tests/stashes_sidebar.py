@@ -69,6 +69,7 @@ for name,index in [('stash@{0}',2),('stash@{1}',1),('stash@{2}',0)]:
     tool('ui_select_view',{'repo':str(repo),'view':'history'})
     check('history exits '+name+' without shrinking the sidebar',state()['view']==0 and state()['sidebarWidth']==width and state()['stashes']['selected'] is None)
 stash('select',stash='stash@{0}');wait(lambda s:bool(s['stashes']['changes']))
+time.sleep(1)
 (out/'stashes-sourceTree.png').write_bytes(tool('ui_screenshot'))
 for command,kind in [('stash_apply_dialog','ApplyStash'),('stash_drop_dialog','DropStash'),('stash_branch_dialog','CheckoutBranchFromStash')]:
     tool('ui_command',{'repo':str(repo),'command':command})
@@ -76,7 +77,7 @@ for command,kind in [('stash_apply_dialog','ApplyStash'),('stash_drop_dialog','D
     tool('ui_command',{'repo':str(repo),'command':'cancel_popup'})
 filtered=stash(filter='calibration 1');check('stash filtering affects sidebar entries',len(filtered['stashes'])==1)
 stash(filter='');check('clearing stash filter restores all entries',len(stash()['stashes'])==3)
-tool('ui_window',{'width':1024,'height':720,'zoom':1.5});time.sleep(.5)
+tool('ui_window',{'width':1024,'height':720,'zoom':1.5});time.sleep(1.5)
 (out/'stashes-narrow-150.png').write_bytes(tool('ui_screenshot'))
 check('scaled narrow stash view retains its sidebar',state()['sidebarVisible'])
 tool('ui_window',{'width':1440,'height':900,'zoom':1,'theme':'Dark'});time.sleep(.3)

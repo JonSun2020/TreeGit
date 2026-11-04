@@ -15,7 +15,10 @@ namespace SourceGit.Native
     internal static class RepositoryCredentials
     {
         public static bool IsAuthenticationFailure(string output)
-            => output?.Contains("Authentication failed", StringComparison.OrdinalIgnoreCase) == true;
+            => output?.Contains("Authentication failed", StringComparison.OrdinalIgnoreCase) == true &&
+                !output.Contains("told us to quit", StringComparison.OrdinalIgnoreCase) &&
+                !output.Contains("User canceled authentication", StringComparison.OrdinalIgnoreCase) &&
+                !output.Contains("User cancelled authentication", StringComparison.OrdinalIgnoreCase);
 
         private static readonly ConcurrentDictionary<string, bool> _managerModes = new(StringComparer.OrdinalIgnoreCase);
 
@@ -170,7 +173,7 @@ namespace SourceGit.Native
                 var target = Target(repo, protocol, host, path ?? string.Empty);
                 if (operation == "get")
                 {
-                    var stored = Get(target);
+                    var stored = Environment.GetEnvironmentVariable("SOURCEGIT_AUTHENTICATION_RETRY") == "TRUE" ? null : Get(target);
                     input.TryGetValue("username", out var requested);
                     if (stored.HasValue && (requested == null || requested == stored.Value.Username))
                     {
@@ -215,7 +218,8 @@ namespace SourceGit.Native
             using var process = Process.Start(start);
             if (process == null) return null;
             var error = process.StandardError.ReadToEndAsync();
-            process.StandardInput.Write(JsonSerializer.Serialize(new { repo, remote, username }));
+            var retry = Environment.GetEnvironmentVariable("SOURCEGIT_AUTHENTICATION_RETRY") == "TRUE";
+            process.StandardInput.Write(JsonSerializer.Serialize(new { repo, remote, username, retry }));
             process.StandardInput.Close();
             var output = process.StandardOutput.ReadToEnd();
             process.WaitForExit();

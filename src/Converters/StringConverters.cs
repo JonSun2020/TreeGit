@@ -39,7 +39,7 @@ namespace SourceGit.Converters
                 if (theme.Equals("Dark", StringComparison.OrdinalIgnoreCase))
                     return ThemeVariant.Dark;
 
-                if (theme.Equals("SourceTree", StringComparison.OrdinalIgnoreCase))
+                if (theme.Equals("SourceTree", StringComparison.OrdinalIgnoreCase) || theme.Equals("Blue", StringComparison.OrdinalIgnoreCase))
                     return Models.TreeGitThemes.SourceTree;
 
                 return ThemeVariant.Default;

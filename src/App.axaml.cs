@@ -149,7 +149,7 @@ namespace SourceGit
             if (Current is not App app)
                 return;
 
-            if (theme.Equals("SourceTree", StringComparison.OrdinalIgnoreCase))
+            if (theme.Equals("SourceTree", StringComparison.OrdinalIgnoreCase) || theme.Equals("Blue", StringComparison.OrdinalIgnoreCase))
                 app.RequestedThemeVariant = Models.TreeGitThemes.SourceTree;
             else if (theme.Equals("Light", StringComparison.OrdinalIgnoreCase))
                 app.RequestedThemeVariant = ThemeVariant.Light;
@@ -481,7 +481,8 @@ namespace SourceGit
                     using var request = JsonDocument.Parse(Console.In.ReadToEnd());
                     var data = request.RootElement;
                     askpass.ConfigureCredentials(data.GetProperty("repo").GetString(), data.GetProperty("remote").GetString(),
-                        data.TryGetProperty("username", out var username) ? username.GetString() : null);
+                        data.TryGetProperty("username", out var username) ? username.GetString() : null,
+                        data.TryGetProperty("retry", out var retry) && retry.GetBoolean());
                 }
                 else
                 {

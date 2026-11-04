@@ -9,7 +9,7 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="SourceGit.Views.StashesPage"
              x:DataType="vm:StashesPage">
-  <Grid SizeChanged="OnMainLayoutSizeChanged" Background="{DynamicResource Brush.SubPanel}" RowDefinitions="Auto,*" ClipToBounds="True">
+  <Grid x:Name="StashLayout" SizeChanged="OnMainLayoutSizeChanged" Background="{DynamicResource Brush.SubPanel}" RowDefinitions="Auto,*,0" ClipToBounds="True">
     <Grid.ColumnDefinitions>
       <ColumnDefinition Width="{Binding Source={x:Static vm:Preferences.Instance}, Path=Layout.StashesLeftWidth, Mode=TwoWay}" MinWidth="160"/>
       <ColumnDefinition Width="4"/>
@@ -27,7 +27,7 @@
     </Border>
 
     <!-- Left -->
-    <Grid Grid.Row="1" Grid.Column="0" RowDefinitions="28,*" Background="{DynamicResource Brush.Window}">
+    <Grid x:Name="StashChangesPanel" Grid.Row="1" Grid.Column="0" RowDefinitions="28,*" Background="{DynamicResource Brush.Window}">
       <!-- Changes Bar -->
       <Border Grid.Row="0" BorderThickness="0,1" BorderBrush="{DynamicResource Brush.Border0}">
         <Grid ColumnDefinitions="Auto,*,Auto">
@@ -55,7 +55,7 @@
       </Border>
     </Grid>
 
-    <GridSplitter Grid.Row="1" Grid.Column="1"
+    <GridSplitter x:Name="StashDetailsSplitter" Grid.Row="1" Grid.Column="1"
                   MinWidth=".5"
                   HorizontalAlignment="Stretch" VerticalAlignment="Stretch"
                   Background="Transparent"
@@ -64,7 +64,7 @@
                   Focusable="False"/>
 
     <!-- Right -->
-    <Grid Grid.Row="1" Grid.Column="2" Margin="4,4,6,4">
+    <Grid x:Name="StashDiffPanel" Grid.Row="1" Grid.Column="2" Margin="4,4,6,4">
       <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding DiffContext, Converter={x:Static ObjectConverters.IsNull}}">
         <Path Width="64" Height="64" Data="{StaticResource Icons.Diff}" Fill="{DynamicResource Brush.FG2}"/>
         <TextBlock Margin="0,16,0,0"
