@@ -103,7 +103,6 @@
           <MenuItem Header="SSH 密钥" Command="{x:Static s:App.OpenSSHKeyHelperCommand}"/>
           <MenuItem Header="仓库账号与密码" Tag="credentials" Click="OnTreeGitExtraAction"/>
           <MenuItem Header="外部工具" Tag="external" Click="OnTreeGitExtraAction"/>
-          <MenuItem Header="自定义操作" Tag="actions" Click="OnTreeGitExtraAction"/>
         </MenuItem>
         <MenuItem Header="帮助(H)"><MenuItem Header="{DynamicResource Text.SelfUpdate}" Command="{x:Static s:App.CheckForUpdateCommand}" IsVisible="{x:Static s:App.IsCheckForUpdateCommandVisible}">
               <MenuItem.Icon>

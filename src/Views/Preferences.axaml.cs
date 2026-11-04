@@ -105,18 +105,6 @@ namespace SourceGit.Views
             set;
         } = false;
 
-        public static readonly DirectProperty<Preferences, AI.Service> SelectedOpenAIServiceProperty =
-            AvaloniaProperty.RegisterDirect<Preferences, AI.Service>(
-                nameof(SelectedOpenAIService),
-                static o => o.SelectedOpenAIService,
-                static (o, v) => o.SelectedOpenAIService = v);
-
-        public AI.Service SelectedOpenAIService
-        {
-            get => _selectedOpenAIService;
-            set => SetAndRaise(SelectedOpenAIServiceProperty, ref _selectedOpenAIService, value);
-        }
-
         public static readonly DirectProperty<Preferences, Models.CustomAction> SelectedCustomActionProperty =
             AvaloniaProperty.RegisterDirect<Preferences, Models.CustomAction>(
                 nameof(SelectedCustomAction),
@@ -423,25 +411,6 @@ namespace SourceGit.Views
             UpdateGitVersion();
         }
 
-        private void OnAddOpenAIService(object sender, RoutedEventArgs e)
-        {
-            var service = new AI.Service() { Name = "Unnamed Service" };
-            ViewModels.Preferences.Instance.OpenAIServices.Add(service);
-            SelectedOpenAIService = service;
-
-            e.Handled = true;
-        }
-
-        private void OnRemoveSelectedOpenAIService(object sender, RoutedEventArgs e)
-        {
-            if (SelectedOpenAIService == null)
-                return;
-
-            ViewModels.Preferences.Instance.OpenAIServices.Remove(SelectedOpenAIService);
-            SelectedOpenAIService = null;
-            e.Handled = true;
-        }
-
         private void OnAddCustomAction(object sender, RoutedEventArgs e)
         {
             var action = new Models.CustomAction() { Name = "Unnamed Action (Global)" };
@@ -526,7 +495,6 @@ namespace SourceGit.Views
         private bool _showGitVersionWarning = false;
         private Models.GPGFormat _gpgFormat = Models.GPGFormat.Supported[0];
         private string _gpgExecutableFile = string.Empty;
-        private AI.Service _selectedOpenAIService = null;
         private Models.CustomAction _selectedCustomAction = null;
     }
 }
