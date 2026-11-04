@@ -518,8 +518,9 @@ namespace SourceGit.ViewModels
         public void Close()
         {
             var commitMessage = _workingCopy.CommitMessage;
-            if (!string.IsNullOrEmpty(commitMessage) && _workingCopy.InProgressContext != null)
-                File.WriteAllText(Path.Combine(GitDir, "MERGE_MSG"), commitMessage);
+            var mergeMessage = Path.Combine(GitDir, "MERGE_MSG");
+            if (!string.IsNullOrEmpty(commitMessage) && _workingCopy.InProgressContext != null && File.Exists(mergeMessage))
+                File.WriteAllText(mergeMessage, commitMessage);
 
             _uiStates.LastCommitMessage = commitMessage;
             _uiStates.Save();

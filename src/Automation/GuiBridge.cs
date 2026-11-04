@@ -421,14 +421,15 @@ namespace SourceGit.Automation
                             if (repo.Histories.DetailContext is not ViewModels.CommitDetail detail)
                                 throw new InvalidOperationException("Select a commit first.");
                             var change = detail.Changes?.FirstOrDefault(c => c.Path == file) ?? throw new ArgumentException("File is not in the selected commit.");
-                            detail.ActiveTabIndex = 1; detail.ChangeSelection = new ViewModels.ChangeSelection(new[] { change });
+                            detail.ActiveTabIndex = 1;
+                            if (!IsSelected(detail.ChangeSelection, change)) detail.ChangeSelection = new ViewModels.ChangeSelection(new[] { change });
                         }
                         else if (source == "stash")
                         {
                             var stash = repo.StashesPage;
                             var change = stash.Changes?.FirstOrDefault(c => c.Path == file) ?? throw new ArgumentException("File is not in the selected stash.");
                             repo.SelectedViewIndex = 2;
-                            stash.ChangeSelection = new ViewModels.ChangeSelection(new[] { change });
+                            if (!IsSelected(stash.ChangeSelection, change)) stash.ChangeSelection = new ViewModels.ChangeSelection(new[] { change });
                         }
                         else
                         {
@@ -437,8 +438,11 @@ namespace SourceGit.Automation
                             var copy = repo.WorkingCopy;
                             var change = (source == "staged" ? copy.Staged : copy.Unstaged)?.FirstOrDefault(c => c.Path == file)
                                 ?? throw new ArgumentException("File is not in the selected change list.");
-                            if (source == "staged") copy.SelectedStaged = new ViewModels.ChangeSelection(new[] { change });
-                            else copy.SelectedUnstaged = new ViewModels.ChangeSelection(new[] { change });
+                            if (source == "staged")
+                            {
+                                if (!IsSelected(copy.SelectedStaged, change)) copy.SelectedStaged = new ViewModels.ChangeSelection(new[] { change });
+                            }
+                            else if (!IsSelected(copy.SelectedUnstaged, change)) copy.SelectedUnstaged = new ViewModels.ChangeSelection(new[] { change });
                         }
                         return (object)new { selected = file, source };
                     });
@@ -789,6 +793,9 @@ namespace SourceGit.Automation
                     File.Delete(tempMessage);
             }
         }
+
+        private static bool IsSelected(ViewModels.ChangeSelection selection, Models.Change change) =>
+            selection is { Count: 1, HasFolder: false } && ReferenceEquals(selection.Changes[0], change);
 
         private static string Text(JsonElement args, string key)
         {

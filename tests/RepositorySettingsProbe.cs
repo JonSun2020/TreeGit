@@ -106,6 +106,42 @@ namespace SourceGit.Tests
                                 await Task.Delay(1000);
                                 operationDetails = new { original = originalDiff.Content?.GetType().Name, repeated = selectedAgain.Content?.GetType().Name };
                                 operationResult = true; break;
+                            case "native_partial_stage":
+                            case "native_partial_unstage":
+                                window.Close();
+                                ViewModels.Preferences.Instance.UseSideBySideDiff = false;
+                                repo.WorkingCopy.SetData(await new Commands.QueryLocalChanges(repo.FullPath).GetResultAsync());
+                                repo.ShowWorkingCopyOverview();
+                                if (operation.GetString() == "native_partial_stage") repo.WorkingCopy.SelectedUnstaged = new ViewModels.ChangeSelection(changes);
+                                else repo.WorkingCopy.SelectedStaged = new ViewModels.ChangeSelection(changes);
+                                ViewModels.TextDiffContext textContext = null;
+                                for (var attempt = 0; attempt < 100; attempt++)
+                                {
+                                    textContext = (repo.WorkingCopy.DetailContext as ViewModels.DiffContext)?.Content as ViewModels.TextDiffContext;
+                                    if (textContext != null && textContext.Option.IsUnstaged == (operation.GetString() == "native_partial_stage")) break;
+                                    textContext = null;
+                                    await Task.Delay(50);
+                                }
+                                if (textContext == null) throw new InvalidOperationException("Text diff did not load");
+                                var firstLine = textContext.Data.Lines.FindIndex(l => l.Type is Models.TextDiffLineType.Added or Models.TextDiffLineType.Deleted);
+                                var lastLine = firstLine;
+                                while (lastLine + 1 < textContext.Data.Lines.Count && textContext.Data.Lines[lastLine + 1].Type is Models.TextDiffLineType.Added or Models.TextDiffLineType.Deleted) lastLine++;
+                                textContext.SelectedChunk = new ViewModels.TextDiffSelectedChunk(0, 40, firstLine, lastLine, true, false);
+                                await Task.Delay(200);
+                                var mainWindow = ((Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow;
+                                Views.TextDiffView textView = null;
+                                for (var attempt = 0; attempt < 100 && textView == null; attempt++)
+                                {
+                                    textView = mainWindow.GetVisualDescendants().OfType<Views.TextDiffView>().FirstOrDefault(v => v.IsEffectivelyVisible && ReferenceEquals(v.DataContext, textContext));
+                                    if (textView == null) await Task.Delay(50);
+                                }
+                                if (textView == null) throw new InvalidOperationException("Text diff UI did not render");
+                                var partialButton = textView.FindControl<Button>(operation.GetString() == "native_partial_stage" ? "BtnStageChunk" : "BtnUnstageChunk");
+                                if (partialButton?.IsEffectivelyVisible != true || !partialButton.IsEnabled) throw new InvalidOperationException("Partial-stage UI entry is unavailable");
+                                partialButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                                await Task.Delay(1000);
+                                operationDetails = new { visible = true, button = partialButton.Name, firstLine, lastLine };
+                                operationResult = true; break;
                             case "native_commit":
                                 repo.WorkingCopy.SetData(await new Commands.QueryLocalChanges(repo.FullPath).GetResultAsync());
                                 repo.WorkingCopy.CommitMessage = data.GetProperty("draft").GetString();

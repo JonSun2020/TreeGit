@@ -804,14 +804,20 @@ namespace SourceGit.ViewModels
             if (_inProgressContext == null && oldType != null && IsAutoLoadedCommitMessage())
                 CommitMessage = string.Empty;
 
-            if (LoadCommitMessageFromFile(Path.Combine(_repo.GitDir, "MERGE_MSG")))
-                return;
-
             if (_inProgressContext is PatchInProgress patching)
             {
                 LoadCommitMessageFromFile(patching.MessageFile);
                 return;
             }
+
+            if (_inProgressContext is RebaseInProgress applying && Path.GetFileName(applying.MessageFile) == "final-commit")
+            {
+                LoadCommitMessageFromFile(applying.MessageFile);
+                return;
+            }
+
+            if (LoadCommitMessageFromFile(Path.Combine(_repo.GitDir, "MERGE_MSG")))
+                return;
 
             if (_inProgressContext is not RebaseInProgress { } rebasing)
                 return;

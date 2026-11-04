@@ -55,7 +55,8 @@ namespace SourceGit.ViewModels
             _repo = repo;
             _option = option;
 
-            if (previous != null)
+            if (previous != null && string.Equals(previous._repo, repo, StringComparison.Ordinal) &&
+                previous._option.ToString() == option.ToString())
             {
                 _isTextDiff = previous._isTextDiff;
                 _isIgnoreWhitespaceVisible = previous._isIgnoreWhitespaceVisible;

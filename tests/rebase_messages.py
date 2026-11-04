@@ -10,7 +10,7 @@ import threading
 import time
 
 exe=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
-backend=sys.argv[3] if len(sys.argv)>3 else 'merge'
+backend=next((a for a in sys.argv[3:] if a in ['merge','apply','am']),'merge')
 state_dir='rebase-apply' if backend in ['apply','am'] else 'rebase-merge'
 root=Path(tempfile.mkdtemp(prefix='TreeGit rebase message audit '));repo=root/'repo';repo.mkdir();fixture=root/'fixture.json'
 env=os.environ.copy();env.update(GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'),GIT_CONFIG_NOSYSTEM='1',TREEGIT_TEST_SETTINGS_FIXTURE=str(fixture))
@@ -60,6 +60,13 @@ def check(name,condition):
 try:
     rpc('initialize',{'protocolVersion':'2025-11-25'});tool('ui_open_repository',{'repo':str(repo)});pid=tool('ui_state')['processId']
     state=probe();check('first conflict displays the first commit and its message',state['step']==steps[0] and 'First rebase step' in state['draft'])
+    if '--close' in sys.argv[3:]:
+        merge_file=repo/'.git/MERGE_MSG';existed=merge_file.exists()
+        tab=next(t for t in tool('ui_tabs',{'action':'list'})['tabs'] if t['repo'] and Path(t['repo'])==repo)
+        tool('ui_tabs',{'action':'close','index':tab['index']})
+        check('closing an unfinished operation does not invent unrelated Git message files',merge_file.exists()==existed)
+        tool('ui_open_repository',{'repo':str(repo)});state=probe()
+        check('reopening the unfinished operation restores its draft and current step',state['step']==steps[0] and 'First rebase step' in state['draft'])
     (repo/'a.txt').write_text('resolved first\n');git('add','--','a.txt')
     head_before=git('rev-parse','HEAD').stdout
     message_file=repo/'.git'/state_dir/('message' if backend=='merge' else 'final-commit')
