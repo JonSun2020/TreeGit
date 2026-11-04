@@ -20,6 +20,9 @@ jobs:
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
+      - name: Verify upstream controls and actions
+        shell: pwsh
+        run: python tests/preserve_upstream.py
       - name: Build portable TreeGit
         shell: pwsh
         run: ./build-treegit.ps1 -Destination "$env:RUNNER_TEMP/TreeGit"
@@ -27,6 +30,12 @@ jobs:
         shell: pwsh
         run: |
           ./package-treegit.ps1 -Source "$env:RUNNER_TEMP/TreeGit" -Destination .
+      - name: Verify MCP protocol and portable packaging
+        shell: pwsh
+        run: |
+          python tests/mcp_protocol.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/treegit-protocol.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/package_smoke.py "$env:RUNNER_TEMP/treegit-package-test"
       - uses: actions/upload-artifact@v4
         with:
           name: TreeGit-Windows-x64
