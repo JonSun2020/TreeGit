@@ -10,6 +10,7 @@ $name='TreeGit-'+$info.version+'-Windows-x64.zip'
 $archive=Join-Path $Destination $name
 if(Test-Path -LiteralPath $archive){throw 'This versioned archive already exists; choose a new version or output directory'}
 Add-Type -AssemblyName System.IO.Compression
+Add-Type -AssemblyName System.IO.Compression.FileSystem
 $zip=[IO.Compression.ZipFile]::Open($archive,[IO.Compression.ZipArchiveMode]::Create)
 try {
     # Only program files from the build output. Never package preferences, cache or credentials.
