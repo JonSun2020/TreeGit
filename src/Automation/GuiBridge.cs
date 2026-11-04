@@ -406,7 +406,8 @@ namespace SourceGit.Automation
                     });
                 var view = await Dispatcher.UIThread.InvokeAsync(() =>
                     ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).Windows.Where(w => w.IsVisible)
-                    .Reverse().SelectMany(w => w.GetVisualDescendants().OfType<Views.BinaryDiffView>()).FirstOrDefault(v => v.IsEffectivelyVisible));
+                    .Reverse().SelectMany(w => w.GetVisualDescendants().OfType<Views.BinaryDiffView>()).FirstOrDefault(v => v.IsEffectivelyVisible &&
+                        v.DataContext is Models.BinaryDiff d && string.Equals(d.Repository, path, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)));
                 if (view == null) return new { status = "not_binary" };
                 if (action is "first" or "last" or "next" or "previous")
                 {

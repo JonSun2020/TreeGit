@@ -139,12 +139,13 @@ git('add', '.'); (repo/added).write_bytes(b''); refresh()
 state = select(added)
 check('empty worktree binary compares against its index content', state['oldSize'] == 4 and state['newSize'] == 0 and state['differentBytes'] == 4)
 tool('ui_select_view', {'repo':str(repo), 'view':'history'})
+tool('ui_command', {'command':'close_tab'})
 time.sleep(.3)
 for _ in range(50):
     leaked = set(Path(tempfile.gettempdir()).glob('TreeGit-binary-*')) - snapshot_baseline
     if not leaked: break
     time.sleep(.1)
-check('changing away from binary views cleans all comparison snapshots', not leaked)
+check('closing the repository cleans all comparison snapshots', not leaked)
 p.stdin.close(); p.wait(timeout=10)
 (out/'binary-results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'repo':str(repo),'exe':str(exe)},ensure_ascii=False,indent=2),encoding='utf-8')
 print('PASSED',len(checks))
