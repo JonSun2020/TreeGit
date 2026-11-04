@@ -54,7 +54,7 @@ try:
     check('clearing the selected branch restores inherited tracking','submodule.'+selected+'.branch' not in git('config','-f','.gitmodules','--list'))
     native('submodule_url',[selected],str(source)+'/.')
     check('URL configuration changes only the selected module',git('config','-f','.gitmodules','--get','submodule.'+selected+'.url')==source.as_posix()+'/.' and git('config','-f','.gitmodules','--get','submodule.'+other+'.url')==str(source))
-    mcp=tool('git_run',{'repo':str(repo),'arguments':['submodule','set-url','--',selected,str(source)]})
+    mcp=tool('git_run',{'repo':str(repo),'arguments':(['-c','protocol.file.allow=always'] if '--prefixed-mcp' in sys.argv[3:] else [])+['submodule','set-url','--',selected,str(source)]})
     check('MCP submodule commands preserve literal paths and Windows local URLs',mcp['isSuccess'] and git('config','-f','.gitmodules','--get','submodule.'+selected+'.url')==source.as_posix() and git('config','-f','.gitmodules','--get','submodule.'+other+'.url')==str(source))
     native('submodule_update',[selected])
     check('selected submodule updates to the recorded revision',run(repo/selected,'rev-parse','HEAD')==new)

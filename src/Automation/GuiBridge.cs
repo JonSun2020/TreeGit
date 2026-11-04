@@ -621,6 +621,9 @@ namespace SourceGit.Automation
             Models.Remote selectedRemote = null;
             string tempMessage = null;
             var preserveSubmoduleArguments = false;
+            var credentialScope = path;
+            bool? useCredentialManager = null;
+            var pathComparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
             try
             {
                 switch (name)
@@ -649,15 +652,32 @@ namespace SourceGit.Automation
                         var arguments = args.GetProperty("arguments").EnumerateArray().Select(a => a.GetString()).ToArray();
                         if (arguments.Length == 0 || arguments.Length > 4096 || string.IsNullOrWhiteSpace(arguments[0]) || arguments.Any(a => a == null || a.Contains('\0')))
                             throw new ArgumentException("arguments must contain a Git command and no NUL characters.");
-                        preserveSubmoduleArguments = arguments[0] == "submodule";
+                        var commandIndex = GitCommandIndex(arguments);
+                        var subcommand = commandIndex < arguments.Length ? arguments[commandIndex] : string.Empty;
+                        preserveSubmoduleArguments = subcommand == "submodule";
                         if (preserveSubmoduleArguments && OperatingSystem.IsWindows())
                             arguments = arguments.Select(a => Path.IsPathRooted(a) ? a.Replace('\\', '/') : a).ToArray();
                         command = string.Join(' ', arguments.Select(Quote));
-                        if (arguments[0] is "fetch" or "pull" or "push" or "ls-remote")
+                        var globalOptions = string.Join(' ', arguments.Take(commandIndex).Select(Quote));
+                        if (arguments.Take(commandIndex).Any(a => a.StartsWith("-C", StringComparison.Ordinal) ||
+                            a.StartsWith("--git-dir", StringComparison.Ordinal) || a.StartsWith("--work-tree", StringComparison.Ordinal)))
                         {
-                            var configuredRemotes = await new Commands.QueryRemotes(path).GetResultAsync().ConfigureAwait(false);
-                            selectedRemote = configuredRemotes.FirstOrDefault(r => arguments.Skip(1).Contains(r.Name)) ??
-                                configuredRemotes.FirstOrDefault(r => r.Name == repo.Settings.DefaultRemote) ??
+                            var scope = await new Query(path, globalOptions + " rev-parse --show-toplevel").RunAsync(false).ConfigureAwait(false);
+                            if (!scope.IsSuccess) scope = await new Query(path, globalOptions + " rev-parse --absolute-git-dir").RunAsync(false).ConfigureAwait(false);
+                            if (scope.IsSuccess) credentialScope = scope.StdOut.Trim().Replace('\\', '/');
+                        }
+                        Dictionary<string, string> invocationConfig = null;
+                        if (commandIndex > 0)
+                        {
+                            invocationConfig = await new Commands.Config(path).ReadAllAsync(globalOptions).ConfigureAwait(false);
+                            useCredentialManager = invocationConfig.TryGetValue("sourcegit.credentialmanager", out var systemCredentials) &&
+                                systemCredentials.Equals("true", StringComparison.OrdinalIgnoreCase);
+                        }
+                        if (subcommand is "fetch" or "pull" or "push" or "ls-remote")
+                        {
+                            var configuredRemotes = invocationConfig == null ? await new Commands.QueryRemotes(path).GetResultAsync().ConfigureAwait(false) : Commands.QueryRemotes.Parse(invocationConfig);
+                            selectedRemote = configuredRemotes.FirstOrDefault(r => arguments.Skip(commandIndex + 1).Contains(r.Name)) ??
+                                configuredRemotes.FirstOrDefault(r => string.Equals(credentialScope, path, pathComparison) && r.Name == repo.Settings.DefaultRemote) ??
                                 configuredRemotes.FirstOrDefault(r => r.Name == "origin");
                         }
                         break;
@@ -754,7 +774,7 @@ namespace SourceGit.Automation
                     default:
                         throw new ArgumentException("Unknown tool.");
                 }
-                var query = new Query(path, command) { PreserveSubmoduleArguments = preserveSubmoduleArguments };
+                var query = new Query(path, command) { PreserveSubmoduleArguments = preserveSubmoduleArguments, CredentialScope = credentialScope, UseCredentialManager = useCredentialManager };
                 if (selectedRemote != null)
                     query.SSHKey = selectedRemote.PrivateSSHKey;
                 ViewModels.CommandLog log = null;
@@ -779,6 +799,9 @@ namespace SourceGit.Automation
                     await Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         repo.RefreshAll();
+                        if (!string.Equals(credentialScope, path, pathComparison))
+                            foreach (var page in App.GetLauncher().Pages)
+                                if (page.Data is ViewModels.Repository affected && string.Equals(affected.FullPath, credentialScope, pathComparison)) affected.RefreshAll();
                         repo.McpActivity = "MCP · " + activity + (result.IsSuccess ? " ✓" : " ✕ · 查看命令日志");
                     });
                 }
@@ -792,6 +815,18 @@ namespace SourceGit.Automation
                 if (tempMessage != null)
                     File.Delete(tempMessage);
             }
+        }
+
+        private static int GitCommandIndex(string[] arguments)
+        {
+            var index = 0;
+            while (index < arguments.Length && arguments[index].StartsWith('-'))
+            {
+                var option = arguments[index++];
+                if (option is "-c" or "-C" or "--git-dir" or "--work-tree" or "--namespace" or "--super-prefix" or "--config-env" or "--attr-source")
+                    index = Math.Min(index + 1, arguments.Length);
+            }
+            return index;
         }
 
         private static bool IsSelected(ViewModels.ChangeSelection selection, Models.Change change) =>
@@ -873,6 +908,15 @@ namespace SourceGit.Automation
                 while (true)
                 {
                     using var process = new System.Diagnostics.Process { StartInfo = CreateGitStartInfo(true) };
+#if INTEGRATION_TESTS
+                    var trace = Environment.GetEnvironmentVariable("TREEGIT_TEST_QUERY_TRACE");
+                    if (!string.IsNullOrEmpty(trace))
+                        File.WriteAllText(trace, JsonSerializer.Serialize(new {
+                            scope = process.StartInfo.Environment["SOURCEGIT_CREDENTIAL_SCOPE"],
+                            ssh = process.StartInfo.Environment.TryGetValue("GIT_SSH_COMMAND", out var ssh) ? ssh : string.Empty,
+                            ownCredentialHelper = process.StartInfo.Arguments.Contains("--credential-helper", StringComparison.Ordinal),
+                        }));
+#endif
                     process.Start();
                     var stdout = ReadCappedAsync(process.StandardOutput);
                     var stderr = ReadCappedAsync(process.StandardError);

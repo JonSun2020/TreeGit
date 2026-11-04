@@ -518,12 +518,23 @@ namespace SourceGit.ViewModels
         public void Close()
         {
             var commitMessage = _workingCopy.CommitMessage;
-            var mergeMessage = Path.Combine(GitDir, "MERGE_MSG");
-            if (!string.IsNullOrEmpty(commitMessage) && _workingCopy.InProgressContext != null && File.Exists(mergeMessage))
-                File.WriteAllText(mergeMessage, commitMessage);
-
             _uiStates.LastCommitMessage = commitMessage;
+            _uiStates.LastAutoLoadedCommitMessage = _workingCopy.AutoLoadedCommitMessage;
+            _uiStates.LastCommitMessageContext = _workingCopy.CommitMessageContext;
             _uiStates.Save();
+
+            var mergeMessage = Path.Combine(GitDir, "MERGE_MSG");
+            try
+            {
+                if (!string.IsNullOrEmpty(commitMessage) && _workingCopy.InProgressContext != null && File.Exists(mergeMessage) &&
+                    File.ReadAllText(mergeMessage) != commitMessage)
+                    File.WriteAllText(mergeMessage, commitMessage);
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            {
+                // The editable draft is already saved separately; a Git message file must not block closing.
+                SendNotification(error.Message, true);
+            }
 
             if (_cancellationRefreshBranches is { IsCancellationRequested: false })
                 _cancellationRefreshBranches.Cancel();

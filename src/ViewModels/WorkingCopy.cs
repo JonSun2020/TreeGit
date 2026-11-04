@@ -248,7 +248,13 @@ namespace SourceGit.ViewModels
         public WorkingCopy(Repository repo)
         {
             _repo = repo;
+            _autoLoadedCommitMessage = repo.UIStates.LastAutoLoadedCommitMessage;
         }
+
+        internal string AutoLoadedCommitMessage => _autoLoadedCommitMessage ?? string.Empty;
+        internal string CommitMessageContext => _inProgressContext == null ? string.Empty :
+            $"{_inProgressContext.GetType().Name}:{InProgressStep(_inProgressContext)}" +
+            (_inProgressContext is PatchInProgress patch ? $":{patch.Subject}:{SourceGit.ViewModels.InProgressContext.ReadStateFile(Path.Combine(_repo.GitDir, "ORIG_HEAD"))}" : string.Empty);
 
         public void SetData(List<Models.Change> changes)
         {
@@ -564,7 +570,8 @@ namespace SourceGit.ViewModels
             new Commands.DiffTool(_repo.FullPath, new Models.DiffOption(change, isUnstaged)).Open();
         }
 
-        public Task ContinueMergeAsync() => ProcessInProgressAsync("Continue", (context, log) => context.ContinueAsync(log, IsAutoLoadedCommitMessage() ? null : _commitMessage), true);
+        public Task ContinueMergeAsync() => ProcessInProgressAsync("Continue", (context, log) => context.ContinueAsync(log,
+            IsAutoLoadedCommitMessage() ? null : _commitMessage, IsAutoLoadedCommitMessage() ? _commitMessage : null), true);
 
         public Task SkipMergeAsync() => ProcessInProgressAsync("Skip", (context, log) => context.SkipAsync(log));
 
@@ -799,6 +806,15 @@ namespace SourceGit.ViewModels
             else
                 InProgressContext = null;
 
+            if (!_hasLoadedInitialProgressState)
+            {
+                _hasLoadedInitialProgressState = true;
+                var savedContext = _repo.UIStates.LastCommitMessageContext;
+                // An external Git command may have advanced the operation while its tab was closed.
+                if (_inProgressContext != null && !string.IsNullOrEmpty(savedContext) && savedContext != CommitMessageContext)
+                    CommitMessage = string.Empty;
+            }
+
             if (_inProgressContext != null && _inProgressContext.GetType() == oldType)
             {
                 if (InProgressStep(_inProgressContext) == InProgressStep(oldContext))
@@ -811,7 +827,7 @@ namespace SourceGit.ViewModels
             // The operation that filled the commit message ended outside SourceGit (for example, a
             // rebase or merge finished/aborted from the terminal). Drop the stale message unless the
             // user has edited it since it was loaded.
-            if (_inProgressContext == null && oldType != null && IsAutoLoadedCommitMessage())
+            if (_inProgressContext == null && IsAutoLoadedCommitMessage())
                 CommitMessage = string.Empty;
 
             if (_inProgressContext is PatchInProgress patching)
@@ -848,8 +864,37 @@ namespace SourceGit.ViewModels
             if (string.IsNullOrEmpty(msg))
                 return false;
 
+            if (Path.GetFileName(file) != "final-commit" && msg != _autoLoadedCommitMessage)
+                msg = RemoveConflictHints(msg);
             SetAutoLoadedCommitMessage(msg);
             return true;
+        }
+
+        private string RemoveConflictHints(string message)
+        {
+            var lines = message.ReplaceLineEndings("\n").Split('\n');
+            for (var i = lines.Length - 2; i >= 0; i--)
+            {
+                if (!lines[i].EndsWith(" Conflicts:", StringComparison.Ordinal)) continue;
+                var marker = lines[i][..^11];
+                if (marker.Length == 0) continue;
+                var end = i + 1;
+                while (end < lines.Length && lines[end].StartsWith(marker + "\t", StringComparison.Ordinal)) end++;
+                if (end == i + 1) continue;
+
+                // An authored block with this spelling is part of the original message,
+                // not a generated conflict footer. Re-reading a cleaned message is safe.
+                var source = _inProgressContext switch {
+                    RebaseInProgress rebase => rebase.StoppedAt?.SHA,
+                    CherryPickInProgress cherry => cherry.Head?.SHA,
+                    _ => null,
+                };
+                if (!string.IsNullOrEmpty(source) && new Commands.QueryCommitFullMessage(_repo.FullPath, source).GetResult() == message)
+                    return message;
+                if (!_hasUnsolvedConflicts && !new Commands.QueryResolvedConflicts(_repo.FullPath).HasRecords()) return message;
+                return (string.Join('\n', lines[..i]) + (end < lines.Length ? "\n" + string.Join('\n', lines[end..]) : string.Empty)).TrimEnd();
+            }
+            return message;
         }
 
         private static string InProgressStep(InProgressContext context) => context switch
@@ -986,5 +1031,6 @@ namespace SourceGit.ViewModels
         private bool _hasUnsolvedConflicts = false;
         private InProgressContext _inProgressContext = null;
         private string _autoLoadedCommitMessage = null;
+        private bool _hasLoadedInitialProgressState = false;
     }
 }

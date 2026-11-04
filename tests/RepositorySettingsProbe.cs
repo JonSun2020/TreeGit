@@ -82,6 +82,17 @@ namespace SourceGit.Tests
                                 operationDetails = new { draft = repo.WorkingCopy.CommitMessage, log = repo.Logs.FirstOrDefault()?.Content, messageFileExists = File.Exists(Path.Combine(repo.GitDir, "MERGE_MSG")) };
                                 operationResult = true; break;
                             case "cleanup": operationResult = await new ViewModels.Cleanup(repo).Sure(); break;
+                            case "binary_snapshot":
+                                try
+                                {
+                                    using var snapshot = await Commands.BinarySnapshots.LoadAsync(new Models.BinaryDiff {
+                                        Repository = repo.FullPath, OldRevision = data.GetProperty("oldRevision").GetString(), NewRevision = string.Empty,
+                                        OldFilePath = data.GetProperty("oldPath").GetString(), FilePath = data.GetProperty("path").GetString(),
+                                    }, default);
+                                    operationDetails = new { success = true, oldSize = snapshot.OldSize, newSize = snapshot.NewSize, differences = snapshot.DifferentBytes };
+                                }
+                                catch (IOException snapshotError) { operationDetails = new { success = false, error = snapshotError.Message }; }
+                                operationResult = true; break;
                             case "popup_fetch":
                             case "popup_pull":
                             case "popup_push":
@@ -241,7 +252,7 @@ namespace SourceGit.Tests
                                 foreach (var enabled in new[] { true, false })
                                 {
                                     await new Commands.Config(repo.FullPath).SetAsync("sourcegit.credentialmanager", enabled ? "true" : "false");
-                                    repo.RefreshAll(); await Task.Delay(650);
+                                    repo.RefreshAll();
                                     modes.Add(Native.RepositoryCredentials.UsesCredentialManager(repo.FullPath));
                                 }
                                 operationDetails = modes; operationResult = true; break;
@@ -288,14 +299,20 @@ namespace SourceGit.Tests
                     var result = new { before, operationResult, operationDetails, links = model.IssueTrackers.Select(r => new { name = r.Name, shared = r.IsShared }).ToArray(), staysOpen = window.IsVisible, error = error?.IsVisible == true ? error.Text : null,
                         controls = controls.Keys.ToArray(), hasOtherConfiguration = window.GetLogicalDescendants().OfType<Button>().Any(b => b.Content?.ToString()?.Contains("其他配置", StringComparison.Ordinal) == true) };
                     if (window.IsVisible) window.Close();
-                    File.WriteAllText(fixture + ".result", JsonSerializer.Serialize(result));
+                    WriteResult(fixture, result);
                 }
                 catch (Exception ex)
                 {
                     if (window.IsVisible) window.Close();
-                    File.WriteAllText(fixture + ".result", JsonSerializer.Serialize(new { exception = ex.ToString() }));
+                    WriteResult(fixture, new { exception = ex.ToString() });
                 }
             }, DispatcherPriority.Background);
+        }
+
+        private static void WriteResult(string fixture, object result)
+        {
+            File.WriteAllText(fixture + ".result.tmp", JsonSerializer.Serialize(result));
+            File.Move(fixture + ".result.tmp", fixture + ".result", true);
         }
 
         private static async Task WaitForOperationView(ViewModels.Repository repo)

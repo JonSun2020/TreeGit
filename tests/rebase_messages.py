@@ -3,6 +3,7 @@ import json
 import os
 from pathlib import Path
 import queue
+import stat
 import subprocess
 import sys
 import tempfile
@@ -22,7 +23,8 @@ git('init','-b','main');git('config','user.name','Rebase QA');git('config','user
 for n in ['a.txt','b.txt']:(repo/n).write_text('base\n')
 git('add','.');git('commit','-m','Base');base=git('rev-parse','HEAD').stdout.strip();git('switch','-c','feature')
 steps=[]
-for n,message in [('a.txt','First rebase step'),('b.txt','Second rebase step')]:
+commit_messages=[subject+('\n\n# Authored heading\n\n# Conflicts:\n#\t'+name if '--authored-headings' in sys.argv[3:] else '') for name,subject in [('a.txt','First rebase step'),('b.txt','Second rebase step')]]
+for n,message in zip(['a.txt','b.txt'],commit_messages):
     (repo/n).write_text('feature\n');git('add','.');git('commit','-m',message);steps.append(git('rev-parse','HEAD').stdout.strip())
 patch=root/'commits.patch';patch.write_text(git('format-patch','--stdout',base+'..feature').stdout,encoding='utf-8')
 git('switch','main')
@@ -46,7 +48,7 @@ def tool(name,args=None):
     return json.loads(r['content'][0]['text'])
 def probe(operation='read_draft',draft=None):
     result_file=Path(str(fixture)+'.result');result_file.unlink(missing_ok=True)
-    data={'action':'cancel','operation':operation}
+    data={'action':'cancel','operation':operation,'disableAutoRefresh':'--manual-refresh' in sys.argv[3:]}
     if draft is not None:data['draft']=draft
     fixture.write_text(json.dumps(data),encoding='utf-8');tool('ui_command',{'repo':str(repo),'command':'repository_settings'})
     deadline=time.monotonic()+30
@@ -61,12 +63,47 @@ try:
     rpc('initialize',{'protocolVersion':'2025-11-25'});tool('ui_open_repository',{'repo':str(repo)});pid=tool('ui_state')['processId']
     state=probe();check('first conflict displays the first commit and its message',state['step']==steps[0] and 'First rebase step' in state['draft'])
     if '--close' in sys.argv[3:]:
+        saved_draft='Saved draft before closing\n\nUser-authored recovery notes' if '--edited-close' in sys.argv[3:] else state['draft']
+        if '--edited-close' in sys.argv[3:]:probe('set_draft',saved_draft)
         merge_file=repo/'.git/MERGE_MSG';existed=merge_file.exists()
         tab=next(t for t in tool('ui_tabs',{'action':'list'})['tabs'] if t['repo'] and Path(t['repo'])==repo)
-        tool('ui_tabs',{'action':'close','index':tab['index']})
+        if '--readonly-close' in sys.argv[3:]:
+            assert existed,'This test requires a real MERGE_MSG'
+            before_message=merge_file.read_bytes();merge_file.chmod(stat.S_IREAD);closed_without_error=True
+            try:
+                try:tool('ui_tabs',{'action':'close','index':tab['index']})
+                except AssertionError as error:
+                    closed_without_error=False;records.append({'operation':'readonly_close','error':str(error)})
+            finally:merge_file.chmod(stat.S_IWRITE|stat.S_IREAD)
+            check('a read-only Git message does not prevent closing or alter its bytes',closed_without_error and merge_file.read_bytes()==before_message)
+            if not closed_without_error:tool('ui_tabs',{'action':'close','index':tab['index']})
+        else:tool('ui_tabs',{'action':'close','index':tab['index']})
         check('closing an unfinished operation does not invent unrelated Git message files',merge_file.exists()==existed)
+        if '--advance-closed' in sys.argv[3:]:
+            (repo/'a.txt').write_text('resolved externally\n');git('add','--','a.txt')
+            continued=git('-c','core.editor=true','am' if backend=='am' else 'rebase','--continue',success=False)
+            check('external continuation reaches the second real conflict',continued.returncode!=0 and (repo/'.git'/state_dir).exists())
+        if '--abort-closed' in sys.argv[3:]:git('am' if backend=='am' else 'rebase','--abort')
         tool('ui_open_repository',{'repo':str(repo)});state=probe()
-        check('reopening the unfinished operation restores its draft and current step',state['step']==steps[0] and 'First rebase step' in state['draft'])
+        if '--advance-closed' in sys.argv[3:]:
+            check('reopening after external continuation shows the new step and message',state['step']==steps[1] and 'Second rebase step' in state['draft'] and saved_draft not in state['draft'])
+            (repo/'b.txt').write_text('resolved second\n');git('add','--','b.txt')
+            if '--auto-lock-test' in sys.argv[3:]:
+                state_message=repo/'.git'/state_dir/('message' if backend=='merge' else 'final-commit')
+                original_bytes=state_message.read_bytes();original_head=git('rev-parse','HEAD').stdout;index_lock=repo/'.git/index.lock'
+                with index_lock.open('xb'):failed=probe('native_continue')
+                index_lock.unlink()
+                check('failed default continuation preserves the authored message and releases busy state',failed['draft']==commit_messages[1] and not failed['busy'] and failed['step']==steps[1])
+                check('failed default continuation restores the original Git message bytes',state_message.read_bytes()==original_bytes and git('rev-parse','HEAD').stdout==original_head)
+            state=probe('native_continue')
+            check('continuing after reopening commits the exact second step message',git('log','-1','--format=%B').stdout.strip()==commit_messages[1] and state['context'] is None)
+            assert not failures,failures
+            sys.exit(0)
+        if '--abort-closed' in sys.argv[3:]:
+            check('reopening after external abort keeps only a user-authored draft',state['context'] is None and state['draft']==(saved_draft if '--edited-close' in sys.argv[3:] else ''))
+            assert not failures,failures
+            sys.exit(0)
+        check('reopening the unfinished operation restores its draft and current step',state['step']==steps[0] and state['draft']==saved_draft)
     (repo/'a.txt').write_text('resolved first\n');git('add','--','a.txt')
     head_before=git('rev-parse','HEAD').stdout
     message_file=repo/'.git'/state_dir/('message' if backend=='merge' else 'final-commit')

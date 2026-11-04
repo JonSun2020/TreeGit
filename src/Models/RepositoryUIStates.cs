@@ -233,6 +233,9 @@ namespace SourceGit.Models
             set;
         } = string.Empty;
 
+        public string LastAutoLoadedCommitMessage { get; set; } = string.Empty;
+        public string LastCommitMessageContext { get; set; } = string.Empty;
+
         public AvaloniaList<HistoryFilter> HistoryFilters
         {
             get;

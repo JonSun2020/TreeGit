@@ -57,14 +57,27 @@ namespace SourceGit.Commands
                 {
                     using var unborn = Start(repo, "symbolic-ref", "-q", "HEAD");
                     var (_, unbornCode) = await FinishAsync(unborn, token).ConfigureAwait(false);
-                    if (revision == "HEAD" && unbornCode == 0) return;
+                    if (revision == "HEAD" && unbornCode == 0)
+                    {
+                        using var existingHead = Start(repo, "rev-parse", "--verify", "--quiet", "HEAD");
+                        var (_, headCode) = await FinishAsync(existingHead, token).ConfigureAwait(false);
+                        if (headCode != 0) return;
+                    }
                     throw new IOException("Cannot resolve binary comparison revision: " + revision);
                 }
             }
             var spec = revision + ":" + path;
             using var exists = Start(repo, "cat-file", "-t", spec);
             var (type, existsCode) = await FinishAsync(exists, token).ConfigureAwait(false);
-            if (existsCode != 0) return;
+            if (existsCode != 0)
+            {
+                // A missing blob is not the same as a path absent from a valid tree/index.
+                using var entry = revision.Length == 0 ? Start(repo, "ls-files", "--error-unmatch", "--", path) :
+                    Start(repo, "ls-tree", "--full-tree", "-z", revision, "--", path);
+                var (entryText, entryCode) = await FinishAsync(entry, token).ConfigureAwait(false);
+                if (revision.Length == 0 ? entryCode == 1 : entryCode == 0 && entryText.Length == 0) return;
+                throw new IOException("Cannot read binary comparison file: " + spec);
+            }
             if (type.Trim() != "blob") throw new IOException("The selected path is not a file.");
             using var process = Start(repo, "cat-file", "blob", spec);
             using var cancel = token.Register(() => { try { process.Kill(true); } catch (InvalidOperationException) { } });
@@ -80,6 +93,7 @@ namespace SourceGit.Commands
             var info = new ProcessStartInfo(Native.OS.GitExecutable) { WorkingDirectory = repo, UseShellExecute = false,
                 CreateNoWindow = true, RedirectStandardOutput = true, RedirectStandardError = true };
             info.ArgumentList.Add("--no-optional-locks");
+            info.ArgumentList.Add("--literal-pathspecs");
             foreach (var arg in args) info.ArgumentList.Add(arg);
             return Process.Start(info) ?? throw new IOException("Cannot start Git.");
         }

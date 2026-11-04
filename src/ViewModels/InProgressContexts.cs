@@ -12,7 +12,7 @@ namespace SourceGit.ViewModels
             protected set;
         }
 
-        public virtual async Task<bool> ContinueAsync(CommandLog log, string message = null)
+        public virtual async Task<bool> ContinueAsync(CommandLog log, string message = null, string autoMessage = null)
         {
             return _continueCmd != null && await _continueCmd.Use(log).ExecAsync();
         }
@@ -186,9 +186,11 @@ namespace SourceGit.ViewModels
             BaseName = Onto.GetFriendlyName();
         }
 
-        public override async Task<bool> ContinueAsync(CommandLog log, string message = null)
+        public override async Task<bool> ContinueAsync(CommandLog log, string message = null, string autoMessage = null)
         {
-            if (string.IsNullOrWhiteSpace(message)) return await base.ContinueAsync(log);
+            if (string.IsNullOrWhiteSpace(message))
+                return string.IsNullOrWhiteSpace(autoMessage) ? await base.ContinueAsync(log) :
+                    await ContinueWithStoredMessageAsync(log, autoMessage, MessageFile, Path.Combine(_stateDirectory, _applyBackend ? "next" : "stopped-sha"));
             if (_applyBackend) return await ContinueWithStoredMessageAsync(log, message, MessageFile, Path.Combine(_stateDirectory, "next"));
             var file = Path.GetTempFileName();
             try
@@ -236,7 +238,7 @@ namespace SourceGit.ViewModels
             _abortCmd = new Commands.Command { WorkingDirectory = repo.FullPath, Context = repo.FullPath, Args = "am --abort" };
         }
 
-        public override Task<bool> ContinueAsync(CommandLog log, string message = null) =>
+        public override Task<bool> ContinueAsync(CommandLog log, string message = null, string autoMessage = null) =>
             string.IsNullOrWhiteSpace(message) ? base.ContinueAsync(log) : ContinueWithStoredMessageAsync(log, message, MessageFile, Path.Combine(_stateDirectory, "next"));
 
         private readonly string _stateDirectory;

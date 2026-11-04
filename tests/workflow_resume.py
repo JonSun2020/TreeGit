@@ -23,7 +23,9 @@ def tool(name,args=None):
 
 def probe(repo,operation,allow_error=False):
     result_file=Path(str(fixture)+'.result');result_file.unlink(missing_ok=True)
-    fixture.write_text(json.dumps({'action':'cancel','operation':operation,'disableAutoRefresh':True,'draft':'Resolved recovery message'}),encoding='utf-8')
+    payload={'action':'cancel','operation':operation,'disableAutoRefresh':True}
+    if '--default-message' not in sys.argv[3:]:payload['draft']='Resolved recovery message'
+    fixture.write_text(json.dumps(payload),encoding='utf-8')
     tool('ui_command',{'repo':str(repo),'command':'repository_settings'})
     deadline=time.monotonic()+30
     while not result_file.exists() and time.monotonic()<deadline:time.sleep(.05)
@@ -42,25 +44,32 @@ try:
     assert 'error' not in json.loads(messages.get(timeout=45))
     cases=[(kind,'continue') for kind in ['merge','cherry-pick','revert']]+[(kind,'skip') for kind in ['cherry-pick','revert','rebase','rebase-apply','am']]
     if '--readonly-message' in sys.argv[3:]:cases=[('merge','continue')]
+    if '--default-message' in sys.argv[3:]:cases=[(kind,'continue') for kind in ['merge','cherry-pick','revert']]
+    if '--clean-merge' in sys.argv[3:]:cases=[('merge','continue')]
+    if '--resolve-strategy' in sys.argv[3:]:cases=[('merge','continue')]
     for kind,action in cases:
         label=kind+'-'+action;repo=root/label;repo.mkdir();file=repo/'file.txt'
         git(repo,'init','-b','main');git(repo,'config','user.name','Recovery QA');git(repo,'config','user.email','recovery@example.invalid')
         file.write_text('base\n');git(repo,'add','.');git(repo,'commit','-m','Base')
         file.write_text('one\n');git(repo,'commit','-am','One');one=git(repo,'rev-parse','HEAD')
-        git(repo,'switch','-c','feature');file.write_text('feature\n');git(repo,'commit','-am','Feature');feature=git(repo,'rev-parse','HEAD')
+        feature_message='Feature\n\n# Authored heading\n\n# Conflicts:\n#\tfile.txt' if '--default-message' in sys.argv[3:] and (kind=='cherry-pick' or '--clean-merge' in sys.argv[3:]) else 'Feature'
+        git(repo,'switch','-c','feature');(repo/'feature.txt' if '--clean-merge' in sys.argv[3:] else file).write_text('feature\n');git(repo,'add','.');git(repo,'commit','-m',feature_message);feature=git(repo,'rev-parse','HEAD')
         git(repo,'switch','main');file.write_text('main\n');git(repo,'commit','-am','Main')
         args=['merge','--no-edit','feature'] if kind=='merge' else ['cherry-pick',feature] if kind=='cherry-pick' else ['revert','--no-edit',one] if kind=='revert' else ['rebase','feature']
         if kind=='rebase-apply':args=['rebase','--apply','feature']
         if kind=='am':
             patch=root/'feature.patch';patch.write_text(git(repo,'format-patch','--stdout',one+'..feature'),encoding='utf-8');args=['am','-3',str(patch)]
-        r=git(repo,*args,success=False);assert r.returncode!=0,r.stdout
+        if '--clean-merge' in sys.argv[3:]:args=['merge','--no-commit','--no-ff','-m',feature_message,'feature']
+        if '--resolve-strategy' in sys.argv[3:]:args=args[:1]+['-s','resolve']+args[1:]
+        r=git(repo,*args,success=False);assert (r.returncode==0 if '--clean-merge' in sys.argv[3:] else r.returncode!=0),r.stdout
         reference=root/('reference-'+label);shutil.copytree(repo,reference)
         command='rebase' if kind=='rebase-apply' else kind
         if action=='continue':
             for target in [repo,reference]:
                 (target/'file.txt').write_text('resolved\n');git(target,'add','--','file.txt')
-            (reference/'.git/MERGE_MSG').write_text('Resolved recovery message',encoding='utf-8')
-        git(reference,command,'--'+action)
+            if '--default-message' not in sys.argv[3:]:(reference/'.git/MERGE_MSG').write_text('Resolved recovery message',encoding='utf-8')
+            elif kind=='cherry-pick' or '--clean-merge' in sys.argv[3:]:(reference/'.git/MERGE_MSG').write_text(feature_message,encoding='utf-8')
+        git(reference,*(['-c','core.commentString=±'] if '--default-message' in sys.argv[3:] and (kind=='cherry-pick' or '--clean-merge' in sys.argv[3:]) else []),command,'--'+action)
         tool('ui_open_repository',{'repo':str(repo)});pid=tool('ui_state')['processId']
         if '--readonly-message' in sys.argv[3:]:
             message=repo/'.git/MERGE_MSG';before=message.read_bytes();head=git(repo,'rev-parse','HEAD');index=git(repo,'write-tree')

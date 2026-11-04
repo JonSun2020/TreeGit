@@ -19,7 +19,7 @@ namespace SourceGit.Commands
 
         public List<Models.Remote> GetResult() => Parse(new Config(_repo).ReadAll());
 
-        private static List<Models.Remote> Parse(Dictionary<string, string> config)
+        internal static List<Models.Remote> Parse(Dictionary<string, string> config)
         {
             var names = new HashSet<string>();
             var urls = new Dictionary<string, string>();
