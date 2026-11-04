@@ -33,6 +33,7 @@ namespace SourceGit.Views
                 case "cleanup": Cleanup(anchor, e); break;
                 case "credentials": OpenRepositoryCredentials(anchor, e); break;
                 case "head": NavigateToHead(anchor, e); break;
+                case "reflog": if (DataContext is ViewModels.Repository reflogRepo) reflogRepo.ShowReflog(); break;
                 case "patch": if (DataContext is ViewModels.Repository patchRepo) patchRepo.ApplyPatch(); break;
                 case "submodule": if (DataContext is ViewModels.Repository subRepo) subRepo.AddSubmodule(); break;
                 case "worktree": if (DataContext is ViewModels.Repository treeRepo) treeRepo.AddWorktree(); break;

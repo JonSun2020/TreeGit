@@ -706,7 +706,10 @@ namespace SourceGit.Views
                 return;
 
             var dataGrid = CommitListContainer;
-            if (!_columnGesture && DataContext is ViewModels.Histories histories && Math.Abs(dataGrid.Columns[0].ActualWidth - histories.GraphWidth) > 0.5)
+            // The grid may shrink the actual width when the viewport is narrow.
+            // Reassigning the requested width on every layout then prevents convergence.
+            if (!_columnGesture && DataContext is ViewModels.Histories histories &&
+                (dataGrid.Columns[0].Width.UnitType != DataGridLengthUnitType.Pixel || Math.Abs(dataGrid.Columns[0].Width.Value - histories.GraphWidth) > 0.5))
                 dataGrid.Columns[0].Width = new(histories.GraphWidth, DataGridLengthUnitType.Pixel);
             UpdateWorkingCopyColumns();
             var rowsPresenter = dataGrid.FindDescendantOfType<DataGridRowsPresenter>();

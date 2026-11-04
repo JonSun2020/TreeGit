@@ -245,6 +245,16 @@ namespace SourceGit.ViewModels
 
         public async Task SaveAsync()
         {
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var rule in IssueTrackers)
+            {
+                if (string.IsNullOrWhiteSpace(rule.Name) || rule.Name.IndexOfAny(['\r', '\n', '\0']) >= 0)
+                    throw new InvalidOperationException("提交文本链接的名称不能为空或包含换行符。");
+                if (!names.Add(rule.Name))
+                    throw new InvalidOperationException("提交文本链接的名称不能重复：" + rule.Name);
+                if (!rule.IsRegexValid || string.IsNullOrWhiteSpace(rule.URLTemplate))
+                    throw new InvalidOperationException("请检查提交文本链接的匹配表达式和链接模板：" + rule.Name);
+            }
             await SetIfChangedAsync("user.name", UseGlobalIdentity ? null : UserName, "", true);
             await SetIfChangedAsync("user.email", UseGlobalIdentity ? null : UserEmail, "", true);
             await SetIfChangedAsync("commit.gpgsign", GPGCommitSigningEnabled ? "true" : "false", "false");
@@ -296,6 +306,12 @@ namespace SourceGit.ViewModels
 
         private async Task ApplyIssueTrackerChangesAsync()
         {
+            static async Task RequireSuccess(Task<bool> operation, string name)
+            {
+                if (!await operation)
+                    throw new InvalidOperationException("无法保存提交文本链接：" + name);
+            }
+
             var changed = false;
             var oldRules = new Dictionary<string, Models.IssueTracker>();
             foreach (var rule in _repo.IssueTrackers)
@@ -308,21 +324,21 @@ namespace SourceGit.ViewModels
                     if (old.IsShared != rule.IsShared)
                     {
                         changed = true;
-                        await new Commands.IssueTracker(_repo.FullPath, old.IsShared).RemoveAsync(old.Name);
-                        await new Commands.IssueTracker(_repo.FullPath, rule.IsShared).AddAsync(rule);
+                        await RequireSuccess(new Commands.IssueTracker(_repo.FullPath, old.IsShared) { RaiseError = false }.RemoveAsync(old.Name), old.Name);
+                        await RequireSuccess(new Commands.IssueTracker(_repo.FullPath, rule.IsShared) { RaiseError = false }.AddAsync(rule), rule.Name);
                     }
                     else
                     {
-                        if (!old.RegexString.Equals(rule.RegexString, StringComparison.Ordinal))
+                        if (!string.Equals(old.RegexString, rule.RegexString, StringComparison.Ordinal))
                         {
                             changed = true;
-                            await new Commands.IssueTracker(_repo.FullPath, old.IsShared).UpdateRegexAsync(rule);
+                            await RequireSuccess(new Commands.IssueTracker(_repo.FullPath, old.IsShared) { RaiseError = false }.UpdateRegexAsync(rule), rule.Name);
                         }
 
-                        if (!old.URLTemplate.Equals(rule.URLTemplate, StringComparison.Ordinal))
+                        if (!string.Equals(old.URLTemplate, rule.URLTemplate, StringComparison.Ordinal))
                         {
                             changed = true;
-                            await new Commands.IssueTracker(_repo.FullPath, old.IsShared).UpdateURLTemplateAsync(rule);
+                            await RequireSuccess(new Commands.IssueTracker(_repo.FullPath, old.IsShared) { RaiseError = false }.UpdateURLTemplateAsync(rule), rule.Name);
                         }
                     }
 
@@ -331,7 +347,7 @@ namespace SourceGit.ViewModels
                 else
                 {
                     changed = true;
-                    await new Commands.IssueTracker(_repo.FullPath, rule.IsShared).AddAsync(rule);
+                    await RequireSuccess(new Commands.IssueTracker(_repo.FullPath, rule.IsShared) { RaiseError = false }.AddAsync(rule), rule.Name);
                 }
             }
 
@@ -340,7 +356,7 @@ namespace SourceGit.ViewModels
                 changed = true;
 
                 foreach (var kv in oldRules)
-                    await new Commands.IssueTracker(_repo.FullPath, kv.Value.IsShared).RemoveAsync(kv.Key);
+                    await RequireSuccess(new Commands.IssueTracker(_repo.FullPath, kv.Value.IsShared) { RaiseError = false }.RemoveAsync(kv.Key), kv.Key);
             }
 
             if (changed)

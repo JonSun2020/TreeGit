@@ -20,7 +20,7 @@ namespace SourceGit.Commands
             RaiseError = false;
 
             var builder = new StringBuilder();
-            builder.Append("log --no-show-signature --date-order -n 10000 --decorate=no --format=\"@%H%x00%P%x00%aN±%aE%x00%at%x00%s\" --follow --name-status ");
+            builder.Append("--literal-pathspecs log --no-show-signature --date-order -n 10000 --decorate=no --format=\"@%H%x00%P%x00%aN±%aE%x00%at%x00%s\" --follow --name-status ");
             if (!string.IsNullOrEmpty(head))
                 builder.Append(head).Append(" ");
             builder.Append("-- ").Append(path.Quoted());

@@ -571,6 +571,9 @@ namespace SourceGit.Automation
                         case "apply_patch":
                             repo.ApplyPatch();
                             break;
+                        case "show_reflog":
+                            repo.ShowReflog();
+                            break;
                         default:
                             throw new ArgumentException("Unknown GUI command.");
                     }

@@ -117,6 +117,14 @@ namespace SourceGit.ViewModels
             _histories.ShowWorkingCopyOverview();
         }
 
+        public void ShowReflog()
+        {
+            ShowHistoryPage();
+            _histories.BranchDisplayMode = 0;
+            if (!_histories.HasShowFlag(Models.HistoryShowFlags.Reflog))
+                _histories.ToggleShowFlag(Models.HistoryShowFlags.Reflog);
+        }
+
         public Histories Histories
         {
             get => _histories;

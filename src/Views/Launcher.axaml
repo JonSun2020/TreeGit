@@ -94,6 +94,7 @@
             <MenuItem Header="二分查找" x:Name="GitAction_bisect" Click="OnTreeGitExtraAction"/>
             <MenuItem Header="Git 工作流" x:Name="GitAction_gitflow" Click="OnTreeGitExtraAction"/>
             <MenuItem Header="定位当前提交" x:Name="GitAction_head" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="找回丢失的提交" x:Name="GitAction_reflog" Click="OnTreeGitExtraAction"/>
             <MenuItem Header="命令日志" x:Name="GitAction_logs" Click="OnTreeGitExtraAction"/>
             <MenuItem Header="统计" x:Name="GitAction_statistics" Click="OnTreeGitExtraAction"/>
             <MenuItem Header="清理仓库" x:Name="GitAction_cleanup" Click="OnTreeGitExtraAction"/>

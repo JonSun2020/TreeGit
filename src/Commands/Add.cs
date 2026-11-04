@@ -6,7 +6,7 @@
         {
             WorkingDirectory = repo;
             Context = repo;
-            Args = $"add --force --verbose --pathspec-from-file={pathspecFromFile.Quoted()}";
+            Args = $"--literal-pathspecs add --force --verbose --pathspec-from-file={pathspecFromFile.Quoted()}";
         }
     }
 }

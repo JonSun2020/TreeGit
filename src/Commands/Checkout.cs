@@ -49,7 +49,7 @@ namespace SourceGit.Commands
         public async Task<bool> UseTheirsAsync(List<string> files)
         {
             var builder = new StringBuilder();
-            builder.Append("checkout --theirs --");
+            builder.Append("--literal-pathspecs checkout --theirs --");
             foreach (var f in files)
                 builder.Append(' ').Append(f.Quoted());
             Args = builder.ToString();
@@ -59,7 +59,7 @@ namespace SourceGit.Commands
         public async Task<bool> UseMineAsync(List<string> files)
         {
             var builder = new StringBuilder();
-            builder.Append("checkout --ours --");
+            builder.Append("--literal-pathspecs checkout --ours --");
             foreach (var f in files)
                 builder.Append(' ').Append(f.Quoted());
 
@@ -69,7 +69,7 @@ namespace SourceGit.Commands
 
         public async Task<bool> FileWithRevisionAsync(string file, string revision)
         {
-            Args = $"checkout --no-overlay {revision} -- {file.Quoted()}";
+            Args = $"--literal-pathspecs checkout --no-overlay {revision} -- {file.Quoted()}";
             return await ExecAsync().ConfigureAwait(false);
         }
 
@@ -77,7 +77,7 @@ namespace SourceGit.Commands
         {
             var builder = new StringBuilder();
             builder
-                .Append("checkout --no-overlay ")
+                .Append("--literal-pathspecs checkout --no-overlay ")
                 .Append(revision)
                 .Append(" --");
 

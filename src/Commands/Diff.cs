@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -46,7 +46,7 @@ namespace SourceGit.Commands
             Context = repo;
 
             var builder = new StringBuilder(256);
-            builder.Append("diff --no-color --no-ext-diff --full-index --patch ");
+            builder.Append("--literal-pathspecs diff --no-color --no-ext-diff --full-index --patch ");
             if (ignoreWhitespace)
                 builder.Append("--ignore-space-change --ignore-blank-lines ");
             if (ignoreCRAtEOL)

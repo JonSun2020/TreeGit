@@ -183,7 +183,7 @@ namespace SourceGit.Views
             {
                 FitToScreen(); await RefreshRemotesAsync();
 #if INTEGRATION_TESTS
-                Tests.RepositorySettingsProbe.OnOpened(this, _configuration, SaveAsync);
+                Tests.RepositorySettingsProbe.OnOpened(this, _configuration, _repo, SaveAsync);
 #endif
             };
         }

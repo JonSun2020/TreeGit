@@ -12,7 +12,7 @@ namespace SourceGit.Commands
         {
             WorkingDirectory = repo;
             Context = repo;
-            Args = $"diff --no-color --no-ext-diff --numstat {Models.EmptyTreeHash.Guess(revision)} {revision} -- {path.Quoted()}";
+            Args = $"--literal-pathspecs diff --no-color --no-ext-diff --numstat {Models.EmptyTreeHash.Guess(revision)} {revision} -- {path.Quoted()}";
             RaiseError = false;
         }
 
