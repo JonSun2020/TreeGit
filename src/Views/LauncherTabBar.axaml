@@ -1,8 +1,21 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <UserControl xmlns:vm="using:SourceGit.ViewModels" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:m="using:SourceGit.Models" xmlns:c="using:SourceGit.Converters" xmlns:v="using:SourceGit.Views" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SourceGit.Views.LauncherTabBar" x:DataType="vm:Launcher" x:Name="ThisControl">
+  <UserControl.Styles>
+    <Style Selector="Button.treegit_tab_add">
+      <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.TabInactive}"/>
+      <Setter Property="BorderBrush" Value="#6C838A"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="2"/>
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="Opacity" Value="1"/>
+    </Style>
+    <Style Selector="Button.treegit_tab_add:pointerover /template/ Border#PART_Border">
+      <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.TabActive}"/>
+    </Style>
+  </UserControl.Styles>
   <Grid ColumnDefinitions="Auto,*,Auto">
     <RepeatButton Grid.Column="0" Classes="icon_button" Width="18" Height="28" Margin="0,2,0,0" Click="ScrollTabsLeft" IsVisible="{Binding #ThisControl.IsScrollButtonVisible}">
-      <Path Width="8" Height="14" Stretch="Fill" Data="{StaticResource Icons.TriangleLeft}"/>
+      <Path Width="8" Height="14" Stretch="Fill" Fill="{DynamicResource Brush.TreeGit.ChromeForeground}" Data="{StaticResource Icons.TriangleLeft}"/>
     </RepeatButton>
 
     <ScrollViewer Grid.Column="1" Margin="6,0" x:Name="LauncherTabsScroller" HorizontalAlignment="Left" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Disabled" PointerWheelChanged="ScrollTabs" Padding="0" VerticalContentAlignment="Bottom">
@@ -73,7 +86,7 @@
           </ListBox.ItemTemplate>
         </ListBox>
 
-        <Button Classes="icon_button" Width="16" Height="16" Margin="8,2,8,0" Command="{Binding AddNewTab}" IsVisible="{Binding !#ThisControl.IsScrollButtonVisible}">
+        <Button Classes="flat treegit_tab_add" Width="28" Height="24" Margin="6,0,6,0" Command="{Binding AddNewTab}" IsVisible="{Binding !#ThisControl.IsScrollButtonVisible}">
           <ToolTip.Tip>
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
               <TextBlock Text="{DynamicResource Text.PageTabBar.New}" VerticalAlignment="Center"/>
@@ -81,17 +94,17 @@
             </StackPanel>
           </ToolTip.Tip>
 
-          <Path Width="12" Height="12" Data="{StaticResource Icons.Plus}"/>
+          <Path Width="12" Height="12" Fill="{DynamicResource Brush.FG1}" Data="{StaticResource Icons.Plus}"/>
         </Button>
       </StackPanel>
     </ScrollViewer>
 
     <StackPanel Grid.Column="2" Orientation="Horizontal" IsVisible="{Binding #ThisControl.IsScrollButtonVisible}">
       <RepeatButton Classes="icon_button" Width="18" Height="28" Margin="0,2,0,0" Click="ScrollTabsRight">
-        <Path Width="8" Height="14" Stretch="Fill" Data="{StaticResource Icons.TriangleRight}"/>
+        <Path Width="8" Height="14" Stretch="Fill" Fill="{DynamicResource Brush.TreeGit.ChromeForeground}" Data="{StaticResource Icons.TriangleRight}"/>
       </RepeatButton>
 
-      <Button Classes="icon_button" Width="16" Height="28" Margin="4,2,0,0" Command="{Binding AddNewTab}">
+      <Button Classes="flat treegit_tab_add" Width="28" Height="24" Margin="4,0,4,0" Command="{Binding AddNewTab}">
         <ToolTip.Tip>
           <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
             <TextBlock Text="{DynamicResource Text.PageTabBar.New}" VerticalAlignment="Center"/>
@@ -99,7 +112,7 @@
           </StackPanel>
         </ToolTip.Tip>
 
-        <Path Width="12" Height="12" Data="{StaticResource Icons.Plus}"/>
+        <Path Width="12" Height="12" Fill="{DynamicResource Brush.FG1}" Data="{StaticResource Icons.Plus}"/>
       </Button>
     </StackPanel>
   </Grid>

@@ -1,4 +1,4 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <v:ChromelessWindow xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:s="using:SourceGit" xmlns:vm="using:SourceGit.ViewModels" xmlns:v="using:SourceGit.Views" xmlns:c="using:SourceGit.Converters" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SourceGit.Views.Launcher" x:DataType="vm:Launcher" x:Name="ThisControl" Icon="/App.ico" MinWidth="1024" MinHeight="600">
   <v:ChromelessWindow.Title>
     <MultiBinding Converter="{x:Static c:StringConverters.ToWindowTitle}">
@@ -74,13 +74,9 @@
           <MenuItem Header="新标签页" Command="{Binding AddNewTab}"/>
           <MenuItem Header="打开 / 克隆仓库" Click="OnTreeGitShowRepositories"/>
           <MenuItem Header="退出" Command="{x:Static s:App.QuitCommand}"/>
-        <MenuItem Header="切换工作区" Click="OnOpenWorkspaceMenu"/></MenuItem>
+        </MenuItem>
         <MenuItem Header="编辑(E)"><MenuItem Header="偏好设置" Command="{x:Static s:App.OpenPreferencesCommand}"/></MenuItem>
-        <MenuItem Header="查看(V)">
-          <MenuItem Header="文件状态" Click="OnTreeGitWorkingCopy"/>
-          <MenuItem Header="历史" Click="OnTreeGitHistory"/>
-          <MenuItem Header="搜索" Click="OnTreeGitSearch"/>
-        <MenuItem Header="切换仓库" Click="OnOpenPagesCommandPalette"/><MenuItem Header="定位当前提交" Tag="head" Click="OnTreeGitExtraAction"/></MenuItem>
+        
         <MenuItem Header="仓库(R)">
           <MenuItem Header="仓库设置" Click="OnTreeGitRepositorySettings"/>
           <MenuItem Header="在文件管理器中打开" Click="OnTreeGitExplorer"/>
@@ -89,6 +85,10 @@
             <MenuItem Header="添加子模块" Tag="submodule" Click="OnTreeGitExtraAction"/>
             <MenuItem Header="添加工作树" Tag="worktree" Click="OnTreeGitExtraAction"/>
             <MenuItem Header="Git LFS" Tag="lfs" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="应用补丁" Tag="patch" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="二分查找" Tag="bisect" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="Git 工作流" Tag="gitflow" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="定位当前提交" Tag="head" Click="OnTreeGitExtraAction"/>
             <MenuItem Header="命令日志" Tag="logs" Click="OnTreeGitExtraAction"/>
             <MenuItem Header="统计" Tag="statistics" Click="OnTreeGitExtraAction"/>
             <MenuItem Header="清理仓库" Tag="cleanup" Click="OnTreeGitExtraAction"/>
@@ -97,7 +97,7 @@
         <MenuItem Header="操作(A)">
           <MenuItem Header="获取" Click="OnTreeGitFetch"/><MenuItem Header="拉取" Click="OnTreeGitPull"/><MenuItem Header="推送" Click="OnTreeGitPush"/>
           <MenuItem Header="新建分支" Click="OnTreeGitBranch"/><MenuItem Header="新建标签" Click="OnTreeGitTag"/>
-        <MenuItem Header="应用补丁" Tag="patch" Click="OnTreeGitExtraAction"/><MenuItem Header="二分查找" Tag="bisect" Click="OnTreeGitExtraAction"/><MenuItem Header="Git 工作流" Tag="gitflow" Click="OnTreeGitExtraAction"/></MenuItem>
+        </MenuItem>
         <MenuItem Header="工具(T)">
           <MenuItem Header="MCP · AI 连接" Command="{x:Static s:App.OpenMcpConnectionCommand}"/>
           <MenuItem Header="SSH 密钥" Command="{x:Static s:App.OpenSSHKeyHelperCommand}"/>
