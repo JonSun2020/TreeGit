@@ -26,7 +26,7 @@
             Data="{StaticResource Icons.Password}"
             IsVisible="{OnPlatform True, macOS=False}"/>
 
-      <TextBlock Classes="bold"
+      <TextBlock x:Name="TxtTitle" Classes="bold"
                  Text="{DynamicResource Text.Askpass}"
                  HorizontalAlignment="Center" VerticalAlignment="Center"
                  IsHitTestVisible="False"/>
@@ -38,13 +38,20 @@
 
     <StackPanel Grid.Row="1" Margin="0,16" Orientation="Vertical">
       <Border Margin="16,0">
-        <TextBlock x:Name="TxtDescription" Text="{DynamicResource Text.Askpass.Passphrase}" TextWrapping="Wrap"/>
+        <TextBlock x:Name="TxtDescription" MaxWidth="480" Text="{DynamicResource Text.Askpass.Passphrase}" TextWrapping="Wrap"/>
       </Border>
+
+      <StackPanel x:Name="UsernameSection" Margin="16,12,16,0" Spacing="6" IsVisible="False">
+        <TextBlock Text="账号"/>
+        <TextBox x:Name="TxtUsername" Height="32" Watermark="用户名 / Username"/>
+        <TextBlock Text="密码（可留空）" Margin="0,6,0,0"/>
+      </StackPanel>
 
       <TextBox x:Name="TxtPassphrase"
                Margin="16"
                MinWidth="300"
                Height="32"
+               Watermark="密码 / Password"
                Focusable="True"
                PasswordChar="*"
                RevealPassword="{Binding #ToggleShowPassword.IsChecked, Mode=OneWay}"
@@ -53,9 +60,11 @@
           <ToggleButton Grid.Column="6"
                         x:Name="ToggleShowPassword"
                         Classes="toggle_untracked"
+                        ToolTip.Tip="显示 / 隐藏密码"
                         Width="26" Height="14"/>
         </TextBox.InnerRightContent>
       </TextBox>
+      <TextBlock x:Name="ValidationMessage" Margin="16,0,16,12" MaxWidth="480" TextWrapping="Wrap" IsVisible="False"/>
 
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
         <Button Classes="flat primary"

@@ -13,6 +13,8 @@ namespace SourceGit.Tests
         public static async Task<int> FetchAsync(string repo, string url)
         {
             Native.OS.GitExecutable = Path.Combine(AppContext.BaseDirectory, "git", "cmd", "git.exe");
+            if (!File.Exists(Native.OS.GitExecutable))
+                Native.OS.GitExecutable = Native.OS.FindGitExecutable();
             var remote = new Models.Remote { Name = "origin", URL = url };
             return await new Commands.Fetch(repo, remote) { RaiseError = false }.ExecAsync() ? 0 : 1;
         }

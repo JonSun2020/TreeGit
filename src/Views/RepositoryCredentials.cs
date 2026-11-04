@@ -1,6 +1,7 @@
 using System;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 
 namespace SourceGit.Views
@@ -23,7 +24,11 @@ namespace SourceGit.Views
             panel.Children.Add(new TextBlock { Text = "HTTPS 账号只用于当前仓库和所选远程。密码/令牌保存到 Windows 凭据管理器。\nSSH 密钥仍在原有远程配置中设置。", TextWrapping = Avalonia.Media.TextWrapping.Wrap });
             var remotes = new ComboBox { ItemsSource = repo.Remotes, DisplayMemberBinding = new Avalonia.Data.Binding("Name"), HorizontalAlignment = HorizontalAlignment.Stretch };
             var username = new TextBox { Height = 32, Watermark = "用户名 / Username" };
-            var password = new TextBox { Height = 32, Watermark = "密码或访问令牌 / Password or token", PasswordChar = '●' };
+            var password = new TextBox { Height = 32, Watermark = "密码或访问令牌（可留空）", PasswordChar = '*' };
+            var showPassword = new ToggleButton { Classes = { "toggle_untracked" }, Width = 26, Height = 14 };
+            ToolTip.SetTip(showPassword, "显示 / 隐藏密码");
+            password.InnerRightContent = showPassword;
+            showPassword.IsCheckedChanged += (_, _) => password.RevealPassword = showPassword.IsChecked == true;
             var useManager = new CheckBox { Content = new TextBlock { Text = "使用原有系统认证 / OAuth（Git Credential Manager）", TextWrapping = Avalonia.Media.TextWrapping.Wrap }, IsChecked = Native.RepositoryCredentials.UsesCredentialManager(repo.FullPath) };
             var message = new TextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
             var save = new Button { Content = "保存", Classes = { "flat", "primary" } };
@@ -61,9 +66,9 @@ namespace SourceGit.Views
                         message.Text = "已切换到此仓库的系统认证 / OAuth 模式。下次联网操作会启动原有认证流程。";
                         return;
                     }
-                    if (string.IsNullOrWhiteSpace(username.Text) || string.IsNullOrEmpty(password.Text))
-                        throw new InvalidOperationException("请输入用户名和密码/令牌。");
-                    Native.RepositoryCredentials.Save(repo.FullPath, SelectedUri(), username.Text, password.Text);
+                    if (string.IsNullOrWhiteSpace(username.Text))
+                        throw new InvalidOperationException("请输入账号，密码可以留空。");
+                    Native.RepositoryCredentials.Save(repo.FullPath, SelectedUri(), username.Text, password.Text ?? string.Empty);
                     password.Text = string.Empty;
                     message.Text = "已保存此仓库的认证。";
                 }

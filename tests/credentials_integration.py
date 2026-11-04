@@ -25,7 +25,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         auth = self.headers.get('Authorization','')
         credential = base64.b64decode(auth[6:]).decode() if auth.startswith('Basic ') else ''
-        if credential not in ['alice:alpha-test', 'bob:beta-test']:
+        if credential not in ['alice:alpha-test', 'bob:beta-test', 'charlie:']:
             self.send_response(401)
             self.send_header('WWW-Authenticate','Basic realm="SourceGit test"')
             self.end_headers()
@@ -100,6 +100,23 @@ try:
         assert native.returncode == 0, native.stderr
         assert seen == ['alice','alice','bob','alice'],seen
         assert 'password=alpha-test' in helper(repos[0],'get')
+        passwordless = root/'passwordless'
+        passwordless.mkdir(); repos.append(passwordless)
+        subprocess.run([str(git),'init',str(passwordless)], capture_output=True, check=True)
+        subprocess.run([str(git),'-C',str(passwordless),'remote','add','origin',url], capture_output=True, check=True)
+        fixture.write_text(json.dumps({'username':'charlie','password':''}), encoding='utf-8')
+        opened=call('tools/call',{'name':'ui_open_repository','arguments':{'repo':str(passwordless)}});assert not opened.get('isError'),opened
+        fetched=call('tools/call',{'name':'git_action','arguments':{'repo':str(passwordless),'action':'fetch'}});assert not fetched.get('isError'),fetched
+        assert seen == ['alice','alice','bob','alice','charlie'],seen
+        empty=helper(passwordless,'get'); assert 'username=charlie\n' in empty and 'password=\n' in empty,empty
+        cancelled = root/'cancelled'
+        cancelled.mkdir(); repos.append(cancelled)
+        subprocess.run([str(git),'init',str(cancelled)], capture_output=True, check=True)
+        subprocess.run([str(git),'-C',str(cancelled),'remote','add','origin',url], capture_output=True, check=True)
+        fixture.write_text(json.dumps({'username':'cancelled','password':'','cancel':True}), encoding='utf-8')
+        opened=call('tools/call',{'name':'ui_open_repository','arguments':{'repo':str(cancelled)}});assert not opened.get('isError'),opened
+        fetched=call('tools/call',{'name':'git_action','arguments':{'repo':str(cancelled),'action':'fetch'}});assert fetched.get('isError'),fetched
+        assert helper(cancelled,'get') == ''
     p.stdin.close()
     p.wait(timeout=10)
     assert p.returncode == 0
@@ -109,12 +126,19 @@ try:
     result={'windows_vault_roundtrip':True,'same_server_different_repository_accounts':seen,'actual_gui_git_fetch_authentication':True,'erase':True}
     if prompt_mode:
         events=Path(str(fixture)+'.events').read_text(encoding='utf-8').splitlines()
-        assert events.count('username-dialog') == 4 and events.count('password-dialog') == 4,events
-        assert events.count('topmost-username-dialog') == 4 and events.count('topmost-password-dialog') == 4,events
+        assert events.count('combined-dialog') == 6 and events.count('topmost-combined-dialog') == 6,events
+        assert events.count('visibility-toggle') == 6,events
+        assert 'username-dialog' not in events and 'password-dialog' not in events,events
         result['automatic_missing_credential_dialog']=events
         result['expired_credential_reprompts_and_retries']=True
         result['upstream_native_fetch_reprompts_and_retries']=True
-        result['all_eight_authentication_prompts_stay_topmost']=True
+        result['all_six_combined_authentication_prompts_stay_topmost']=True
+        result['username_and_password_in_one_window']=True
+        result['empty_password_authenticates_and_is_saved']=True
+        result['cancel_does_not_prompt_again_or_store_credentials']=True
+        result['eye_toggle_restores_star_masking']=True
+        import shutil
+        shutil.copy2(str(fixture)+'.png', artifacts/'combined-authentication.png')
     else:
         result.update(username_mismatch_ignored=True,different_remote_path_isolated=True)
     (artifacts/('credentials-prompt-results.json' if prompt_mode else 'credentials-results.json')).write_text(json.dumps(result,indent=2),encoding='utf-8')

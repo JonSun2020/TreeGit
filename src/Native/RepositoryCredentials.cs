@@ -6,6 +6,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 
 namespace SourceGit.Native
 {
@@ -170,12 +171,22 @@ namespace SourceGit.Native
                 if (operation == "get")
                 {
                     var stored = Get(target);
-                    if (stored.HasValue && (!input.TryGetValue("username", out var requested) || requested == stored.Value.Username))
+                    input.TryGetValue("username", out var requested);
+                    if (stored.HasValue && (requested == null || requested == stored.Value.Username))
                     {
                         using var writer = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false)) { AutoFlush = true };
                         writer.WriteLine("username=" + stored.Value.Username);
                         writer.WriteLine("password=" + stored.Value.Password);
                         writer.WriteLine();
+                    }
+                    else if (Environment.GetEnvironmentVariable("SOURCEGIT_LAUNCH_AS_ASKPASS") == "TRUE")
+                    {
+                        // Git accepts username and password together from a helper,
+                        // including an explicitly empty password. Never split this
+                        // into Git's subsequent username/password askpass calls.
+                        var result = Prompt(repo, $"{protocol}://{host}/{path?.TrimStart('/')}", requested);
+                        using var writer = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false)) { AutoFlush = true };
+                        writer.Write(result ?? "quit=true\n\n");
                     }
                 }
                 else if (operation == "store" && input.TryGetValue("username", out var username) && input.TryGetValue("password", out var password))
@@ -190,6 +201,38 @@ namespace SourceGit.Native
                 Console.Error.WriteLine("TreeGit credential storage failed: " + ex.GetType().Name);
                 return 1;
             }
+        }
+
+        private static string Prompt(string repo, string remote, string username)
+        {
+            var start = new ProcessStartInfo(Environment.ProcessPath)
+            {
+                UseShellExecute = false, CreateNoWindow = true,
+                RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
+                StandardInputEncoding = new UTF8Encoding(false), StandardOutputEncoding = Encoding.UTF8,
+            };
+            start.ArgumentList.Add("--credential-prompt");
+            using var process = Process.Start(start);
+            if (process == null) return null;
+            var error = process.StandardError.ReadToEndAsync();
+            process.StandardInput.Write(JsonSerializer.Serialize(new { repo, remote, username }));
+            process.StandardInput.Close();
+            var output = process.StandardOutput.ReadToEnd();
+            process.WaitForExit();
+            error.GetAwaiter().GetResult();
+            if (process.ExitCode != 0) return null;
+            var hasUsername = false;
+            var hasPassword = false;
+            using var lines = new StringReader(output);
+            while (lines.ReadLine() is { Length: > 0 } line)
+            {
+                if (line.StartsWith("username=", StringComparison.Ordinal)) hasUsername = line.Length > 9;
+                else if (line.StartsWith("password=", StringComparison.Ordinal)) hasPassword = true;
+                else return null;
+            }
+            // quit=true tells Git to honour cancellation without asking again:
+            // https://git-scm.com/docs/gitcredentials
+            return hasUsername && hasPassword ? output : null;
         }
     }
 }

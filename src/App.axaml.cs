@@ -476,11 +476,21 @@ namespace SourceGit
             if (args?.Length > 0)
             {
                 var askpass = new Views.Askpass();
-                askpass.TxtDescription.Text = args[0];
-                if (args[0].StartsWith("Username", StringComparison.OrdinalIgnoreCase))
+                if (args[0] == "--credential-prompt")
                 {
-                    askpass.TxtPassphrase.PasswordChar = '\0';
-                    askpass.ToggleShowPassword.IsVisible = false;
+                    using var request = JsonDocument.Parse(Console.In.ReadToEnd());
+                    var data = request.RootElement;
+                    askpass.ConfigureCredentials(data.GetProperty("repo").GetString(), data.GetProperty("remote").GetString(),
+                        data.TryGetProperty("username", out var username) ? username.GetString() : null);
+                }
+                else
+                {
+                    askpass.TxtDescription.Text = args[0];
+                    if (args[0].StartsWith("Username", StringComparison.OrdinalIgnoreCase))
+                    {
+                        askpass.TxtPassphrase.PasswordChar = '\0';
+                        askpass.ToggleShowPassword.IsVisible = false;
+                    }
                 }
                 desktop.MainWindow = askpass;
                 return true;
