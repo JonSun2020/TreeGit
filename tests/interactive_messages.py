@@ -18,7 +18,7 @@ def tool(name,args=None):
     return json.loads(r['content'][0]['text'])
 def probe(repo,operation,**fields):
     result_file=Path(str(fixture)+'.result');result_file.unlink(missing_ok=True)
-    fixture.write_text(json.dumps({'action':'cancel','operation':operation,**fields}),encoding='utf-8')
+    fixture.write_text(json.dumps({'action':'cancel','operation':operation,'disableAutoRefresh':'--manual-refresh' in sys.argv[3:],**fields}),encoding='utf-8')
     tool('ui_command',{'repo':str(repo),'command':'repository_settings'})
     deadline=time.monotonic()+30
     while not result_file.exists() and time.monotonic()<deadline:time.sleep(.05)

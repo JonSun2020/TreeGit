@@ -572,6 +572,9 @@ namespace SourceGit.ViewModels
 
         private async Task ProcessInProgressAsync(string operation, Func<InProgressContext, CommandLog, Task<bool>> execute, bool writeMessage = false)
         {
+            if (IsCommitting)
+                return;
+
             var context = _inProgressContext;
             if (context == null)
             {
@@ -588,10 +591,17 @@ namespace SourceGit.ViewModels
                     await File.WriteAllTextAsync(mergeMsgFile, _commitMessage);
                 if (await execute(context, log)) CommitMessage = string.Empty;
             }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            {
+                log.AppendLine(error.Message);
+                _repo.SendNotification(error.Message, true);
+            }
             finally
             {
                 log.Complete();
                 IsCommitting = false;
+                // An explicit operation must update the UI even when automatic file watching is disabled.
+                _repo.MarkBranchesDirtyManually();
             }
         }
 

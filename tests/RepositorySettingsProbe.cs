@@ -60,6 +60,7 @@ namespace SourceGit.Tests
                     object operationDetails = null;
                     if (data.TryGetProperty("operation", out var operation) && operation.ValueKind == JsonValueKind.String)
                     {
+                        if (data.TryGetProperty("disableAutoRefresh", out var disableAutoRefresh) && disableAutoRefresh.GetBoolean()) repo.Settings.AutoRefreshEnabled = false;
                         var paths = data.TryGetProperty("paths", out var selectedPaths) ? selectedPaths.EnumerateArray().Select(v => v.GetString()).ToArray() : [];
                         var changes = (await new Commands.QueryLocalChanges(repo.FullPath).GetResultAsync()).Where(c => paths.Contains(c.Path, StringComparer.Ordinal)).ToList();
                         switch (operation.GetString())
@@ -81,6 +82,37 @@ namespace SourceGit.Tests
                                 operationDetails = new { draft = repo.WorkingCopy.CommitMessage, log = repo.Logs.FirstOrDefault()?.Content, messageFileExists = File.Exists(Path.Combine(repo.GitDir, "MERGE_MSG")) };
                                 operationResult = true; break;
                             case "cleanup": operationResult = await new ViewModels.Cleanup(repo).Sure(); break;
+                            case "popup_fetch":
+                            case "popup_pull":
+                            case "popup_push":
+                            case "popup_reset":
+                            case "popup_tag":
+                            case "popup_apply_stash":
+                                ViewModels.Popup actionPopup = operation.GetString() switch {
+                                    "popup_fetch" => new ViewModels.Fetch(repo),
+                                    "popup_pull" => new ViewModels.Pull(repo, null),
+                                    "popup_push" => new ViewModels.Push(repo, null),
+                                    "popup_reset" => new ViewModels.Reset(repo, repo.CurrentBranch, new Models.Commit { SHA = data.GetProperty("revision").GetString() }),
+                                    "popup_tag" => new ViewModels.CreateTag(repo, repo.CurrentBranch) { TagName = data.GetProperty("tag").GetString(), PushToRemotes = false },
+                                    _ => new ViewModels.ApplyStash(repo, (await new Commands.QueryStashes(repo.FullPath).GetResultAsync()).First()) { RestoreIndex = false, DropAfterApply = true },
+                                };
+                                var ownerPage = App.GetLauncher().Pages.Single(p => ReferenceEquals(p.Data, repo));
+                                ownerPage.Popup = actionPopup;
+                                await ownerPage.ProcessPopupAsync();
+                                var expectedView = data.GetProperty("expected");
+                                for (var attempt = 0; attempt < 100; attempt++)
+                                {
+                                    if ((!expectedView.TryGetProperty("head", out var expectedHead) || repo.CurrentBranch?.Head == expectedHead.GetString()) &&
+                                        (!expectedView.TryGetProperty("ahead", out var expectedAhead) || repo.CurrentBranch?.Ahead.Count == expectedAhead.GetInt32()) &&
+                                        (!expectedView.TryGetProperty("behind", out var expectedBehind) || repo.CurrentBranch?.Behind.Count == expectedBehind.GetInt32()) &&
+                                        (!expectedView.TryGetProperty("tag", out var expectedTag) || repo.Tags.Any(t => t.Name == expectedTag.GetString())) &&
+                                        (!expectedView.TryGetProperty("changes", out var expectedChanges) || repo.LocalChangesCount == expectedChanges.GetInt32())) break;
+                                    await Task.Delay(50);
+                                }
+                                operationDetails = new { head = repo.CurrentBranch?.Head, ahead = repo.CurrentBranch?.Ahead.Count, behind = repo.CurrentBranch?.Behind.Count,
+                                    tags = repo.Tags.Select(t => t.Name).ToArray(), changes = repo.LocalChangesCount, context = repo.WorkingCopy.InProgressContext?.GetType().Name,
+                                    log = repo.Logs.FirstOrDefault()?.Content, popupClosed = ownerPage.Popup == null };
+                                operationResult = true; break;
                             case "native_archive":
                                 var archive = new ViewModels.Archive(repo, new Models.Commit { SHA = data.GetProperty("revision").GetString() }) { SaveFile = data.GetProperty("destination").GetString() };
                                 operationResult = await archive.Sure(); archive.Cleanup();
@@ -169,13 +201,16 @@ namespace SourceGit.Tests
                             case "read_draft":
                             case "set_draft":
                             case "native_continue":
+                            case "native_skip":
                                 if (data.TryGetProperty("draft", out var draft)) repo.WorkingCopy.CommitMessage = draft.GetString();
-                                if (operation.GetString() == "native_continue")
+                                if (operation.GetString() is "native_continue" or "native_skip")
                                 {
                                     if (repo.WorkingCopy.InProgressContext == null) throw new InvalidOperationException("No operation to continue");
-                                    await repo.WorkingCopy.ContinueMergeAsync();
+                                    if (operation.GetString() == "native_skip") await repo.WorkingCopy.SkipMergeAsync();
+                                    else await repo.WorkingCopy.ContinueMergeAsync();
                                 }
-                                repo.RefreshAll(); await Task.Delay(600);
+                                if (operation.GetString() is "native_continue" or "native_skip") await WaitForOperationView(repo);
+                                else { repo.RefreshAll(); await Task.Delay(600); }
                                 operationDetails = new { draft = repo.WorkingCopy.CommitMessage, context = repo.WorkingCopy.InProgressContext?.GetType().Name,
                                     step = (repo.WorkingCopy.InProgressContext as ViewModels.RebaseInProgress)?.StoppedAt?.SHA ?? (repo.WorkingCopy.InProgressContext as ViewModels.PatchInProgress)?.Step, log = repo.Logs.FirstOrDefault()?.Content, busy = repo.WorkingCopy.IsCommitting };
                                 operationResult = true; break;
@@ -189,8 +224,8 @@ namespace SourceGit.Tests
                                     await repo.WorkingCopy.AbortMergeAsync();
                                 }
                                 else await repo.WorkingCopy.AbortMergeAsync();
-                                repo.RefreshAll(); await Task.Delay(600);
-                                operationDetails = new { draft = repo.WorkingCopy.CommitMessage, log = repo.Logs.FirstOrDefault()?.Content, busy = repo.WorkingCopy.IsCommitting };
+                                await WaitForOperationView(repo);
+                                operationDetails = new { draft = repo.WorkingCopy.CommitMessage, log = repo.Logs.FirstOrDefault()?.Content, busy = repo.WorkingCopy.IsCommitting, context = repo.WorkingCopy.InProgressContext?.GetType().Name };
                                 operationResult = true; break;
                             case "stage": await repo.WorkingCopy.StageChangesAsync(changes, null); operationResult = true; break;
                             case "submodule_state":
@@ -261,6 +296,38 @@ namespace SourceGit.Tests
                     File.WriteAllText(fixture + ".result", JsonSerializer.Serialize(new { exception = ex.ToString() }));
                 }
             }, DispatcherPriority.Background);
+        }
+
+        private static async Task WaitForOperationView(ViewModels.Repository repo)
+        {
+            // Observe the result of the real action; never refresh on its behalf.
+            var kind = string.Empty;
+            var step = string.Empty;
+            foreach (var state in new[] {
+                ("CHERRY_PICK_HEAD", "CherryPickInProgress"), ("rebase-apply/applying", "PatchInProgress"),
+                ("rebase-merge/stopped-sha", "RebaseInProgress"), ("rebase-apply/original-commit", "RebaseInProgress"),
+                ("REVERT_HEAD", "RevertInProgress"), ("MERGE_HEAD", "MergeInProgress") })
+            {
+                var file = Path.Combine(repo.GitDir, state.Item1);
+                if (!File.Exists(file)) continue;
+                kind = state.Item2;
+                step = File.ReadAllText(kind == "PatchInProgress" ? Path.Combine(repo.GitDir, "rebase-apply/next") : file).Trim();
+                break;
+            }
+            for (var attempt = 0; attempt < 100; attempt++)
+            {
+                var context = repo.WorkingCopy.InProgressContext;
+                var current = context switch {
+                    ViewModels.RebaseInProgress rebase => rebase.StoppedAt?.SHA,
+                    ViewModels.PatchInProgress patch => patch.Step,
+                    ViewModels.CherryPickInProgress cherry => cherry.Head?.SHA,
+                    ViewModels.RevertInProgress revert => revert.Head?.SHA,
+                    ViewModels.MergeInProgress merge => merge.Source?.SHA,
+                    _ => string.Empty,
+                };
+                if ((context?.GetType().Name ?? string.Empty) == kind && current == step) return;
+                await Task.Delay(50);
+            }
         }
 
         private static async Task<object> InspectDialog(Window owner, Window dialog, string fixture, bool credential)

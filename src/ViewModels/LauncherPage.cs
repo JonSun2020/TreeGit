@@ -100,8 +100,13 @@ namespace SourceGit.ViewModels
                 {
                     Native.OS.LogException(e);
                 }
-
-                dump.InProgress = false;
+                finally
+                {
+                    dump.InProgress = false;
+                    // Disabling background refresh must not hide the result of an explicit action.
+                    if (_data is Repository repo && !repo.Settings.AutoRefreshEnabled)
+                        repo.RefreshAll();
+                }
             }
         }
 

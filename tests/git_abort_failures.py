@@ -41,7 +41,7 @@ def check(name,condition):
     print(('PASS ' if condition else 'FAIL ')+name,flush=True)
     if not condition:failures.append(name)
 def probe(repo,draft,locked):
-    result_file=Path(str(fixture)+'.result');result_file.unlink(missing_ok=True);fixture.write_text(json.dumps({'action':'cancel','operation':'native_abort','draft':draft,'lock':locked}),encoding='utf-8')
+    result_file=Path(str(fixture)+'.result');result_file.unlink(missing_ok=True);fixture.write_text(json.dumps({'action':'cancel','operation':'native_abort','draft':draft,'lock':locked,'disableAutoRefresh':'--manual-refresh' in sys.argv[3:]}),encoding='utf-8')
     tool('ui_command',{'repo':str(repo),'command':'repository_settings'})
     deadline=time.monotonic()+30
     while not result_file.exists() and time.monotonic()<deadline:time.sleep(.05)
@@ -77,7 +77,7 @@ try:
         check(operation+' abort failure preserves HEAD, index and working file',git(repo,'rev-parse','HEAD').stdout==before_head and (repo/'.git/index').read_bytes()==before_index and file.read_bytes()==before_file)
         if states(repo)==reference_state:
             retried=probe(repo,draft,False)
-            check(operation+' abort succeeds after the lock is removed',not retried['busy'] and git(repo,'rev-parse','HEAD').stdout==original_head and file.read_text()=='main two\n' and not any((repo/'.git'/name).exists() for name in ['MERGE_HEAD','CHERRY_PICK_HEAD','REVERT_HEAD','rebase-merge','rebase-apply','sequencer']))
+            check(operation+' abort succeeds after the lock is removed',not retried['busy'] and retried['context'] is None and git(repo,'rev-parse','HEAD').stdout==original_head and file.read_text()=='main two\n' and not any((repo/'.git'/name).exists() for name in ['MERGE_HEAD','CHERRY_PICK_HEAD','REVERT_HEAD','rebase-merge','rebase-apply','sequencer']))
     assert not failures,failures
 finally:
     (out/'git-abort-failure-results.json').write_text(json.dumps({'records':records,'failures':failures,'exe':str(exe)},ensure_ascii=False,indent=2),encoding='utf-8')
