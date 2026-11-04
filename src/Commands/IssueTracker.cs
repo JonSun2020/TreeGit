@@ -7,12 +7,17 @@ namespace SourceGit.Commands
 {
     public class IssueTracker : Command
     {
-        public IssueTracker(string repo, bool isShared)
+        public IssueTracker(string repo, bool isShared, string file = null)
         {
             WorkingDirectory = repo;
             Context = repo;
 
-            if (isShared)
+            if (file != null)
+            {
+                _isStorageFileExists = File.Exists(file);
+                _baseArg = $"config -f {file.Quoted()}";
+            }
+            else if (isShared)
             {
                 var storage = $"{repo}/.issuetracker";
                 _isStorageFileExists = File.Exists(storage);

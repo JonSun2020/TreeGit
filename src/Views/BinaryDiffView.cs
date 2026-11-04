@@ -35,6 +35,9 @@ namespace SourceGit.Views
         public long TopOffset => (long)_scroll.Value * _bytesPerRow;
         public int BytesPerRow => _bytesPerRow;
         public object Inspect() => new { status = Status, file = (DataContext as Models.BinaryDiff)?.FilePath,
+#if INTEGRATION_TESTS
+            snapshotDirectory = _comparison?.SnapshotDirectory,
+#endif
             oldRevision = (DataContext as Models.BinaryDiff)?.OldRevision, newRevision = (DataContext as Models.BinaryDiff)?.NewRevision,
             summary = _summary.Text, oldSize = OldSize, newSize = NewSize,
             differentBytes = DifferentBytes, selectedOffset = SelectedOffset, topOffset = TopOffset, bytesPerRow = BytesPerRow,

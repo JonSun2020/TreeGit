@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import queue
 import socket
+import stat
 import subprocess
 import sys
 import tempfile
@@ -144,11 +145,21 @@ try:
     tmp = repo/'.git/sourcegit.settings.tmp'
     tmp.mkdir()
     try:
-        result = edit('save', {'DefaultRemote':'origin'}, [{'name':'Blocked template','content':'Cannot save'}])
+        result = edit('save', {'DefaultRemote':'origin', 'UseGlobalIdentity':False, 'CommitterName':'Must roll back', 'CommitterEmail':'rollback@example.invalid'}, [{'name':'Blocked template','content':'Cannot save'}])
         check('unwritable repository-settings file keeps the dialog open with an error', result['staysOpen'] and bool(result['error']))
         check('failed settings write preserves the existing settings file', settings_file.read_bytes()==before_settings)
+        check('failed settings write rolls back Git identity changes as well', (repo/'.git/config').read_bytes()==before_git)
     finally:
         tmp.rmdir()
+    settings_file.chmod(stat.S_IREAD)
+    try:
+        result = edit('save', {'DefaultRemote':'origin', 'UseGlobalIdentity':False, 'CommitterName':'Atomic rollback', 'CommitterEmail':'atomic@example.invalid'},
+            links=[{'name':'ROLLBACK','regex':r'#(\d+)','url':'https://example.invalid/$1'}])
+        check('a failure during final replacement remains visible',result['staysOpen'] and bool(result['error']))
+        check('a final settings failure restores Git configuration and issue links', (repo/'.git/config').read_bytes()==before_git and settings_file.read_bytes()==before_settings)
+        check('failed saves release all owned Git and settings locks',not any(p.exists() for p in [repo/'.git/config.lock',repo/'.issuetracker.lock',repo/'.git/sourcegit.settings.lock']))
+    finally:
+        settings_file.chmod(stat.S_IREAD|stat.S_IWRITE)
     result = edit('cancel')
     check('failed settings write rolls back in-memory settings and templates', result['before']=={'defaultRemote':'backup','mergeMode':1,'templates':2})
     result = edit('save', {'DefaultRemote':'origin'})

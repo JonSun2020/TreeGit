@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -255,41 +255,57 @@ namespace SourceGit.ViewModels
                 if (!rule.IsRegexValid || string.IsNullOrWhiteSpace(rule.URLTemplate))
                     throw new InvalidOperationException("请检查提交文本链接的匹配表达式和链接模板：" + rule.Name);
             }
-            await SetIfChangedAsync("user.name", UseGlobalIdentity ? null : UserName, "", true);
-            await SetIfChangedAsync("user.email", UseGlobalIdentity ? null : UserEmail, "", true);
-            await SetIfChangedAsync("commit.gpgsign", GPGCommitSigningEnabled ? "true" : "false", "false");
-            await SetIfChangedAsync("tag.gpgsign", GPGTagSigningEnabled ? "true" : "false", "false");
-            await SetIfChangedAsync("user.signingkey", GPGUserSigningKey, "");
-            await SetIfChangedAsync("http.proxy", HttpProxy, "");
-            await SetIfChangedAsync("fetch.prune", EnablePruneOnFetch ? "true" : "false", "false");
-
-            await ApplyIssueTrackerChangesAsync();
-            var settings = _repo.Settings;
-            var old = (settings.DefaultRemote, settings.PreferredMergeMode, settings.AskBeforeAutoUpdatingSubmodules,
-                settings.EnableRecursiveWhenAutoUpdatingSubmodules, settings.AutoRefreshEnabled, settings.BackgroundFetchEnabled,
-                Templates: new AvaloniaList<Models.CommitTemplate>(settings.CommitTemplates));
+            var cached = new Dictionary<string, string>(_cached);
+            var cachedLocal = new Dictionary<string, string>(_cachedLocal);
+            using var watcher = _repo.LockWatcher();
+            using var transaction = new Models.RepositoryConfigurationTransaction(_repo.FullPath, _repo.Settings.StoragePath);
+            _saveTransaction = transaction;
             try
             {
-                settings.DefaultRemote = DefaultRemote ?? string.Empty;
-                settings.PreferredMergeMode = PreferredMergeMode;
-                settings.AskBeforeAutoUpdatingSubmodules = AskBeforeAutoUpdatingSubmodules;
-                settings.EnableRecursiveWhenAutoUpdatingSubmodules = EnableRecursiveWhenAutoUpdatingSubmodules;
-                settings.AutoRefreshEnabled = AutoRefreshEnabled;
-                settings.BackgroundFetchEnabled = BackgroundFetchEnabled;
-                settings.CommitTemplates = new AvaloniaList<Models.CommitTemplate>(CommitTemplates);
-                settings.SaveChecked();
+                await SetIfChangedAsync("user.name", UseGlobalIdentity ? null : UserName, "", true);
+                await SetIfChangedAsync("user.email", UseGlobalIdentity ? null : UserEmail, "", true);
+                await SetIfChangedAsync("commit.gpgsign", GPGCommitSigningEnabled ? "true" : "false", "false");
+                await SetIfChangedAsync("tag.gpgsign", GPGTagSigningEnabled ? "true" : "false", "false");
+                await SetIfChangedAsync("user.signingkey", GPGUserSigningKey, "");
+                await SetIfChangedAsync("http.proxy", HttpProxy, "");
+                await SetIfChangedAsync("fetch.prune", EnablePruneOnFetch ? "true" : "false", "false");
+                var linksChanged = await ApplyIssueTrackerChangesAsync();
+                var settings = _repo.Settings;
+                var staged = settings.Copy();
+                staged.DefaultRemote = DefaultRemote ?? string.Empty;
+                staged.PreferredMergeMode = PreferredMergeMode;
+                staged.AskBeforeAutoUpdatingSubmodules = AskBeforeAutoUpdatingSubmodules;
+                staged.EnableRecursiveWhenAutoUpdatingSubmodules = EnableRecursiveWhenAutoUpdatingSubmodules;
+                staged.AutoRefreshEnabled = AutoRefreshEnabled;
+                staged.BackgroundFetchEnabled = BackgroundFetchEnabled;
+                staged.CommitTemplates = new AvaloniaList<Models.CommitTemplate>(CommitTemplates);
+                var content = staged.Serialize();
+                transaction.WriteSettings(content);
+                transaction.Commit();
+
+                settings.DefaultRemote = staged.DefaultRemote;
+                settings.PreferredMergeMode = staged.PreferredMergeMode;
+                settings.AskBeforeAutoUpdatingSubmodules = staged.AskBeforeAutoUpdatingSubmodules;
+                settings.EnableRecursiveWhenAutoUpdatingSubmodules = staged.EnableRecursiveWhenAutoUpdatingSubmodules;
+                settings.AutoRefreshEnabled = staged.AutoRefreshEnabled;
+                settings.BackgroundFetchEnabled = staged.BackgroundFetchEnabled;
+                settings.CommitTemplates = staged.CommitTemplates;
+                settings.MarkSaved(content);
+                if (linksChanged)
+                {
+                    _repo.IssueTrackers.Clear();
+                    _repo.IssueTrackers.AddRange(IssueTrackers);
+                }
             }
             catch
             {
-                settings.DefaultRemote = old.DefaultRemote;
-                settings.PreferredMergeMode = old.PreferredMergeMode;
-                settings.AskBeforeAutoUpdatingSubmodules = old.AskBeforeAutoUpdatingSubmodules;
-                settings.EnableRecursiveWhenAutoUpdatingSubmodules = old.EnableRecursiveWhenAutoUpdatingSubmodules;
-                settings.AutoRefreshEnabled = old.AutoRefreshEnabled;
-                settings.BackgroundFetchEnabled = old.BackgroundFetchEnabled;
-                settings.CommitTemplates = old.Templates;
+                _cached.Clear();
+                foreach (var pair in cached) _cached[pair.Key] = pair.Value;
+                _cachedLocal.Clear();
+                foreach (var pair in cachedLocal) _cachedLocal[pair.Key] = pair.Value;
                 throw;
             }
+            finally { _saveTransaction = null; }
         }
 
         private async Task SetIfChangedAsync(string key, string value, string defValue, bool forceLocal = false)
@@ -298,13 +314,13 @@ namespace SourceGit.ViewModels
             if (remove && !_cachedLocal.ContainsKey(key)) return;
             var current = forceLocal ? _cachedLocal.GetValueOrDefault(key) : _cached.GetValueOrDefault(key, defValue);
             if (!remove && value == current) return;
-            if (!await new Commands.Config(_repo.FullPath) { RaiseError = false }.SetAsync(key, value))
+            if (!await new Commands.Config(_repo.FullPath, _saveTransaction.GitConfigPath) { RaiseError = false }.SetAsync(key, value))
                 throw new InvalidOperationException("无法保存仓库配置：" + key);
             if (remove) { _cachedLocal.Remove(key); _cached.Remove(key); }
             else { _cachedLocal[key] = value; _cached[key] = value; }
         }
 
-        private async Task ApplyIssueTrackerChangesAsync()
+        private async Task<bool> ApplyIssueTrackerChangesAsync()
         {
             static async Task RequireSuccess(Task<bool> operation, string name)
             {
@@ -324,21 +340,21 @@ namespace SourceGit.ViewModels
                     if (old.IsShared != rule.IsShared)
                     {
                         changed = true;
-                        await RequireSuccess(new Commands.IssueTracker(_repo.FullPath, old.IsShared) { RaiseError = false }.RemoveAsync(old.Name), old.Name);
-                        await RequireSuccess(new Commands.IssueTracker(_repo.FullPath, rule.IsShared) { RaiseError = false }.AddAsync(rule), rule.Name);
+                        await RequireSuccess(new Commands.IssueTracker(_repo.FullPath, old.IsShared, _saveTransaction.IssueTrackerPath(old.IsShared)) { RaiseError = false }.RemoveAsync(old.Name), old.Name);
+                        await RequireSuccess(new Commands.IssueTracker(_repo.FullPath, rule.IsShared, _saveTransaction.IssueTrackerPath(rule.IsShared)) { RaiseError = false }.AddAsync(rule), rule.Name);
                     }
                     else
                     {
                         if (!string.Equals(old.RegexString, rule.RegexString, StringComparison.Ordinal))
                         {
                             changed = true;
-                            await RequireSuccess(new Commands.IssueTracker(_repo.FullPath, old.IsShared) { RaiseError = false }.UpdateRegexAsync(rule), rule.Name);
+                            await RequireSuccess(new Commands.IssueTracker(_repo.FullPath, old.IsShared, _saveTransaction.IssueTrackerPath(old.IsShared)) { RaiseError = false }.UpdateRegexAsync(rule), rule.Name);
                         }
 
                         if (!string.Equals(old.URLTemplate, rule.URLTemplate, StringComparison.Ordinal))
                         {
                             changed = true;
-                            await RequireSuccess(new Commands.IssueTracker(_repo.FullPath, old.IsShared) { RaiseError = false }.UpdateURLTemplateAsync(rule), rule.Name);
+                            await RequireSuccess(new Commands.IssueTracker(_repo.FullPath, old.IsShared, _saveTransaction.IssueTrackerPath(old.IsShared)) { RaiseError = false }.UpdateURLTemplateAsync(rule), rule.Name);
                         }
                     }
 
@@ -347,7 +363,7 @@ namespace SourceGit.ViewModels
                 else
                 {
                     changed = true;
-                    await RequireSuccess(new Commands.IssueTracker(_repo.FullPath, rule.IsShared) { RaiseError = false }.AddAsync(rule), rule.Name);
+                    await RequireSuccess(new Commands.IssueTracker(_repo.FullPath, rule.IsShared, _saveTransaction.IssueTrackerPath(rule.IsShared)) { RaiseError = false }.AddAsync(rule), rule.Name);
                 }
             }
 
@@ -356,16 +372,13 @@ namespace SourceGit.ViewModels
                 changed = true;
 
                 foreach (var kv in oldRules)
-                    await RequireSuccess(new Commands.IssueTracker(_repo.FullPath, kv.Value.IsShared) { RaiseError = false }.RemoveAsync(kv.Key), kv.Key);
+                    await RequireSuccess(new Commands.IssueTracker(_repo.FullPath, kv.Value.IsShared, _saveTransaction.IssueTrackerPath(kv.Value.IsShared)) { RaiseError = false }.RemoveAsync(kv.Key), kv.Key);
             }
 
-            if (changed)
-            {
-                _repo.IssueTrackers.Clear();
-                _repo.IssueTrackers.AddRange(IssueTrackers);
-            }
+            return changed;
         }
 
+        private Models.RepositoryConfigurationTransaction _saveTransaction;
         private readonly Repository _repo;
         private readonly Dictionary<string, string> _cached;
         private readonly Dictionary<string, string> _cachedLocal;

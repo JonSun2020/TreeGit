@@ -16,6 +16,7 @@ namespace SourceGit.Models
         public long Length => Math.Max(OldSize, NewSize);
         public long DifferentBytes { get; private set; }
         public int IndexedPages => _pages.Count;
+        internal string SnapshotDirectory => _directory;
 
         private readonly FileStream _old;
         private readonly FileStream _new;

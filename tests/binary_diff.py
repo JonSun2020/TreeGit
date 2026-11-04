@@ -13,6 +13,7 @@ out = Path(sys.argv[2]).resolve(); out.mkdir(parents=True, exist_ok=True)
 repo = Path(tempfile.mkdtemp(prefix='TreeGit binary 中文 '))
 checks = []
 snapshot_baseline = set(Path(tempfile.gettempdir()).glob('TreeGit-binary-*'))
+owned_snapshots=set()
 
 def git(*args):
     p = subprocess.run([shutil.which('git'), *args], cwd=repo, capture_output=True, text=True, encoding='utf-8')
@@ -42,7 +43,9 @@ def tool(name, args={}):
     return base64.b64decode(result['content'][0]['data']) if name == 'ui_screenshot' else json.loads(result['content'][0]['text'])
 
 def diff(action='state', **args):
-    return tool('ui_diff', {'repo':str(repo), 'action':action, **args})
+    result=tool('ui_diff', {'repo':str(repo), 'action':action, **args})
+    if result.get('snapshotDirectory'):owned_snapshots.add(Path(result['snapshotDirectory']))
+    return result
 
 def check(label, condition):
     assert condition, label
@@ -66,7 +69,7 @@ def refresh():
 
 rpc('initialize', {'protocolVersion':'2025-11-25'})
 tool('ui_open_repository', {'repo':str(repo)})
-tool('ui_window', {'width':1440, 'height':900, 'theme':'SourceTree'})
+tool('ui_window', {'width':1440, 'height':900, 'theme':'SourceTree', 'zoom':1})
 state = select()
 expected = sum(a != b for a, b in zip(staged, working)) + len(working)-len(staged)
 check('unstaged binary compares against index, including changes across a 64 KiB boundary and append', state['differentBytes'] == expected and state['oldSize'] == len(staged) and state['newSize'] == len(working))
@@ -92,6 +95,14 @@ for _ in range(200):
     time.sleep(.1)
 check('independent comparison has two full-width panes and the same content', state['status'] == 'ready' and state['bytesPerRow'] == 16 and state['differentBytes'] == expected)
 (out/'binary-independent.png').write_bytes(tool('ui_screenshot', {'window':'active'}))
+tool('ui_window', {'zoom':2})
+for _ in range(100):
+    state=diff()
+    if state['bytesPerRow'] in (4,8): break
+    time.sleep(.1)
+check('independent comparison adapts at high zoom without changing comparison results',state['status']=='ready' and state['bytesPerRow'] in (4,8) and state['differentBytes']==expected)
+(out/'binary-independent-high-zoom.png').write_bytes(tool('ui_screenshot', {'window':'active'}))
+tool('ui_window', {'zoom':1})
 tool('ui_command', {'command':'close_dialog'})
 
 for command in ['external_diff', 'check_updates']:
@@ -139,13 +150,16 @@ git('add', '.'); (repo/added).write_bytes(b''); refresh()
 state = select(added)
 check('empty worktree binary compares against its index content', state['oldSize'] == 4 and state['newSize'] == 0 and state['differentBytes'] == 4)
 tool('ui_select_view', {'repo':str(repo), 'view':'history'})
+snapshots_before_close=set(Path(tempfile.gettempdir()).glob('TreeGit-binary-*'))-snapshot_baseline
 tool('ui_command', {'command':'close_tab'})
 time.sleep(.3)
 for _ in range(50):
-    leaked = set(Path(tempfile.gettempdir()).glob('TreeGit-binary-*')) - snapshot_baseline
+    # Other open repositories and other QA processes may legitimately allocate
+    # their own snapshots when this tab closes. Inspect this comparison's owners.
+    leaked = {folder for folder in (owned_snapshots or snapshots_before_close) if folder.exists()}
     if not leaked: break
     time.sleep(.1)
-check('closing the repository cleans all comparison snapshots', not leaked)
+check('closing the repository cleans its comparison snapshots', bool(owned_snapshots or snapshots_before_close) and not leaked)
 p.stdin.close(); p.wait(timeout=10)
 (out/'binary-results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'repo':str(repo),'exe':str(exe)},ensure_ascii=False,indent=2),encoding='utf-8')
 print('PASSED',len(checks))

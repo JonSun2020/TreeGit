@@ -4,7 +4,6 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 using Avalonia.Collections;
 
@@ -63,6 +62,12 @@ namespace SourceGit.Models
             set;
         } = [];
 
+        internal string StoragePath => _file;
+
+        internal RepositorySettings Copy() => JsonSerializer.Deserialize(JsonSerializer.Serialize(this, JsonCodeGen.Default.RepositorySettings), JsonCodeGen.Default.RepositorySettings);
+        internal string Serialize() => JsonSerializer.Serialize(this, JsonCodeGen.Default.RepositorySettings);
+        internal void MarkSaved(string content) => _orgHash = HashContent(content);
+
         public static RepositorySettings Get(string gitCommonDir)
         {
             var fileInfo = new FileInfo(Path.Combine(gitCommonDir, "sourcegit.settings"));
@@ -87,12 +92,8 @@ namespace SourceGit.Models
                 }
             }
 
-            // Serialize setting again to make sure there are no unnecessary whitespaces.
-            Task.Run(() =>
-            {
-                var formatted = JsonSerializer.Serialize(setting, JsonCodeGen.Default.RepositorySettings);
-                setting._orgHash = HashContent(formatted);
-            });
+            // Hash the loaded value before exposing the mutable settings object.
+            setting._orgHash = HashContent(setting.Serialize());
 
             setting._file = fullpath;
             _cache.Add(fullpath, setting);
@@ -116,6 +117,7 @@ namespace SourceGit.Models
             var content = JsonSerializer.Serialize(this, JsonCodeGen.Default.RepositorySettings);
             var hash = HashContent(content);
             if (hash.Equals(_orgHash, StringComparison.Ordinal)) return;
+            using var reservation = new FileStream(_file + ".lock", FileMode.CreateNew, FileAccess.Write, FileShare.Read, 1, FileOptions.DeleteOnClose);
             var tmpfile = $"{_file}.tmp";
             File.WriteAllText(tmpfile, content);
             File.Move(tmpfile, _file, true);

@@ -24,6 +24,8 @@ namespace SourceGit.Views
         private readonly TextBox _email;
         private readonly CheckBox _autoRefresh;
         private readonly CheckBox _backgroundFetch;
+        private readonly ComboBox _defaultRemote;
+        private bool _updatingRemoteChoices;
         private readonly TextBlock _error;
         private readonly Action<bool> _selectPage;
         private Window _screenOwner;
@@ -116,9 +118,13 @@ namespace SourceGit.Views
             var sync = new StackPanel { Spacing = 4 };
             var remoteNames = _configuration.Remotes.ToList();
             if (!string.IsNullOrEmpty(_configuration.DefaultRemote) && !remoteNames.Contains(_configuration.DefaultRemote)) remoteNames.Add(_configuration.DefaultRemote);
-            var defaultRemote = new ComboBox { Name = "DefaultRemote", ItemsSource = new[] { "自动选择" }.Concat(remoteNames).ToArray(), HorizontalAlignment = HorizontalAlignment.Stretch, SelectedIndex = Math.Max(0, remoteNames.IndexOf(_configuration.DefaultRemote) + 1) };
-            defaultRemote.SelectionChanged += (_, _) => _configuration.DefaultRemote = defaultRemote.SelectedIndex > 0 ? remoteNames[defaultRemote.SelectedIndex - 1] : string.Empty;
-            sync.Children.Add(Field("默认远程：", defaultRemote));
+            _defaultRemote = new ComboBox { Name = "DefaultRemote", ItemsSource = new[] { "自动选择" }.Concat(remoteNames).ToArray(), HorizontalAlignment = HorizontalAlignment.Stretch, SelectedIndex = Math.Max(0, remoteNames.IndexOf(_configuration.DefaultRemote) + 1) };
+            _defaultRemote.SelectionChanged += (_, _) =>
+            {
+                if (!_updatingRemoteChoices && _defaultRemote.SelectedIndex >= 0)
+                    _configuration.DefaultRemote = _defaultRemote.SelectedIndex > 0 ? _defaultRemote.SelectedItem as string : string.Empty;
+            };
+            sync.Children.Add(Field("默认远程：", _defaultRemote));
             var merge = new ComboBox { Name = "MergeMode", ItemsSource = Models.MergeMode.Supported.Select(m => m.DisplayName).ToArray(), HorizontalAlignment = HorizontalAlignment.Stretch, SelectedIndex = Math.Clamp(_configuration.PreferredMergeMode, 0, Models.MergeMode.Supported.Length - 1) };
             merge.SelectionChanged += (_, _) => _configuration.PreferredMergeMode = merge.SelectedIndex;
             sync.Children.Add(Field("合并方式：", merge));
@@ -211,6 +217,18 @@ namespace SourceGit.Views
         {
             var remotes = await new Commands.QueryRemotes(_repo.FullPath).GetResultAsync();
             _remotes.ItemsSource = new AvaloniaList<Models.Remote>(remotes);
+            _configuration.Remotes.Clear();
+            _configuration.Remotes.AddRange(remotes.Select(r => r.Name));
+            var names = _configuration.Remotes.ToList();
+            var selected = _configuration.DefaultRemote;
+            if (!string.IsNullOrEmpty(selected) && !names.Contains(selected)) names.Add(selected);
+            _updatingRemoteChoices = true;
+            try
+            {
+                _defaultRemote.ItemsSource = new[] { "自动选择" }.Concat(names).ToArray();
+                _defaultRemote.SelectedIndex = Math.Max(0, names.IndexOf(selected) + 1);
+            }
+            finally { _updatingRemoteChoices = false; }
         }
 
         private async Task EditRemoteAsync(Models.Remote remote)

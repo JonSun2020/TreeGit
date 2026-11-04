@@ -6,8 +6,9 @@ namespace SourceGit.Commands
 {
     public class Config : Command
     {
-        public Config(string repository)
+        public Config(string repository, string file = null)
         {
+            _file = file;
             if (string.IsNullOrEmpty(repository))
             {
                 WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -24,7 +25,7 @@ namespace SourceGit.Commands
 
         public Dictionary<string, string> ReadAll(bool localOnly)
         {
-            Args = localOnly ? "config --local -l" : "config -l";
+            Args = _file != null ? $"config --file {_file.Quoted()} -l" : localOnly ? "config --local -l" : "config -l";
 
             var output = ReadToEnd();
             var rs = new Dictionary<string, string>();
@@ -44,7 +45,7 @@ namespace SourceGit.Commands
 
         public async Task<Dictionary<string, string>> ReadAllAsync()
         {
-            Args = "config -l";
+            Args = _file != null ? $"config --file {_file.Quoted()} -l" : "config -l";
 
             var output = await ReadToEndAsync().ConfigureAwait(false);
             var rs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -68,13 +69,13 @@ namespace SourceGit.Commands
 
         public string Get(string key)
         {
-            Args = $"config {key}";
+            Args = _file != null ? $"config --file {_file.Quoted()} {key}" : $"config {key}";
             return ReadToEnd().StdOut.Trim();
         }
 
         public async Task<string> GetAsync(string key)
         {
-            Args = $"config {key}";
+            Args = _file != null ? $"config --file {_file.Quoted()} {key}" : $"config {key}";
 
             var rs = await ReadToEndAsync().ConfigureAwait(false);
             return rs.StdOut.Trim();
@@ -82,7 +83,7 @@ namespace SourceGit.Commands
 
         public async Task<bool> SetAsync(string key, string value, bool allowEmpty = false)
         {
-            var scope = _isLocal ? "--local" : "--global";
+            var scope = _file != null ? "--file " + _file.Quoted() : _isLocal ? "--local" : "--global";
 
             if (!allowEmpty && string.IsNullOrWhiteSpace(value))
                 Args = $"config {scope} --unset {key}";
@@ -93,5 +94,6 @@ namespace SourceGit.Commands
         }
 
         private bool _isLocal = false;
+        private readonly string _file;
     }
 }
