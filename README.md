@@ -8,20 +8,20 @@
 
 ## 界面与功能
 
-- 墨青色菜单和不透明仓库标签、整行操作栏、左侧文件状态/分支/标签/远程/贮藏，下方文件与差异区。
+- 墨青或 SourceTree 蓝色菜单、不透明仓库标签和仓库下拉列表；左侧分支/标签/远程/贮藏，底部文件状态、日志 / 历史及搜索标签。
 - 颜色风格提供 `Default`、`Light`、`Dark` 和独立的 `SourceTree`；SourceTree 选项使用蓝色顶栏及灰白界面，浅色模式保留 TreeGit 的墨青配色。
 - 独立“图谱”列；单击分支将其主线放在最左侧，不会检出该分支。双击仍保留原有检出操作。
-- 分支显示提供“当前分支”和“所有分支”两种选择；过滤模式隐藏其他分支标签。
+- 分支显示提供“当前分支”和“所有分支”；勾选显示远程分支时包含对应上游历史。本地分支头加粗，并显示与拉取/推送一致的同步数量。
 - 图谱顶部为“未提交的更改”。选中后，下方显示已暂存、未暂存文件及差异，上方保留提交图谱。
 - 图谱、描述、日期、作者、提交等表头可拖动调整列宽，并按仓库保存。
-- 保留 SourceGit 的克隆、推拉、分支、标签、合并、变基、交互式变基、贮藏、冲突处理、补丁、文件历史、Blame、子模块、Worktree、GitFlow、LFS、Bisect、自定义操作和命令日志等功能。部分高级入口位于“更多”、工具和上下文菜单。
+- 保留 SourceGit 的克隆、推拉、分支、标签、合并、变基、交互式变基、贮藏、冲突处理、补丁、文件历史、Blame、子模块、Worktree、GitFlow、LFS、Bisect、自定义操作和命令日志等功能。高级操作位于“仓库 → 高级操作”、偏好设置及对应的上下文菜单。
 - 使用 TreeGit 自有图标，帮助/关于注明上游来源及 MCP 支持。
 
-界面仍在迭代；目标是跟随 SourceGit 保持功能，同时持续完善熟悉的桌面 Git 操作布局。
+当前正式版为 **2026.23.2（Windows x64）**。后续继续跟随 SourceGit 上游更新，维护独立的界面、便携构建与 MCP 控制。
 
 ## 下载安装
 
-从本仓库的 **Releases** 下载 `TreeGit-Windows-x64.zip`，完整解压后运行 `TreeGit/TreeGit.exe`。预发布构建也可从 **Actions → TreeGit Windows portable** 下载。
+从 [最新正式版](https://github.com/JonSun2020/TreeGit/releases/latest) 下载 [TreeGit-Windows-x64.zip](https://github.com/JonSun2020/TreeGit/releases/latest/download/TreeGit-Windows-x64.zip)，完整解压后运行 `TreeGit/TreeGit.exe`。校验值见同页的 `SHA256SUMS.txt`。开发构建仍可从 **Actions → TreeGit Windows portable** 下载。
 
 - 自带裁剪和压缩后的 .NET 运行时，无需安装 .NET。
 - 主包不重复捆绑完整 Git，默认检测电脑上已有的 Git，与 SourceGit 的使用方式一致。

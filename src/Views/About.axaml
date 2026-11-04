@@ -66,6 +66,9 @@
         <TextBlock Margin="0,12,0,0" FontSize="13" TextWrapping="Wrap" Text="{DynamicResource Text.About.Mcp}"/>
 
         <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+          <Button Height="24" Classes="icon_button" Click="OnVisitTreeGitSource" ToolTip.Tip="https://github.com/JonSun2020/TreeGit">
+            <StackPanel Orientation="Horizontal" Spacing="6"><Path Width="16" Height="16" Data="{StaticResource Icons.GitHub}"/><TextBlock Text="TreeGit · GitHub" Foreground="{DynamicResource Brush.Link}"/></StackPanel>
+          </Button>
           <Button Width="18" Height="18" Classes="icon_button" Click="OnVisitWebsite" ToolTip.Tip="https://sourcegit-scm.github.io/">
             <Path Width="16" Height="16" Data="{StaticResource Icons.Remotes}"/>
           </Button>

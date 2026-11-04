@@ -53,6 +53,12 @@ namespace SourceGit.Views
             e.Handled = true;
         }
 
+        private void OnVisitTreeGitSource(object _, RoutedEventArgs e)
+        {
+            Native.OS.OpenBrowser("https://github.com/JonSun2020/TreeGit");
+            e.Handled = true;
+        }
+
         private void OnVisitWebsite(object _, RoutedEventArgs e)
         {
             Native.OS.OpenBrowser("https://sourcegit-scm.github.io/");

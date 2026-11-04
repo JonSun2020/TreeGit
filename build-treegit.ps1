@@ -14,8 +14,11 @@ if (Test-Path (Join-Path $sdk 'dotnet.exe')) {
 }
 $env:DOTNET_CLI_TELEMETRY_OPTOUT='1'
 $treeGitSourceCommit=(& git -C $PSScriptRoot rev-parse HEAD).Trim()
+$treeGitVersionSource=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'src/Models/TreeGitRelease.cs') -Raw
+if($treeGitVersionSource -notmatch 'public const string Version = "([0-9]+\.[0-9]+\.[0-9]+)"'){throw 'TreeGit release version is missing'}
+$treeGitVersion=$Matches[1]
 $testProperty='-p:EnableIntegrationTests='+$IntegrationTests.IsPresent.ToString().ToLowerInvariant()
-& $dotnet publish (Join-Path $PSScriptRoot 'src/SourceGit.csproj') -c Release -r win-x64 -p:PublishAot=false -p:PublishTrimmed=true -p:TrimMode=link -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -p:DebugSymbols=false $testProperty -o $Destination
+& $dotnet publish (Join-Path $PSScriptRoot 'src/SourceGit.csproj') -c Release -r win-x64 "-p:TreeGitVersion=$treeGitVersion" -p:PublishAot=false -p:PublishTrimmed=true -p:TrimMode=link -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -p:DebugSymbols=false $testProperty -o $Destination
 if($LASTEXITCODE -ne 0){throw 'TreeGit publish failed'}
 Move-Item -LiteralPath (Join-Path $Destination 'SourceGit.exe') -Destination (Join-Path $Destination 'TreeGit.exe') -Force
 New-Item -ItemType Directory -Force (Join-Path $Destination 'data') | Out-Null
@@ -26,5 +29,5 @@ $config=@{mcpServers=@{treegit=@{command='C:\Tools\TreeGit\TreeGit.exe';args=@('
 $config | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 (Join-Path $Destination 'mcp-readonly.json')
 $config.mcpServers.treegit.args=@('--mcp')
 $config | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 (Join-Path $Destination 'mcp-readwrite.json')
-@{product='TreeGit';sourceCommit=$treeGitSourceCommit;upstreamCommit='c0f40a2e78d81a7474628847727644fc0c56f558';integrationTests=$IntegrationTests.IsPresent;selfContained=$true;trimmed=$true;singleFileCompression=$true} | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $Destination 'build-info.json')
+@{product='TreeGit';version=$treeGitVersion;sourceCommit=$treeGitSourceCommit;upstreamCommit='c0f40a2e78d81a7474628847727644fc0c56f558';integrationTests=$IntegrationTests.IsPresent;selfContained=$true;trimmed=$true;singleFileCompression=$true} | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $Destination 'build-info.json')
 Write-Output ('TreeGit portable program: '+$Destination)
