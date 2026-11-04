@@ -10,6 +10,7 @@ namespace SourceGit.Models
         public ulong Time { get; set; } = 0;
         public string Message { get; set; } = "";
         public string Subject => Message.Split('\n', 2)[0].Trim();
+        public string DisplayName => $"{(Name.StartsWith("stash@{", System.StringComparison.Ordinal) ? Name[7..].TrimEnd('}') : Name)}: {Subject}";
         public string UntrackedParent => EmptyTreeHash.Guess(SHA);
     }
 }

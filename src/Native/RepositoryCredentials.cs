@@ -95,7 +95,7 @@ namespace SourceGit.Native
             try
             {
                 var c = Marshal.PtrToStructure<Credential>(ptr);
-                var password = Marshal.PtrToStringUni(c.CredentialBlob, checked((int)c.CredentialBlobSize / 2)) ?? string.Empty;
+                var password = c.CredentialBlobSize == 0 ? string.Empty : Marshal.PtrToStringUni(c.CredentialBlob, checked((int)c.CredentialBlobSize / 2)) ?? string.Empty;
                 if (migrated)
                     Save(target, c.UserName, password);
                 return (c.UserName, password);

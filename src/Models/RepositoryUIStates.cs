@@ -201,6 +201,8 @@ namespace SourceGit.Models
             set;
         } = false;
 
+        public bool IsStashesExpandedInSideBar { get; set; } = true;
+
         public bool IsTagsExpandedInSideBar
         {
             get;

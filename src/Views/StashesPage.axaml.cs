@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Text;
 
@@ -22,7 +22,7 @@ namespace SourceGit.Views
 
             var layout = ViewModels.Preferences.Instance.Layout;
             var width = grid.Bounds.Width;
-            var leftWidth = Math.Max(width - 304, 300);
+            var leftWidth = Math.Max(width - 164, 160);
 
             if (layout.StashesLeftWidth.Value - leftWidth > 1.0)
                 layout.StashesLeftWidth = new GridLength(leftWidth, GridUnitType.Pixel);
@@ -50,84 +50,89 @@ namespace SourceGit.Views
             if (DataContext is ViewModels.StashesPage vm &&
                 sender is Border { DataContext: Models.Stash stash } border)
             {
-                var apply = new MenuItem();
-                apply.Header = App.Text("StashCM.Apply");
-                apply.Icon = this.CreateMenuIcon("Icons.CheckCircled");
-                apply.Click += (_, ev) =>
-                {
-                    vm.Apply(stash);
-                    ev.Handled = true;
-                };
-
-                var branch = new MenuItem();
-                branch.Header = App.Text("StashCM.Branch");
-                branch.Icon = this.CreateMenuIcon("Icons.Branch.Add");
-                branch.Click += (_, ev) =>
-                {
-                    vm.CheckoutBranch(stash);
-                    ev.Handled = true;
-                };
-
-                var drop = new MenuItem();
-                drop.Header = App.Text("StashCM.Drop");
-                drop.Icon = this.CreateMenuIcon("Icons.Clear");
-                drop.Tag = "Back/Delete";
-                drop.Click += (_, ev) =>
-                {
-                    vm.Drop(stash);
-                    ev.Handled = true;
-                };
-
-                var patch = new MenuItem();
-                patch.Header = App.Text("StashCM.SaveAsPatch");
-                patch.Icon = this.CreateMenuIcon("Icons.Save");
-                patch.Click += async (_, ev) =>
-                {
-                    var storageProvider = TopLevel.GetTopLevel(this)?.StorageProvider;
-                    if (storageProvider == null)
-                        return;
-
-                    var options = new FilePickerSaveOptions();
-                    options.Title = App.Text("StashCM.SaveAsPatch");
-                    options.DefaultExtension = ".patch";
-                    options.FileTypeChoices = [new FilePickerFileType("Patch File") { Patterns = ["*.patch"] }];
-
-                    try
-                    {
-                        var storageFile = await storageProvider.SaveFilePickerAsync(options);
-                        if (storageFile != null)
-                            await vm.SaveStashAsPatchAsync(stash, storageFile.Path.LocalPath);
-                    }
-                    catch (Exception exception)
-                    {
-                        Models.Notification.Send(null, $"Failed to save as patch: {exception.Message}", true);
-                    }
-
-                    ev.Handled = true;
-                };
-
-                var copy = new MenuItem();
-                copy.Header = App.Text("StashCM.CopyMessage");
-                copy.Icon = this.CreateMenuIcon("Icons.Copy");
-                copy.Tag = OperatingSystem.IsMacOS() ? "⌘+C" : "Ctrl+C";
-                copy.Click += async (_, ev) =>
-                {
-                    await this.CopyTextAsync(stash.Message);
-                    ev.Handled = true;
-                };
-
-                var menu = new ContextMenu();
-                menu.Items.Add(apply);
-                menu.Items.Add(branch);
-                menu.Items.Add(drop);
-                menu.Items.Add(new MenuItem { Header = "-" });
-                menu.Items.Add(patch);
-                menu.Items.Add(new MenuItem { Header = "-" });
-                menu.Items.Add(copy);
-                menu.Open(border);
+                OpenStashContextMenu(border, vm, stash);
             }
 
             e.Handled = true;
+        }
+
+        public static void OpenStashContextMenu(Control anchor, ViewModels.StashesPage vm, Models.Stash stash)
+        {
+            var apply = new MenuItem();
+            apply.Header = App.Text("StashCM.Apply");
+            apply.Icon = anchor.CreateMenuIcon("Icons.CheckCircled");
+            apply.Click += (_, ev) =>
+            {
+                vm.Apply(stash);
+                ev.Handled = true;
+            };
+
+            var branch = new MenuItem();
+            branch.Header = App.Text("StashCM.Branch");
+            branch.Icon = anchor.CreateMenuIcon("Icons.Branch.Add");
+            branch.Click += (_, ev) =>
+            {
+                vm.CheckoutBranch(stash);
+                ev.Handled = true;
+            };
+
+            var drop = new MenuItem();
+            drop.Header = App.Text("StashCM.Drop");
+            drop.Icon = anchor.CreateMenuIcon("Icons.Clear");
+            drop.Tag = "Back/Delete";
+            drop.Click += (_, ev) =>
+            {
+                vm.Drop(stash);
+                ev.Handled = true;
+            };
+
+            var patch = new MenuItem();
+            patch.Header = App.Text("StashCM.SaveAsPatch");
+            patch.Icon = anchor.CreateMenuIcon("Icons.Save");
+            patch.Click += async (_, ev) =>
+            {
+                var storageProvider = TopLevel.GetTopLevel(anchor)?.StorageProvider;
+                if (storageProvider == null)
+                    return;
+
+                var options = new FilePickerSaveOptions();
+                options.Title = App.Text("StashCM.SaveAsPatch");
+                options.DefaultExtension = ".patch";
+                options.FileTypeChoices = [new FilePickerFileType("Patch File") { Patterns = ["*.patch"] }];
+
+                try
+                {
+                    var storageFile = await storageProvider.SaveFilePickerAsync(options);
+                    if (storageFile != null)
+                        await vm.SaveStashAsPatchAsync(stash, storageFile.Path.LocalPath);
+                }
+                catch (Exception exception)
+                {
+                    Models.Notification.Send(null, $"Failed to save as patch: {exception.Message}", true);
+                }
+
+                ev.Handled = true;
+            };
+
+            var copy = new MenuItem();
+            copy.Header = App.Text("StashCM.CopyMessage");
+            copy.Icon = anchor.CreateMenuIcon("Icons.Copy");
+            copy.Tag = OperatingSystem.IsMacOS() ? "⌘+C" : "Ctrl+C";
+            copy.Click += async (_, ev) =>
+            {
+                await anchor.CopyTextAsync(stash.Message);
+                ev.Handled = true;
+            };
+
+            var menu = new ContextMenu();
+            menu.Items.Add(apply);
+            menu.Items.Add(branch);
+            menu.Items.Add(drop);
+            menu.Items.Add(new MenuItem { Header = "-" });
+            menu.Items.Add(patch);
+            menu.Items.Add(new MenuItem { Header = "-" });
+            menu.Items.Add(copy);
+            menu.Open(anchor);
         }
 
         private void OnStashDoubleTapped(object sender, TappedEventArgs e)

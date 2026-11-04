@@ -25,8 +25,10 @@ namespace SourceGit.ViewModels
             get => _visibleStashes;
             private set
             {
+                var selected = _selectedStash?.SHA;
                 if (SetProperty(ref _visibleStashes, value))
-                    SelectedStash = null;
+                    SelectedStash = value?.Find(s => s.SHA == selected) ??
+                        (_repo.IsStashesVisible && value is { Count: > 0 } ? value[0] : null);
             }
         }
 

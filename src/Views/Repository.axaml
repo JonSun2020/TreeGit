@@ -1,4 +1,4 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:m="using:SourceGit.Models" xmlns:vm="using:SourceGit.ViewModels" xmlns:v="using:SourceGit.Views" xmlns:c="using:SourceGit.Converters" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SourceGit.Views.Repository" x:DataType="vm:Repository" x:Name="ThisControl">
   <Grid>
     <Grid.ColumnDefinitions>
@@ -193,7 +193,7 @@
                 </TextBox.InnerRightContent>
               </TextBox>
 
-              <Grid Grid.Row="1" x:Name="LeftSidebarGroups" Margin="0,4,0,0" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,32" SizeChanged="OnLeftSidebarSizeChanged">
+              <Grid Grid.Row="1" x:Name="LeftSidebarGroups" Margin="0,4,0,0" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" SizeChanged="OnLeftSidebarSizeChanged">
                 <!-- Local Branches -->
                 <ToggleButton Grid.Row="0" Classes="group_expander" IsChecked="{Binding IsLocalBranchGroupExpanded, Mode=TwoWay}">
                   <Grid ColumnDefinitions="16,*,Auto">
@@ -258,7 +258,7 @@
                 <v:TagsView Grid.Row="3" x:Name="TagsList" Height="0" Margin="6,0,4,0" Background="Transparent" Content="{Binding VisibleTags}" Focusable="False" IsVisible="{Binding IsTagGroupExpanded, Mode=OneWay}" SelectionChanged="OnTagsSelectionChanged" RowsChanged="OnLeftSidebarRowsChanged" SearchRequested="OnToggleSidebarFilter"/>
 
                 <!-- Submodules -->
-                <ToggleButton Grid.Row="6" Classes="group_expander" IsChecked="{Binding IsSubmoduleGroupExpanded, Mode=TwoWay}" IsVisible="{Binding Submodules, Converter={x:Static c:ListConverters.IsNotNullOrEmpty}}">
+                <ToggleButton Grid.Row="8" Classes="group_expander" IsChecked="{Binding IsSubmoduleGroupExpanded, Mode=TwoWay}" IsVisible="{Binding Submodules, Converter={x:Static c:ListConverters.IsNotNullOrEmpty}}">
                   <Grid ColumnDefinitions="16,*,Auto,Auto,Auto">
                     <Path Grid.Column="0" Width="11" Height="11" HorizontalAlignment="Left" Data="{StaticResource Icons.Submodules}" Fill="{DynamicResource Brush.FG2}"/>
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
@@ -276,10 +276,10 @@
                     </Button>
                   </Grid>
                 </ToggleButton>
-                <v:SubmodulesView Grid.Row="7" x:Name="SubmoduleList" Height="0" Margin="6,0,4,0" Content="{Binding VisibleSubmodules}" RowsChanged="OnLeftSidebarRowsChanged" Focusable="False" IsVisible="{Binding IsSubmoduleGroupExpanded, Mode=OneWay}" SearchRequested="OnToggleSidebarFilter"/>
+                <v:SubmodulesView Grid.Row="9" x:Name="SubmoduleList" Height="0" Margin="6,0,4,0" Content="{Binding VisibleSubmodules}" RowsChanged="OnLeftSidebarRowsChanged" Focusable="False" IsVisible="{Binding IsSubmoduleGroupExpanded, Mode=OneWay}" SearchRequested="OnToggleSidebarFilter"/>
 
                 <!-- Worktrees -->
-                <ToggleButton Grid.Row="8" Classes="group_expander" IsChecked="{Binding IsWorktreeGroupExpanded, Mode=TwoWay}" IsVisible="{Binding Worktrees, Converter={x:Static c:ListConverters.IsNotNullOrEmpty}}">
+                <ToggleButton Grid.Row="10" Classes="group_expander" IsChecked="{Binding IsWorktreeGroupExpanded, Mode=TwoWay}" IsVisible="{Binding Worktrees, Converter={x:Static c:ListConverters.IsNotNullOrEmpty}}">
                   <Grid ColumnDefinitions="16,*,Auto,Auto">
                     <Path Grid.Column="0" Width="11" Height="11" HorizontalAlignment="Left" Data="{StaticResource Icons.Worktrees}" Fill="{DynamicResource Brush.FG2}"/>
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
@@ -294,7 +294,7 @@
                     </Button>
                   </Grid>
                 </ToggleButton>
-                <ListBox Grid.Row="9" x:Name="WorktreeList" Height="0" Margin="6,0,4,0" Classes="repo_left_content_list" ItemsSource="{Binding Worktrees, Mode=OneWay}" SelectionMode="Single" PropertyChanged="OnWorktreeListPropertyChanged" IsVisible="{Binding IsWorktreeGroupExpanded, Mode=OneWay}">
+                <ListBox Grid.Row="11" x:Name="WorktreeList" Height="0" Margin="6,0,4,0" Classes="repo_left_content_list" ItemsSource="{Binding Worktrees, Mode=OneWay}" SelectionMode="Single" PropertyChanged="OnWorktreeListPropertyChanged" IsVisible="{Binding IsWorktreeGroupExpanded, Mode=OneWay}">
                   <ListBox.Styles>
                     <Style Selector="ListBoxItem">
                       <Setter Property="CornerRadius" Value="4"/>
@@ -338,7 +338,30 @@
                     </DataTemplate>
                   </ListBox.ItemTemplate>
                 </ListBox>
-              <Button Grid.Row="10" Classes="icon_button" HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" Click="OnShowStashes"><StackPanel Orientation="Horizontal" Spacing="8" Margin="12,0"><TextBlock Text="›"/><Path Width="18" Height="18" Data="{StaticResource Icons.Stashes}" Fill="#75869D"/><TextBlock Text="贮藏" FontWeight="Bold" Foreground="{DynamicResource Brush.FG2}"/></StackPanel></Button></Grid>
+                <!-- Stashes share the same group/header layout as remotes. -->
+                <ToggleButton Grid.Row="6" x:Name="StashesHeader" Classes="group_expander" IsChecked="{Binding IsStashGroupExpanded, Mode=TwoWay}" IsVisible="{Binding !IsBare}">
+                  <Grid ColumnDefinitions="16,*,Auto">
+                    <Path Grid.Column="0" Width="11" Height="11" HorizontalAlignment="Left" Data="{StaticResource Icons.Stashes}" Fill="{DynamicResource Brush.FG2}"/>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                      <TextBlock Classes="group_header_label" Text="{DynamicResource Text.Stashes}"/>
+                      <TextBlock Classes="group_header_label" Text="{Binding StashesCount}" Margin="4,0,0,0"/>
+                    </StackPanel>
+                    <Button Grid.Column="2" Classes="icon_button" Width="14" Margin="8,0" Command="{Binding StashesPage.ClearStashes}" ToolTip.Tip="{DynamicResource Text.Repository.ClearStashes}" IsVisible="{Binding StashesCount, Converter={x:Static c:IntConverters.IsGreaterThanZero}}">
+                      <Path Width="12" Height="12" Data="{StaticResource Icons.RemoveAll}"/>
+                    </Button>
+                  </Grid>
+                </ToggleButton>
+                <ListBox Grid.Row="7" x:Name="StashList" Height="0" Margin="6,0,4,0" Classes="repo_left_content_list" ItemsSource="{Binding StashesPage.VisibleStashes}" SelectedItem="{Binding StashesPage.SelectedStash, Mode=TwoWay}" SelectionMode="Single" IsVisible="{Binding IsStashGroupExpanded}" SelectionChanged="OnSidebarStashSelectionChanged" PropertyChanged="OnWorktreeListPropertyChanged" KeyDown="OnSidebarStashKeyDown" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                  <ListBox.Styles><Style Selector="ListBoxItem"><Setter Property="Height" Value="24"/><Setter Property="Padding" Value="0"/><Setter Property="Margin" Value="0"/><Setter Property="CornerRadius" Value="0"/></Style></ListBox.Styles>
+                  <ListBox.ItemTemplate>
+                    <DataTemplate DataType="m:Stash">
+                      <Border Height="24" Padding="30,0,4,0" Background="Transparent" Tapped="OnSidebarStashTapped" DoubleTapped="OnSidebarStashDoubleTapped" ContextRequested="OnSidebarStashContextRequested" ToolTip.Tip="{Binding Message}">
+                        <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                      </Border>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+              </Grid>
             </Grid>
 
 </Grid>

@@ -53,3 +53,5 @@ MCP 的完整读写意味着 AI 可以修改甚至删除 Git 数据。应在 AI 
 
 `ui_diff`：选中暂存区、工作区或当前提交中的变更文件，并读取二进制对比状态、两侧最多 256 字节可见内容，执行 first / previous / next / last / goto（offset 为绝对字节偏移）。例如：`{"repo":"D:\\repo","action":"select","source":"unstaged","file":"firmware.bin"}`。历史文件先用 ui_select_commit 选中提交，再指定 source=history。
 `ui_command` 还支持 check_updates、external_diff（需要先选择变更文件），与界面对应按钮使用同一处理流程。
+
+`ui_stashes`：查看、展开 / 收起、筛选和选择侧栏的贮藏条目。`ui_diff` 的 source=stash 可选择当前贮藏中的变更文件。ui_command 支持 stash_apply_dialog / stash_drop_dialog / stash_branch_dialog，仅打开原有确认窗口，不自动执行操作。

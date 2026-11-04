@@ -89,6 +89,14 @@ namespace SourceGit.ViewModels
                     OnPropertyChanged(nameof(IsDashboardVisible));
                     OnPropertyChanged(nameof(IsWorkingCopyVisible));
                     OnPropertyChanged(nameof(IsStashesVisible));
+                    if (value == 2)
+                    {
+                        IsStashGroupExpanded = true;
+                        if (_stashesPage is { SelectedStash: null, VisibleStashes.Count: > 0 })
+                            _stashesPage.SelectedStash = _stashesPage.VisibleStashes[0];
+                    }
+                    else if (_stashesPage != null)
+                        _stashesPage.SelectedStash = null;
                 }
             }
         }
@@ -305,6 +313,17 @@ namespace SourceGit.ViewModels
                     _uiStates.IsLocalBranchesExpandedInSideBar = value;
                     OnPropertyChanged();
                 }
+            }
+        }
+
+        public bool IsStashGroupExpanded
+        {
+            get => _uiStates.IsStashesExpandedInSideBar;
+            set
+            {
+                if (value == _uiStates.IsStashesExpandedInSideBar) return;
+                _uiStates.IsStashesExpandedInSideBar = value;
+                OnPropertyChanged();
             }
         }
 

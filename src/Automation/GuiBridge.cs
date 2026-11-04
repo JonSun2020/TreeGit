@@ -108,9 +108,11 @@ namespace SourceGit.Automation
                         tabs = tabs?.GetVisualDescendants().OfType<ListBoxItem>().Select(item =>
                         {
                             var close = item.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Classes.Contains("treegit_tab_close"));
+                            var syncBadge = item.GetVisualDescendants().OfType<Border>().FirstOrDefault(b => b.Classes.Contains("treegit_tab_sync_badge"));
                             var a = close?.TranslatePoint(new Point(0, 0), item);
                             var b = close?.TranslatePoint(new Point(close.Bounds.Width, close.Bounds.Height), item);
                             return new { selected = item.IsSelected, text = item.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text).ToArray(),
+                                syncBadgeVisible = syncBadge?.IsEffectivelyVisible == true, syncStatus = (syncBadge?.Child as TextBlock)?.Text,
                                 closeVisible = close?.IsEffectivelyVisible == true && a.HasValue && b.HasValue && a.Value.X >= 0 && b.Value.X <= item.Bounds.Width + 1 };
                         }).ToArray(),
                         readOnlyFlag = "--read-only",
@@ -149,6 +151,8 @@ namespace SourceGit.Automation
                                 searchSelected = r.Histories?.SearchCommitContext.Selected?.SHA,
                                 searchResults = r.Histories?.SearchCommitContext.Results?.Select(c => new { sha = c.SHA, subject = c.Subject }).ToArray(),
                                 detailView = r.Histories?.DetailContext?.GetType().Name,
+                                stashes = new { count = r.StashesCount, expanded = r.IsStashGroupExpanded, selected = r.StashesPage.SelectedStash?.SHA,
+                                    changes = r.StashesPage.Changes?.Select(c => c.Path).ToArray(), diff = r.StashesPage.DiffContext?.Title },
                                 graphBranch = r.Histories?.GraphBranchName,
                                 graphMode = r.Histories?.BranchDisplayMode,
                                 graphLoading = r.Histories?.IsLoading,
@@ -377,6 +381,28 @@ namespace SourceGit.Automation
                 return found;
             });
 
+            if (name == "ui_stashes")
+                return await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (repo.IsBare) throw new ArgumentException("Bare repositories have no stash view.");
+                    var action = args.TryGetProperty("action", out var a) ? a.GetString() : "list";
+                    if (action == "expand") repo.IsStashGroupExpanded = true;
+                    else if (action == "collapse") repo.IsStashGroupExpanded = false;
+                    else if (action == "select")
+                    {
+                        var nameOrSha = Text(args, "stash");
+                        var stash = repo.StashesPage.VisibleStashes.Find(s => s.Name == nameOrSha || s.SHA == nameOrSha)
+                            ?? throw new ArgumentException("Stash not found in the visible list.");
+                        repo.SelectedViewIndex = 2;
+                        repo.StashesPage.SelectedStash = stash;
+                    }
+                    else if (action != "list") throw new ArgumentException("Unknown stash view action.");
+                    if (args.TryGetProperty("filter", out var filter)) repo.StashesPage.SearchFilter = filter.GetString();
+                    return (object)new { expanded = repo.IsStashGroupExpanded, selected = repo.StashesPage.SelectedStash?.SHA,
+                        stashes = repo.StashesPage.VisibleStashes.Select(s => new { name = s.Name, sha = s.SHA, subject = s.Subject }).ToArray(),
+                        changes = repo.StashesPage.Changes?.Select(c => c.Path).ToArray(), diff = repo.StashesPage.DiffContext?.Title };
+                });
+
             if (name == "ui_diff")
             {
                 var action = args.TryGetProperty("action", out var a) ? a.GetString() : "state";
@@ -391,6 +417,13 @@ namespace SourceGit.Automation
                                 throw new InvalidOperationException("Select a commit first.");
                             var change = detail.Changes?.FirstOrDefault(c => c.Path == file) ?? throw new ArgumentException("File is not in the selected commit.");
                             detail.ActiveTabIndex = 1; detail.ChangeSelection = new ViewModels.ChangeSelection(new[] { change });
+                        }
+                        else if (source == "stash")
+                        {
+                            var stash = repo.StashesPage;
+                            var change = stash.Changes?.FirstOrDefault(c => c.Path == file) ?? throw new ArgumentException("File is not in the selected stash.");
+                            repo.SelectedViewIndex = 2;
+                            stash.ChangeSelection = new ViewModels.ChangeSelection(new[] { change });
                         }
                         else
                         {
@@ -521,6 +554,14 @@ namespace SourceGit.Automation
                             break;
                         case "stash_dialog":
                             _ = repo.StashAllAsync(false);
+                            break;
+                        case "stash_apply_dialog":
+                        case "stash_drop_dialog":
+                        case "stash_branch_dialog":
+                            var stash = repo.StashesPage.SelectedStash ?? throw new ArgumentException("Select a stash first.");
+                            if (command == "stash_apply_dialog") repo.StashesPage.Apply(stash);
+                            else if (command == "stash_drop_dialog") repo.StashesPage.Drop(stash);
+                            else repo.StashesPage.CheckoutBranch(stash);
                             break;
                         case "apply_patch":
                             repo.ApplyPatch();

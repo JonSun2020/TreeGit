@@ -118,6 +118,47 @@ namespace SourceGit.Views
             if (DataContext is ViewModels.Repository { IsBare: false } repo) repo.SelectedViewIndex = 2;
         }
 
+        private void OnSidebarStashSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (DataContext is ViewModels.Repository repo && repo.StashesPage.SelectedStash != null)
+                repo.SelectedViewIndex = 2;
+            e.Handled = true;
+        }
+
+        private void OnSidebarStashTapped(object sender, TappedEventArgs e)
+        {
+            if (DataContext is ViewModels.Repository repo && sender is Control { DataContext: Models.Stash stash })
+            {
+                repo.StashesPage.SelectedStash = stash;
+                repo.SelectedViewIndex = 2;
+            }
+            e.Handled = true;
+        }
+
+        private void OnSidebarStashDoubleTapped(object sender, TappedEventArgs e)
+        {
+            if (DataContext is ViewModels.Repository repo && sender is Control { DataContext: Models.Stash stash })
+                repo.StashesPage.Apply(stash);
+            e.Handled = true;
+        }
+
+        private void OnSidebarStashContextRequested(object sender, ContextRequestedEventArgs e)
+        {
+            if (DataContext is ViewModels.Repository repo && sender is Control { DataContext: Models.Stash stash } control)
+                StashesPage.OpenStashContextMenu(control, repo.StashesPage, stash);
+            e.Handled = true;
+        }
+
+        private async void OnSidebarStashKeyDown(object sender, KeyEventArgs e)
+        {
+            if (DataContext is ViewModels.Repository { StashesPage.SelectedStash: { } stash } repo)
+            {
+                if (e.Key is Key.Delete or Key.Back) { repo.StashesPage.Drop(stash); e.Handled = true; }
+                else if (e.Key == Key.C && e.KeyModifiers == (OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control))
+                { await this.CopyTextAsync(stash.Message); e.Handled = true; }
+            }
+        }
+
         private async void OnOpenConfigure(object sender, RoutedEventArgs e)
         {
             if (DataContext is ViewModels.Repository repo)
@@ -280,9 +321,13 @@ namespace SourceGit.Views
             if (DataContext is not ViewModels.Repository { UIStates: { } } vm)
                 return;
 
-            var leftHeight = LeftSidebarGroups.Bounds.Height - 28.0 * 5 - 36;
+            var leftHeight = LeftSidebarGroups.Bounds.Height - 28.0 * 6;
             if (leftHeight <= 0)
                 return;
+
+            var stashHeight = vm.IsStashGroupExpanded ? Math.Min(vm.StashesPage.VisibleStashes.Count * 24.0, Math.Max(24, leftHeight * .3)) : 0;
+            StashList.Height = stashHeight;
+            leftHeight -= stashHeight;
 
             var localBranchRows = vm.IsLocalBranchGroupExpanded ? LocalBranchTree.Rows.Count : 0;
             var remoteBranchRows = vm.IsRemoteGroupExpanded ? RemoteBranchTree.Rows.Count : 0;
