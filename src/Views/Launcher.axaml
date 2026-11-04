@@ -6,7 +6,7 @@
       <Binding Path="ActiveWorkspace?.Name" Mode="OneWay"/>
     </MultiBinding>
   </v:ChromelessWindow.Title>
-  
+
   <Grid>
     <Grid.RowDefinitions>
       <RowDefinition Height="{Binding #ThisControl.CaptionHeight}"/>
@@ -76,7 +76,7 @@
           <MenuItem Header="退出" Command="{x:Static s:App.QuitCommand}"/>
         </MenuItem>
         <MenuItem Header="编辑(E)"><MenuItem Header="偏好设置" Command="{x:Static s:App.OpenPreferencesCommand}"/></MenuItem>
-        
+
         <MenuItem Header="仓库(R)">
           <MenuItem Header="仓库设置" Click="OnTreeGitRepositorySettings"/>
           <MenuItem Header="在文件管理器中打开" Click="OnTreeGitExplorer"/>

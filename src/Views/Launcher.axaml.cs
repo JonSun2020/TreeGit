@@ -146,6 +146,19 @@ namespace SourceGit.Views
             if (DataContext is not ViewModels.Launcher vm)
                 return;
 
+            var isMacOS = OperatingSystem.IsMacOS();
+            var cmdKey = isMacOS ? KeyModifiers.Meta : KeyModifiers.Control;
+            if (e.Key == Key.P && e.KeyModifiers == (cmdKey | KeyModifiers.Alt))
+            {
+                OnOpenWorkspaceMenu(TitleChrome, e);
+                return;
+            }
+            if (e.Key == Key.P && e.KeyModifiers == cmdKey)
+            {
+                OnOpenPagesCommandPalette(TitleChrome, e);
+                return;
+            }
+
             // Check for AltGr (which is detected as Ctrl+Alt)
             bool isAltGr = e.KeyModifiers.HasFlag(KeyModifiers.Control) &&
                            e.KeyModifiers.HasFlag(KeyModifiers.Alt);
@@ -158,8 +171,6 @@ namespace SourceGit.Views
             }
 
             // Register hotkeys for Windows/Linux (macOS has registered these keys in system menu bar)
-            var isMacOS = OperatingSystem.IsMacOS();
-            var cmdKey = isMacOS ? KeyModifiers.Meta : KeyModifiers.Control;
             if (!isMacOS)
             {
                 if (e is { KeyModifiers: KeyModifiers.Control, Key: Key.OemComma })
