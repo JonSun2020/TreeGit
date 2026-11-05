@@ -1,5 +1,5 @@
 """Exercise real GUI startup with/without discovered system Git. Integration build only."""
-import atexit,json,os,queue,subprocess,sys,tempfile,threading,time,traceback
+import atexit,json,os,queue,shutil,subprocess,sys,tempfile,threading,time,traceback
 from pathlib import Path
 exe=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
 root=Path(tempfile.mkdtemp(prefix='TreeGit Git runtime 中文 '));bundled=exe.parent/'git/cmd/git.exe'
@@ -71,13 +71,12 @@ if manual:
  c=Client(False,manual)
  try:check('a valid explicitly selected external Git is retained',Path(c.state['git']['path'])==manual)
  finally:c.close()
- marker=manual.parents[2]/'TreeGit.exe';assert not marker.exists();marker.write_bytes(b'old portable installation marker')
- try:
-  c=Client(False,manual)
-  try:check('a copied old bundle cannot hide a system installation',Path(c.state['git']['path'])!=manual and not c.state['git']['bundled'])
-  finally:c.close()
-  scenario('a copied old bundle relocates to the current directory',True,manual,True)
- finally:marker.unlink()
+old_host=root/'old portable installation';old_host.mkdir();shutil.copytree(exe.parent/'git',old_host/'git')
+(old_host/'TreeGit.exe').write_bytes(b'owned old portable installation marker');old_git=old_host/'git/cmd/git.exe'
+c=Client(False,old_git)
+try:check('a copied old bundle cannot hide a system installation',Path(c.state['git']['path'])!=old_git and not c.state['git']['bundled'])
+finally:c.close()
+scenario('a copied old bundle relocates to the current directory',True,old_git,True)
 ssh=exe.parent/'git/usr/bin/ssh.exe';held=ssh.with_suffix('.held');ssh.rename(held)
 try:
  scenario('system Git with incomplete unused bundle',False,None,False)

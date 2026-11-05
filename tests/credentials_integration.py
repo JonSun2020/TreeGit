@@ -69,6 +69,7 @@ def helper(repo, action, username='', password='', path='repo.git'):
     assert p.returncode == 0, p.stderr
     return p.stdout
 repos = []
+p = None
 try:
     for user, secret in [('alice','alpha-test'),('bob','beta-test')]:
         repo = root/user
@@ -193,3 +194,8 @@ try:
 finally:
     for repo in repos: helper(repo,'erase')
     server.shutdown()
+    if p and p.poll() is None:
+        p.stdin.close();p.wait(timeout=15)
+    literal=str(exe).replace("'","''")
+    cleanup="$owned=Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq '"+literal+"' }; foreach($process in $owned){Stop-Process -InputObject $process -ErrorAction SilentlyContinue; try{$null=$process.WaitForExit(10000)}catch{}}"
+    subprocess.run(['powershell','-NoProfile','-Command',cleanup],capture_output=True)

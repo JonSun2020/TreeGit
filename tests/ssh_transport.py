@@ -13,7 +13,10 @@ plain='--plain-only' in sys.argv[3:]
 trust_first_host='--trust-first-host' in sys.argv[3:]  # Requires the integration-only prompt driver.
 paramiko.util.log_to_file(str(out/'ssh-server-debug.log'))
 root=Path(tempfile.mkdtemp(prefix="TreeGit SSH E2E O'Brien "));bare=root/'remote.git';seed=root/'seed';fixture=root/'askpass.json'
-git_exe=Path(shutil.which('git')).resolve();ssh=git_exe.parent.parent/'usr/bin/ssh.exe';keygen=ssh.with_name('ssh-keygen.exe');assert ssh.exists() and keygen.exists()
+git_exe=(exe.parent/'git/cmd/git.exe') if '--bundled-git' in sys.argv[3:] else Path(shutil.which('git')).resolve()
+ssh=git_exe.parent.parent/'usr/bin/ssh.exe';keygen=ssh.with_name('ssh-keygen.exe')
+if not keygen.exists():keygen=Path(shutil.which('git')).resolve().parent.parent/'usr/bin/ssh-keygen.exe'
+assert ssh.exists() and keygen.exists()
 env=os.environ.copy();env.update(GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'),GIT_CONFIG_NOSYSTEM='1',SSH_AUTH_SOCK='',SOURCEGIT_TEST_ASKPASS_FIXTURE=str(fixture))
 env.pop('GIT_SSH_COMMAND',None)
 phrase="QA key passphrase's value"
