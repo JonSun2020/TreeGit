@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using System.Linq;
 using Avalonia.Collections;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -77,6 +78,9 @@ namespace SourceGit.ViewModels
         {
             return _popup is not { InProgress: true };
         }
+
+        public bool HasRunningOperation => _popup?.InProgress == true || _data is Repository repo &&
+            (repo.IsAutoFetching || repo.WorkingCopy is { IsCommitting: true } or { IsStaging: true } or { IsUnstaging: true } || repo.Logs.Any(log => !log.IsComplete));
 
         public async Task ProcessPopupAsync()
         {

@@ -739,4 +739,5 @@
   <x:String x:Key="Text.Graph.MergedHistory">Selected branch with merges</x:String>
   <x:String x:Key="Text.PreferenceRecovery.Backup" xml:space="preserve">Your settings could not be read. TreeGit started with defaults and kept a backup in the data folder.</x:String>
   <x:String x:Key="Text.PreferenceRecovery.Readonly" xml:space="preserve">Your settings are temporarily unavailable. Changes will not be saved in this session. Close other TreeGit windows or check file access, then open TreeGit again.</x:String>
+  <x:String x:Key="Text.Launcher.CloseWhileBusy">An operation is still running. Wait for it to finish, or cancel it from the operation window, then close TreeGit or this tab.</x:String>
 </ResourceDictionary>

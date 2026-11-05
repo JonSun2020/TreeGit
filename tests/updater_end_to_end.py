@@ -3,6 +3,10 @@ import base64, hashlib, json, os, queue, shutil, subprocess, sys, threading, tim
 from pathlib import Path
 
 old, new, archive, out, probe = map(lambda value: Path(value).resolve(), sys.argv[1:6])
+old_worker = '--old-worker' in sys.argv[6:]
+if old_worker:
+    old_build = json.loads((old/'build-info.json').read_text('utf-8-sig'))
+    assert tuple(map(int, old_build['version'].split('.'))) >= (2026, 23, 12), 'The old release must support the real updater worker'
 out.mkdir(parents=True, exist_ok=True)
 root = out/'installation with spaces 中文'
 assert not root.exists(), 'A fresh, disposable output directory is required'
@@ -58,7 +62,8 @@ try:
     ref=out/'prepared.json'
     subprocess.run([str(probe),'--prepare',str(root),str(archive),str(ref)],check=True)
     prepared=json.loads(ref.read_text('utf-8'));plan=Path(prepared['planPath'])
-    subprocess.run([str(probe),'--launch',str(plan),str(new/'TreeGit.exe'),str(pid)],check=True)
+    worker_source = exe if old_worker else new/'TreeGit.exe'
+    subprocess.run([str(probe),'--launch',str(plan),str(worker_source),str(pid)],check=True)
     if held_clients:
         for endpoint in held_clients:endpoint.p.wait(timeout=10)
         check('connected AI endpoints close cleanly so program files can be replaced',all(endpoint.p.returncode==0 for endpoint in held_clients))
@@ -88,4 +93,4 @@ finally:
     if client:client.close()
     for endpoint in held_clients:endpoint.close()
     if pid:close_gui(pid)
-    (out/'results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'failure':failure,'installation':str(root)},indent=2),'utf-8')
+    (out/'results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'failure':failure,'installation':str(root),'workerSource':'old installation' if old_worker else 'new fixture'},indent=2),'utf-8')

@@ -269,8 +269,10 @@ namespace SourceGit.Automation
                     if (uiCommand == "close_tab")
                     {
                         var launcher = App.GetLauncher();
-                        launcher.CloseTab(launcher.ActivePage);
-                        return (object)new { closed = true };
+                        var page = launcher.ActivePage;
+                        var repository = page.Node.IsRepository;
+                        launcher.CloseTab(page);
+                        return (object)new { closed = !launcher.Pages.Contains(page) || repository && !page.Node.IsRepository };
                     }
                     if (uiCommand == "mcp_connection")
                     {

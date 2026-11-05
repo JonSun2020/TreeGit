@@ -31,5 +31,5 @@ finally:
     try:p.wait(timeout=10)
     except subprocess.TimeoutExpired:p.kill(); p.wait()
     literal = str(root/'TreeGit.exe').replace("'", "''")
-    script = "Get-Process -Name TreeGit -ErrorAction SilentlyContinue | Where-Object {$_.Path -eq '"+literal+"'} | ForEach-Object {$null=$_.CloseMainWindow();if(-not $_.WaitForExit(5000)){$_.Kill();$_.WaitForExit()}}"
+    script = "$ErrorActionPreference='Stop';Get-Process -Name TreeGit -ErrorAction SilentlyContinue | Where-Object {$_.Path -eq '"+literal+"'} | ForEach-Object {$null=$_.CloseMainWindow();if(-not $_.WaitForExit(5000)){$_.Kill();$_.WaitForExit()}};exit 0"
     subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)

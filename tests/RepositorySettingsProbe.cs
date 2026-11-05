@@ -194,6 +194,43 @@ namespace SourceGit.Tests
                                 await Task.Delay(1000);
                                 operationDetails = new { visible = true, button = partialButton.Name, firstLine, lastLine };
                                 operationResult = true; break;
+                            case "native_close_during_commit":
+                                window.Close();
+                                repo.WorkingCopy.SetData(await new Commands.QueryLocalChanges(repo.FullPath).GetResultAsync());
+                                repo.WorkingCopy.CommitMessage = data.GetProperty("draft").GetString();
+                                var commitTask = repo.WorkingCopy.CommitAsync(false, false);
+                                var startedPath = data.GetProperty("started").GetString();
+                                var releasePath = data.GetProperty("release").GetString();
+                                try
+                                {
+                                    for (var attempt = 0; attempt < 200 && !File.Exists(startedPath); attempt++) await Task.Delay(25);
+                                    if (!File.Exists(startedPath)) throw new InvalidOperationException("The delayed commit hook did not start");
+                                    var closeLauncher = App.GetLauncher();
+                                    var closingPage = closeLauncher.Pages.Single(p => ReferenceEquals(p.Data, repo));
+                                    closeLauncher.CloseTab(closingPage);
+                                    var stayedOpen = closeLauncher.Pages.Any(p => ReferenceEquals(p.Data, repo));
+                                    var windowStayedOpen = false;
+                                    var quitStayedOpen = false;
+                                    var otherTabsStayedOpen = false;
+                                    var rightTabsStayedOpen = false;
+                                    if (stayedOpen)
+                                    {
+                                        closeLauncher.AddNewTab();
+                                        closeLauncher.CloseOtherTabs();
+                                        otherTabsStayedOpen = closeLauncher.Pages.Contains(closingPage);
+                                        closeLauncher.MoveTab(closingPage, closeLauncher.ActivePage);
+                                        closeLauncher.CloseRightTabs();
+                                        rightTabsStayedOpen = closeLauncher.Pages.Contains(closingPage);
+                                        ((Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow.Close();
+                                        windowStayedOpen = ((Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow.IsVisible;
+                                        App.Quit(0);
+                                        quitStayedOpen = ((Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow.IsVisible;
+                                    }
+                                    operationDetails = new { stayedOpen, windowStayedOpen, quitStayedOpen, otherTabsStayedOpen, rightTabsStayedOpen, busy = repo.WorkingCopy.IsCommitting };
+                                }
+                                finally { await File.WriteAllTextAsync(releasePath, "continue"); }
+                                await commitTask;
+                                operationResult = true; break;
                             case "native_commit":
                                 repo.WorkingCopy.SetData(await new Commands.QueryLocalChanges(repo.FullPath).GetResultAsync());
                                 repo.WorkingCopy.CommitMessage = data.GetProperty("draft").GetString();

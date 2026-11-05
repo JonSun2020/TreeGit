@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -104,6 +105,16 @@ namespace SourceGit.ViewModels
             return false;
         }
 
+        public bool CanCloseAll() => _isClosing || CanClosePages(Pages);
+
+        private static bool CanClosePages(IEnumerable<LauncherPage> pages)
+        {
+            var busy = pages.FirstOrDefault(page => page.HasRunningOperation);
+            if (busy == null) return true;
+            Models.Notification.Send(null, App.Text("Launcher.CloseWhileBusy"), true);
+            return false;
+        }
+
         public void CloseAll()
         {
             _isClosing = true;
@@ -118,7 +129,7 @@ namespace SourceGit.ViewModels
 
         public void SwitchWorkspace(Workspace to)
         {
-            if (to == null || to.IsActive)
+            if (to == null || to.IsActive || !CanCloseAll())
                 return;
 
             _ignoreIndexChange = true;
@@ -192,6 +203,9 @@ namespace SourceGit.ViewModels
 
         public void CloseTab(LauncherPage page)
         {
+            page ??= _activePage;
+            if (!CanClosePages([page])) return;
+
             if (Pages.Count == 1)
             {
                 var last = Pages[0];
@@ -240,6 +254,7 @@ namespace SourceGit.ViewModels
         {
             if (Pages.Count == 1)
                 return;
+            if (!CanClosePages(Pages.Where(page => page != ActivePage))) return;
 
             _ignoreIndexChange = true;
 
@@ -260,6 +275,7 @@ namespace SourceGit.ViewModels
 
         public void CloseRightTabs()
         {
+            if (!CanClosePages(Pages.Skip(Pages.IndexOf(ActivePage) + 1))) return;
             _ignoreIndexChange = true;
 
             var endIdx = Pages.IndexOf(ActivePage);

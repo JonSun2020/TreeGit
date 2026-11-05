@@ -190,8 +190,7 @@ namespace SourceGit.ViewModels
             _cancellation?.Cancel();
         }
 
-        private static bool HasGitOperations() => App.GetLauncher()?.Pages.Any(page =>
-            page.Popup?.InProgress == true || page.Data is Repository repo && (repo.IsAutoFetching || repo.Logs.Any(log => !log.IsComplete) || repo.WorkingCopy?.IsCommitting == true)) == true;
+        private static bool HasGitOperations() => App.GetLauncher()?.Pages.Any(page => page.HasRunningOperation) == true;
 
         private CancellationTokenSource ResetCancellation()
         {

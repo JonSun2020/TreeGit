@@ -364,7 +364,14 @@ namespace SourceGit.Views
             base.OnClosing(e);
 
             if (!Design.IsDesignMode && DataContext is ViewModels.Launcher launcher)
+            {
+                if (!launcher.CanCloseAll())
+                {
+                    e.Cancel = true;
+                    return;
+                }
                 launcher.CloseAll();
+            }
         }
 
         protected override void OnClosed(EventArgs e)

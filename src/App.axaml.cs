@@ -300,7 +300,14 @@ namespace SourceGit
         public static void Quit(int exitCode)
         {
             if (Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-                desktop.Shutdown(exitCode);
+            {
+                if (desktop.MainWindow is Views.Launcher)
+                {
+                    if (GetLauncher()?.CanCloseAll() == false) return;
+                    desktop.TryShutdown(exitCode);
+                }
+                else desktop.Shutdown(exitCode);
+            }
             else
                 Environment.Exit(exitCode);
         }

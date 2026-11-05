@@ -20,6 +20,14 @@ namespace SourceGit.Tests
             Check("an empty library is detected", !Native.UiStartup.IsComplete(root));
             File.Delete(library);
             Check("a deleted library is detected", !Native.UiStartup.IsComplete(root));
+            var architecture = System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant();
+            var nativeRoot = Path.Combine(root, "runtimes", "win-" + architecture, "native");
+            Directory.CreateDirectory(nativeRoot);
+            foreach (var name in Models.TreeGitRelease.WindowsNativeLibraries) File.WriteAllBytes(Path.Combine(nativeRoot, name), [1]);
+            Check("framework-dependent native asset directories are accepted", Native.UiStartup.IsComplete(root));
+            File.WriteAllBytes(library, []);
+            Check("a corrupt root library cannot be hidden by a runtime fallback", !Native.UiStartup.IsComplete(root));
+            File.Delete(library);
             Directory.CreateDirectory(Path.Combine(root, "data"));
             var preference = Path.Combine(root, "data/preference.json");
             File.WriteAllText(preference, "{\"Locale\":\"zh_CN\"}");

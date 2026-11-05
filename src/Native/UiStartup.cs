@@ -16,7 +16,15 @@ namespace SourceGit.Native
                 foreach (var name in Models.TreeGitRelease.WindowsNativeLibraries)
                 {
                     var file = new FileInfo(Path.Combine(root, name));
-                    if (!file.Exists || file.Length == 0) return false;
+                    if (file.Exists)
+                    {
+                        if (file.Length == 0) return false;
+                        continue;
+                    }
+                    // Framework-dependent developer builds use .NET's RID-specific native assets.
+                    var architecture = RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant();
+                    var runtimeFile = new FileInfo(Path.Combine(root, "runtimes", "win-" + architecture, "native", name));
+                    if (!runtimeFile.Exists || runtimeFile.Length == 0) return false;
                 }
                 return true;
             }
