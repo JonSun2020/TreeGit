@@ -9,19 +9,22 @@ namespace SourceGit.Commands
     {
         public static async Task RunAsync(string repo, string revision, string file, string saveTo)
         {
-            var dir = Path.GetDirectoryName(saveTo) ?? string.Empty;
-            if (!Directory.Exists(dir))
-                Directory.CreateDirectory(dir);
-
-            var isLFSFiltered = await new IsLFSFiltered(repo, revision, file).GetResultAsync().ConfigureAwait(false);
-            if (isLFSFiltered)
+            try
             {
-                await using var pointerStream = await QueryFileContent.RunAsync(repo, revision, file).ConfigureAwait(false);
-                await ExecCmdAsync(repo, "lfs smudge", saveTo, pointerStream).ConfigureAwait(false);
+                var isLFSFiltered = await new IsLFSFiltered(repo, revision, file).GetResultAsync().ConfigureAwait(false);
+                if (isLFSFiltered)
+                {
+                    await using var pointerStream = await QueryFileContent.RunAsync(repo, revision, file, requireSuccess: true).ConfigureAwait(false);
+                    await ExecCmdAsync(repo, "lfs smudge", saveTo, pointerStream).ConfigureAwait(false);
+                }
+                else
+                {
+                    await ExecCmdAsync(repo, $"show {revision}:{file.Quoted()}", saveTo).ConfigureAwait(false);
+                }
             }
-            else
+            catch (Exception)
             {
-                await ExecCmdAsync(repo, $"show {revision}:{file.Quoted()}", saveTo).ConfigureAwait(false);
+                ReportFailure(repo);
             }
         }
 
@@ -38,26 +41,41 @@ namespace SourceGit.Commands
             starter.RedirectStandardOutput = true;
             starter.RedirectStandardError = true;
 
-            await using (var sw = File.Create(outputFile))
+            var partial = outputFile + ".treegit-" + Guid.NewGuid().ToString("N") + ".tmp";
+            try
             {
-                try
+                var directory = Path.GetDirectoryName(outputFile);
+                if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
+                await using (var sw = new FileStream(partial, FileMode.CreateNew, FileAccess.Write, FileShare.None, 65536, true))
                 {
                     using var proc = Process.Start(starter)!;
+                    proc.BeginErrorReadLine();
 
                     if (input != null)
                     {
                         var inputString = await new StreamReader(input).ReadToEndAsync().ConfigureAwait(false);
                         await proc.StandardInput.WriteAsync(inputString).ConfigureAwait(false);
                     }
+                    proc.StandardInput.Close();
 
                     await proc.StandardOutput.BaseStream.CopyToAsync(sw).ConfigureAwait(false);
                     await proc.WaitForExitAsync().ConfigureAwait(false);
+                    if (proc.ExitCode != 0) throw new IOException("The selected revision file could not be read.");
                 }
-                catch (Exception e)
-                {
-                    Models.Notification.Send(repo, "Save file failed: " + e.Message, true);
-                }
+                File.Move(partial, outputFile, true);
+            }
+            catch (Exception)
+            {
+                ReportFailure(repo);
+            }
+            finally
+            {
+                try { if (File.Exists(partial)) File.Delete(partial); }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
             }
         }
+
+        private static void ReportFailure(string repo) => Models.Notification.Send(repo,
+            App.Current == null ? "The file could not be saved. The existing target file was kept." : App.Text("File.ExportFailed"), true);
     }
 }

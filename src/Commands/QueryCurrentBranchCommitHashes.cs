@@ -10,7 +10,7 @@ namespace SourceGit.Commands
         {
             WorkingDirectory = repo;
             Context = repo;
-            Args = $"log --since=@{sinceTimestamp} --format=%H";
+            Args = sinceTimestamp == 0 ? "log --format=%H" : $"log --since=@{sinceTimestamp} --format=%H";
         }
 
         public async Task<HashSet<string>> GetResultAsync()
@@ -22,6 +22,7 @@ namespace SourceGit.Commands
                 using var proc = new Process();
                 proc.StartInfo = CreateGitStartInfo(true);
                 proc.Start();
+                proc.BeginErrorReadLine();
 
                 while (await proc.StandardOutput.ReadLineAsync().ConfigureAwait(false) is { Length: > 8 } line)
                     outs.Add(line);

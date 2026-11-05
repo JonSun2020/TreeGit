@@ -64,6 +64,7 @@ namespace SourceGit.Commands
                 using var proc = new Process();
                 proc.StartInfo = CreateGitStartInfo(true);
                 proc.Start();
+                proc.BeginErrorReadLine();
 
                 using var ms = new MemoryStream();
                 await proc.StandardOutput.BaseStream.CopyToAsync(ms, CancellationToken).ConfigureAwait(false);

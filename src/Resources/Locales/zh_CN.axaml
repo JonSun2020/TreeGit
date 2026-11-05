@@ -1188,4 +1188,5 @@
   <x:String x:Key="Text.SelfUpdate.Flow.Error.settings">设置或提交说明暂时无法保存，更新尚未开始。请确认磁盘有可用空间、文件夹可写，并关闭占用文件的其他 TreeGit 窗口后重试；当前窗口和提交说明已保留。</x:String>
   <x:String x:Key="Text.Launcher.SaveBeforeCloseFailed">当前设置或提交说明无法保存。请检查磁盘空间、文件夹权限，或关闭占用文件的其他窗口后重试。点击“取消”可返回并保留当前内容；点击“确定”将不保存并退出。</x:String>
   <x:String x:Key="Text.Launcher.SaveDraftBeforeCloseFailed">提交说明暂时无法保存，标签页已保留。请检查磁盘空间、文件夹权限，或关闭占用文件的其他窗口后重试。</x:String>
+  <x:String x:Key="Text.File.ExportFailed">文件保存失败，原目标文件已保留。请确认所选版本和文件仍可读取，并检查目标文件夹的权限与剩余空间。</x:String>
 </ResourceDictionary>

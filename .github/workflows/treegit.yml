@@ -30,6 +30,8 @@ jobs:
           New-Item -ItemType Directory -Path src/bin/Debug/net10.0/data -Force | Out-Null
           python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/command-pipes-results"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/streaming-query-results" --streaming
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify authentication changes during an in-flight read
         shell: pwsh
         run: |
@@ -72,6 +74,7 @@ jobs:
             ${{ runner.temp }}/cancellation-results
             ${{ runner.temp }}/runtime-ui-results
             ${{ runner.temp }}/command-pipes-results
+            ${{ runner.temp }}/streaming-query-results/command-pipes-results.json
             ${{ runner.temp }}/mode-results/repository-mode-results.json
             ${{ runner.temp }}/startup-results/ui-startup-results.json
             ${{ runner.temp }}/close-during-commit-results/close-during-commit-results.json

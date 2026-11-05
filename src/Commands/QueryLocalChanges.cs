@@ -39,6 +39,7 @@ namespace SourceGit.Commands
 
                 proc.StartInfo = CreateGitStartInfo(true);
                 proc.Start();
+                proc.BeginErrorReadLine();
 
                 if (CancellationToken.CanBeCanceled)
                 {

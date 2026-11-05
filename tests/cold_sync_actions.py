@@ -15,6 +15,10 @@ for command,expected in [('fetch_dialog','Fetch'),('pull_dialog','Pull'),('push_
     app=out/(command+'-app');shutil.copytree(source.parent,app,ignore=shutil.ignore_patterns('data','log','.treegit-update'));(app/'data').mkdir()
     (app/'data/preference.json').write_text(json.dumps({'Locale':'zh_CN','Theme':'Blue','GitInstallPath':str(proxy),'Check4UpdatesOnStartup':False}),'utf-8')
     gate=root/command;env['TREEGIT_TEST_BRANCH_GATE']=str(gate);exe=app/source.name;pid=None;record={'command':command}
+    before_proxy=time.monotonic()
+    proxy_version=subprocess.run([str(proxy),'--version'],env=env,capture_output=True,text=True,encoding='utf-8',timeout=15,creationflags=subprocess.CREATE_NO_WINDOW)
+    assert proxy_version.returncode==0 and proxy_version.stdout.startswith('git version '),(proxy_version.returncode,proxy_version.stderr)
+    record['proxyWarmupSeconds']=round(time.monotonic()-before_proxy,3)
     p=subprocess.Popen([str(exe),'--mcp'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',env=env,creationflags=subprocess.CREATE_NO_WINDOW)
     replies=queue.Queue();threading.Thread(target=lambda:[replies.put(line) for line in p.stdout],daemon=True).start();seq=0
     def rpc(method,params):
@@ -29,7 +33,9 @@ for command,expected in [('fetch_dialog','Fetch'),('pull_dialog','Pull'),('push_
         rpc('initialize',{'protocolVersion':'2025-11-25'});pid=tool('ui_state')['processId'];tool('ui_open_repository',{'repo':str(repo)})
         deadline=time.monotonic()+8
         while not Path(str(gate)+'.observed').exists() and time.monotonic()<deadline:time.sleep(.02)
-        assert Path(str(gate)+'.observed').exists(),'The initial branch query did not pause'
+        if not Path(str(gate)+'.observed').exists():
+            record['stateBeforeMissingGate']=tool('ui_state')
+            raise AssertionError('The owned delay wrapper did not pause a branch query; verify the selected Git executable before interpreting this as a product assertion')
         before=tool('ui_state')['repositories'];record['before']=before;assert any(r['branch'] is None for r in before),'The click was not made during initial metadata loading'
         tool('ui_command',{'repo':str(repo),'command':command});Path(str(gate)+'.release').write_text('continue')
         deadline=time.monotonic()+8;state={}

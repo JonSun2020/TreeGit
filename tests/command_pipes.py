@@ -7,7 +7,8 @@ out = Path(sys.argv[2]).resolve(); out.mkdir(parents=True, exist_ok=True)
 root = Path(tempfile.mkdtemp(prefix='command-pipes-', dir=out))
 env = os.environ.copy(); env.update(GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'))
 records = []
-for mode in ['sync', 'async', 'sync-failure', 'async-failure', 'credential-config']:
+modes = ['stream-'+mode for mode in ['diff','commits','changes','hashes','names','objects','pickable','compare','conflict','save','save-failure','lfs','save-lfs','save-lfs-failure']] if '--streaming' in sys.argv[3:] else ['sync', 'async', 'sync-failure', 'async-failure', 'credential-config']
+for mode in modes:
     report = root/(mode+'.json'); started = time.monotonic()
     p = subprocess.Popen([str(exe), '--integration-command-pipes', str(root/mode), mode, str(report)], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
     timed_out = False

@@ -71,6 +71,12 @@ c.tool('ui_working_copy', {'repo':str(repo)})
 def state():
     return next(r for r in c.tool('ui_state')['repositories'] if Path(r['repo']) == repo)
 check('uncommitted row opens actual working-copy details beneath history', state()['workingCopySelected'] and state()['view'] == 0 and state()['detailView'] == 'WorkingCopy')
+initial_history=state(); history_deadline=time.monotonic()+15
+while time.monotonic()<history_deadline:
+    loaded_history=state()
+    if not loaded_history['graphLoading'] and loaded_history['graphTotal']>0:break
+    time.sleep(.05)
+(out/'first-history-load.json').write_text(json.dumps({'initial':initial_history,'loaded':loaded_history},ensure_ascii=False,indent=2),encoding='utf-8')
 check('synthetic working-copy row is not a fake Git commit', state()['graphTotal'] == 1)
 widths = {'graph':88,'description':510,'date':180,'author':140,'commit':110,'authorDate':170}
 c.tool('ui_history_columns', {'repo':str(repo), **widths})

@@ -7,7 +7,7 @@ namespace SourceGit.Commands
 {
     public static class QueryFileContent
     {
-        public static async Task<Stream> RunAsync(string repo, string revision, string file)
+        public static async Task<Stream> RunAsync(string repo, string revision, string file, bool requireSuccess = false)
         {
             var starter = new ProcessStartInfo();
             starter.WorkingDirectory = repo;
@@ -24,9 +24,11 @@ namespace SourceGit.Commands
                 using var proc = Process.Start(starter)!;
                 await proc.StandardOutput.BaseStream.CopyToAsync(stream).ConfigureAwait(false);
                 await proc.WaitForExitAsync().ConfigureAwait(false);
+                if (requireSuccess && proc.ExitCode != 0) throw new IOException("The selected revision file could not be read.");
             }
             catch (Exception e)
             {
+                if (requireSuccess) { stream.Dispose(); throw; }
                 Models.Notification.Send(repo, $"Failed to query file content: {e}", true);
             }
 
@@ -53,6 +55,7 @@ namespace SourceGit.Commands
                 await proc.StandardInput.WriteLineAsync("version https://git-lfs.github.com/spec/v1").ConfigureAwait(false);
                 await proc.StandardInput.WriteLineAsync($"oid sha256:{oid}").ConfigureAwait(false);
                 await proc.StandardInput.WriteLineAsync($"size {size}").ConfigureAwait(false);
+                proc.StandardInput.Close();
                 await proc.StandardOutput.BaseStream.CopyToAsync(stream).ConfigureAwait(false);
                 await proc.WaitForExitAsync().ConfigureAwait(false);
             }
