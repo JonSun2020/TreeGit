@@ -2,6 +2,7 @@
 <ResourceDictionary xmlns:m="using:SourceGit.Models" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <ResourceDictionary.ThemeDictionaries>
     <ResourceDictionary x:Key="Light">
+      <Color x:Key="Color.TreeGit.TagIcon">#FF103F47</Color>
       <Color x:Key="SystemAccentColor">#FF195F69</Color>
       <Color x:Key="SystemListLowColor">#FFDDECEF</Color>
       <Color x:Key="Color.TreeGit.Chrome">#FF16836D</Color>
@@ -43,6 +44,7 @@
     <Color x:Key="Color.TreeGit.ChromeForeground">#FFFFFFFF</Color><Color x:Key="Color.TreeGit.ToolbarOutline">#FF286D76</Color><Color x:Key="Color.TreeGit.TabInactive">#FFE1E6E9</Color><Color x:Key="Color.TreeGit.TabActive">#FFF4F5F7</Color><Color x:Key="Color.TreeGit.TabActiveBorder">#FF16836D</Color></ResourceDictionary>
 
     <ResourceDictionary x:Key="Dark">
+      <Color x:Key="Color.TreeGit.TagIcon">#FF103F47</Color>
       <Color x:Key="SystemAccentColor">#FF68C1CB</Color>
       <Color x:Key="SystemListLowColor">#FF234249</Color>
       <Color x:Key="Color.TreeGit.Chrome">#FF1F1F1F</Color>
@@ -83,6 +85,7 @@
       <Color x:Key="Color.SubPanel">#FF272727</Color>
     <Color x:Key="Color.TreeGit.ChromeForeground">#FFFFFFFF</Color><Color x:Key="Color.TreeGit.ToolbarOutline">#FF79BDC5</Color><Color x:Key="Color.TreeGit.TabInactive">#FF383838</Color><Color x:Key="Color.TreeGit.TabActive">#FF2F2F2F</Color><Color x:Key="Color.TreeGit.TabActiveBorder">#FF1F1F1F</Color></ResourceDictionary>
   <ResourceDictionary x:Key="{x:Static m:TreeGitThemes.SourceTree}">
+      <Color x:Key="Color.TreeGit.TagIcon">#FF0747A6</Color>
       <Color x:Key="SystemAccentColor">#FF0078D7</Color>
       <Color x:Key="SystemListLowColor">#FFDEEBFF</Color>
       <Color x:Key="Color.TreeGit.Chrome">#FF0747A6</Color>
@@ -126,6 +129,7 @@
     </ResourceDictionary.ThemeDictionaries>
 
   <SolidColorBrush x:Key="Brush.TreeGit.Chrome" Color="{DynamicResource Color.TreeGit.Chrome}"/>
+  <SolidColorBrush x:Key="Brush.TreeGit.TagIcon" Color="{DynamicResource Color.TreeGit.TagIcon}"/>
   <SolidColorBrush x:Key="Brush.TreeGit.ChromeHover" Color="{DynamicResource Color.TreeGit.ChromeHover}"/>
   <SolidColorBrush x:Key="Brush.TreeGit.ToolbarLabel" Color="{DynamicResource Color.TreeGit.ToolbarLabel}"/>
   <LinearGradientBrush x:Key="Brush.TreeGit.ToolbarIcon" StartPoint="0%,0%" EndPoint="0%,100%">

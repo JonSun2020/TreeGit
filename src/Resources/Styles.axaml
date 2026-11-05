@@ -12,7 +12,7 @@
   </Design.PreviewWith>
 
   <Style Selector="v|CommitRefsPresenter">
-    <Setter Property="TagIconBrush" Value="{DynamicResource Brush.TreeGit.Chrome}"/>
+    <Setter Property="TagIconBrush" Value="{DynamicResource Brush.TreeGit.TagIcon}"/>
   </Style>
 
 
