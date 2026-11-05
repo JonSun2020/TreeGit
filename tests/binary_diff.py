@@ -101,11 +101,23 @@ tool('ui_window', {'theme':'Dark'}); time.sleep(.3)
 tool('ui_window', {'width':1440, 'height':900, 'theme':'SourceTree'})
 
 diff('window')
+comparison_window = None
 for _ in range(200):
     state = diff()
-    if state['status'] == 'ready' and state['bytesPerRow'] == 16: break
+    comparison_window = next((window for window in tool('ui_state')['dialogs']
+                              if window['title'] == 'TreeGit · 二进制对比'), None)
+    # Independent inspectors are intentionally constrained to the working area.
+    # A 1024px CI desktop cannot accommodate the normal 1340px / 16-byte view.
+    available = comparison_window['width'] if comparison_window else 0
+    expected_columns = 16 if available >= 1170 else 8 if available >= 730 else 4
+    if state['status'] == 'ready' and comparison_window and state['bytesPerRow'] == expected_columns: break
     time.sleep(.1)
-check('independent comparison has two full-width panes and the same content', state['status'] == 'ready' and state['bytesPerRow'] == 16 and state['differentBytes'] == expected)
+(out/'independent-window.json').write_text(json.dumps(comparison_window, indent=2), encoding='utf-8')
+check('independent comparison uses the available screen width and preserves both snapshots',
+      state['status'] == 'ready' and comparison_window is not None
+      and state['bytesPerRow'] == expected_columns and state['differentBytes'] == expected
+      and bytes.fromhex(state['oldHex']) == staged[state['topOffset']:state['topOffset']+256]
+      and bytes.fromhex(state['newHex']) == working[state['topOffset']:state['topOffset']+256])
 (out/'binary-independent.png').write_bytes(tool('ui_screenshot', {'window':'active'}))
 tool('ui_window', {'zoom':2})
 for _ in range(100):

@@ -181,7 +181,8 @@ jobs:
           path: |
             ${{ runner.temp }}/font-results/*.json
             ${{ runner.temp }}/font-results/*.png
-            ${{ runner.temp }}/binary-diff-results/binary-results.json
+            ${{ runner.temp }}/binary-diff-results/*.json
+            ${{ runner.temp }}/binary-diff-results/*.png
             ${{ runner.temp }}/binary-refresh-results/*.json
             ${{ runner.temp }}/deferred-results/*.json
             ${{ runner.temp }}/deferred-results/*.png
