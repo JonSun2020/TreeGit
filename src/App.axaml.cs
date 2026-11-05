@@ -41,6 +41,14 @@ namespace SourceGit
                 return;
             }
             if (Native.TreeGitUpdateInstaller.HandleBootstrap(args)) return;
+#if INTEGRATION_TESTS
+            if (args.Length > 0 && args[0].StartsWith("--integration-", StringComparison.Ordinal) && !Directory.Exists(Path.Combine(AppContext.BaseDirectory, "data")))
+            {
+                Console.Error.WriteLine("Integration tests require an isolated portable data directory next to the test executable.");
+                Environment.Exit(64);
+                return;
+            }
+#endif
             try { Native.OS.SetupBasicDirectories(); }
             catch (Exception error)
             {
@@ -306,10 +314,10 @@ namespace SourceGit
         {
             if (Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                if (desktop.MainWindow is Views.Launcher)
+                if (desktop.MainWindow is Views.Launcher { IsVisible: true } launcherWindow)
                 {
                     if (GetLauncher()?.CanCloseAll() == false) return;
-                    desktop.Shutdown(exitCode);
+                    launcherWindow.Close();
                 }
                 else desktop.Shutdown(exitCode);
             }

@@ -508,6 +508,10 @@ namespace SourceGit.ViewModels
             _histories = new Histories(this);
             _workingCopy = new WorkingCopy(this) { CommitMessage = _uiStates.LastCommitMessage };
             _stashesPage = new StashesPage(this);
+            if (_settings.LoadRecovery == 2 || _uiStates.LoadRecovery == 2)
+                SendNotification(App.Text("Repository.ConfigRecovery.Readonly"), true);
+            else if (_settings.LoadRecovery == 1 || _uiStates.LoadRecovery == 1)
+                SendNotification(App.Text("Repository.ConfigRecovery.Backup"), true);
             _selectedViewIndex = 0;
             if (!IsBare && Preferences.Instance.ShowLocalChangesByDefault) _histories.ShowWorkingCopyOverview();
             _lastFetchTime = DateTime.Now;
@@ -515,13 +519,19 @@ namespace SourceGit.ViewModels
             RefreshAll();
         }
 
-        public void Close()
+        public void SaveUIState(bool requireSuccess = false)
         {
             var commitMessage = _workingCopy.CommitMessage;
             _uiStates.LastCommitMessage = commitMessage;
             _uiStates.LastAutoLoadedCommitMessage = _workingCopy.AutoLoadedCommitMessage;
             _uiStates.LastCommitMessageContext = _workingCopy.CommitMessageContext;
-            _uiStates.Save();
+            _uiStates.Save(requireSuccess);
+        }
+
+        public void Close()
+        {
+            SaveUIState();
+            var commitMessage = _workingCopy.CommitMessage;
 
             var mergeMessage = Path.Combine(GitDir, "MERGE_MSG");
             try

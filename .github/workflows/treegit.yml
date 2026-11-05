@@ -61,6 +61,9 @@ jobs:
       - name: Verify partially corrupt preference structures
         shell: pwsh
         run: python tests/preferences_schema.py src/bin/Debug/net10.0/SourceGit.exe "${{ runner.temp }}/preferences-schema-results"
+      - name: Verify saving before closing a window or tab
+        shell: pwsh
+        run: python tests/close_save_failure.py src/bin/Debug/net10.0/SourceGit.exe "${{ runner.temp }}/close-save-results"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -73,6 +76,8 @@ jobs:
             ${{ runner.temp }}/startup-results/ui-startup-results.json
             ${{ runner.temp }}/close-during-commit-results/close-during-commit-results.json
             ${{ runner.temp }}/preferences-schema-results/preferences-schema-results.json
+            ${{ runner.temp }}/close-save-results/close-save-results.json
+            ${{ runner.temp }}/close-save-results/*.png
   portable:
     runs-on: windows-latest
     steps:
@@ -122,6 +127,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/preferences_recovery.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/preferences-recovery-results"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/repository_config_recovery.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/repository-config-recovery-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/binary_cancel.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/binary-cancellation-results"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           dotnet build tests/GitDelayProxy.csproj -c Release -o "$env:RUNNER_TEMP/git-delay-proxy" -v:q
@@ -140,6 +147,7 @@ jobs:
             ${{ runner.temp }}/updater-results/results.json
             ${{ runner.temp }}/startup-incomplete-results/startup-incomplete-results.json
             ${{ runner.temp }}/preferences-recovery-results/preferences-recovery-results.json
+            ${{ runner.temp }}/repository-config-recovery-results/repository-config-recovery-results.json
             ${{ runner.temp }}/binary-cancellation-results/binary-cancellation-results.json
             ${{ runner.temp }}/cold-sync-results/cold-sync-results.json
       - uses: actions/upload-artifact@v4

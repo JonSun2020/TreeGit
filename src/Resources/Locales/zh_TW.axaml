@@ -1179,4 +1179,9 @@
   <x:String x:Key="Text.WorkingCopy.OperationBusy">其他操作尚未完成，請等待完成後再提交。</x:String>
   <x:String x:Key="Text.WorkingCopy.ConflictsBeforeAutoStage">請先解決檔案衝突，再執行全部暫存並提交。</x:String>
   <x:String x:Key="Text.WorkingCopy.NoCommitsToAmend">倉庫還沒有可修改的提交，請先完成第一次提交。</x:String>
+  <x:String x:Key="Text.Repository.ConfigRecovery.Backup">部分倉庫介面設定未能讀取，原檔案已在倉庫內部設定目錄中備份，現已恢復可用設定。</x:String>
+  <x:String x:Key="Text.Repository.ConfigRecovery.Readonly">倉庫介面設定暫時無法讀取，本次不會覆寫原檔案。請關閉其他 TreeGit 視窗或檢查資料夾權限後，重新開啟倉庫。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.settings">設定或提交說明暫時無法儲存，更新尚未開始。請確認磁碟有可用空間、資料夾可寫入，並關閉占用檔案的其他 TreeGit 視窗後重試；目前視窗和提交說明已保留。</x:String>
+  <x:String x:Key="Text.Launcher.SaveBeforeCloseFailed">目前設定或提交說明無法儲存。請檢查磁碟空間、資料夾權限，或關閉占用檔案的其他視窗後重試。按「取消」可返回並保留目前內容；按「確定」將不儲存並退出。</x:String>
+  <x:String x:Key="Text.Launcher.SaveDraftBeforeCloseFailed">提交說明暫時無法儲存，分頁已保留。請檢查磁碟空間、資料夾權限，或關閉占用檔案的其他視窗後重試。</x:String>
 </ResourceDictionary>

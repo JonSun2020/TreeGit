@@ -1,5 +1,7 @@
 ﻿using System;
 
+using System.IO;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -367,8 +369,25 @@ namespace SourceGit.Views
             {
                 if (!launcher.CanCloseAll())
                 {
+                    _confirmedUnsavedClose = false;
                     e.Cancel = true;
                     return;
+                }
+                if (!_confirmedUnsavedClose && !Native.TreeGitUpdateInstaller.IsApplying)
+                {
+                    try
+                    {
+                        ViewModels.Preferences.Instance.Save();
+                        foreach (var page in launcher.Pages)
+                            if (page.Data is ViewModels.Repository repo && (repo.UIStates.LoadRecovery != 2 || !string.IsNullOrEmpty(repo.WorkingCopy.CommitMessage)))
+                                repo.SaveUIState(requireSuccess: true);
+                    }
+                    catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+                    {
+                        e.Cancel = true;
+                        if (!_closeSavePrompt) _ = ConfirmUnsavedCloseAsync();
+                        return;
+                    }
                 }
                 launcher.CloseAll();
             }
@@ -378,10 +397,21 @@ namespace SourceGit.Views
         {
             base.OnClosed(e);
 
-            if (!Design.IsDesignMode)
-                ViewModels.Preferences.Instance.Save();
-
             App.Quit(0);
+        }
+
+        private async Task ConfirmUnsavedCloseAsync()
+        {
+            _closeSavePrompt = true;
+            try
+            {
+                if (await App.AskConfirmAsync(App.Text("Launcher.SaveBeforeCloseFailed")))
+                {
+                    _confirmedUnsavedClose = true;
+                    Close();
+                }
+            }
+            finally { _closeSavePrompt = false; }
         }
 
         private void OnPositionChanged(object sender, PixelPointEventArgs e)
@@ -484,6 +514,8 @@ namespace SourceGit.Views
 
         private GridLength _captionHeight = new(32);
         private WindowState _lastWindowState = WindowState.Normal;
+        private bool _closeSavePrompt;
+        private bool _confirmedUnsavedClose;
     }
 }
 

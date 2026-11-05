@@ -143,6 +143,17 @@ namespace SourceGit.ViewModels
             }
             try
             {
+                try
+                {
+                    Preferences.Instance.Save(requireSuccess: true);
+                    if (App.GetLauncher() is { } launcher)
+                        foreach (var page in launcher.Pages)
+                            if (page.Data is Repository repository) repository.SaveUIState(requireSuccess: true);
+                }
+                catch (Exception error) when (error is System.IO.IOException or UnauthorizedAccessException)
+                {
+                    throw new Models.UpdateProblem("settings");
+                }
                 Native.TreeGitUpdateInstaller.Launch(_plan);
                 Restarting = true;
                 RestartRequested?.Invoke();
@@ -207,7 +218,7 @@ namespace SourceGit.ViewModels
             else Fail(code);
         }
 
-        private void Fail(string code) => SetState("failed", App.Text("SelfUpdate.Flow.Error." + (new[] { "network", "busy-service", "invalid", "platform", "not-newer", "permission", "space", "interrupted", "damaged", "changed", "locked", "busy", "start", "failed" }.Contains(code) ? code : "failed")));
+        private void Fail(string code) => SetState("failed", App.Text("SelfUpdate.Flow.Error." + (new[] { "network", "busy-service", "invalid", "platform", "not-newer", "permission", "space", "interrupted", "damaged", "changed", "locked", "busy", "start", "failed", "settings" }.Contains(code) ? code : "failed")));
 
         private void SetState(string state, string message = "")
         {

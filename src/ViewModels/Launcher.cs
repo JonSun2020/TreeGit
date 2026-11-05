@@ -107,12 +107,27 @@ namespace SourceGit.ViewModels
 
         public bool CanCloseAll() => _isClosing || CanClosePages(Pages);
 
-        private static bool CanClosePages(IEnumerable<LauncherPage> pages)
+        private static bool CanClosePages(IEnumerable<LauncherPage> pages, bool saveDrafts = false)
         {
-            var busy = pages.FirstOrDefault(page => page.HasRunningOperation);
-            if (busy == null) return true;
-            Models.Notification.Send(null, App.Text("Launcher.CloseWhileBusy"), true);
-            return false;
+            var targets = pages.ToArray();
+            if (targets.Any(page => page.HasRunningOperation))
+            {
+                Models.Notification.Send(null, App.Text("Launcher.CloseWhileBusy"), true);
+                return false;
+            }
+            if (saveDrafts)
+                try
+                {
+                    foreach (var page in targets)
+                        if (page.Data is Repository repo && !string.IsNullOrEmpty(repo.WorkingCopy.CommitMessage))
+                            repo.SaveUIState(requireSuccess: true);
+                }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+                {
+                    Models.Notification.Send(null, App.Text("Launcher.SaveDraftBeforeCloseFailed"), true);
+                    return false;
+                }
+            return true;
         }
 
         public void CloseAll()
@@ -129,7 +144,7 @@ namespace SourceGit.ViewModels
 
         public void SwitchWorkspace(Workspace to)
         {
-            if (to == null || to.IsActive || !CanCloseAll())
+            if (to == null || to.IsActive || !CanClosePages(Pages, saveDrafts: true))
                 return;
 
             _ignoreIndexChange = true;
@@ -204,7 +219,7 @@ namespace SourceGit.ViewModels
         public void CloseTab(LauncherPage page)
         {
             page ??= _activePage;
-            if (!CanClosePages([page])) return;
+            if (!CanClosePages([page], saveDrafts: true)) return;
 
             if (Pages.Count == 1)
             {
@@ -254,7 +269,7 @@ namespace SourceGit.ViewModels
         {
             if (Pages.Count == 1)
                 return;
-            if (!CanClosePages(Pages.Where(page => page != ActivePage))) return;
+            if (!CanClosePages(Pages.Where(page => page != ActivePage), saveDrafts: true)) return;
 
             _ignoreIndexChange = true;
 
@@ -275,7 +290,7 @@ namespace SourceGit.ViewModels
 
         public void CloseRightTabs()
         {
-            if (!CanClosePages(Pages.Skip(Pages.IndexOf(ActivePage) + 1))) return;
+            if (!CanClosePages(Pages.Skip(Pages.IndexOf(ActivePage) + 1), saveDrafts: true)) return;
             _ignoreIndexChange = true;
 
             var endIdx = Pages.IndexOf(ActivePage);

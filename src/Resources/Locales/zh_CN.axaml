@@ -1183,4 +1183,9 @@
   <x:String x:Key="Text.WorkingCopy.OperationBusy">其他操作尚未完成，请等待完成后再提交。</x:String>
   <x:String x:Key="Text.WorkingCopy.ConflictsBeforeAutoStage">请先解决文件冲突，再执行全部暂存并提交。</x:String>
   <x:String x:Key="Text.WorkingCopy.NoCommitsToAmend">仓库还没有可修改的提交，请先完成第一次提交。</x:String>
+  <x:String x:Key="Text.Repository.ConfigRecovery.Backup">部分仓库界面配置未能读取，原文件已在仓库内部配置目录中备份，现已恢复可用设置。</x:String>
+  <x:String x:Key="Text.Repository.ConfigRecovery.Readonly">仓库界面配置暂时无法读取，本次不会覆盖原文件。请关闭其他 TreeGit 窗口或检查文件夹权限后，重新打开仓库。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.settings">设置或提交说明暂时无法保存，更新尚未开始。请确认磁盘有可用空间、文件夹可写，并关闭占用文件的其他 TreeGit 窗口后重试；当前窗口和提交说明已保留。</x:String>
+  <x:String x:Key="Text.Launcher.SaveBeforeCloseFailed">当前设置或提交说明无法保存。请检查磁盘空间、文件夹权限，或关闭占用文件的其他窗口后重试。点击“取消”可返回并保留当前内容；点击“确定”将不保存并退出。</x:String>
+  <x:String x:Key="Text.Launcher.SaveDraftBeforeCloseFailed">提交说明暂时无法保存，标签页已保留。请检查磁盘空间、文件夹权限，或关闭占用文件的其他窗口后重试。</x:String>
 </ResourceDictionary>

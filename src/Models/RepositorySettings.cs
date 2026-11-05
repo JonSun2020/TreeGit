@@ -4,6 +4,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 using Avalonia.Collections;
 
@@ -63,6 +64,8 @@ namespace SourceGit.Models
         } = [];
 
         internal string StoragePath => _file;
+        [JsonIgnore]
+        public int LoadRecovery { get; private set; }
 
         internal RepositorySettings Copy() => JsonSerializer.Deserialize(JsonSerializer.Serialize(this, JsonCodeGen.Default.RepositorySettings), JsonCodeGen.Default.RepositorySettings);
         internal string Serialize() => JsonSerializer.Serialize(this, JsonCodeGen.Default.RepositorySettings);
@@ -72,7 +75,7 @@ namespace SourceGit.Models
         {
             var fileInfo = new FileInfo(Path.Combine(gitCommonDir, "sourcegit.settings"));
             var fullpath = fileInfo.FullName;
-            if (_cache.TryGetValue(fullpath, out var setting))
+            if (_cache.TryGetValue(fullpath, out var setting) && setting.LoadRecovery != 2)
                 return setting;
 
             if (!File.Exists(fullpath))
@@ -84,11 +87,17 @@ namespace SourceGit.Models
                 try
                 {
                     using var stream = File.OpenRead(fullpath);
-                    setting = JsonSerializer.Deserialize(stream, JsonCodeGen.Default.RepositorySettings);
+                    setting = JsonSerializer.Deserialize(stream, JsonCodeGen.Default.RepositorySettings) ?? throw new JsonException("Missing repository settings.");
+                    if (setting.CommitTemplates == null || setting.CustomActions == null)
+                    {
+                        setting.LoadRecovery = Native.SettingsRecovery.Preserve(fullpath);
+                        setting.CommitTemplates ??= [];
+                        setting.CustomActions ??= [];
+                    }
                 }
-                catch
+                catch (Exception error)
                 {
-                    setting = new();
+                    setting = new() { LoadRecovery = Native.SettingsRecovery.Preserve(fullpath, error) };
                 }
             }
 
@@ -96,7 +105,7 @@ namespace SourceGit.Models
             setting._orgHash = HashContent(setting.Serialize());
 
             setting._file = fullpath;
-            _cache.Add(fullpath, setting);
+            _cache[fullpath] = setting;
             return setting;
         }
 
@@ -114,6 +123,7 @@ namespace SourceGit.Models
 
         public void SaveChecked()
         {
+            if (LoadRecovery == 2) throw new IOException(App.Text("Repository.ConfigRecovery.Readonly"));
             var content = JsonSerializer.Serialize(this, JsonCodeGen.Default.RepositorySettings);
             var hash = HashContent(content);
             if (hash.Equals(_orgHash, StringComparison.Ordinal)) return;

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Avalonia.Collections;
 
 namespace SourceGit.Models
@@ -254,6 +255,9 @@ namespace SourceGit.Models
             set;
         } = [];
 
+        [JsonIgnore]
+        public int LoadRecovery { get; private set; }
+
         public static RepositoryUIStates Load(string gitDir)
         {
             var fileInfo = new FileInfo(Path.Combine(gitDir, "sourcegit.uistates"));
@@ -269,11 +273,18 @@ namespace SourceGit.Models
                 try
                 {
                     using var stream = File.OpenRead(fullpath);
-                    states = JsonSerializer.Deserialize(stream, JsonCodeGen.Default.RepositoryUIStates);
+                    states = JsonSerializer.Deserialize(stream, JsonCodeGen.Default.RepositoryUIStates) ?? throw new JsonException("Missing repository display settings.");
+                    if (states.HistoryFilters == null || states.RecentCommitMessages == null || states.HistoryColumnWidths == null)
+                    {
+                        states.LoadRecovery = Native.SettingsRecovery.Preserve(fullpath);
+                        states.HistoryFilters ??= [];
+                        states.RecentCommitMessages ??= [];
+                        states.HistoryColumnWidths ??= [];
+                    }
                 }
-                catch
+                catch (Exception error)
                 {
-                    states = new RepositoryUIStates();
+                    states = new RepositoryUIStates() { LoadRecovery = Native.SettingsRecovery.Preserve(fullpath, error) };
                 }
             }
 
@@ -281,8 +292,13 @@ namespace SourceGit.Models
             return states;
         }
 
-        public void Save()
+        public void Save(bool requireSuccess = false)
         {
+            if (LoadRecovery == 2)
+            {
+                if (requireSuccess) throw new IOException(App.Text("Repository.ConfigRecovery.Readonly"));
+                return;
+            }
             try
             {
                 var content = JsonSerializer.Serialize(this, JsonCodeGen.Default.RepositoryUIStates);
@@ -290,7 +306,7 @@ namespace SourceGit.Models
                 File.WriteAllText(tmpfile, content);
                 File.Move(tmpfile, _file, true);
             }
-            catch
+            catch when (!requireSuccess)
             {
                 // Ignore save errors
             }

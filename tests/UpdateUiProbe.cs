@@ -88,6 +88,29 @@ namespace SourceGit.Tests
                     ViewModels.Preferences.Instance.Zoom = 2;
                     await Capture(window, "ready-zoom2");
                     ViewModels.Preferences.Instance.Zoom = 1;
+                    var preferences = ViewModels.Preferences.Instance;
+                    preferences.SetCanModify(); preferences.Save();
+                    var preferencePath = Path.Combine(Native.OS.BasicDirectories.ConfigDir, "preference.json");
+                    using (var heldPreference = new FileStream(preferencePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        await model.ActAsync();
+                        Check("an unsavable preference keeps the program open before any update worker starts", model.State == "failed" && model.Message == App.Text("SelfUpdate.Flow.Error.settings") && model.CanRestart && !model.Restarting && !File.Exists(Path.Combine(root, ".treegit-update/active.json")));
+                        Check("failed save releases update maintenance state", !Native.TreeGitUpdateInstaller.IsApplying && Automation.GuiBridge.TryBeginUpdate());
+                        Automation.GuiBridge.EndUpdate();
+                        await Capture(window, "settings-locked");
+                    }
+                    var stateRoot = Path.Combine(output, "repository-state"); Directory.CreateDirectory(stateRoot);
+                    var draftState = Models.RepositoryUIStates.Load(stateRoot);
+                    draftState.LastCommitMessage = "Keep the pending commit draft";
+                    draftState.Save(requireSuccess: true);
+                    using (var heldDraft = new FileStream(Path.Combine(stateRoot, "sourcegit.uistates"), FileMode.Open, FileAccess.Read, FileShare.Read))
+                    {
+                        var rejected = false;
+                        try { draftState.Save(requireSuccess: true); } catch (Exception error) when (error is IOException or UnauthorizedAccessException) { rejected = true; }
+                        Check("restart cannot silently ignore a locked draft file", rejected);
+                    }
+                    draftState.Save(requireSuccess: true);
+                    Check("the draft can be saved again when the file is available", Models.RepositoryUIStates.Load(stateRoot).LastCommitMessage == "Keep the pending commit draft");
                     window.Close();
 
                     server.Offline = true;

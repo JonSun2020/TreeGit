@@ -746,4 +746,9 @@
   <x:String x:Key="Text.WorkingCopy.OperationBusy">An operation is still running. Wait for it to finish, then commit again.</x:String>
   <x:String x:Key="Text.WorkingCopy.ConflictsBeforeAutoStage">Resolve the file conflicts before staging all changes and committing.</x:String>
   <x:String x:Key="Text.WorkingCopy.NoCommitsToAmend">There is no commit to amend yet. Create the first commit before using Amend.</x:String>
+  <x:String x:Key="Text.Repository.ConfigRecovery.Backup">Some saved repository settings could not be read. The original file was backed up inside the repository metadata folder, and usable settings were restored.</x:String>
+  <x:String x:Key="Text.Repository.ConfigRecovery.Readonly">Saved repository settings are temporarily unavailable. This session will not overwrite them. Close other TreeGit windows or check folder permissions, then reopen the repository.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.settings">Your settings or commit draft could not be saved, so the update has not started. Check free disk space and folder permissions, close other TreeGit windows using these files, then retry. Your current window and draft are kept.</x:String>
+  <x:String x:Key="Text.Launcher.SaveBeforeCloseFailed">Your current settings or commit draft could not be saved. Check free disk space, folder permissions, or other windows using these files, then try again. Choose Cancel to keep this window and your draft. Choose OK to exit without saving.</x:String>
+  <x:String x:Key="Text.Launcher.SaveDraftBeforeCloseFailed">The commit draft could not be saved, so the tab has been kept open. Check free disk space, folder permissions, or other windows using the file, then try again.</x:String>
 </ResourceDictionary>

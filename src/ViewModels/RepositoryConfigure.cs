@@ -247,6 +247,7 @@ namespace SourceGit.ViewModels
 
         public async Task SaveAsync()
         {
+            if (_repo.Settings.LoadRecovery == 2) throw new IOException(App.Text("Repository.ConfigRecovery.Readonly"));
             var names = new HashSet<string>(StringComparer.Ordinal);
             foreach (var rule in IssueTrackers)
             {

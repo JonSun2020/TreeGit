@@ -654,8 +654,9 @@ namespace SourceGit.ViewModels
             });
         }
 
-        public void Save()
+        public void Save(bool requireSuccess = false)
         {
+            if (requireSuccess && LoadRecovery == 2) throw new IOException("The original settings cannot be safely saved in this session.");
             if (_isLoading || _isReadonly)
                 return;
 

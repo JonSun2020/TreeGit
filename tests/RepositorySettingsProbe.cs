@@ -194,6 +194,49 @@ namespace SourceGit.Tests
                                 await Task.Delay(1000);
                                 operationDetails = new { visible = true, button = partialButton.Name, firstLine, lastLine };
                                 operationResult = true; break;
+                            case "native_close_save_failure":
+                            {
+                                window.Close();
+                                var cacheDirectory = fixture + ".cache-test"; Directory.CreateDirectory(cacheDirectory);
+                                var cachedFile = Path.Combine(cacheDirectory, "sourcegit.settings");
+                                File.WriteAllText(cachedFile, "{\"DefaultRemote\":\"original-remote\"}");
+                                using (var heldCache = new FileStream(cachedFile, FileMode.Open, FileAccess.Read, FileShare.None))
+                                    if (Models.RepositorySettings.Get(cacheDirectory).LoadRecovery != 2) throw new InvalidOperationException("An unreadable repository settings file was not protected");
+                                var reread = Models.RepositorySettings.Get(cacheDirectory);
+                                if (reread.LoadRecovery != 0 || reread.DefaultRemote != "original-remote") throw new InvalidOperationException("Repository settings remained stuck in a stale recovery cache");
+                                var preferences = ViewModels.Preferences.Instance;
+                                preferences.SetCanModify(); preferences.Save(); repo.SaveUIState(requireSuccess: true);
+                                var targetFile = data.GetProperty("target").GetString() == "draft" ? Path.Combine(repo.GitDir, "sourcegit.uistates") : Path.Combine(Native.OS.BasicDirectories.ConfigDir, "preference.json");
+                                using var held = new FileStream(targetFile, FileMode.Open, FileAccess.Read, FileShare.Read);
+                                repo.WorkingCopy.CommitMessage = data.GetProperty("draft").GetString(); preferences.Theme = "Dark";
+                                var lifetime = (Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime;
+                                if (data.GetProperty("target").GetString() == "draft")
+                                {
+                                    var launcher = App.GetLauncher();
+                                    var page = launcher.Pages.Single(p => ReferenceEquals(p.Data, repo));
+                                    launcher.CloseTab(page);
+                                    if (!launcher.Pages.Any(p => ReferenceEquals(p.Data, repo))) throw new InvalidOperationException("Closing the tab lost an unsavable draft");
+                                }
+                                lifetime.MainWindow.Close();
+                                Views.Confirm confirm = null;
+                                for (var attempt = 0; attempt < 100 && confirm == null; attempt++)
+                                {
+                                    confirm = lifetime.Windows.OfType<Views.Confirm>().FirstOrDefault(v => v.IsVisible);
+                                    if (confirm == null) await Task.Delay(25);
+                                }
+                                if (confirm == null || !lifetime.MainWindow.IsVisible) throw new InvalidOperationException("Saving failed without keeping the window and a clear choice");
+                                var message = confirm.FindControl<TextBlock>("Message")?.Text;
+                                using (var bitmap = new RenderTargetBitmap(new PixelSize((int)Math.Ceiling(confirm.Bounds.Width), (int)Math.Ceiling(confirm.Bounds.Height)), new Vector(96, 96)))
+                                { bitmap.Render(confirm); bitmap.Save(fixture + ".close.png"); }
+                                if (data.GetProperty("choice").GetString() == "exit")
+                                {
+                                    WriteResult(fixture, new { operationResult = true, operationDetails = new { visible = true, message, explicitExit = true } });
+                                    confirm.Close(true); return;
+                                }
+                                confirm.Close(false); await Task.Delay(100);
+                                operationDetails = new { visible = lifetime.MainWindow.IsVisible, message, draft = repo.WorkingCopy.CommitMessage, theme = preferences.Theme, explicitExit = false };
+                                operationResult = true; break;
+                            }
                             case "native_close_during_commit":
                                 window.Close();
                                 repo.WorkingCopy.SetData(await new Commands.QueryLocalChanges(repo.FullPath).GetResultAsync());
