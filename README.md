@@ -8,8 +8,8 @@
 
 ## 界面与功能
 
-- 墨青或 SourceTree 蓝色菜单、不透明仓库标签和仓库下拉列表；左侧分支/标签/远程/贮藏，底部文件状态、日志 / 历史及搜索标签。
-- 颜色风格提供 `Default`、`Light`、`Dark` 和独立的 `Blue`；Blue 选项使用蓝色顶栏及灰白界面，浅色模式保留 TreeGit 的墨青配色。
+- Logo 深绿色方块或 Blue 蓝色顶栏、不透明仓库标签和仓库下拉列表；左侧分支/标签/远程/贮藏，底部文件状态、日志 / 历史及搜索标签。
+- 颜色风格提供 `Default`、`Light`、`Dark` 和独立的 `Blue`；默认 Light 顶栏取 Logo 左侧最深绿色方块的 `#22B99A`，Blue 保持蓝色顶栏及灰白界面。
 - 独立“图谱”列；单击分支将其主线放在最左侧，不会检出该分支。双击仍保留原有检出操作。
 - 分支显示提供“当前分支”和“所有分支”；勾选显示远程分支时包含对应上游历史。本地分支头加粗，并显示与拉取/推送一致的同步数量。
 - 图谱顶部为“未提交的更改”。选中后，下方显示已暂存、未暂存文件及差异，上方保留提交图谱。
@@ -17,15 +17,15 @@
 - 保留 SourceGit 的克隆、推拉、分支、标签、合并、变基、交互式变基、贮藏、冲突处理、补丁、文件历史、Blame、子模块、Worktree、GitFlow、LFS、Bisect和命令日志等功能。高级操作位于“操作 → 高级操作”、偏好设置及对应的上下文菜单。
 - 使用 TreeGit 自有图标，帮助/关于注明上游来源及 MCP 支持。
 
-当前正式版为 **2026.23.6（Windows x64）**。后续继续跟随 SourceGit 上游更新，维护独立的界面、便携构建与 MCP 控制。
+当前正式版为 **2026.23.7（Windows x64）**。后续继续跟随 SourceGit 上游更新，维护独立的界面、便携构建与 MCP 控制。
 
-本版保持已确认的主界面和常用入口，标准包加入内置 Git：优先使用电脑上可用的 Git，缺失或不可用时自动回退；旧路径、损坏组件及终端路径均有专门处理。具体改动见[发行说明](docs/RELEASE-2026.23.6.md)，实际测试结果、失败记录及未覆盖范围见[验收记录](docs/VALIDATION-2026.23.6.md)。
+本版修正默认顶栏取色，保留已确认的主界面和常用入口，以及 2026.23.6 的自动 Git 检测与内置回退。具体改动见[发行说明](docs/RELEASE-2026.23.7.md)，本次颜色核对见[修正记录](docs/VALIDATION-2026.23.7.md)，功能验收另见[2026.23.6 记录](docs/VALIDATION-2026.23.6.md)。
 
 二进制变更提供旧版本 / 新版本左右对比，显示十六进制、ASCII、偏移与差异高亮，支持前后差异跳转及独立窗口。按相同偏移比较，插入 / 删除后的字节不自动重新对齐；图片和 LFS 保留原有专用视图。“使用外部合并程序查看”和手动“检查更新”目前显示“暂未支持”。
 
 ## 下载安装
 
-从 [最新正式版](https://github.com/JonSun2020/TreeGit/releases/latest) 下载 [TreeGit-2026.23.6-Windows-x64.zip](https://github.com/JonSun2020/TreeGit/releases/download/treegit-v2026.23.6/TreeGit-2026.23.6-Windows-x64.zip)，完整解压后运行 `TreeGit/TreeGit.exe`。标准包含 Git，约 69.9 MB。校验值见同页的 `SHA256SUMS.txt`。开发构建仍可从 **Actions → TreeGit Windows portable** 下载。
+从 [最新正式版](https://github.com/JonSun2020/TreeGit/releases/latest) 下载 [TreeGit-2026.23.7-Windows-x64.zip](https://github.com/JonSun2020/TreeGit/releases/download/treegit-v2026.23.7/TreeGit-2026.23.7-Windows-x64.zip)，完整解压后运行 `TreeGit/TreeGit.exe`。标准包含 Git，约 69.9 MB。校验值见同页的 `SHA256SUMS.txt`。开发构建仍可从 **Actions → TreeGit Windows portable** 下载。
 
 - 自带裁剪和压缩后的 .NET 运行时，无需安装 .NET。
 - 自动优先使用电脑上已有且可用的 Git；没有安装、路径失效或版本不兼容时，自动使用随包的便携 Git，无需另行安装或联网下载。
