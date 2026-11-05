@@ -20,6 +20,9 @@
     <Border Grid.Row="1">
       <ContentControl Content="{Binding Data}">
         <ContentControl.DataTemplates>
+          <DataTemplate DataType="vm:RepositoryLoading">
+            <TextBlock Text="{Binding Message}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </DataTemplate>
           <DataTemplate DataType="vm:Welcome">
             <v:Welcome Margin="4,0,4,4" CornerRadius="0" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border0}" Background="{DynamicResource Brush.Window}"/>
           </DataTemplate>

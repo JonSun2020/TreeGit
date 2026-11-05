@@ -26,10 +26,11 @@ TreeGit 是一个 **MCP 服务端**。AI 客户端通过 stdio 连接，再由�
 | `ui_select_view` / `ui_select_commit` | 切换历史、工作副本、贮藏及提交详情 |
 | `ui_working_copy` | 选中图谱顶部“未提交的更改”，下方显示暂存/未暂存文件与差异 |
 | `ui_search` | 打开搜索页，按提交信息、作者、SHA、路径或内容搜索并选择结果 |
-| `ui_tabs` | 列出标签、打开仓库下拉列表、选择或关闭标签 |
+| `ui_tabs` | 列出标签及加载状态、打开仓库下拉列表、选择、移动或关闭标签 |
 | `ui_graph` | 指定最左侧分支、显示当前分支/所有分支，以及对应远端分支 |
 | `ui_history_columns` | 读取、调整、重置图谱、描述、日期、作者、提交等列宽；按仓库保存 |
 | `ui_refresh` / `ui_window` | 刷新、调整窗口尺寸、主题和侧栏 |
+| `ui_fonts` | 列出本机可选字体、设置界面或代码 / Diff 字体、恢复默认 |
 | `ui_command` | 打开关于、偏好、仓库设置、账号及原有 Git 操作对话框 |
 | `git_status` / `git_log` / `git_diff` / `git_refs` / `git_show` | 查询状态、历史、差异和引用 |
 | `git_clone` | 使用原有克隆流程；完成后打开仓库 |

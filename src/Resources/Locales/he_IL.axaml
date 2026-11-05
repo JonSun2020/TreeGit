@@ -628,6 +628,9 @@
   <x:String x:Key="Text.Preferences.Appearance.MonospaceFont" xml:space="preserve">גופן Monospace</x:String>
   <x:String x:Key="Text.Preferences.Appearance.Theme" xml:space="preserve">ערכת נושא</x:String>
   <x:String x:Key="Text.Preferences.Appearance.Theme.System" xml:space="preserve">Follow system</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.DefaultFont.Default" xml:space="preserve">Default (Segoe UI / CJK fallback)</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.MonospaceFont.Default" xml:space="preserve">Default (JetBrains Mono)</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.MonospaceFont.Tip" xml:space="preserve">For code and diff. Choose a monospace font such as Consolas; the default is the bundled JetBrains Mono.</x:String>
   <x:String x:Key="Text.Preferences.Appearance.ThemeOverrides" xml:space="preserve">דריסות ערכת נושא</x:String>
   <x:String x:Key="Text.Preferences.Appearance.UseAutoHideScrollBars" xml:space="preserve">שימוש בפסי גלילה המוסתרים אוטומטית</x:String>
   <x:String x:Key="Text.Preferences.Appearance.UseFixedTabWidth" xml:space="preserve">רוחב לשונית קבוע בשורת הכותרת</x:String>
@@ -737,6 +740,7 @@
   <x:String x:Key="Text.RenameBranch.Name" xml:space="preserve">שם חדש:</x:String>
   <x:String x:Key="Text.RenameBranch.Name.Placeholder" xml:space="preserve">שם ייחודי ל־branch זה</x:String>
   <x:String x:Key="Text.RenameBranch.Target" xml:space="preserve">Branch:</x:String>
+  <x:String x:Key="Text.Repository.Loading" xml:space="preserve">Loading repository…</x:String>
   <x:String x:Key="Text.Repository.Abort" xml:space="preserve">ביטול</x:String>
   <x:String x:Key="Text.Repository.AutoFetching" xml:space="preserve">Fetch אוטומטי של שינויים מ־remotes...</x:String>
   <x:String x:Key="Text.Repository.BranchSort" xml:space="preserve">מיון</x:String>

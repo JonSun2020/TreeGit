@@ -219,19 +219,30 @@
                        Text="{DynamicResource Text.Preferences.Appearance.DefaultFont}"
                        HorizontalAlignment="Right"
                        Margin="0,0,16,0"/>
-            <TextBox Grid.Row="1" Grid.Column="1"
-                     Height="28"
-                     CornerRadius="3"
-                     Text="{Binding DefaultFontFamily, Mode=TwoWay}"/>
+            <ComboBox Grid.Row="1" Grid.Column="1"
+                      MinHeight="28" Padding="8,0"
+                      HorizontalAlignment="Stretch" MaxDropDownHeight="300"
+                      ItemsSource="{Binding InterfaceFonts}"
+                      x:Name="InterfaceFontPicker"
+                      IsTextSearchEnabled="True"
+                      DisplayMemberBinding="{Binding Name, x:DataType=m:FontOption}"
+                      SelectedValueBinding="{Binding Family, x:DataType=m:FontOption}"
+                      SelectedValue="{Binding DefaultFontFamily, Mode=TwoWay}"/>
 
             <TextBlock Grid.Row="2" Grid.Column="0"
                        Text="{DynamicResource Text.Preferences.Appearance.MonospaceFont}"
                        HorizontalAlignment="Right"
                        Margin="0,0,16,0"/>
-            <TextBox Grid.Row="2" Grid.Column="1"
-                     Height="28"
-                     CornerRadius="3"
-                     Text="{Binding MonospaceFontFamily, Mode=TwoWay}"/>
+            <ComboBox Grid.Row="2" Grid.Column="1"
+                      MinHeight="28" Padding="8,0"
+                      HorizontalAlignment="Stretch" MaxDropDownHeight="300"
+                      ItemsSource="{Binding CodeFonts}"
+                      x:Name="CodeFontPicker"
+                      IsTextSearchEnabled="True"
+                      DisplayMemberBinding="{Binding Name, x:DataType=m:FontOption}"
+                      SelectedValueBinding="{Binding Family, x:DataType=m:FontOption}"
+                      SelectedValue="{Binding MonospaceFontFamily, Mode=TwoWay}"
+                      ToolTip.Tip="{DynamicResource Text.Preferences.Appearance.MonospaceFont.Tip}"/>
 
             <TextBlock Grid.Row="3" Grid.Column="0"
                        Text="{DynamicResource Text.Preferences.Appearance.FontSize}"

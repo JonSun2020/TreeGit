@@ -23,6 +23,7 @@ namespace SourceGit
         [STAThread]
         public static void Main(string[] args)
         {
+            Native.StartupTrace.Mark("main");
             if (args.Length > 1 && args[0] == "--credential-helper")
             {
                 Environment.Exit(Native.RepositoryCredentials.RunHelper(args[1]));
@@ -34,6 +35,7 @@ namespace SourceGit
                 return;
             }
             Native.OS.SetupBasicDirectories();
+            Native.StartupTrace.Mark("directories");
 #if INTEGRATION_TESTS
             if (args.Length > 2 && args[0] == "--integration-cancel-git")
             {
@@ -280,11 +282,14 @@ namespace SourceGit
         public override void Initialize()
         {
             AvaloniaXamlLoader.Load(this);
+            Native.StartupTrace.Mark("application-resources");
 
             var pref = ViewModels.Preferences.Instance;
+            Native.StartupTrace.Mark("preferences");
             SetLocale(pref.Locale);
             SetTheme(pref.Theme, pref.ThemeOverrides);
             SetFonts(pref.DefaultFontFamily, pref.MonospaceFontFamily);
+            Native.StartupTrace.Mark("theme-fonts");
         }
 
         public override void OnFrameworkInitializationCompleted()
@@ -524,6 +529,7 @@ namespace SourceGit
 
         private void TryLaunchAsNormal(IClassicDesktopStyleApplicationLifetime desktop)
         {
+            Native.StartupTrace.Mark("framework");
             _ipcChannel = new Models.IpcChannel();
             if (!_ipcChannel.IsFirstInstance)
             {
@@ -540,7 +546,6 @@ namespace SourceGit
                 return;
             }
 
-            Native.OS.SetupExternalTools();
             Models.AvatarManager.Instance.Start();
 
             if (this.TryGetFeature<IActivatableLifetime>() is { } activatable)
@@ -553,6 +558,7 @@ namespace SourceGit
             }
 
             string startupRepo = null;
+            Native.StartupTrace.Mark("startup-services");
             if (desktop.Args is { Length: 1 })
             {
                 var arg = desktop.Args[0].Replace('\\', '/').TrimEnd('/').Trim('\"').Trim();
@@ -565,7 +571,9 @@ namespace SourceGit
             pref.UpdateAvailableAIModels();
 
             _launcher = new ViewModels.Launcher(startupRepo);
+            Native.StartupTrace.Mark("launcher-model");
             desktop.MainWindow = new Views.Launcher() { DataContext = _launcher };
+            Native.StartupTrace.Mark("launcher-window");
             Automation.GuiBridge.Start();
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 

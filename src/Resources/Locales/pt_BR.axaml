@@ -406,6 +406,9 @@
   <x:String x:Key="Text.Preferences.Appearance.MonospaceFont" xml:space="preserve">Fonte Monoespaçada</x:String>
   <x:String x:Key="Text.Preferences.Appearance.Theme" xml:space="preserve">Tema</x:String>
   <x:String x:Key="Text.Preferences.Appearance.Theme.System" xml:space="preserve">Follow system</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.DefaultFont.Default" xml:space="preserve">Default (Segoe UI / CJK fallback)</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.MonospaceFont.Default" xml:space="preserve">Default (JetBrains Mono)</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.MonospaceFont.Tip" xml:space="preserve">For code and diff. Choose a monospace font such as Consolas; the default is the bundled JetBrains Mono.</x:String>
   <x:String x:Key="Text.Preferences.Appearance.ThemeOverrides" xml:space="preserve">Substituições de Tema</x:String>
   <x:String x:Key="Text.Preferences.Appearance.UseFixedTabWidth" xml:space="preserve">Usar largura fixa de aba na barra de título</x:String>
   <x:String x:Key="Text.Preferences.Appearance.UseNativeWindowFrame" xml:space="preserve">Usar moldura de janela nativa</x:String>
@@ -489,6 +492,7 @@
   <x:String x:Key="Text.RenameBranch.Name" xml:space="preserve">Novo Nome:</x:String>
   <x:String x:Key="Text.RenameBranch.Name.Placeholder" xml:space="preserve">Nome único para este branch</x:String>
   <x:String x:Key="Text.RenameBranch.Target" xml:space="preserve">Branch:</x:String>
+  <x:String x:Key="Text.Repository.Loading" xml:space="preserve">Loading repository…</x:String>
   <x:String x:Key="Text.Repository.Abort" xml:space="preserve">ABORTAR</x:String>
   <x:String x:Key="Text.Repository.AutoFetching" xml:space="preserve">Buscando automaticamente mudanças dos remotos...</x:String>
   <x:String x:Key="Text.Repository.Clean" xml:space="preserve">Limpar (GC &amp; Podar)</x:String>

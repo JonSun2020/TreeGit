@@ -46,10 +46,10 @@ namespace SourceGit.ViewModels
             Welcome.Instance.ClearSearchFilter();
         }
 
-        public LauncherPage(RepositoryNode node, Repository repo)
+        public LauncherPage(RepositoryNode node, object data)
         {
             _node = node;
-            _data = repo;
+            _data = data;
         }
 
         public void ClearNotifications()

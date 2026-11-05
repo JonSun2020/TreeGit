@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 
 using Avalonia.Collections;
 using Avalonia.Threading;
@@ -51,22 +53,12 @@ namespace SourceGit.ViewModels
 
             ActiveWorkspace = Preferences.Instance.GetActiveWorkspace();
             Pages = new AvaloniaList<LauncherPage>();
-            AddNewTab();
-
-            var repos = ActiveWorkspace.Repositories.ToArray();
-            foreach (var repo in repos)
-                OpenRepositoryInTab(repo, null);
+            RestoreWorkspaceTabs();
 
             _ignoreIndexChange = false;
 
             if (!TryOpenRepositoryFromPath(startupRepo))
-            {
-                var activeIdx = ActiveWorkspace.ActiveIdx;
-                if (activeIdx > 0 && activeIdx < Pages.Count)
-                    ActivePage = Pages[activeIdx];
-                else
-                    ActivePage = Pages[0];
-            }
+                EnsureRepositoryLoaded(ActivePage);
 
             PostActivePageChanged();
         }
@@ -112,6 +104,8 @@ namespace SourceGit.ViewModels
 
         public void CloseAll()
         {
+            _isClosing = true;
+            _restoreGeneration++;
             _ignoreIndexChange = true;
 
             foreach (var one in Pages)
@@ -126,6 +120,7 @@ namespace SourceGit.ViewModels
                 return;
 
             _ignoreIndexChange = true;
+            _restoreGeneration++;
 
             var pref = Preferences.Instance;
             foreach (var w in pref.Workspaces)
@@ -138,20 +133,11 @@ namespace SourceGit.ViewModels
                 CloseRepositoryInTab(one, false);
 
             Pages.Clear();
-            AddNewTab();
-
-            var repos = to.Repositories.ToArray();
-            foreach (var repo in repos)
-                OpenRepositoryInTab(repo, null);
-
-            var activeIdx = to.ActiveIdx;
-            if (activeIdx >= 0 && activeIdx < Pages.Count)
-                ActivePage = Pages[activeIdx];
-            else
-                ActivePage = Pages[0];
+            RestoreWorkspaceTabs();
 
             _ignoreIndexChange = false;
             PostActivePageChanged();
+            LoadDeferredRepositories();
             Preferences.Instance.Save();
             GC.Collect();
         }
@@ -174,8 +160,8 @@ namespace SourceGit.ViewModels
             _activeWorkspace.Repositories.Clear();
             foreach (var p in Pages)
             {
-                if (p.Data is Repository r)
-                    _activeWorkspace.Repositories.Add(r.FullPath);
+                if (p.Node.IsRepository)
+                    _activeWorkspace.Repositories.Add(p.Node.Id);
             }
 
             _ignoreIndexChange = false;
@@ -207,14 +193,17 @@ namespace SourceGit.ViewModels
             if (Pages.Count == 1)
             {
                 var last = Pages[0];
-                if (last.Data is Repository repo)
+                if (last.Node.IsRepository)
                 {
                     _activeWorkspace.Repositories.Clear();
                     _activeWorkspace.ActiveIdx = 0;
 
-                    if (last.Node.IsUnmanaged)
-                        last.Node.SaveMinimalInfo(repo.GitDir);
-                    repo.Close();
+                    if (last.Data is Repository repo)
+                    {
+                        if (last.Node.IsUnmanaged)
+                            last.Node.SaveMinimalInfo(repo.GitDir);
+                        repo.Close();
+                    }
 
                     Welcome.Instance.ClearSearchFilter();
                     last.Node = new RepositoryNode() { Id = Guid.NewGuid().ToString() };
@@ -303,6 +292,7 @@ namespace SourceGit.ViewModels
             {
                 if (one.Node.Id == node.Id)
                 {
+                    EnsureRepositoryLoaded(one);
                     ActivePage = one;
                     return;
                 }
@@ -361,8 +351,8 @@ namespace SourceGit.ViewModels
             _activeWorkspace.Repositories.Clear();
             foreach (var p in Pages)
             {
-                if (p.Data is Repository r)
-                    _activeWorkspace.Repositories.Add(r.FullPath);
+                if (p.Node.IsRepository)
+                    _activeWorkspace.Repositories.Add(p.Node.Id);
             }
 
             if (_activePage == page)
@@ -497,11 +487,10 @@ namespace SourceGit.ViewModels
 
         private void CloseRepositoryInTab(LauncherPage page, bool removeFromWorkspace = true)
         {
+            if (removeFromWorkspace && page.Node.IsRepository)
+                _activeWorkspace.Repositories.Remove(page.Node.Id);
             if (page.Data is Repository repo)
             {
-                if (removeFromWorkspace)
-                    _activeWorkspace.Repositories.Remove(repo.FullPath);
-
                 if (page.Node.IsUnmanaged)
                     page.Node.SaveMinimalInfo(repo.GitDir);
 
@@ -518,15 +507,112 @@ namespace SourceGit.ViewModels
             if (_ignoreIndexChange)
                 return;
 
-            if (_activePage is { Data: Repository repo })
-                _activeWorkspace.ActiveIdx = _activeWorkspace.Repositories.IndexOf(repo.FullPath);
+            EnsureRepositoryLoaded(_activePage);
+            if (_activePage?.Node.IsRepository == true)
+                _activeWorkspace.ActiveIdx = _activeWorkspace.Repositories.IndexOf(_activePage.Node.Id);
 
             CommandPalette = null;
+        }
+
+        private void RestoreWorkspaceTabs()
+        {
+            var paths = _activeWorkspace.Repositories.ToArray();
+            var activeIdx = _activeWorkspace.ActiveIdx;
+            foreach (var path in paths)
+            {
+                var normalized = path.Replace('\\', '/').TrimEnd('/');
+                var node = Preferences.Instance.FindNode(normalized) ?? new RepositoryNode
+                {
+                    Id = normalized, Name = Path.GetFileName(normalized), IsRepository = true, IsUnmanaged = true,
+                };
+                Pages.Add(new LauncherPage(node, new RepositoryLoading()));
+            }
+            if (Pages.Count == 0) AddNewTab();
+            else ActivePage = Pages[Math.Clamp(activeIdx, 0, Pages.Count - 1)];
+        }
+
+        private (bool IsBare, string GitDir) InspectRepository(string path)
+        {
+            if (!Directory.Exists(path)) throw new DirectoryNotFoundException("Repository directory does not exist.");
+            var isBare = new Commands.IsBareRepository(path).GetResult();
+            var gitDir = isBare ? path : GetRepositoryGitDir(path);
+            if (string.IsNullOrEmpty(gitDir)) throw new IOException("Given path is not a valid Git repository.");
+            return (isBare, gitDir);
+        }
+
+        private void CompleteRepositoryLoad(LauncherPage page, (bool IsBare, string GitDir) details)
+        {
+            if (page.Node.IsUnmanaged) page.Node.LoadMinimalInfo(details.GitDir);
+            var repo = new Repository(details.IsBare, page.Node.Id, details.GitDir);
+            repo.Open();
+            page.Data = repo;
+        }
+
+        private void FailRepositoryLoad(LauncherPage page, RepositoryLoading pending, Exception error)
+        {
+            pending.Failed = true;
+            pending.Message = error.Message;
+            if (!page.Notifications.Any(notification => notification.Message == error.Message))
+                page.Notifications.Add(new Models.Notification { Group = page.Node.Id, Message = error.Message, IsError = true });
+        }
+
+        private void EnsureRepositoryLoaded(LauncherPage page)
+        {
+            if (page?.Data is not RepositoryLoading pending) return;
+            pending.Failed = false;
+            pending.Message = App.Text("Repository.Loading");
+            try
+            {
+                CompleteRepositoryLoad(page, InspectRepository(page.Node.Id));
+                Native.StartupTrace.Mark("active-repository-loaded");
+            }
+            catch (Exception error) { FailRepositoryLoad(page, pending, error); }
+        }
+
+        public async void LoadDeferredRepositories()
+        {
+            if (_isClosing || _backgroundGeneration == _restoreGeneration) return;
+            var generation = _restoreGeneration;
+            _backgroundGeneration = generation;
+            var pages = Pages.ToArray();
+            await Task.Delay(500);
+            foreach (var page in pages)
+            {
+                if (_isClosing || generation != _restoreGeneration) return;
+                if (!Pages.Contains(page) || page.Data is not RepositoryLoading pending || pending.Failed) continue;
+                // Let the visible history finish its first query before spending time on hidden tabs.
+                for (var wait = 0; wait < 50 && _activePage?.Data is Repository { Histories.IsLoading: true }; wait++)
+                {
+                    await Task.Delay(100);
+                    if (_isClosing || generation != _restoreGeneration) return;
+                }
+                if (!Pages.Contains(page) || !ReferenceEquals(page.Data, pending)) continue;
+                try
+                {
+                    var path = page.Node.Id;
+                    var details = await Task.Run(() => InspectRepository(path));
+                    if (_isClosing || generation != _restoreGeneration) return;
+                    if (Pages.Contains(page) && ReferenceEquals(page.Data, pending) && !pending.Failed)
+                    {
+                        CompleteRepositoryLoad(page, details);
+                        Native.StartupTrace.Mark("deferred-repository-loaded", true);
+                    }
+                }
+                catch (Exception error)
+                {
+                    if (!_isClosing && generation == _restoreGeneration && Pages.Contains(page) && ReferenceEquals(page.Data, pending))
+                        FailRepositoryLoad(page, pending, error);
+                }
+                await Task.Delay(150);
+            }
         }
 
         private Workspace _activeWorkspace;
         private LauncherPage _activePage;
         private bool _ignoreIndexChange;
+        private bool _isClosing;
+        private int _restoreGeneration;
+        private int _backgroundGeneration = -1;
         private ICommandPalette _commandPalette;
         private Models.Version _newVersion = null;
     }

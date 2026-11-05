@@ -686,6 +686,9 @@
   <x:String x:Key="Text.Preferences.Appearance.MonospaceFont" xml:space="preserve">Tipus de lletra monoespai</x:String>
   <x:String x:Key="Text.Preferences.Appearance.Theme" xml:space="preserve">Tema</x:String>
   <x:String x:Key="Text.Preferences.Appearance.Theme.System" xml:space="preserve">Follow system</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.DefaultFont.Default" xml:space="preserve">Default (Segoe UI / CJK fallback)</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.MonospaceFont.Default" xml:space="preserve">Default (JetBrains Mono)</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.MonospaceFont.Tip" xml:space="preserve">For code and diff. Choose a monospace font such as Consolas; the default is the bundled JetBrains Mono.</x:String>
   <x:String x:Key="Text.Preferences.Appearance.ThemeOverrides" xml:space="preserve">Sobreescriptures del tema</x:String>
   <x:String x:Key="Text.Preferences.Appearance.UseAutoHideScrollBars" xml:space="preserve">Utilitza barres de desplaçament d'ocultació automàtica</x:String>
   <x:String x:Key="Text.Preferences.Appearance.UseFixedTabWidth" xml:space="preserve">Utilitza una amplada de pestanya fixa a la barra de títol</x:String>
@@ -803,6 +806,7 @@
   <x:String x:Key="Text.RenameBranch.Name" xml:space="preserve">Nom nou:</x:String>
   <x:String x:Key="Text.RenameBranch.Name.Placeholder" xml:space="preserve">Nom únic per a aquesta branca</x:String>
   <x:String x:Key="Text.RenameBranch.Target" xml:space="preserve">Branca:</x:String>
+  <x:String x:Key="Text.Repository.Loading" xml:space="preserve">Loading repository…</x:String>
   <x:String x:Key="Text.Repository.Abort" xml:space="preserve">AVORTA</x:String>
   <x:String x:Key="Text.Repository.AutoFetching" xml:space="preserve">S'estan obtenint automàticament els canvis dels remots...</x:String>
   <x:String x:Key="Text.Repository.BranchSort" xml:space="preserve">Ordena</x:String>

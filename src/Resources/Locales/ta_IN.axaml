@@ -402,6 +402,9 @@
   <x:String x:Key="Text.Preferences.Appearance.MonospaceFont" xml:space="preserve">ஒற்றைவெளி எழுத்துரு</x:String>
   <x:String x:Key="Text.Preferences.Appearance.Theme" xml:space="preserve">கருப்பொருள்</x:String>
   <x:String x:Key="Text.Preferences.Appearance.Theme.System" xml:space="preserve">Follow system</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.DefaultFont.Default" xml:space="preserve">Default (Segoe UI / CJK fallback)</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.MonospaceFont.Default" xml:space="preserve">Default (JetBrains Mono)</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.MonospaceFont.Tip" xml:space="preserve">For code and diff. Choose a monospace font such as Consolas; the default is the bundled JetBrains Mono.</x:String>
   <x:String x:Key="Text.Preferences.Appearance.ThemeOverrides" xml:space="preserve">கருப்பொருள் மேலெழுதப்படுகிறது</x:String>
   <x:String x:Key="Text.Preferences.Appearance.UseFixedTabWidth" xml:space="preserve">தலைப்புப்பட்டியில் நிலையான தாவல் அகலத்தைப் பயன்படுத்து</x:String>
   <x:String x:Key="Text.Preferences.Appearance.UseNativeWindowFrame" xml:space="preserve">சொந்த சாளர சட்டத்தைப் பயன்படுத்து</x:String>
@@ -488,6 +491,7 @@
   <x:String x:Key="Text.RenameBranch.Name" xml:space="preserve">புதிய பெயர்:</x:String>
   <x:String x:Key="Text.RenameBranch.Name.Placeholder" xml:space="preserve">இந்தக் கிளைக்கான தனித்துவமான பெயர்</x:String>
   <x:String x:Key="Text.RenameBranch.Target" xml:space="preserve">கிளை:</x:String>
+  <x:String x:Key="Text.Repository.Loading" xml:space="preserve">Loading repository…</x:String>
   <x:String x:Key="Text.Repository.Abort" xml:space="preserve">நிறுத்து</x:String>
   <x:String x:Key="Text.Repository.AutoFetching" xml:space="preserve">தொலைகளிலிருந்து மாற்றங்களைத் தானாகப் பெறுதல்...</x:String>
   <x:String x:Key="Text.Repository.Clean" xml:space="preserve">சுத்தப்படுத்தல்(சீசி &amp; கத்தரித்தல்)</x:String>

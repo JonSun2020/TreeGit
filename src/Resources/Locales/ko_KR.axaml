@@ -631,6 +631,9 @@
   <x:String x:Key="Text.Preferences.Appearance.MonospaceFont" xml:space="preserve">고정폭 글꼴</x:String>
   <x:String x:Key="Text.Preferences.Appearance.Theme" xml:space="preserve">테마</x:String>
   <x:String x:Key="Text.Preferences.Appearance.Theme.System" xml:space="preserve">Follow system</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.DefaultFont.Default" xml:space="preserve">Default (Segoe UI / CJK fallback)</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.MonospaceFont.Default" xml:space="preserve">Default (JetBrains Mono)</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.MonospaceFont.Tip" xml:space="preserve">For code and diff. Choose a monospace font such as Consolas; the default is the bundled JetBrains Mono.</x:String>
   <x:String x:Key="Text.Preferences.Appearance.ThemeOverrides" xml:space="preserve">테마 재정의</x:String>
   <x:String x:Key="Text.Preferences.Appearance.UseAutoHideScrollBars" xml:space="preserve">스크롤바 자동 숨기기 사용</x:String>
   <x:String x:Key="Text.Preferences.Appearance.UseFixedTabWidth" xml:space="preserve">제목 표시줄에서 고정 탭 너비 사용</x:String>
@@ -745,6 +748,7 @@
   <x:String x:Key="Text.RenameBranch.Name" xml:space="preserve">새 이름:</x:String>
   <x:String x:Key="Text.RenameBranch.Name.Placeholder" xml:space="preserve">이 브랜치의 고유한 이름</x:String>
   <x:String x:Key="Text.RenameBranch.Target" xml:space="preserve">브랜치:</x:String>
+  <x:String x:Key="Text.Repository.Loading" xml:space="preserve">Loading repository…</x:String>
   <x:String x:Key="Text.Repository.Abort" xml:space="preserve">중단</x:String>
   <x:String x:Key="Text.Repository.AutoFetching" xml:space="preserve">원격에서 변경 사항 자동 Fetch 중...</x:String>
   <x:String x:Key="Text.Repository.BranchSort" xml:space="preserve">정렬</x:String>

@@ -19,11 +19,15 @@ namespace SourceGit.ViewModels
                 if (_instance != null)
                     return _instance;
 
+                Native.StartupTrace.Mark("preferences-loading");
                 _instance = Load();
+                Native.StartupTrace.Mark("preferences-loaded");
                 _instance._isLoading = false;
 
                 _instance.PrepareGit();
+                Native.StartupTrace.Mark("git-ready");
                 _instance.PrepareShellOrTerminal();
+                Native.StartupTrace.Mark("terminal-ready");
                 _instance.PrepareExternalDiffMergeTool();
                 _instance.PrepareWorkspaces();
 
@@ -37,7 +41,13 @@ namespace SourceGit.ViewModels
             set
             {
                 if (SetProperty(ref _locale, value) && !_isLoading)
+                {
                     App.SetLocale(value);
+                    _interfaceFonts = null;
+                    _codeFonts = null;
+                    OnPropertyChanged(nameof(InterfaceFonts));
+                    OnPropertyChanged(nameof(CodeFonts));
+                }
             }
         }
 
@@ -66,6 +76,7 @@ namespace SourceGit.ViewModels
             get => _defaultFontFamily;
             set
             {
+                value ??= string.Empty;
                 if (SetProperty(ref _defaultFontFamily, value) && !_isLoading)
                     App.SetFonts(value, _monospaceFontFamily);
             }
@@ -76,6 +87,7 @@ namespace SourceGit.ViewModels
             get => _monospaceFontFamily;
             set
             {
+                value ??= string.Empty;
                 if (SetProperty(ref _monospaceFontFamily, value) && !_isLoading)
                     App.SetFonts(_defaultFontFamily, value);
             }
@@ -86,6 +98,15 @@ namespace SourceGit.ViewModels
             get => Native.OS.UseSystemWindowFrame;
             set => Native.OS.UseSystemWindowFrame = value;
         }
+
+        [JsonIgnore]
+        public IReadOnlyList<Models.FontOption> InterfaceFonts => _interfaceFonts ??= Models.FontOption.Create(_defaultFontFamily, App.Text("Preferences.Appearance.DefaultFont.Default"));
+
+        [JsonIgnore]
+        public IReadOnlyList<Models.FontOption> CodeFonts => _codeFonts ??= Models.FontOption.Create(_monospaceFontFamily, App.Text("Preferences.Appearance.MonospaceFont.Default"));
+
+        private IReadOnlyList<Models.FontOption> _interfaceFonts;
+        private IReadOnlyList<Models.FontOption> _codeFonts;
 
         public double DefaultFontSize
         {

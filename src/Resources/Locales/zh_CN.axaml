@@ -684,14 +684,17 @@
   <x:String x:Key="Text.Preferences.AI.ReasoningEffortLevel" xml:space="preserve">推理努力等级</x:String>
   <x:String x:Key="Text.Preferences.AI.Server" xml:space="preserve">服务地址</x:String>
   <x:String x:Key="Text.Preferences.Appearance" xml:space="preserve">外观配置</x:String>
-  <x:String x:Key="Text.Preferences.Appearance.DefaultFont" xml:space="preserve">缺省字体</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.DefaultFont" xml:space="preserve">界面字体</x:String>
   <x:String x:Key="Text.Preferences.Appearance.EditorTabWidth" xml:space="preserve">编辑器制表符宽度</x:String>
   <x:String x:Key="Text.Preferences.Appearance.FontSize" xml:space="preserve">字体大小</x:String>
   <x:String x:Key="Text.Preferences.Appearance.FontSize.Default" xml:space="preserve">默认</x:String>
   <x:String x:Key="Text.Preferences.Appearance.FontSize.Editor" xml:space="preserve">代码编辑器</x:String>
-  <x:String x:Key="Text.Preferences.Appearance.MonospaceFont" xml:space="preserve">等宽字体</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.MonospaceFont" xml:space="preserve">代码 / Diff 字体</x:String>
   <x:String x:Key="Text.Preferences.Appearance.Theme" xml:space="preserve">主题</x:String>
   <x:String x:Key="Text.Preferences.Appearance.Theme.System" xml:space="preserve">跟随系统</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.DefaultFont.Default" xml:space="preserve">默认（Segoe UI / 微软雅黑）</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.MonospaceFont.Default" xml:space="preserve">默认（JetBrains Mono）</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.MonospaceFont.Tip" xml:space="preserve">用于代码和 Diff。建议选择等宽字体，如 Consolas；默认使用内置 JetBrains Mono。</x:String>
   <x:String x:Key="Text.Preferences.Appearance.ThemeOverrides" xml:space="preserve">主题自定义</x:String>
   <x:String x:Key="Text.Preferences.Appearance.UseAutoHideScrollBars" xml:space="preserve">允许滚动条自动隐藏</x:String>
   <x:String x:Key="Text.Preferences.Appearance.UseFixedTabWidth" xml:space="preserve">主标签使用固定宽度</x:String>
@@ -809,6 +812,7 @@
   <x:String x:Key="Text.RenameBranch.Name" xml:space="preserve">新的名称 ：</x:String>
   <x:String x:Key="Text.RenameBranch.Name.Placeholder" xml:space="preserve">新的分支名不能与现有分支名相同</x:String>
   <x:String x:Key="Text.RenameBranch.Target" xml:space="preserve">分支 ：</x:String>
+  <x:String x:Key="Text.Repository.Loading" xml:space="preserve">正在加载仓库…</x:String>
   <x:String x:Key="Text.Repository.Abort" xml:space="preserve">终止合并</x:String>
   <x:String x:Key="Text.Repository.AutoFetching" xml:space="preserve">自动拉取远端变更中...</x:String>
   <x:String x:Key="Text.Repository.BranchSort" xml:space="preserve">排序方式</x:String>

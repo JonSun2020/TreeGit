@@ -686,6 +686,9 @@
   <x:String x:Key="Text.Preferences.Appearance.MonospaceFont" xml:space="preserve">Моноширинный шрифт</x:String>
   <x:String x:Key="Text.Preferences.Appearance.Theme" xml:space="preserve">Тема</x:String>
   <x:String x:Key="Text.Preferences.Appearance.Theme.System" xml:space="preserve">Follow system</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.DefaultFont.Default" xml:space="preserve">Default (Segoe UI / CJK fallback)</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.MonospaceFont.Default" xml:space="preserve">Default (JetBrains Mono)</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.MonospaceFont.Tip" xml:space="preserve">For code and diff. Choose a monospace font such as Consolas; the default is the bundled JetBrains Mono.</x:String>
   <x:String x:Key="Text.Preferences.Appearance.ThemeOverrides" xml:space="preserve">Переопределение темы</x:String>
   <x:String x:Key="Text.Preferences.Appearance.UseAutoHideScrollBars" xml:space="preserve">Автоматически скрывать прокрутку</x:String>
   <x:String x:Key="Text.Preferences.Appearance.UseFixedTabWidth" xml:space="preserve">Использовать фиксированную ширину табуляции в строке заголовка.</x:String>
@@ -802,6 +805,7 @@
   <x:String x:Key="Text.RenameBranch.Name" xml:space="preserve">Новое имя:</x:String>
   <x:String x:Key="Text.RenameBranch.Name.Placeholder" xml:space="preserve">Уникальное имя для данной ветки</x:String>
   <x:String x:Key="Text.RenameBranch.Target" xml:space="preserve">Ветка:</x:String>
+  <x:String x:Key="Text.Repository.Loading" xml:space="preserve">Loading repository…</x:String>
   <x:String x:Key="Text.Repository.Abort" xml:space="preserve">Отказ</x:String>
   <x:String x:Key="Text.Repository.AutoFetching" xml:space="preserve">Автоматическое извлечение изменений с внешних репозиторий...</x:String>
   <x:String x:Key="Text.Repository.BranchSort" xml:space="preserve">Сортировать</x:String>

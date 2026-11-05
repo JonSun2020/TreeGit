@@ -97,9 +97,10 @@ namespace SourceGit.Native
 
         public static List<Models.ExternalTool> ExternalTools
         {
-            get;
-            set;
-        } = [];
+            get => _externalTools.Value;
+        }
+
+        private static readonly Lazy<List<Models.ExternalTool>> _externalTools = new(() => _backend.FindExternalTools());
 
         public static int ExternalMergerType
         {
@@ -155,7 +156,7 @@ namespace SourceGit.Native
 
         public static void SetupExternalTools()
         {
-            ExternalTools = _backend.FindExternalTools();
+            _ = ExternalTools;
         }
 
         public static void SetupForWindow(Window window)

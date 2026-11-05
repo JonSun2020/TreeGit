@@ -196,16 +196,22 @@ namespace SourceGit.Automation
                     var tabBar = window.GetVisualDescendants().OfType<Views.LauncherTabBar>().FirstOrDefault() ?? throw new InvalidOperationException("Tab bar is not ready.");
                     var action = Text(args, "action");
                     if (action == "dropdown") tabBar.OpenTabList();
-                    else if (action is "select" or "close")
+                    else if (action is "select" or "close" or "move")
                     {
                         if (!args.TryGetProperty("index", out var index) || index.GetInt32() < 0 || index.GetInt32() >= launcher.Pages.Count)
                             throw new ArgumentException("Tab index is out of range.");
                         var page = launcher.Pages[index.GetInt32()];
                         if (action == "select") tabBar.ActivateTab(page);
-                        else launcher.CloseTab(page);
+                        else if (action == "close") launcher.CloseTab(page);
+                        else
+                        {
+                            if (!args.TryGetProperty("targetIndex", out var target) || target.GetInt32() < 0 || target.GetInt32() >= launcher.Pages.Count)
+                                throw new ArgumentException("Destination index is out of range.");
+                            launcher.MoveTab(page, launcher.Pages[target.GetInt32()]);
+                        }
                     }
                     else if (action != "list") throw new ArgumentException("Unknown tab action.");
-                    return (object)new { tabs = launcher.Pages.Select((page, index) => new { index, title = page.Node.IsRepository ? page.Node.Name : "TreeGit", repo = (page.Data as ViewModels.Repository)?.FullPath, selected = page == launcher.ActivePage }).ToArray() };
+                    return (object)new { tabs = launcher.Pages.Select((page, index) => new { index, title = page.Node.IsRepository ? page.Node.Name : "TreeGit", repo = page.Node.IsRepository ? page.Node.Id : null, loaded = page.Data is ViewModels.Repository, error = page.Data is ViewModels.RepositoryLoading { Failed: true } pending ? pending.Message : null, selected = page == launcher.ActivePage }).ToArray() };
                 });
 
             if (name == "ui_command")
@@ -365,6 +371,43 @@ namespace SourceGit.Automation
                     if (args.TryGetProperty("collapseBranches", out var collapse))
                         ViewModels.Preferences.Instance.Layout.IsSidebarCollapsedInLocalChanges = collapse.GetBoolean();
                     return (object)new { width = window.Width, height = window.Height, theme = ViewModels.Preferences.Instance.Theme, effectiveTheme = window.ActualThemeVariant.Key.ToString(), state = window.WindowState.ToString() };
+                });
+
+            if (name == "ui_fonts")
+                return await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    var preferences = ViewModels.Preferences.Instance;
+                    var dialog = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).Windows.OfType<Views.Preferences>().FirstOrDefault(w => w.IsVisible);
+                    var action = Text(args, "action");
+                    var kind = args.TryGetProperty("kind", out var k) ? k.GetString() : null;
+                    if (action is "list" or "set")
+                    {
+                        if (kind is not ("interface" or "code"))
+                            throw new ArgumentException("A font kind is required.");
+                        var options = kind == "interface" ? preferences.InterfaceFonts : preferences.CodeFonts;
+                        if (action == "list") return (object)new { kind, fonts = options };
+                        if (!args.TryGetProperty("font", out var fontValue) || fontValue.ValueKind != JsonValueKind.String)
+                            throw new ArgumentException("A font string is required; use empty for default.");
+                        var font = fontValue.GetString();
+                        var selected = options.FirstOrDefault(option => option.Family.Equals(font, StringComparison.OrdinalIgnoreCase));
+                        if (selected == null) throw new ArgumentException("Choose a listed font, or an empty font for default.");
+                        var picker = dialog?.FindControl<ComboBox>(kind == "interface" ? "InterfaceFontPicker" : "CodeFontPicker");
+                        if (picker != null) picker.SelectedValue = selected.Family;
+                        else if (kind == "interface") preferences.DefaultFontFamily = selected.Family;
+                        else preferences.MonospaceFontFamily = selected.Family;
+                        preferences.Save();
+                    }
+                    return (object)new
+                    {
+                        interfaceFont = preferences.DefaultFontFamily, codeFont = preferences.MonospaceFontFamily,
+                        renderedInterfaceFont = (App.Current.FindResource("Fonts.Default") as Avalonia.Media.FontFamily)?.ToString(),
+                        renderedCodeFont = (App.Current.FindResource("Fonts.Monospace") as Avalonia.Media.FontFamily)?.ToString(),
+                        controls = dialog == null ? null : new
+                        {
+                            interfaceValue = dialog.FindControl<ComboBox>("InterfaceFontPicker")?.SelectedValue,
+                            codeValue = dialog.FindControl<ComboBox>("CodeFontPicker")?.SelectedValue,
+                        },
+                    };
                 });
 
             var path = Path.GetFullPath(Text(args, "repo")).TrimEnd('\\', '/');

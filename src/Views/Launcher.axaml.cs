@@ -95,6 +95,8 @@ namespace SourceGit.Views
         protected override void OnOpened(EventArgs e)
         {
             base.OnOpened(e);
+            Native.StartupTrace.Mark("opened", true);
+            (DataContext as ViewModels.Launcher)?.LoadDeferredRepositories();
 
             var preferences = ViewModels.Preferences.Instance;
             WindowState = preferences.Layout.LauncherWindowState;
