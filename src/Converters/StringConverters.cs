@@ -29,25 +29,17 @@ namespace SourceGit.Converters
         {
             public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
             {
-                var theme = (string)value;
-                if (string.IsNullOrEmpty(theme))
-                    return ThemeVariant.Default;
-
-                if (theme.Equals("Light", StringComparison.OrdinalIgnoreCase))
-                    return ThemeVariant.Light;
-
-                if (theme.Equals("Dark", StringComparison.OrdinalIgnoreCase))
+                var theme = Models.TreeGitThemes.Normalize(value as string);
+                if (theme == "Dark")
                     return ThemeVariant.Dark;
-
-                if (theme.Equals("SourceTree", StringComparison.OrdinalIgnoreCase) || theme.Equals("Blue", StringComparison.OrdinalIgnoreCase))
+                if (theme == "Blue")
                     return Models.TreeGitThemes.SourceTree;
-
-                return ThemeVariant.Default;
+                return ThemeVariant.Light;
             }
 
             public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
             {
-                return (value as ThemeVariant)?.Key;
+                return Models.TreeGitThemes.Normalize((value as ThemeVariant)?.Key?.ToString());
             }
         }
 

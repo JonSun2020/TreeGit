@@ -199,9 +199,8 @@
                       DisplayMemberBinding="{Binding Key, x:DataType=ThemeVariant}"
                       SelectedItem="{Binding Theme, Mode=TwoWay, Converter={x:Static c:StringConverters.ToTheme}}">
               <ComboBox.Items>
-                <ThemeVariant>Default</ThemeVariant>
-                <ThemeVariant>Dark</ThemeVariant>
                 <ThemeVariant>Light</ThemeVariant>
+                <ThemeVariant>Dark</ThemeVariant>
                 <x:Static Member="m:TreeGitThemes.SourceTree"/>
               </ComboBox.Items>
             </ComboBox>

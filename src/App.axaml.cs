@@ -159,14 +159,13 @@ namespace SourceGit
             if (Current is not App app)
                 return;
 
-            if (theme.Equals("SourceTree", StringComparison.OrdinalIgnoreCase) || theme.Equals("Blue", StringComparison.OrdinalIgnoreCase))
+            theme = Models.TreeGitThemes.Normalize(theme);
+            if (theme == "Blue")
                 app.RequestedThemeVariant = Models.TreeGitThemes.SourceTree;
-            else if (theme.Equals("Light", StringComparison.OrdinalIgnoreCase))
-                app.RequestedThemeVariant = ThemeVariant.Light;
-            else if (theme.Equals("Dark", StringComparison.OrdinalIgnoreCase))
+            else if (theme == "Dark")
                 app.RequestedThemeVariant = ThemeVariant.Dark;
             else
-                app.RequestedThemeVariant = ThemeVariant.Default;
+                app.RequestedThemeVariant = ThemeVariant.Light;
 
             if (app._themeOverrides != null)
             {

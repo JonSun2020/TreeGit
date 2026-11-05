@@ -45,8 +45,8 @@
     <ResourceDictionary x:Key="Dark">
       <Color x:Key="SystemAccentColor">#FF68C1CB</Color>
       <Color x:Key="SystemListLowColor">#FF234249</Color>
-      <Color x:Key="Color.TreeGit.Chrome">#FF16836D</Color>
-      <Color x:Key="Color.TreeGit.ChromeHover">#FF126D5B</Color>
+      <Color x:Key="Color.TreeGit.Chrome">#FF1F1F1F</Color>
+      <Color x:Key="Color.TreeGit.ChromeHover">#FF333333</Color>
       <Color x:Key="Color.TreeGit.ToolbarIconTop">#FF93D1D8</Color>
       <Color x:Key="Color.TreeGit.ToolbarIconBottom">#FF5AAAB5</Color>
       <Color x:Key="Color.TreeGit.ToolbarLabel">#FFD1E8EC</Color>
@@ -81,7 +81,7 @@
       <Color x:Key="Color.InlineCode">#FF383838</Color>
       <Color x:Key="Color.InlineCodeFG">#FFF0F0F0</Color>
       <Color x:Key="Color.SubPanel">#FF272727</Color>
-    <Color x:Key="Color.TreeGit.ChromeForeground">#FFFFFFFF</Color><Color x:Key="Color.TreeGit.ToolbarOutline">#FF79BDC5</Color><Color x:Key="Color.TreeGit.TabInactive">#FF243136</Color><Color x:Key="Color.TreeGit.TabActive">#FF2F2F2F</Color><Color x:Key="Color.TreeGit.TabActiveBorder">#FF16836D</Color></ResourceDictionary>
+    <Color x:Key="Color.TreeGit.ChromeForeground">#FFFFFFFF</Color><Color x:Key="Color.TreeGit.ToolbarOutline">#FF79BDC5</Color><Color x:Key="Color.TreeGit.TabInactive">#FF383838</Color><Color x:Key="Color.TreeGit.TabActive">#FF2F2F2F</Color><Color x:Key="Color.TreeGit.TabActiveBorder">#FF1F1F1F</Color></ResourceDictionary>
   <ResourceDictionary x:Key="{x:Static m:TreeGitThemes.SourceTree}">
       <Color x:Key="SystemAccentColor">#FF0078D7</Color>
       <Color x:Key="SystemListLowColor">#FFDEEBFF</Color>

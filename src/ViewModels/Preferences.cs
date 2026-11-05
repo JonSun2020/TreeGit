@@ -46,7 +46,7 @@ namespace SourceGit.ViewModels
             get => _theme;
             set
             {
-                if (SetProperty(ref _theme, value) && !_isLoading)
+                if (SetProperty(ref _theme, Models.TreeGitThemes.Normalize(value)) && !_isLoading)
                     App.SetTheme(_theme, _themeOverrides);
             }
         }
