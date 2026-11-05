@@ -24,6 +24,12 @@ jobs:
           dotnet build src/SourceGit.csproj -c Debug -p:EnableIntegrationTests=true -v:q
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           dotnet build tests/CancellationHelper.csproj -c Release -o "$env:RUNNER_TEMP/cancellation-helper" -v:q
+      - name: Verify large query output and malformed authentication settings
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path src/bin/Debug/net10.0/data -Force | Out-Null
+          python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/command-pipes-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify cancellation affects only the command tree
         shell: pwsh
         run: python tests/process_cancellation.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/cancellation-helper/CancellationHelper.exe" "$env:RUNNER_TEMP/cancellation-results"
@@ -42,6 +48,7 @@ jobs:
           path: |
             ${{ runner.temp }}/cancellation-results
             ${{ runner.temp }}/runtime-ui-results
+            ${{ runner.temp }}/command-pipes-results
   portable:
     runs-on: windows-latest
     steps:

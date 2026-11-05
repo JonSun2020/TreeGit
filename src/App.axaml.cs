@@ -44,6 +44,11 @@ namespace SourceGit
             Native.OS.SetupBasicDirectories();
             Native.StartupTrace.Mark("directories");
 #if INTEGRATION_TESTS
+            if (args.Length > 3 && args[0] == "--integration-command-pipes")
+            {
+                Environment.Exit(Tests.CommandPipeProbe.RunAsync(args[1], args[2], args[3]).GetAwaiter().GetResult());
+                return;
+            }
             if (args.Length > 2 && args[0] == "--integration-cancel-git")
             {
                 Environment.Exit(Tests.ProcessCancellationProbe.RunGitAsync(args[1], args[2]).GetAwaiter().GetResult());

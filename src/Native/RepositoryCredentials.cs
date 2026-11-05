@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace SourceGit.Native
 {
@@ -37,9 +38,11 @@ namespace SourceGit.Native
                     start.ArgumentList.Add("--bool");
                     start.ArgumentList.Add("sourcegit.credentialmanager");
                     using var process = Process.Start(start);
-                    var value = process.StandardOutput.ReadToEnd();
+                    var output = process.StandardOutput.ReadToEndAsync();
+                    var error = process.StandardError.ReadToEndAsync();
+                    Task.WhenAll(output, error).GetAwaiter().GetResult();
                     process.WaitForExit();
-                    return process.ExitCode == 0 && value.Trim() == "true";
+                    return process.ExitCode == 0 && output.GetAwaiter().GetResult().Trim() == "true";
                 }
                 catch { return false; }
             });

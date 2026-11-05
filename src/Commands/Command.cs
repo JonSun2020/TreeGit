@@ -143,8 +143,11 @@ namespace SourceGit.Commands
             }
 
             var rs = new Result() { IsSuccess = true };
-            rs.StdOut = proc.StandardOutput.ReadToEnd();
-            rs.StdErr = proc.StandardError.ReadToEnd();
+            var output = proc.StandardOutput.ReadToEndAsync();
+            var error = proc.StandardError.ReadToEndAsync();
+            Task.WhenAll(output, error).GetAwaiter().GetResult();
+            rs.StdOut = output.GetAwaiter().GetResult();
+            rs.StdErr = error.GetAwaiter().GetResult();
             proc.WaitForExit();
 
             rs.IsSuccess = proc.ExitCode == 0;
@@ -166,8 +169,11 @@ namespace SourceGit.Commands
             }
 
             var rs = new Result() { IsSuccess = true };
-            rs.StdOut = await proc.StandardOutput.ReadToEndAsync(CancellationToken).ConfigureAwait(false);
-            rs.StdErr = await proc.StandardError.ReadToEndAsync(CancellationToken).ConfigureAwait(false);
+            var output = proc.StandardOutput.ReadToEndAsync(CancellationToken);
+            var error = proc.StandardError.ReadToEndAsync(CancellationToken);
+            await Task.WhenAll(output, error).ConfigureAwait(false);
+            rs.StdOut = output.GetAwaiter().GetResult();
+            rs.StdErr = error.GetAwaiter().GetResult();
             await proc.WaitForExitAsync(CancellationToken).ConfigureAwait(false);
 
             rs.IsSuccess = proc.ExitCode == 0;
