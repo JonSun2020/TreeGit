@@ -31,6 +31,7 @@ TreeGit 是一个 **MCP 服务端**。AI 客户端通过 stdio 连接，再由�
 | `ui_history_columns` | 读取、调整、重置图谱、描述、日期、作者、提交等列宽；按仓库保存 |
 | `ui_refresh` / `ui_window` | 刷新、调整窗口尺寸、主题和侧栏 |
 | `ui_fonts` | 列出本机可选字体、设置界面或代码 / Diff 字体、恢复默认 |
+| `ui_update` | 检查更新、查询进度、下载、取消，以及准备好后的重启更新 |
 | `ui_command` | 打开关于、偏好、仓库设置、账号及原有 Git 操作对话框 |
 | `git_status` / `git_log` / `git_diff` / `git_refs` / `git_show` | 查询状态、历史、差异和引用 |
 | `git_clone` | 使用原有克隆流程；完成后打开仓库 |
@@ -56,5 +57,7 @@ MCP 的完整读写意味着 AI 可以修改甚至删除 Git 数据。应在 AI 
 
 `ui_diff`：选中暂存区、工作区或当前提交中的变更文件，并读取二进制对比状态、两侧最多 256 字节可见内容，执行 first / previous / next / last / goto（offset 为绝对字节偏移）。例如：`{"repo":"D:\\repo","action":"select","source":"unstaged","file":"firmware.bin"}`。历史文件先用 ui_select_commit 选中提交，再指定 source=history。
 `ui_command` 还支持 check_updates、external_diff（需要先选择变更文件），与界面对应按钮使用同一处理流程。
+
+`ui_update` 的 `action` 为 `check` / `state` / `download` / `cancel` / `apply`。先 `check` 打开更新窗口，再通过 `state` 读取状态与进度；准备好后才可 `apply`。应用更新会重启 TreeGit、断开 AI 连接，客户端在更新完成后重新连接即可。Git 命令执行中不会开始替换文件；替换和新版启动期间暂停其他 MCP 操作。此工具属于写入工具，只读连接不提供。
 
 `ui_stashes`：查看、展开 / 收起、筛选和选择侧栏的贮藏条目。`ui_diff` 的 source=stash 可选择当前贮藏中的变更文件。ui_command 支持 stash_apply_dialog / stash_drop_dialog / stash_branch_dialog，仅打开原有确认窗口，不自动执行操作。

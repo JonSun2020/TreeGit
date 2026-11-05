@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Text.Json.Serialization;
 
@@ -17,6 +18,15 @@ namespace SourceGit.Models
 
         [JsonPropertyName("body")]
         public string Body { get; set; }
+
+        [JsonPropertyName("assets")]
+        public List<ReleaseAsset> Assets { get; set; } = [];
+
+        [JsonPropertyName("draft")]
+        public bool Draft { get; set; }
+
+        [JsonPropertyName("prerelease")]
+        public bool Prerelease { get; set; }
 
         [JsonIgnore]
         public System.Version CurrentVersion { get; }
@@ -37,6 +47,18 @@ namespace SourceGit.Models
     }
 
     public class AlreadyUpToDate;
+
+    public sealed class ReleaseAsset
+    {
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+        [JsonPropertyName("browser_download_url")]
+        public string DownloadUrl { get; set; }
+        [JsonPropertyName("digest")]
+        public string Digest { get; set; }
+        [JsonPropertyName("size")]
+        public long Size { get; set; }
+    }
 
     public class SelfUpdateFailed
     {

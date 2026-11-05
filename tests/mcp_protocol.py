@@ -25,6 +25,8 @@ check('unsupported version selects server version',exchange(request('initialize'
 check('unknown method',exchange(request('missing'))['error']['code']==-32601)
 check('unknown tool',exchange(request('tools/call',{'name':'missing'}))['error']['code']==-32602)
 check('write tool unavailable',exchange(request('tools/call',{'name':'git_action','arguments':{'repo':'C:/','action':'push'}}))['error']['code']==-32602)
+check('program update unavailable on a read-only connection',exchange(request('tools/call',{'name':'ui_update','arguments':{'action':'apply'}}))['error']['code']==-32602)
+check('program update hidden from read-only tool list','ui_update' not in {t['name'] for t in exchange(request('tools/list'))['result']['tools']})
 check('missing argument',exchange(request('tools/call',{'name':'git_status','arguments':{}}))['error']['code']==-32602)
 check('wrong argument type',exchange(request('tools/call',{'name':'git_log','arguments':{'repo':'C:/','count':'many'}}))['error']['code']==-32602)
 check('unknown argument',exchange(request('tools/call',{'name':'ui_state','arguments':{'execute':'calc'}}))['error']['code']==-32602)

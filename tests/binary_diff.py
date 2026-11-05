@@ -117,7 +117,7 @@ check('independent comparison adapts at high zoom without changing comparison re
 tool('ui_window', {'zoom':1})
 tool('ui_command', {'command':'close_dialog'})
 
-for command in ['external_diff', 'check_updates']:
+for command in ['external_diff']:
     tool('ui_command', {'command':command})
     for _ in range(60):
         dialogs = tool('ui_state')['dialogs']
@@ -126,6 +126,14 @@ for command in ['external_diff', 'check_updates']:
     check(command+' uses a normal unsupported information dialog', len(dialogs) == 1 and dialogs[0]['type'] == 'Alert' and dialogs[0]['message'] == '暂未支持')
     (out/(command+'.png')).write_bytes(tool('ui_screenshot', {'window':'active'}))
     tool('ui_command', {'command':'close_dialog'})
+
+tool('ui_command', {'command':'check_updates'})
+for _ in range(60):
+    dialogs = tool('ui_state')['dialogs']
+    if dialogs: break
+    time.sleep(.1)
+check('check_updates opens the update window', len(dialogs) == 1 and dialogs[0]['type'] == 'SelfUpdate')
+tool('ui_command', {'command':'close_dialog'})
 
 state = select(source='staged')
 check('staged binary compares HEAD against index', state['differentBytes'] == 1 and state['selectedOffset'] == 23)

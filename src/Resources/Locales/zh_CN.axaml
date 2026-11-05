@@ -903,6 +903,48 @@
   <x:String x:Key="Text.ScanRepositories.RootDir" xml:space="preserve">根路径 ：</x:String>
   <x:String x:Key="Text.ScanRepositories.UseCustomDir" xml:space="preserve">扫描其他自定义路径</x:String>
   <x:String x:Key="Text.SelfUpdate" xml:space="preserve">检测更新...</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.checking" xml:space="preserve">正在检查更新</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.available" xml:space="preserve">发现新版本</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.current" xml:space="preserve">当前已是最新版本</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.download" xml:space="preserve">正在下载更新</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.verify" xml:space="preserve">正在检查更新包</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.ready" xml:space="preserve">更新已准备好</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.cancelled" xml:space="preserve">下载已取消</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.failed" xml:space="preserve">暂时无法完成更新</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.applying" xml:space="preserve">正在完成更新</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Download" xml:space="preserve">下载更新</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Restart" xml:space="preserve">重启完成更新</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Resume" xml:space="preserve">继续下载</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Retry" xml:space="preserve">重试</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Cancel" xml:space="preserve">取消下载</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Later" xml:space="preserve">稍后</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Manual" xml:space="preserve">手动下载</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.CurrentVersion" xml:space="preserve">当前版本：TreeGit {0}</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.AvailableHint" xml:space="preserve">下载更新后，可在方便的时候重启完成安装。个人配置和仓库都会保留。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.DownloadHint" xml:space="preserve">可以随时取消下载，已下载的进度会保留。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.VerifyHint" xml:space="preserve">正在确认更新包完整，请稍候。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.ReadyHint" xml:space="preserve">点击“重启完成更新”后，TreeGit 会保存设置、替换程序并重新打开。个人配置和仓库都会保留。AI 连接会暂时断开，更新后可重新连接。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.CancelledHint" xml:space="preserve">已保留下载进度，下次可以继续。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.BusyHint" xml:space="preserve">更新已准备好，但仓库操作尚未结束。请完成当前操作后，再点击“重启完成更新”。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.ApplyingHint" xml:space="preserve">正在保存设置，即将重启 TreeGit。请稍候。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.StartingHint" xml:space="preserve">正在启动新版 TreeGit，请稍候。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.network" xml:space="preserve">暂时无法连接更新服务。请检查网络后重试。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.busy-service" xml:space="preserve">更新服务暂时繁忙，请稍后重试。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.invalid" xml:space="preserve">暂时无法获取可用的更新包。请重新检查，或选择手动下载。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.platform" xml:space="preserve">当前系统暂不支持自动替换程序，请选择手动下载。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.not-newer" xml:space="preserve">软件文件已经发生变化，请重新打开 TreeGit 后再检查更新。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.permission" xml:space="preserve">软件所在文件夹无法写入。请将 TreeGit 移到有写入权限的文件夹，或联系管理员后重试。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.space" xml:space="preserve">可用空间不足。请清理软件所在磁盘后重试。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.interrupted" xml:space="preserve">下载已中断，已保留进度。请检查网络后继续下载。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.damaged" xml:space="preserve">更新包不完整或已损坏，请重新下载。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.changed" xml:space="preserve">软件文件已经发生变化，请重新打开 TreeGit 后再检查更新。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.locked" xml:space="preserve">更新文件正在被其他程序使用。请关闭相关终端或其他 TreeGit 窗口后重试。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.busy" xml:space="preserve">仓库操作尚未结束，请完成后再更新。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.start" xml:space="preserve">新版未能正常启动。请稍后重试，或选择手动下载。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.failed" xml:space="preserve">更新未完成，请重试。也可以选择手动下载，现有配置和仓库不会被删除。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Updated" xml:space="preserve">TreeGit 已更新到 {0}。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Restored" xml:space="preserve">更新未完成，已恢复上一版。个人配置和仓库已保留。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.SpaceNeeded" xml:space="preserve">更新需要至少 {0} MB 可用空间。请清理软件所在磁盘后重试。</x:String>
   <x:String x:Key="Text.SelfUpdate.Available" xml:space="preserve">检测到软件有版本更新: </x:String>
   <x:String x:Key="Text.SelfUpdate.CurrentVersion" xml:space="preserve">当前版本 ：</x:String>
   <x:String x:Key="Text.SelfUpdate.Error" xml:space="preserve">获取最新版本信息失败！</x:String>

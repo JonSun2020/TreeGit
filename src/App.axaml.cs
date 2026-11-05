@@ -23,6 +23,11 @@ namespace SourceGit
         [STAThread]
         public static void Main(string[] args)
         {
+            if (args.Length == 2 && args[0] is "--apply-update" or "--recover-update")
+            {
+                Environment.Exit(Native.TreeGitUpdateInstaller.Run(args[1], args[0] == "--recover-update"));
+                return;
+            }
             Native.StartupTrace.Mark("main");
             if (args.Length > 1 && args[0] == "--credential-helper")
             {
@@ -31,9 +36,11 @@ namespace SourceGit
             }
             if (args.Length > 0 && args[0] == "--mcp")
             {
+                if (Native.TreeGitUpdateInstaller.HasActiveUpdate(AppContext.BaseDirectory)) return;
                 Environment.Exit(Automation.McpServer.RunAsync(args).GetAwaiter().GetResult());
                 return;
             }
+            if (Native.TreeGitUpdateInstaller.HandleBootstrap(args)) return;
             Native.OS.SetupBasicDirectories();
             Native.StartupTrace.Mark("directories");
 #if INTEGRATION_TESTS
@@ -296,6 +303,14 @@ namespace SourceGit
         {
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
+#if INTEGRATION_TESTS
+                if (desktop.Args is ["--integration-update-ui", var archive, var output])
+                {
+                    Tests.UpdateUiProbe.Attach(desktop, archive, output);
+                    base.OnFrameworkInitializationCompleted();
+                    return;
+                }
+#endif
                 BindingPlugins.DataValidators.RemoveAt(0);
 
                 // Disable tooltip if window is not active.
@@ -574,6 +589,10 @@ namespace SourceGit
             Native.StartupTrace.Mark("launcher-model");
             desktop.MainWindow = new Views.Launcher() { DataContext = _launcher };
             Native.StartupTrace.Mark("launcher-window");
+            if (Native.TreeGitUpdateInstaller.BootstrapPlan != null)
+                desktop.MainWindow.Opened += (_, _) => OpenUpdater(bootstrap: true);
+            else
+                desktop.MainWindow.Opened += async (_, _) => await ReportUpdateResultAsync();
             Automation.GuiBridge.Start();
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
@@ -605,7 +624,7 @@ namespace SourceGit
             };
 
 #if !DISABLE_UPDATE_DETECTION
-            if (pref.ShouldCheck4UpdateOnStartup())
+            if (Native.TreeGitUpdateInstaller.BootstrapPlan == null && pref.ShouldCheck4UpdateOnStartup())
                 Check4Update();
 #endif
         }
@@ -616,7 +635,7 @@ namespace SourceGit
         {
             if (manually)
             {
-                ShowNotSupported();
+                OpenUpdater();
                 return;
             }
 
@@ -627,57 +646,57 @@ namespace SourceGit
             {
                 try
                 {
-                    // Fetch latest release information.
-                    using var client = new HttpClient();
-                    client.Timeout = TimeSpan.FromSeconds(5);
-
-                    client.DefaultRequestHeaders.UserAgent.ParseAdd("TreeGit/" + Models.TreeGitRelease.Version);
-                    var data = await client.GetStringAsync("https://api.github.com/repos/JonSun2020/TreeGit/releases/latest");
-                    var ver = JsonSerializer.Deserialize(data, JsonCodeGen.Default.Version);
+                    // Check quietly after the first window has had time to render.
+                    await Task.Delay(10000);
+                    if (Native.TreeGitUpdateInstaller.IsApplying) return;
+                    using var updater = new Native.TreeGitUpdater(AppContext.BaseDirectory);
+                    using var timeout = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(20));
+                    var ver = await updater.CheckAsync(timeout.Token);
                     if (ver == null)
                         return;
 
-                    if (manually)
-                    {
-                        if (ver.IsNewVersion)
-                            ShowSelfUpdateResult(ver);
-                        else
-                            ShowSelfUpdateResult(new Models.AlreadyUpToDate());
-                    }
-                    else if (_launcher != null)
+                    if (_launcher != null)
                     {
                         if (!ver.IsNewVersion || ver.TagName == ViewModels.Preferences.Instance.IgnoreUpdateTag)
                             return;
 
-                        _launcher.NewVersion = ver;
+                        Dispatcher.UIThread.Post(() => { if (_launcher != null) _launcher.NewVersion = ver; });
                     }
                 }
-                catch (Exception e)
-                {
-                    if (manually)
-                        ShowSelfUpdateResult(new Models.SelfUpdateFailed(e));
-                }
+                catch { } // Automatic checks stay quiet when the update service is unavailable.
             });
         }
 
-        private void ShowSelfUpdateResult(object data)
+        private void OpenUpdater(bool bootstrap = false)
         {
-            try
+            Dispatcher.UIThread.Post(async () =>
             {
-                Dispatcher.UIThread.Invoke(async () =>
-                {
-                    if (Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: { } owner })
-                    {
-                        var ctx = new ViewModels.SelfUpdate { Data = data };
-                        var dialog = new Views.SelfUpdate() { DataContext = ctx };
-                        await dialog.ShowDialog(owner);
-                    }
-                });
-            }
-            catch
+                if (ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime { MainWindow: { } owner }) return;
+                if (_updateWindow is { IsVisible: true }) { _updateWindow.Activate(); return; }
+                foreach (var existing in ((IClassicDesktopStyleApplicationLifetime)ApplicationLifetime).Windows)
+                    if (existing is Views.SelfUpdate { IsVisible: true }) { existing.Activate(); return; }
+                var model = new ViewModels.SelfUpdate();
+                var window = new Views.SelfUpdate { DataContext = model };
+                _updateWindow = window;
+                var operation = bootstrap ? model.FinishBootstrapAsync() : model.CheckAsync();
+                await window.ShowDialog(owner);
+                await operation;
+                if (_updateWindow == window) _updateWindow = null;
+                if (bootstrap) await ReportUpdateResultAsync();
+            });
+        }
+
+        private async Task ReportUpdateResultAsync()
+        {
+            await Task.Delay(500);
+            var result = await Task.Run(() => Native.TreeGitUpdateInstaller.TakeResult(AppContext.BaseDirectory));
+            if (result is { } status && status.Version == Models.TreeGitRelease.Version)
+                Models.Notification.Send(string.Empty, App.Text(status.State == "Committed" ? "SelfUpdate.Flow.Updated" : "SelfUpdate.Flow.Restored", status.Version), status.State != "Committed");
+            _ = Task.Run(async () =>
             {
-                // Ignore exceptions.
-            }
+                await Task.Delay(5000);
+                Native.TreeGitUpdateInstaller.Cleanup(AppContext.BaseDirectory);
+            });
         }
 
         public static void ShowNotSupported()
@@ -691,6 +710,7 @@ namespace SourceGit
         #endregion
 
         private Models.IpcChannel _ipcChannel = null;
+        private Views.SelfUpdate _updateWindow;
         private ViewModels.Launcher _launcher = null;
         private ResourceDictionary _activeLocale = null;
         private ResourceDictionary _themeOverrides = null;

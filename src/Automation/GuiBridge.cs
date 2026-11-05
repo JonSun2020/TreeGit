@@ -23,6 +23,9 @@ namespace SourceGit.Automation
         private static readonly SemaphoreSlim _operations = new(1, 1);
         private static CancellationTokenSource _lifetime;
 
+        public static bool TryBeginUpdate() => _operations.Wait(0);
+        public static void EndUpdate() => _operations.Release();
+
         public static void Start()
         {
             _lifetime = new CancellationTokenSource();
@@ -86,6 +89,15 @@ namespace SourceGit.Automation
         private static async Task<object> DispatchAsync(JsonElement request, CancellationToken token)
         {
             var name = request.GetProperty("name").GetString();
+            if (name == "ui_update_ping")
+                return await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    var window = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow;
+                    if (window?.IsVisible != true) throw new InvalidOperationException("Startup is still in progress.");
+                    return (object)new { version = Models.TreeGitRelease.Version, processId = Environment.ProcessId };
+                });
+            if (Native.TreeGitUpdateInstaller.IsApplying && name is not ("ui_state" or "ui_screenshot"))
+                throw new InvalidOperationException("TreeGit is completing an update. Retry after it restarts.");
             var args = request.GetProperty("arguments");
             if (args.ValueKind != JsonValueKind.Object)
                 throw new ArgumentException("arguments must be an object.");
@@ -372,6 +384,28 @@ namespace SourceGit.Automation
                         ViewModels.Preferences.Instance.Layout.IsSidebarCollapsedInLocalChanges = collapse.GetBoolean();
                     return (object)new { width = window.Width, height = window.Height, theme = ViewModels.Preferences.Instance.Theme, effectiveTheme = window.ActualThemeVariant.Key.ToString(), state = window.WindowState.ToString() };
                 });
+
+            if (name == "ui_update")
+            {
+                if (!request.TryGetProperty("allowWrite", out var updatePermission) || !updatePermission.GetBoolean())
+                    throw new InvalidOperationException("Updating TreeGit requires a read/write connection.");
+                return await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    var action = Text(args, "action");
+                    if (action == "check") { App.CheckForUpdateCommand.Execute(null); return (object)new { accepted = true }; }
+                    var window = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).Windows.OfType<Views.SelfUpdate>().FirstOrDefault(w => w.IsVisible);
+                    if (window?.DataContext is not ViewModels.SelfUpdate model) throw new InvalidOperationException("Open the update window first.");
+                    if (action is "download" or "apply")
+                    {
+                        if (action == "apply" && !model.CanRestart) throw new InvalidOperationException("The update is not ready to apply.");
+                        if (action == "download" && !model.CanDownload) throw new InvalidOperationException("Check for an available release before downloading.");
+                        Dispatcher.UIThread.Post(async () => await model.ActAsync(), DispatcherPriority.Background);
+                    }
+                    else if (action == "cancel") model.Dismiss();
+                    else if (action != "state") throw new ArgumentException("Unknown update action.");
+                    return (object)new { state = model.State, heading = model.Heading, message = model.Message, version = model.NewVersion, progress = model.Progress, progressText = model.ProgressText, canAct = model.CanAct, canDismiss = model.CanDismiss };
+                });
+            }
 
             if (name == "ui_fonts")
                 return await Dispatcher.UIThread.InvokeAsync(() =>

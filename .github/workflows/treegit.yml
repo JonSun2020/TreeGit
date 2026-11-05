@@ -68,6 +68,14 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & "$env:RUNNER_TEMP/discovery-probe/GitDiscoveryProbe.exe" "$env:RUNNER_TEMP/discovery-results" "$env:RUNNER_TEMP/TreeGit/git/cmd/git.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify update validation and recovery
+        shell: pwsh
+        run: |
+          dotnet build tests/UpdaterProbe.csproj -c Release -o "$env:RUNNER_TEMP/updater-probe" -v:q
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $archive = (Get-ChildItem TreeGit-*-Windows-x64.zip | Select-Object -First 1).FullName
+          & "$env:RUNNER_TEMP/updater-probe/UpdaterProbe.exe" "$env:RUNNER_TEMP/updater-results" $archive
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify MCP protocol and portable packaging
         shell: pwsh
         run: |
@@ -87,9 +95,37 @@ jobs:
             ${{ runner.temp }}/font-results/*.png
             ${{ runner.temp }}/deferred-results/*.json
             ${{ runner.temp }}/deferred-results/*.png
+            ${{ runner.temp }}/updater-results/results.json
       - uses: actions/upload-artifact@v4
         with:
           name: TreeGit-Windows-x64
           path: |
             TreeGit-*-Windows-x64.zip
             SHA256SUMS.txt
+  updater-ui:
+    needs: portable
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/download-artifact@v4
+        with:
+          name: TreeGit-Windows-x64
+          path: update-fixture
+      - name: Verify update windows with the portable package
+        shell: pwsh
+        run: |
+          dotnet build src/SourceGit.csproj -c Debug -p:EnableIntegrationTests=true -v:q
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $archive = (Get-ChildItem update-fixture/TreeGit-*-Windows-x64.zip | Select-Object -First 1).FullName
+          & src/bin/Debug/net10.0/SourceGit.exe --integration-update-ui $archive "$env:RUNNER_TEMP/updater-ui-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TreeGit-updater-ui-results
+          path: |
+            ${{ runner.temp }}/updater-ui-results/results.json
+            ${{ runner.temp }}/updater-ui-results/*.png

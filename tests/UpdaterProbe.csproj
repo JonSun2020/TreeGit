@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
+    <DefineConstants>$(DefineConstants);TREEGIT_UPDATER_TESTS</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="UpdaterProbe.cs"/>
+    <Compile Include="../src/Native/TreeGitUpdater.cs"/>
+    <Compile Include="../src/Native/TreeGitUpdateInstaller.cs"/>
+    <Compile Include="../src/Models/UpdatePackage.cs"/>
+    <Compile Include="../src/Models/SelfUpdate.cs"/>
+    <Compile Include="../src/Models/TreeGitRelease.cs"/>
+  </ItemGroup>
+</Project>

@@ -562,6 +562,48 @@
   <x:String x:Key="Text.ScanRepositories" xml:space="preserve">Сканувати сховища</x:String>
   <x:String x:Key="Text.ScanRepositories.RootDir" xml:space="preserve">Коренева тека:</x:String>
   <x:String x:Key="Text.SelfUpdate" xml:space="preserve">Перевірити оновлення...</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.checking" xml:space="preserve">Checking for updates</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.available" xml:space="preserve">A new version is available</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.current" xml:space="preserve">You are up to date</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.download" xml:space="preserve">Downloading update</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.verify" xml:space="preserve">Checking the update package</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.ready" xml:space="preserve">Ready to update</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.cancelled" xml:space="preserve">Download cancelled</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.failed" xml:space="preserve">The update could not be completed</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.applying" xml:space="preserve">Completing the update</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Download" xml:space="preserve">Download update</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Restart" xml:space="preserve">Restart and update</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Resume" xml:space="preserve">Resume download</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Retry" xml:space="preserve">Retry</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Cancel" xml:space="preserve">Cancel download</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Later" xml:space="preserve">Later</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Manual" xml:space="preserve">Download manually</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.CurrentVersion" xml:space="preserve">Current version: TreeGit {0}</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.AvailableHint" xml:space="preserve">Download now and restart when convenient. Your settings and repositories will be kept.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.DownloadHint" xml:space="preserve">You can cancel at any time. Download progress will be saved.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.VerifyHint" xml:space="preserve">Checking that the update package is complete. Please wait.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.ReadyHint" xml:space="preserve">Restart and update saves your settings, replaces the program, and reopens TreeGit. Your settings and repositories will be kept. Connected AI clients may need to reconnect after the update.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.CancelledHint" xml:space="preserve">Your download progress has been kept. You can resume later.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.BusyHint" xml:space="preserve">The update is ready, but a repository operation is still running. Finish that operation, then choose Restart and update.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.ApplyingHint" xml:space="preserve">Saving your settings and restarting TreeGit. Please wait.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.StartingHint" xml:space="preserve">Starting the updated TreeGit. Please wait.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.network" xml:space="preserve">The update service cannot be reached. Check your connection and retry.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.busy-service" xml:space="preserve">The update service is temporarily busy. Please retry later.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.invalid" xml:space="preserve">A suitable update package is not available right now. Check again or download manually.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.platform" xml:space="preserve">Automatic replacement is not supported on this system. Please download manually.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.not-newer" xml:space="preserve">The program files have changed. Reopen TreeGit and check again.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.permission" xml:space="preserve">The program folder cannot be updated. Move TreeGit to a writable folder or contact your administrator, then retry.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.space" xml:space="preserve">There is not enough free space. Free space on the program drive and retry.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.interrupted" xml:space="preserve">The download was interrupted. Your progress has been kept; check your connection and resume.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.damaged" xml:space="preserve">The update package is incomplete or damaged. Please download it again.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.changed" xml:space="preserve">The program files have changed. Reopen TreeGit and check again.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.locked" xml:space="preserve">An update file is being used by another program. Close related terminals or other TreeGit windows, then retry.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.busy" xml:space="preserve">A repository operation is still running. Finish it before updating.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.start" xml:space="preserve">The updated version could not start. Retry later or download manually.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.failed" xml:space="preserve">The update was not completed. Retry or download manually. Your settings and repositories will not be deleted.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Updated" xml:space="preserve">TreeGit has been updated to {0}.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Restored" xml:space="preserve">The update was not completed and the previous version has been restored. Your settings and repositories were kept.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.SpaceNeeded" xml:space="preserve">The update needs at least {0} MB of free space. Free space on the program drive and retry.</x:String>
   <x:String x:Key="Text.SelfUpdate.Available" xml:space="preserve">Доступна нова версія програми: </x:String>
   <x:String x:Key="Text.SelfUpdate.Error" xml:space="preserve">Не вдалося перевірити оновлення!</x:String>
   <x:String x:Key="Text.SelfUpdate.GotoDownload" xml:space="preserve">Завантажити</x:String>

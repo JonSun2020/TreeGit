@@ -2003,6 +2003,7 @@ namespace SourceGit.ViewModels
 
         private void AutoFetchByTimer(object sender)
         {
+            if (Native.TreeGitUpdateInstaller.IsApplying) return;
             try
             {
                 Dispatcher.UIThread.Invoke(AutoFetchOnUIThread);

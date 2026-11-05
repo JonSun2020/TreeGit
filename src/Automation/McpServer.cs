@@ -21,7 +21,7 @@ namespace SourceGit.Automation
         internal static readonly HashSet<string> ReadTools = new(StringComparer.Ordinal)
         { "ui_state", "ui_screenshot", "git_status", "git_log", "git_diff", "git_refs", "git_show" };
         internal static readonly HashSet<string> UiTools = new(StringComparer.Ordinal)
-        { "ui_open_repository", "ui_select_view", "ui_select_commit", "ui_refresh", "ui_window", "ui_fonts", "ui_command", "ui_tabs", "ui_diff", "ui_stashes", "ui_search", "ui_graph", "ui_history_columns", "ui_working_copy" };
+        { "ui_open_repository", "ui_select_view", "ui_select_commit", "ui_refresh", "ui_window", "ui_fonts", "ui_update", "ui_command", "ui_tabs", "ui_diff", "ui_stashes", "ui_search", "ui_graph", "ui_history_columns", "ui_working_copy" };
 
         private static object Field(string description, string type = "string", string[] values = null)
             => values == null ? new { type, description } : (object)new { type, description, @enum = values };
@@ -32,7 +32,7 @@ namespace SourceGit.Automation
                 name,
                 description,
                 inputSchema = new { type = "object", properties, required = required ?? [], additionalProperties = false },
-                annotations = new { readOnlyHint = ReadTools.Contains(name), destructiveHint = name is "git_action" or "git_run", idempotentHint = name is not ("git_action" or "git_clone" or "git_run" or "ui_command" or "ui_tabs"), openWorldHint = name is "git_action" or "git_clone" or "git_run" },
+                annotations = new { readOnlyHint = ReadTools.Contains(name), destructiveHint = name is "git_action" or "git_run", idempotentHint = name is not ("git_action" or "git_clone" or "git_run" or "ui_command" or "ui_tabs" or "ui_update"), openWorldHint = name is "git_action" or "git_clone" or "git_run" or "ui_update" },
             };
 
         private static object[] Tools(bool allowWrite)
@@ -64,6 +64,7 @@ namespace SourceGit.Automation
             };
             if (allowWrite)
             {
+                tools.Add(Tool("ui_update", "Check official TreeGit releases, inspect update progress, download, cancel or apply a ready update. apply restarts TreeGit and can disconnect this client. Existing Git operations must finish first.", new() { ["action"] = Field("Update action.", values: ["check", "state", "download", "cancel", "apply"]) }, ["action"]));
                 tools.Add(Tool("git_run", "Execute any Git operation in an opened repository and refresh TreeGit. Supports all Git subcommands, including reset, clean, branch/tag deletion and force push. Arguments are passed directly to Git, without a shell. Uses normal repository credentials and authentication dialogs.", new()
                 {
                     ["repo"] = repo,
@@ -137,8 +138,16 @@ namespace SourceGit.Automation
             using var input = new StreamReader(Console.OpenStandardInput(), new UTF8Encoding(false));
             await using var output = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false)) { AutoFlush = true };
             var initialized = false;
-            while (await input.ReadLineAsync().ConfigureAwait(false) is { } line)
+            using var updateWatchStop = new CancellationTokenSource();
+            var updateWatch = WaitForUpdateAsync(updateWatchStop.Token);
+            try
             {
+            while (true)
+            {
+                var read = input.ReadLineAsync();
+                if (await Task.WhenAny(read, updateWatch).ConfigureAwait(false) == updateWatch) return 0;
+                var line = await read.ConfigureAwait(false);
+                if (line == null) break;
                 JsonElement id = default;
                 bool hasId = false;
                 object response;
@@ -218,6 +227,21 @@ namespace SourceGit.Automation
                 await output.WriteLineAsync(JsonSerializer.Serialize(response)).ConfigureAwait(false);
             }
             return 0;
+            }
+            finally { updateWatchStop.Cancel(); }
+        }
+
+        private static async Task WaitForUpdateAsync(CancellationToken token)
+        {
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    if (Native.TreeGitUpdateInstaller.HasActiveUpdate(AppContext.BaseDirectory)) return;
+                    await Task.Delay(200, token).ConfigureAwait(false);
+                }
+            }
+            catch (OperationCanceledException) { }
         }
 
         private static async Task<JsonElement> SendAsync(object request)
@@ -241,6 +265,8 @@ namespace SourceGit.Automation
 
         private static Task EnsureDesktopAsync() => Task.Run(() =>
         {
+            if (Native.TreeGitUpdateInstaller.HasActiveUpdate(AppContext.BaseDirectory))
+                throw new InvalidOperationException("TreeGit is updating. Retry after it restarts.");
             // Coordinate cold starts across different AI clients. Keep mutex ownership
             // on this synchronous worker thread, including while waiting for the GUI.
             using var gate = new Mutex(false, "TreeGit.MCP.Start." + PipeName);

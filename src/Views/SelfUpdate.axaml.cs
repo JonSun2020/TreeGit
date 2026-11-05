@@ -1,67 +1,10 @@
-﻿using System;
-using Avalonia;
+using System;
 using Avalonia.Controls;
-using Avalonia.Controls.Primitives;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Interactivity;
-using AvaloniaEdit;
-using AvaloniaEdit.Document;
-using AvaloniaEdit.Editing;
-using AvaloniaEdit.TextMate;
 
 namespace SourceGit.Views
 {
-    public class UpdateInfoView : TextEditor
-    {
-        protected override Type StyleKeyOverride => typeof(TextEditor);
-
-        public UpdateInfoView() : base(new TextArea(), new TextDocument())
-        {
-            IsReadOnly = true;
-            ShowLineNumbers = false;
-            WordWrap = true;
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled;
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
-
-            TextArea.TextView.Margin = new Thickness(4, 0);
-            TextArea.TextView.Options.EnableHyperlinks = false;
-            TextArea.TextView.Options.EnableEmailHyperlinks = false;
-        }
-
-        protected override void OnLoaded(RoutedEventArgs e)
-        {
-            base.OnLoaded(e);
-
-            if (_textMate == null)
-            {
-                _textMate = Models.TextMateHelper.CreateForEditor(this);
-                Models.TextMateHelper.SetGrammarByFileName(_textMate, "README.md");
-            }
-        }
-
-        protected override void OnUnloaded(RoutedEventArgs e)
-        {
-            base.OnUnloaded(e);
-
-            if (_textMate != null)
-            {
-                _textMate.Dispose();
-                _textMate = null;
-            }
-
-            GC.Collect();
-        }
-
-        protected override void OnDataContextChanged(EventArgs e)
-        {
-            base.OnDataContextChanged(e);
-
-            if (DataContext is Models.Version ver)
-                Text = ver.Body;
-        }
-
-        private TextMate.Installation _textMate = null;
-    }
-
     public partial class SelfUpdate : ChromelessWindow
     {
         public SelfUpdate()
@@ -70,24 +13,48 @@ namespace SourceGit.Views
             InitializeComponent();
         }
 
-        private void CloseWindow(object _1, RoutedEventArgs _2)
+        protected override void OnDataContextChanged(EventArgs e)
+        {
+            base.OnDataContextChanged(e);
+            if (_model != null)
+            {
+                _model.CloseRequested -= Close;
+                _model.RestartRequested -= OnRestart;
+            }
+            _model = DataContext as ViewModels.SelfUpdate;
+            if (_model != null)
+            {
+                _model.CloseRequested += Close;
+                _model.RestartRequested += OnRestart;
+            }
+        }
+
+        protected override void OnClosing(WindowClosingEventArgs e)
+        {
+            if (_model is { CanDismiss: false, Restarting: false }) e.Cancel = true;
+            base.OnClosing(e);
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            _model?.OnClosed();
+            base.OnClosed(e);
+        }
+
+        private async void OnAction(object sender, RoutedEventArgs e)
+        {
+            if (_model != null) await _model.ActAsync();
+        }
+
+        private void OnDismiss(object sender, RoutedEventArgs e) => _model?.Dismiss();
+        private void GotoDownload(object sender, RoutedEventArgs e) => Native.OS.OpenBrowser(Native.TreeGitUpdater.DownloadPage);
+
+        private void OnRestart()
         {
             Close();
+            if (App.Current.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime { MainWindow: { } window }) window.Close();
         }
 
-        private void GotoDownload(object _, RoutedEventArgs e)
-        {
-            Native.OS.OpenBrowser("https://github.com/JonSun2020/TreeGit/releases/latest");
-            e.Handled = true;
-        }
-
-        private void IgnoreThisVersion(object sender, RoutedEventArgs e)
-        {
-            if (sender is Button { DataContext: Models.Version ver })
-                ViewModels.Preferences.Instance.IgnoreUpdateTag = ver.TagName;
-
-            Close();
-            e.Handled = true;
-        }
+        private ViewModels.SelfUpdate _model;
     }
 }
