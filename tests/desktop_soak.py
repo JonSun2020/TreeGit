@@ -3,6 +3,7 @@ import base64, json, os, queue, random, subprocess, sys, tempfile, threading, ti
 from pathlib import Path
 exe=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
 seconds=float(sys.argv[3]) if len(sys.argv)>3 else 600
+build=json.loads((exe.parent/'build-info.json').read_text('utf-8-sig')) if (exe.parent/'build-info.json').exists() else {}
 root=Path(tempfile.mkdtemp(prefix='TreeGit sustained desktop audit '));env=os.environ.copy()
 snapshot_root=root/'snapshots';snapshot_root.mkdir()
 env.update(GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'),GIT_CONFIG_NOSYSTEM='1',TEMP=str(snapshot_root),TMP=str(snapshot_root))
@@ -30,7 +31,7 @@ def close_repositories():
 def save_result():
     ordered=sorted(latencies)
     pending=out/'desktop-soak-results.tmp'
-    pending.write_text(json.dumps({'exe':str(exe),'root':str(root),'seconds':round(time.monotonic()-start,1),'cycles':cycle,'requests':len(latencies),'maxRequestSeconds':max(latencies,default=0),'p95RequestSeconds':ordered[int(len(ordered)*.95)] if ordered else 0,'samples':samples,'ownedSnapshotCount':len(snapshots),'remainingSnapshots':[str(s) for s in snapshots if s.exists()],'failure':failure},ensure_ascii=False,indent=2),encoding='utf-8')
+    pending.write_text(json.dumps({'exe':str(exe),'build':build,'root':str(root),'seconds':round(time.monotonic()-start,1),'requestedDurationSeconds':seconds,'stoppedByRequest':(out/'stop-requested').exists(),'cycles':cycle,'requests':len(latencies),'maxRequestSeconds':max(latencies,default=0),'p95RequestSeconds':ordered[int(len(ordered)*.95)] if ordered else 0,'samples':samples,'ownedSnapshotCount':len(snapshots),'remainingSnapshots':[str(s) for s in snapshots if s.exists()],'failure':failure},ensure_ascii=False,indent=2),encoding='utf-8')
     pending.replace(out/'desktop-soak-results.json')
 def sample(label):
     state=tool('ui_state');assert state['processId']==pid and not state['dialogs'],state['dialogs']
@@ -55,7 +56,7 @@ try:
     for tab in reversed(tool('ui_tabs',{'action':'list'})['tabs']):
         if tab['repo'] and Path(tab['repo']) in extras:tool('ui_tabs',{'action':'close','index':tab['index']})
     sample('eight-active-after-overflow');start=time.monotonic();deadline=start+seconds
-    while time.monotonic()<deadline:
+    while time.monotonic()<deadline and not (out/'stop-requested').exists():
         repo=repos[cycle%len(repos)];tool('ui_open_repository',{'repo':str(repo)})
         if cycle%12==0:
             tool('ui_window',{'width':1024 if cycle%24==0 else 1600,'height':720 if cycle%24==0 else 1000,'zoom':[1,1.5,2][(cycle//12)%3],'theme':['Blue','Dark','Light'][(cycle//12)%3]})

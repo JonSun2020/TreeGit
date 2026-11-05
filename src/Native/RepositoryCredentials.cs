@@ -21,13 +21,14 @@ namespace SourceGit.Native
                 !output.Contains("User canceled authentication", StringComparison.OrdinalIgnoreCase) &&
                 !output.Contains("User cancelled authentication", StringComparison.OrdinalIgnoreCase);
 
-        private static readonly ConcurrentDictionary<string, bool> _managerModes = new(StringComparer.OrdinalIgnoreCase);
+        private static readonly ConcurrentDictionary<string, Lazy<bool>> _managerModes = new(StringComparer.OrdinalIgnoreCase);
 
         public static bool UsesCredentialManager(string repo)
         {
             if (string.IsNullOrEmpty(repo))
                 return false;
-            return _managerModes.GetOrAdd(Path.GetFullPath(repo), path =>
+            // Publish the entry before starting I/O so invalidation also removes in-flight reads.
+            return _managerModes.GetOrAdd(Path.GetFullPath(repo), path => new Lazy<bool>(() =>
             {
                 try
                 {
@@ -45,11 +46,11 @@ namespace SourceGit.Native
                     return process.ExitCode == 0 && output.GetAwaiter().GetResult().Trim() == "true";
                 }
                 catch { return false; }
-            });
+            })).Value;
         }
 
         public static void SetCredentialManagerMode(string repo, bool enabled)
-            => _managerModes[Path.GetFullPath(repo)] = enabled;
+            => _managerModes[Path.GetFullPath(repo)] = new Lazy<bool>(() => enabled);
 
         public static void InvalidateMode(string repo)
         {

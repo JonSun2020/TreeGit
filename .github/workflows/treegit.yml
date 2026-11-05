@@ -30,6 +30,13 @@ jobs:
           New-Item -ItemType Directory -Path src/bin/Debug/net10.0/data -Force | Out-Null
           python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/command-pipes-results"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify authentication changes during an in-flight read
+        shell: pwsh
+        run: |
+          dotnet build tests/RepositoryModeProbe.csproj -c Release -o "$env:RUNNER_TEMP/mode-probe" -v:q
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "$env:RUNNER_TEMP/mode-probe/RepositoryModeProbe.exe" "$env:RUNNER_TEMP/mode-results" (Get-Command git.exe).Source
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify cancellation affects only the command tree
         shell: pwsh
         run: python tests/process_cancellation.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/cancellation-helper/CancellationHelper.exe" "$env:RUNNER_TEMP/cancellation-results"
@@ -49,6 +56,7 @@ jobs:
             ${{ runner.temp }}/cancellation-results
             ${{ runner.temp }}/runtime-ui-results
             ${{ runner.temp }}/command-pipes-results
+            ${{ runner.temp }}/mode-results/repository-mode-results.json
   portable:
     runs-on: windows-latest
     steps:
