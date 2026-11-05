@@ -5,6 +5,9 @@ namespace SourceGit.Commands
     public class Push : Command
     {
         protected override bool SupportsAuthenticationRetry => true;
+        // A rejecting pre-push hook returns 1, even if it prints an authentication
+        // failure from a nested command. Only retry Git's transport failure (128).
+        protected override bool RequiresAuthenticationTransportExitCode => true;
 
         public Push(string repo, Models.Branch local, Models.Remote remote, Models.Branch remoteBranch, bool withTags, bool checkSubmodules, bool track, bool force, bool noVerify)
         {

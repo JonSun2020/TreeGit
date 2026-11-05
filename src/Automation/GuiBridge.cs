@@ -725,6 +725,7 @@ namespace SourceGit.Automation
             var credentialScope = path;
             bool? useCredentialManager = null;
             var allowAuthenticationRetry = false;
+            var requireAuthenticationTransportExitCode = false;
             var pathComparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
             try
             {
@@ -756,6 +757,7 @@ namespace SourceGit.Automation
                             throw new ArgumentException("arguments must contain a Git command and no NUL characters.");
                         var commandIndex = GitCommandIndex(arguments);
                         var subcommand = commandIndex < arguments.Length ? arguments[commandIndex] : string.Empty;
+                        requireAuthenticationTransportExitCode = subcommand is "push" or "pull";
                         allowAuthenticationRetry = subcommand is "clone" or "fetch" or "pull" or "push" or "ls-remote" ||
                             commandIndex + 1 < arguments.Length &&
                             ((subcommand == "submodule" && arguments[commandIndex + 1] is "add" or "update") ||
@@ -823,6 +825,7 @@ namespace SourceGit.Automation
                             case "pull":
                             case "push":
                                 allowAuthenticationRetry = true;
+                                requireAuthenticationTransportExitCode = action is "push" or "pull";
                                 remote = args.TryGetProperty("remote", out var r) ? r.GetString() : "origin";
                                 // Opening a tab starts an asynchronous refresh. Query configuration
                                 // directly so a fetch immediately after open cannot see a stale VM list.
@@ -896,7 +899,7 @@ namespace SourceGit.Automation
                 }
                 Commands.Command.Result result;
                 try
-                { result = await query.RunAsync(allowAuthenticationRetry).ConfigureAwait(false); }
+                { result = await query.RunAsync(allowAuthenticationRetry, requireAuthenticationTransportExitCode: requireAuthenticationTransportExitCode).ConfigureAwait(false); }
                 catch (Exception ex) { result = Commands.Command.Result.Failed(ex.Message); }
                 if (write)
                 {
@@ -1009,7 +1012,7 @@ namespace SourceGit.Automation
                 RaiseError = false;
             }
 
-            public async Task<Result> RunAsync(bool allowAuthenticationRetry = false, bool retrySilentFailure = false)
+            public async Task<Result> RunAsync(bool allowAuthenticationRetry = false, bool retrySilentFailure = false, bool requireAuthenticationTransportExitCode = false)
             {
                 IsAuthenticationRetry = false;
                 while (true)
@@ -1035,7 +1038,8 @@ namespace SourceGit.Automation
                         await Task.Delay(100).ConfigureAwait(false);
                         continue;
                     }
-                    if (!result.IsSuccess && allowAuthenticationRetry && OperatingSystem.IsWindows() && Native.RepositoryCredentials.IsAuthenticationFailure(result.StdErr))
+                    if (!result.IsSuccess && allowAuthenticationRetry && (!requireAuthenticationTransportExitCode || result.ExitCode == 128) &&
+                        OperatingSystem.IsWindows() && Native.RepositoryCredentials.IsAuthenticationFailure(result.StdErr))
                     {
                         IsAuthenticationRetry = true;
                         continue;

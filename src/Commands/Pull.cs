@@ -5,6 +5,7 @@ namespace SourceGit.Commands
     public class Pull : Command
     {
         protected override bool SupportsAuthenticationRetry => true;
+        protected override bool RequiresAuthenticationTransportExitCode => true;
 
         public Pull(string repo, Models.Remote remote, Models.Branch remoteBranch, bool useRebase)
         {

@@ -89,6 +89,17 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/local_auth_failure.py src/bin/Debug/net10.0/SourceGit.exe "${{ runner.temp }}/local-auth-run" --mcp-run
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify rejecting push hooks never replay and LFS authentication remains usable
+        shell: pwsh
+        run: |
+          python tests/push_hook_failure.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/push-hook-native"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/push_hook_failure.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/push-hook-action" --mcp-action
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/push_hook_failure.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/push-hook-run" --mcp-run
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/lfs_https_auth.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/lfs-https-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -111,6 +122,8 @@ jobs:
             ${{ runner.temp }}/amend-unstage-results/amend-unstage-results.json
             ${{ runner.temp }}/binary-launch-results/binary-launch-results.json
             ${{ runner.temp }}/local-auth-*/local-auth-failure-results.json
+            ${{ runner.temp }}/push-hook-*/push-hook-failure-results.json
+            ${{ runner.temp }}/lfs-https-results/results.json
   portable:
     runs-on: windows-latest
     steps:

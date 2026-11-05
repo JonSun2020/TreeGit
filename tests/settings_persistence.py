@@ -22,6 +22,7 @@ global_config = root / 'global.gitconfig'
 env = os.environ.copy()
 env.update(GIT_CONFIG_GLOBAL=str(global_config), GIT_CONFIG_NOSYSTEM='1', TREEGIT_TEST_SETTINGS_FIXTURE=str(fixture))
 checks = []
+fixture_read_retries = []
 
 def git(*args, success=True):
     p = subprocess.run(['git', '-C', str(repo), *args], capture_output=True, text=True, encoding='utf-8', env=env)
@@ -82,7 +83,11 @@ def edit(action, fields=None, templates=None, links=None, operation=None, extern
         if result_file.exists():
             try:
                 result = json.loads(result_file.read_text(encoding='utf-8-sig'))
-            except json.JSONDecodeError:
+            except (json.JSONDecodeError, PermissionError, FileNotFoundError) as error:
+                # Only wait for the owned test reply to become readable. Never
+                # repeat the save command or suppress a product-reported error.
+                fixture_read_retries.append({'action':action,'error':type(error).__name__,
+                                             'message':str(error)})
                 time.sleep(.05)
                 continue
             assert 'exception' not in result, result
@@ -200,8 +205,9 @@ try:
         gc_lock.unlink(missing_ok=True)
     result=edit('cancel',operation='cleanup')
     check('native cleanup succeeds after the GC lock is released',result['operationResult'] is True)
-    (out/'settings-persistence-results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'repo':str(repo),'exe':str(exe)},ensure_ascii=False,indent=2),encoding='utf-8')
+    (out/'settings-persistence-results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'repo':str(repo),'exe':str(exe),'fixtureReadRetries':fixture_read_retries},ensure_ascii=False,indent=2),encoding='utf-8')
 finally:
+    (out/'fixture-read-retries.json').write_text(json.dumps(fixture_read_retries,ensure_ascii=False,indent=2),encoding='utf-8')
     p.stdin.close()
     try:
         p.wait(timeout=10)

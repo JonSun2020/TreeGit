@@ -180,6 +180,13 @@ namespace SourceGit.Tests
                             case "native_patch":
                                 var patch = new ViewModels.Apply(repo) { PatchFile = data.GetProperty("file").GetString() };
                                 operationResult = await patch.Sure(); patch.Cleanup(); operationDetails = new { log = repo.Logs.FirstOrDefault()?.Content }; break;
+                            case "native_push_hook":
+                                for (var attempt = 0; attempt < 100 && (repo.Remotes.Count == 0 || repo.CurrentBranch == null); attempt++) await Task.Delay(50);
+                                var pushHookRemote = repo.Remotes.Single(r => r.Name == "origin");
+                                operationResult = await new Commands.Push(repo.FullPath, repo.CurrentBranch, pushHookRemote,
+                                    new Models.Branch { Name = "main" }, false, false, false, false, false).ExecAsync();
+                                operationDetails = new { log = repo.Logs.FirstOrDefault()?.Content };
+                                break;
                             case "native_lfs_push":
                                 for (var attempt = 0; attempt < 100 && repo.Remotes.Count == 0; attempt++) await Task.Delay(50);
                                 var lfsOwner = App.GetLauncher().Pages.Single(p => ReferenceEquals(p.Data, repo));
