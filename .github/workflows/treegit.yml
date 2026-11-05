@@ -32,6 +32,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/streaming-query-results" --streaming
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/pointer-results" --pointers
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/index-info-results" --indexes
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify authentication changes during an in-flight read
         shell: pwsh
         run: |
@@ -66,6 +70,9 @@ jobs:
       - name: Verify saving before closing a window or tab
         shell: pwsh
         run: python tests/close_save_failure.py src/bin/Debug/net10.0/SourceGit.exe "${{ runner.temp }}/close-save-results"
+      - name: Verify native amend unstage in SHA-1 and SHA-256 repositories
+        shell: pwsh
+        run: python tests/amend_unstage.py src/bin/Debug/net10.0/SourceGit.exe "${{ runner.temp }}/amend-unstage-results"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -75,12 +82,15 @@ jobs:
             ${{ runner.temp }}/runtime-ui-results
             ${{ runner.temp }}/command-pipes-results
             ${{ runner.temp }}/streaming-query-results/command-pipes-results.json
+            ${{ runner.temp }}/pointer-results/command-pipes-results.json
+            ${{ runner.temp }}/index-info-results/command-pipes-results.json
             ${{ runner.temp }}/mode-results/repository-mode-results.json
             ${{ runner.temp }}/startup-results/ui-startup-results.json
             ${{ runner.temp }}/close-during-commit-results/close-during-commit-results.json
             ${{ runner.temp }}/preferences-schema-results/preferences-schema-results.json
             ${{ runner.temp }}/close-save-results/close-save-results.json
             ${{ runner.temp }}/close-save-results/*.png
+            ${{ runner.temp }}/amend-unstage-results/amend-unstage-results.json
   portable:
     runs-on: windows-latest
     steps:

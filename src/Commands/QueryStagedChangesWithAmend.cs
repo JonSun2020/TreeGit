@@ -1,16 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text.RegularExpressions;
 
 namespace SourceGit.Commands
 {
-    public partial class QueryStagedChangesWithAmend : Command
+    public class QueryStagedChangesWithAmend : Command
     {
-        [GeneratedRegex(@"^:[\d]{6} ([\d]{6}) ([0-9a-f]{4,64}) [0-9a-f]{4,64} ([ADMT])\d{0,6}\t(.*)$")]
-        private static partial Regex REG_FORMAT1();
-        [GeneratedRegex(@"^:[\d]{6} ([\d]{6}) ([0-9a-f]{4,64}) [0-9a-f]{4,64} ([RC])\d{0,6}\t(.*\t.*)$")]
-        private static partial Regex REG_FORMAT2();
-
         public QueryStagedChangesWithAmend(string repo)
         {
             WorkingDirectory = repo;
@@ -29,66 +23,53 @@ namespace SourceGit.Commands
                 return [];
 
             var parent = shas.Length > 1 ? shas[1] : Models.EmptyTreeHash.Guess(shas[0]);
-            Args = $"diff-index --cached -M {parent}";
+            Args = $"diff-index --cached -M -z {parent}";
             rs = ReadToEnd();
             if (!rs.IsSuccess)
                 return [];
 
             var changes = new List<Models.Change>();
-            var lines = rs.StdOut.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
-            foreach (var line in lines)
+            var fields = rs.StdOut.Split('\0');
+            for (var index = 0; index < fields.Length;)
             {
-                var match = REG_FORMAT2().Match(line);
-                if (match.Success)
+                var header = fields[index++];
+                if (header.Length == 0) continue;
+                if (header[0] != ':') return [];
+                var details = header[1..].Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (details.Length != 5 || details[4].Length == 0 || index >= fields.Length) return [];
+                var type = details[4][0];
+                var firstPath = fields[index++];
+                var originalPath = string.Empty;
+                var path = firstPath;
+                if (type is 'R' or 'C')
                 {
-                    var change = new Models.Change()
-                    {
-                        Path = match.Groups[4].Value,
-                        DataForAmend = new Models.ChangeDataForAmend()
-                        {
-                            FileMode = match.Groups[1].Value,
-                            ObjectHash = match.Groups[2].Value,
-                            ParentSHA = parent,
-                        },
-                    };
-                    var type = match.Groups[3].Value;
-                    change.Set(type == "R" ? Models.ChangeState.Renamed : Models.ChangeState.Copied);
-                    changes.Add(change);
-                    continue;
+                    if (index >= fields.Length) return [];
+                    originalPath = firstPath;
+                    path = fields[index++];
                 }
-
-                match = REG_FORMAT1().Match(line);
-                if (match.Success)
+                var state = type switch
                 {
-                    var change = new Models.Change()
+                    'A' => Models.ChangeState.Added,
+                    'D' => Models.ChangeState.Deleted,
+                    'M' => Models.ChangeState.Modified,
+                    'T' => Models.ChangeState.TypeChanged,
+                    'R' => Models.ChangeState.Renamed,
+                    'C' => Models.ChangeState.Copied,
+                    _ => Models.ChangeState.None,
+                };
+                if (state == Models.ChangeState.None) continue;
+                changes.Add(new Models.Change
+                {
+                    Path = path,
+                    OriginalPath = originalPath,
+                    Index = state,
+                    DataForAmend = new Models.ChangeDataForAmend
                     {
-                        Path = match.Groups[4].Value,
-                        DataForAmend = new Models.ChangeDataForAmend()
-                        {
-                            FileMode = match.Groups[1].Value,
-                            ObjectHash = match.Groups[2].Value,
-                            ParentSHA = parent,
-                        },
-                    };
-
-                    var type = match.Groups[3].Value;
-                    switch (type)
-                    {
-                        case "A":
-                            change.Set(Models.ChangeState.Added);
-                            break;
-                        case "D":
-                            change.Set(Models.ChangeState.Deleted);
-                            break;
-                        case "M":
-                            change.Set(Models.ChangeState.Modified);
-                            break;
-                        case "T":
-                            change.Set(Models.ChangeState.TypeChanged);
-                            break;
-                    }
-                    changes.Add(change);
-                }
+                        FileMode = details[0],
+                        ObjectHash = details[2],
+                        ParentSHA = parent,
+                    },
+                });
             }
 
             return changes;

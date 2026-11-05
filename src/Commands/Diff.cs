@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -95,6 +96,12 @@ namespace SourceGit.Commands
             catch
             {
                 // Ignore exceptions.
+            }
+
+            if (_isLFS && (_invalidLfs || _oldLfsFields is not (0 or 7) || _newLfsFields is not (0 or 7)))
+            {
+                _isLFS = false;
+                _result.LFSDiff = null;
             }
 
             if (_isLFS || _result.IsBinary || _result.TextDiff.Lines.Count == 0)
@@ -211,8 +218,7 @@ namespace SourceGit.Commands
             var prefix = line[0];
             var content = line.Substring(1);
             var rawContent = lineBytes[1..].ToArray();
-            if (ParseLFSChange(prefix, content))
-                return true;
+            ParseLFSChange(prefix, content);
 
             if (prefix == PREFIX_DELETED)
             {
@@ -284,43 +290,40 @@ namespace SourceGit.Commands
 
         private bool ParseLFSChange(char prefix, string content)
         {
-            if (_isLFS)
+            if (!_isLFS)
             {
-                if (prefix == PREFIX_DELETED)
-                {
-                    if (content.StartsWith(LFS_OID_PREFIX, StringComparison.Ordinal))
-                        _result.LFSDiff.Old.Oid = content.Substring(11);
-                    else if (content.StartsWith(LFS_SIZE_PREFIX, StringComparison.Ordinal))
-                        _result.LFSDiff.Old.Size = long.Parse(content.AsSpan(5));
-                }
-                else if (prefix == PREFIX_ADDED)
-                {
-                    if (content.StartsWith(LFS_OID_PREFIX, StringComparison.Ordinal))
-                        _result.LFSDiff.New.Oid = content.Substring(11);
-                    else if (content.StartsWith(LFS_SIZE_PREFIX, StringComparison.Ordinal))
-                        _result.LFSDiff.New.Size = long.Parse(content.AsSpan(5));
-                }
-                else if (prefix == PREFIX_CONTEXT)
-                {
-                    if (content.StartsWith(LFS_SIZE_PREFIX, StringComparison.Ordinal))
-                        _result.LFSDiff.New.Size = _result.LFSDiff.Old.Size = long.Parse(content.AsSpan(5));
-                }
-                return true;
+                var atStart = (_oldLine == 1 && _newLine == 1 && prefix == PREFIX_CONTEXT) ||
+                    (_oldLine == 1 && _newLine is 0 or 1 && prefix == PREFIX_DELETED) ||
+                    (_oldLine == 0 && _newLine == 1 && prefix == PREFIX_ADDED);
+                if (!atStart || !content.StartsWith(LFS_SPECIFIER, StringComparison.Ordinal)) return false;
+                _isLFS = true;
+                _result.LFSDiff = new Models.LFSDiff();
             }
+            if (prefix is PREFIX_DELETED or PREFIX_CONTEXT) ReadLfsLine(content, _result.LFSDiff.Old, ref _oldLfsFields);
+            if (prefix is PREFIX_ADDED or PREFIX_CONTEXT) ReadLfsLine(content, _result.LFSDiff.New, ref _newLfsFields);
+            return true;
+        }
 
-            if ((_oldLine == 1 && _newLine == 1 && prefix == PREFIX_CONTEXT) ||
-                (_oldLine == 1 && _newLine == 0 && prefix == PREFIX_DELETED) ||
-                (_oldLine == 0 && _newLine == 1 && prefix == PREFIX_ADDED))
+        private void ReadLfsLine(string content, Models.LFSObject value, ref int fields)
+        {
+            content = content.TrimEnd('\r');
+            var field = 0;
+            if (content == LFS_SPECIFIER + "v1") field = 1;
+            else if (content.StartsWith(LFS_OID_PREFIX, StringComparison.Ordinal))
             {
-                if (content.StartsWith(LFS_SPECIFIER, StringComparison.Ordinal))
-                {
-                    _isLFS = true;
-                    _result.LFSDiff = new Models.LFSDiff();
-                    return true;
-                }
+                field = 2; value.Oid = content.Substring(LFS_OID_PREFIX.Length);
+                if (!Models.LFSObject.IsOid(value.Oid)) _invalidLfs = true;
             }
-
-            return false;
+            else if (content.StartsWith(LFS_SIZE_PREFIX, StringComparison.Ordinal))
+            {
+                field = 4;
+                if (!long.TryParse(content.AsSpan(LFS_SIZE_PREFIX.Length), NumberStyles.None, CultureInfo.InvariantCulture, out var size)) _invalidLfs = true;
+                else value.Size = size;
+            }
+            else if (content.StartsWith("ext-", StringComparison.Ordinal)) return;
+            else _invalidLfs = true;
+            if ((fields & field) != 0) _invalidLfs = true;
+            fields |= field;
         }
 
         private void ProcessInlineHighlights()
@@ -371,5 +374,8 @@ namespace SourceGit.Commands
         private int _newLine = 0;
         private bool _isInChunk = false;
         private bool _isLFS = false;
+        private bool _invalidLfs;
+        private int _oldLfsFields;
+        private int _newLfsFields;
     }
 }

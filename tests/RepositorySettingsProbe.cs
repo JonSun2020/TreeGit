@@ -274,6 +274,19 @@ namespace SourceGit.Tests
                                 finally { await File.WriteAllTextAsync(releasePath, "continue"); }
                                 await commitTask;
                                 operationResult = true; break;
+                            case "native_amend_unstage":
+                                window.Close();
+                                for (var attempt = 0; attempt < 100 && repo.CurrentBranch == null; attempt++) await Task.Delay(25);
+                                repo.WorkingCopy.SetData(await new Commands.QueryLocalChanges(repo.FullPath).GetResultAsync());
+                                repo.WorkingCopy.UseAmend = true;
+                                repo.WorkingCopy.CommitMessage = data.GetProperty("draft").GetString();
+                                var allAmendChanges = data.TryGetProperty("allChanges", out var allChanges) && allChanges.GetBoolean();
+                                var amendSelection = repo.WorkingCopy.Staged.Where(c => allAmendChanges || paths.Contains(c.Path, StringComparer.Ordinal)).ToList();
+                                if (amendSelection.Count == 0 || !allAmendChanges && amendSelection.Count != paths.Length) throw new InvalidOperationException("The native amend view did not contain all selected changes");
+                                await repo.WorkingCopy.UnstageChangesAsync(amendSelection, null);
+                                operationDetails = new { draft = repo.WorkingCopy.CommitMessage, busy = repo.WorkingCopy.IsUnstaging,
+                                    selected = amendSelection.Select(c => new { path = c.Path, original = c.OriginalPath, state = c.Index.ToString(), mode = c.DataForAmend?.FileMode }).ToArray() };
+                                operationResult = true; break;
                             case "native_commit":
                                 repo.WorkingCopy.SetData(await new Commands.QueryLocalChanges(repo.FullPath).GetResultAsync());
                                 repo.WorkingCopy.CommitMessage = data.GetProperty("draft").GetString();

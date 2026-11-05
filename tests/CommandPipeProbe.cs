@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -51,7 +52,7 @@ namespace SourceGit.Tests
                 var result = await new Query { WorkingDirectory = root, Args = arguments, UseCredentialManager = false, Editor = Commands.Command.EditorType.None }.ReadAsync();
                 if (!result.IsSuccess) throw new IOException(result.StdErr);
             }
-            await Git("init -b main");
+            await Git(mode == "index-sha256" ? "init -b main --object-format=sha256" : "init -b main");
             File.WriteAllText(Path.Combine(root, "sample.txt"), "before\n");
             await Git("add ."); await Git("-c user.name=StreamQA -c user.email=stream@example.invalid commit -m Initial");
             File.WriteAllText(Path.Combine(root, "second.txt"), "second\n");
@@ -63,6 +64,55 @@ namespace SourceGit.Tests
             Environment.SetEnvironmentVariable("GIT_TRACE2_EVENT", "1");
             Environment.SetEnvironmentVariable("GIT_TRACE2_CONFIG_PARAMS", "treegit.flood");
             var change = new Models.Change { Path = "sample.txt" };
+            if (mode.StartsWith("pointer-", StringComparison.Ordinal))
+            {
+                Environment.SetEnvironmentVariable("GIT_TRACE2_EVENT", null);
+                var original = "version https://git-lfs.github.com/spec/v1\noid sha256:" + new string('a', 64) + "\nsize 7\n";
+                var updated = "version https://git-lfs.github.com/spec/v1\noid sha256:" + new string('b', 64) + "\nsize 9\n";
+                File.WriteAllText(Path.Combine(root, "sample.txt"), mode == "pointer-added" ? "" : original);
+                await Git("add sample.txt"); await Git("-c user.name=StreamQA -c user.email=stream@example.invalid commit -m Pointer");
+                var invalid = mode is "pointer-invalid-size" or "pointer-overflow" or "pointer-short-oid" or "pointer-extra-text" or "pointer-version";
+                if (mode == "pointer-invalid-size") updated = updated.Replace("size 9", "size not-a-number");
+                if (mode == "pointer-overflow") updated = updated.Replace("size 9", "size 9999999999999999999999999999");
+                if (mode == "pointer-short-oid") updated = updated.Replace(new string('b', 64), "bb");
+                if (mode == "pointer-extra-text") updated += "This is ordinary text following a pointer example.\n";
+                if (mode == "pointer-crlf") updated = updated.Replace("\n", "\r\n");
+                if (mode == "pointer-zero") updated = updated.Replace("size 9", "size 0");
+                if (mode == "pointer-version") updated = updated.Replace("spec/v1", "spec/v2");
+                if (mode == "pointer-deleted") File.Delete(Path.Combine(root, "sample.txt"));
+                else File.WriteAllText(Path.Combine(root, "sample.txt"), updated);
+                var diff = await new Commands.Diff(root, new Models.DiffOption(change, true), 4, false, false).ReadAsync();
+                var valid = invalid ? diff.LFSDiff == null && diff.TextDiff?.Lines.Any(line => line.Content.Contains(mode == "pointer-short-oid" ? "oid sha256:bb" : mode == "pointer-extra-text" ? "ordinary text" : mode == "pointer-version" ? "spec/v2" : "size ", StringComparison.Ordinal)) == true : diff.LFSDiff != null && diff.TextDiff == null;
+                var modelSafe = true;
+                try { var parsed = Models.LFSObject.Parse(updated); modelSafe = invalid ? parsed == null : parsed != null; }
+                catch (Exception) { modelSafe = false; }
+                File.WriteAllText(report, JsonSerializer.Serialize(new { mode, success = valid && modelSafe, diffCorrect = valid, modelSafe, lfs = diff.LFSDiff != null, textLines = diff.TextDiff?.Lines.Count }));
+                return valid && modelSafe ? 0 : 1;
+            }
+            if (mode.StartsWith("index-", StringComparison.Ordinal))
+            {
+                if (mode != "index-input") Environment.SetEnvironmentVariable("GIT_TRACE2_EVENT", null);
+                var blob = (await new Query { WorkingDirectory = root, Args = "rev-parse HEAD:sample.txt", UseCredentialManager = false }.ReadAsync()).StdOut.Trim();
+                var changes = new System.Collections.Generic.List<Models.Change>();
+                if (mode == "index-input")
+                    for (var i = 0; i < 3000; i++) changes.Add(new Models.Change { Path = "absent-" + i + ".txt", Index = Models.ChangeState.Added });
+                else if (mode == "index-mode")
+                    changes.Add(new Models.Change { Path = "restored.sh", Index = Models.ChangeState.Deleted, DataForAmend = new Models.ChangeDataForAmend { ObjectHash = blob, FileMode = "100755" } });
+                else if (mode == "index-rename")
+                    changes.Add(new Models.Change { Path = "second.txt", OriginalPath = "restored.sh", Index = Models.ChangeState.Renamed, DataForAmend = new Models.ChangeDataForAmend { ObjectHash = blob, FileMode = "100755" } });
+                else if (mode == "index-symlink")
+                    changes.Add(new Models.Change { Path = "restored-link", Index = Models.ChangeState.Deleted, DataForAmend = new Models.ChangeDataForAmend { ObjectHash = blob, FileMode = "120000" } });
+                else
+                    changes.Add(new Models.Change { Path = mode == "index-path" ? "missing\n100644 " + blob + "\tinjected.txt" : "absent.txt", Index = Models.ChangeState.Added });
+                var updatedIndex = await new Commands.UpdateIndexInfo(root, changes).ExecAsync();
+                var entries = (await new Query { WorkingDirectory = root, Args = "ls-files --stage", UseCredentialManager = false }.ReadAsync()).StdOut;
+                var correct = updatedIndex && !entries.Contains("injected.txt", StringComparison.Ordinal) &&
+                    (mode is not ("index-mode" or "index-rename") || entries.Contains("100755 " + blob + " 0\trestored.sh", StringComparison.Ordinal)) &&
+                    (mode != "index-rename" || !entries.Contains("second.txt", StringComparison.Ordinal)) &&
+                    (mode != "index-symlink" || entries.Contains("120000 " + blob + " 0\trestored-link", StringComparison.Ordinal));
+                File.WriteAllText(report, JsonSerializer.Serialize(new { mode, success = correct, updatedIndex, entries }));
+                return correct ? 0 : 1;
+            }
             bool success;
             switch (mode)
             {
