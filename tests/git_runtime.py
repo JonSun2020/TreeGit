@@ -24,9 +24,9 @@ def git(repo,*args):
 repo=root/'repo with 空格';repo.mkdir();git(repo,'init','-b','main');git(repo,'config','user.name','Runtime QA');git(repo,'config','user.email','qa@example.invalid')
 (repo/'file.txt').write_text('initial\n');git(repo,'add','.');git(repo,'commit','-m','Initial')
 class Client:
- def __init__(self,no_system,saved=None):
+ def __init__(self,no_system,saved=None,shell=0):
   data=exe.parent/'data';data.mkdir(exist_ok=True)
-  (data/'preference.json').write_text(json.dumps({'Locale':'zh_CN','GitInstallPath':str(saved) if saved else None,'Workspaces':[]}),encoding='utf-8')
+  (data/'preference.json').write_text(json.dumps({'Locale':'zh_CN','GitInstallPath':str(saved) if saved else None,'ShellOrTerminalType':shell,'ShellOrTerminalPath':'Z:/old-computer/git-bash.exe','Workspaces':[]}),encoding='utf-8')
   env={**os.environ,'GIT_CONFIG_GLOBAL':str(root/'global'),'GIT_CONFIG_NOSYSTEM':'1','PATH':str(Path(os.environ['SystemRoot'])/'System32')}
   if no_system:env['TREEGIT_TEST_NO_SYSTEM_GIT']='1'
   else:env.pop('TREEGIT_TEST_NO_SYSTEM_GIT',None)
@@ -49,6 +49,7 @@ def scenario(label,no_system,saved,expected_bundled,operations=False):
   info=c.state['git'];check(label+' selects the expected runtime',info['bundled']==expected_bundled and bool(info['path']))
   if expected_bundled:check(label+' uses the current application directory',Path(info['path'])==bundled)
   if operations:
+   check('an unavailable saved Git Bash falls back to a usable Windows terminal',Path(c.state['terminal']['path']).is_file() and not c.state['terminal']['path'].lower().endswith('git-bash.exe'))
    c.tool('ui_open_repository',{'repo':str(repo)})
    raw=lambda args:c.tool('git_run',{'repo':str(repo),'arguments':args})
    (repo/'中文 file.txt').write_text('runtime commit\n',encoding='utf-8')
@@ -63,6 +64,9 @@ def scenario(label,no_system,saved,expected_bundled,operations=False):
 scenario('installed Git',False,None,False)
 scenario('missing saved path',True,root/'old-computer/git.exe',True,True)
 scenario('new system installation after bundled use',False,bundled,False)
+c=Client(True,shell=999)
+try:check('an out-of-range saved terminal selection recovers',Path(c.state['terminal']['path']).is_file())
+finally:c.close()
 if len(sys.argv)>4:
  started=time.monotonic();scenario('hanging saved executable',True,Path(sys.argv[4]).resolve(),True)
  check('a stale hanging selection cannot stall startup',time.monotonic()-started<20)

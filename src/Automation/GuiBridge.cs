@@ -103,6 +103,7 @@ namespace SourceGit.Automation
                         processId = Environment.ProcessId,
                         git = new { path = Native.OS.GitExecutable, version = Native.OS.GitVersionString,
                             bundled = OperatingSystem.IsWindows() && Native.GitExecutableLocator.IsBundled(Native.OS.GitExecutable) },
+                        terminal = new { path = Native.OS.ShellOrTerminal, arguments = Native.OS.ShellOrTerminalArgs },
 #if INTEGRATION_TESTS
                         layoutProbe = UiLayoutProbe.Inspect(((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow),
 #endif

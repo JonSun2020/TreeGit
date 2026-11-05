@@ -172,6 +172,20 @@ namespace SourceGit.Tests
                 await File.WriteAllTextAsync(Path.Combine(repo, "flow.txt"), "feature\n");
                 Check("commit on Git Flow feature", await Git(repo, "add -- flow.txt") && await Prepare(new Commands.Commit(repo, "Git Flow feature", false, false, false, false)).RunAsync());
                 Check("upstream Git Flow feature finish", await flow.FinishAsync(Models.GitFlowBranchType.Feature, "integration", false, false, false));
+                if (OperatingSystem.IsWindows())
+                {
+                    Native.OS.SetShellOrTerminal(null);
+                    Check("clearing an unavailable terminal is null-safe", Native.OS.ShellOrTerminal == string.Empty && Native.OS.ShellOrTerminalArgs == string.Empty);
+                    var terminal = Native.Windows.CreateTerminalStartInfo(repo, string.Empty);
+                    terminal.FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe");
+                    terminal.Arguments = "/d /c git --version";
+                    terminal.CreateNoWindow = true;
+                    terminal.RedirectStandardOutput = true;
+                    using var process = System.Diagnostics.Process.Start(terminal);
+                    var output = await process.StandardOutput.ReadToEndAsync();
+                    await process.WaitForExitAsync();
+                    Check("the actual terminal launcher supplies bundled Git without system PATH changes", process.ExitCode == 0 && output.Contains("git version 2.56.0", StringComparison.Ordinal));
+                }
                 Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(report))!);
                 await File.WriteAllTextAsync(report, JsonSerializer.Serialize(new { passed = checks.Count, checks, root }, new JsonSerializerOptions { WriteIndented = true }));
                 await File.WriteAllTextAsync(report + ".log", log.ToString());

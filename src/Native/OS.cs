@@ -205,7 +205,7 @@ namespace SourceGit.Native
         public static void SetShellOrTerminal(Models.ShellOrTerminal shell)
         {
             ShellOrTerminal = shell != null ? _backend.FindTerminal(shell) : string.Empty;
-            ShellOrTerminalArgs = shell.Args;
+            ShellOrTerminalArgs = shell?.Args ?? string.Empty;
         }
 
         public static Models.DiffMergeTool GetDiffMergeTool(bool onlyDiff)

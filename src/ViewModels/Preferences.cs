@@ -670,7 +670,9 @@ namespace SourceGit.ViewModels
 
         private void PrepareShellOrTerminal()
         {
-            if (_shellOrTerminalType >= 0)
+            if (_shellOrTerminalType >= 0 && _shellOrTerminalType < Models.ShellOrTerminal.Supported.Count &&
+                !string.IsNullOrEmpty(Native.OS.ShellOrTerminal) &&
+                (!OperatingSystem.IsWindows() || File.Exists(Native.OS.ShellOrTerminal)))
                 return;
 
             for (int i = 0; i < Models.ShellOrTerminal.Supported.Count; i++)
@@ -679,9 +681,11 @@ namespace SourceGit.ViewModels
                 if (Native.OS.TestShellOrTerminal(shell))
                 {
                     ShellOrTerminalType = i;
-                    break;
+                    Native.OS.SetShellOrTerminal(shell);
+                    return;
                 }
             }
+            Native.OS.SetShellOrTerminal(null);
         }
 
         private void PrepareExternalDiffMergeTool()

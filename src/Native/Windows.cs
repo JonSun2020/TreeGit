@@ -143,10 +143,7 @@ namespace SourceGit.Native
 
         public void OpenTerminal(string workdir, string args)
         {
-            var startInfo = new ProcessStartInfo();
-            startInfo.WorkingDirectory = workdir;
-            startInfo.FileName = OS.ShellOrTerminal;
-            startInfo.Arguments = args;
+            var startInfo = CreateTerminalStartInfo(workdir, args);
 
             try
             {
@@ -156,6 +153,13 @@ namespace SourceGit.Native
             {
                 Models.Notification.Send(workdir, $"Failed to start '{OS.ShellOrTerminal}'. Reason: {e.Message}", true);
             }
+        }
+
+        internal static ProcessStartInfo CreateTerminalStartInfo(string workdir, string args)
+        {
+            var start = new ProcessStartInfo { WorkingDirectory = workdir, FileName = OS.ShellOrTerminal, Arguments = args };
+            GitExecutableLocator.ConfigureProcess(start, OS.GitExecutable);
+            return start;
         }
 
         public void OpenInFileManager(string path)
