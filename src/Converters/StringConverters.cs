@@ -30,6 +30,8 @@ namespace SourceGit.Converters
             public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
             {
                 var theme = Models.TreeGitThemes.Normalize(value as string);
+                if (theme == "Default")
+                    return ThemeVariant.Default;
                 if (theme == "Dark")
                     return ThemeVariant.Dark;
                 if (theme == "Blue")
@@ -44,6 +46,12 @@ namespace SourceGit.Converters
         }
 
         public static readonly ToThemeConverter ToTheme = new ToThemeConverter();
+
+        public static readonly FuncValueConverter<object, bool> IsSystemTheme =
+            new(key => Equals(key, ThemeVariant.Default.Key));
+
+        public static readonly FuncValueConverter<object, bool> IsFixedTheme =
+            new(key => !Equals(key, ThemeVariant.Default.Key));
 
         public class FormatByResourceKeyConverter : IValueConverter
         {

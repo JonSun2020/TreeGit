@@ -364,7 +364,7 @@ namespace SourceGit.Automation
 
                     if (args.TryGetProperty("collapseBranches", out var collapse))
                         ViewModels.Preferences.Instance.Layout.IsSidebarCollapsedInLocalChanges = collapse.GetBoolean();
-                    return (object)new { width = window.Width, height = window.Height, theme = ViewModels.Preferences.Instance.Theme, state = window.WindowState.ToString() };
+                    return (object)new { width = window.Width, height = window.Height, theme = ViewModels.Preferences.Instance.Theme, effectiveTheme = window.ActualThemeVariant.Key.ToString(), state = window.WindowState.ToString() };
                 });
 
             var path = Path.GetFullPath(Text(args, "repo")).TrimEnd('\\', '/');

@@ -10,6 +10,8 @@ namespace SourceGit.Models
 
         public static string Normalize(string theme)
         {
+            if (string.Equals(theme, "Default", StringComparison.OrdinalIgnoreCase))
+                return "Default";
             if (string.Equals(theme, "Dark", StringComparison.OrdinalIgnoreCase))
                 return "Dark";
             if (string.Equals(theme, "Blue", StringComparison.OrdinalIgnoreCase) || string.Equals(theme, "SourceTree", StringComparison.OrdinalIgnoreCase))

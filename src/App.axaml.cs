@@ -160,7 +160,9 @@ namespace SourceGit
                 return;
 
             theme = Models.TreeGitThemes.Normalize(theme);
-            if (theme == "Blue")
+            if (theme == "Default")
+                app.RequestedThemeVariant = ThemeVariant.Default;
+            else if (theme == "Blue")
                 app.RequestedThemeVariant = Models.TreeGitThemes.SourceTree;
             else if (theme == "Dark")
                 app.RequestedThemeVariant = ThemeVariant.Dark;

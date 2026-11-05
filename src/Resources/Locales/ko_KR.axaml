@@ -630,6 +630,7 @@
   <x:String x:Key="Text.Preferences.Appearance.FontSize.Editor" xml:space="preserve">에디터</x:String>
   <x:String x:Key="Text.Preferences.Appearance.MonospaceFont" xml:space="preserve">고정폭 글꼴</x:String>
   <x:String x:Key="Text.Preferences.Appearance.Theme" xml:space="preserve">테마</x:String>
+  <x:String x:Key="Text.Preferences.Appearance.Theme.System" xml:space="preserve">Follow system</x:String>
   <x:String x:Key="Text.Preferences.Appearance.ThemeOverrides" xml:space="preserve">테마 재정의</x:String>
   <x:String x:Key="Text.Preferences.Appearance.UseAutoHideScrollBars" xml:space="preserve">스크롤바 자동 숨기기 사용</x:String>
   <x:String x:Key="Text.Preferences.Appearance.UseFixedTabWidth" xml:space="preserve">제목 표시줄에서 고정 탭 너비 사용</x:String>

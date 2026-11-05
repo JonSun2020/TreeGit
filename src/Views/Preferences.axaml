@@ -196,9 +196,19 @@
                       MinHeight="28"
                       Padding="8,0"
                       HorizontalAlignment="Stretch"
-                      DisplayMemberBinding="{Binding Key, x:DataType=ThemeVariant}"
                       SelectedItem="{Binding Theme, Mode=TwoWay, Converter={x:Static c:StringConverters.ToTheme}}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="ThemeVariant">
+                  <Panel>
+                    <TextBlock Text="{DynamicResource Text.Preferences.Appearance.Theme.System}"
+                               IsVisible="{Binding Key, Converter={x:Static c:StringConverters.IsSystemTheme}}"/>
+                    <TextBlock Text="{Binding Key}"
+                               IsVisible="{Binding Key, Converter={x:Static c:StringConverters.IsFixedTheme}}"/>
+                  </Panel>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
               <ComboBox.Items>
+                <ThemeVariant>Default</ThemeVariant>
                 <ThemeVariant>Light</ThemeVariant>
                 <ThemeVariant>Dark</ThemeVariant>
                 <x:Static Member="m:TreeGitThemes.SourceTree"/>
