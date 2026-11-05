@@ -150,7 +150,7 @@ check('SourceTree theme uses the reference blue title bar', image.getpixel((900,
 c.tool('ui_window', {'theme':'Light'})
 time.sleep(.3)
 image = Image.open(io.BytesIO(c.tool('ui_screenshot'))).convert('RGB')
-check('TreeGit light theme retains the dark logo palette', image.getpixel((900,20)) == (16,63,71))
+check('TreeGit light theme uses the approved deeper green', image.getpixel((900,20)) == (22,131,109))
 readonly = Client(True)
 readonly.tool('git_run', {'repo':str(repo),'arguments':['reset','--hard']}, error=True)
 check('explicit read-only connection rejects generic Git tool')
