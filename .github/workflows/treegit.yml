@@ -58,6 +58,9 @@ jobs:
       - name: Verify closing during an active native commit
         shell: pwsh
         run: python tests/close_during_commit.py src/bin/Debug/net10.0/SourceGit.exe "${{ runner.temp }}/close-during-commit-results"
+      - name: Verify partially corrupt preference structures
+        shell: pwsh
+        run: python tests/preferences_schema.py src/bin/Debug/net10.0/SourceGit.exe "${{ runner.temp }}/preferences-schema-results"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -69,6 +72,7 @@ jobs:
             ${{ runner.temp }}/mode-results/repository-mode-results.json
             ${{ runner.temp }}/startup-results/ui-startup-results.json
             ${{ runner.temp }}/close-during-commit-results/close-during-commit-results.json
+            ${{ runner.temp }}/preferences-schema-results/preferences-schema-results.json
   portable:
     runs-on: windows-latest
     steps:

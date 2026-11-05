@@ -50,6 +50,11 @@ namespace SourceGit
             }
             Native.StartupTrace.Mark("directories");
 #if INTEGRATION_TESTS
+            if (args.Length == 2 && args[0] == "--integration-preferences-load")
+            {
+                Environment.Exit(Tests.PreferencesLoadProbe.Run(args[1]));
+                return;
+            }
             if (args.Length > 3 && args[0] == "--integration-command-pipes")
             {
                 Environment.Exit(Tests.CommandPipeProbe.RunAsync(args[1], args[2], args[3]).GetAwaiter().GetResult());
@@ -304,7 +309,7 @@ namespace SourceGit
                 if (desktop.MainWindow is Views.Launcher)
                 {
                     if (GetLauncher()?.CanCloseAll() == false) return;
-                    desktop.TryShutdown(exitCode);
+                    desktop.Shutdown(exitCode);
                 }
                 else desktop.Shutdown(exitCode);
             }

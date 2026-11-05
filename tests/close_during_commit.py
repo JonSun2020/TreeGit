@@ -51,5 +51,5 @@ finally:
         except subprocess.TimeoutExpired:p.kill();p.wait()
     if pid:
         literal=str(exe).replace("'","''")
-        script="$p=Get-Process -Id "+str(pid)+" -ErrorAction SilentlyContinue;if($p){if($p.Path -ne '"+literal+"'){throw 'Wrong owned process'};$null=$p.CloseMainWindow();if(-not $p.WaitForExit(15000)){$p.Kill();$p.WaitForExit()}}"
+        script="$p=Get-Process -Id "+str(pid)+" -ErrorAction SilentlyContinue;if($p){if($p.Path -ne '"+literal+"'){throw 'Wrong owned process'};$null=$p.CloseMainWindow();if(-not $p.WaitForExit(15000)){$p.Kill();$p.WaitForExit();throw 'Owned QA window did not exit normally'}};exit 0"
         subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)

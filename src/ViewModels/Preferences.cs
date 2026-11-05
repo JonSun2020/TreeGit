@@ -678,7 +678,16 @@ namespace SourceGit.ViewModels
             {
                 using var stream = File.OpenRead(path);
                 var loaded = JsonSerializer.Deserialize(stream, JsonCodeGen.Default.Preferences);
-                if (loaded != null) return loaded;
+                if (loaded != null)
+                {
+                    if (loaded.Layout == null || loaded.Workspaces == null || loaded.RepositoryNodes == null || loaded.CustomActions == null || loaded.OpenAIServices == null)
+                        throw new JsonException("Required preference sections are missing.");
+                    foreach (var workspace in loaded.Workspaces)
+                        if (workspace?.Repositories == null || workspace.Repositories.Exists(string.IsNullOrWhiteSpace))
+                            throw new JsonException("The workspace repository list is incomplete.");
+                    ValidateNodes(loaded.RepositoryNodes);
+                    return loaded;
+                }
             }
             catch (Exception error) { failure = error; }
 
@@ -696,6 +705,16 @@ namespace SourceGit.ViewModels
             }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
             return recovered;
+        }
+
+        private static void ValidateNodes(List<RepositoryNode> nodes)
+        {
+            foreach (var node in nodes)
+            {
+                if (node?.SubNodes == null || string.IsNullOrWhiteSpace(node.Id))
+                    throw new JsonException("The saved repository list is incomplete.");
+                ValidateNodes(node.SubNodes);
+            }
         }
 
         private void PrepareGit()

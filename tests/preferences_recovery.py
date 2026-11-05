@@ -5,7 +5,7 @@ from pathlib import Path
 source = Path(sys.argv[1]).resolve().parent
 out = Path(sys.argv[2]).resolve(); out.mkdir(parents=True, exist_ok=True)
 records = []
-for case, original in [('null','null'), ('malformed','{"Locale":'), ('locked',json.dumps({'Locale':'zh_CN','Theme':'Blue','Check4UpdatesOnStartup':False}))]:
+for case, original in [('null','null'), ('malformed','{"Locale":'), ('layout-null','{"Layout":null}'), ('workspaces-null','{"Workspaces":null}'), ('nested-null','{"RepositoryNodes":[{"Id":"folder","SubNodes":[null]}]}'), ('locked',json.dumps({'Locale':'zh_CN','Theme':'Blue','Check4UpdatesOnStartup':False}))]:
     root = out/(case+'-app'); root.mkdir()
     for file in source.iterdir():
         if file.is_file(): shutil.copy2(file, root/file.name)
@@ -27,7 +27,7 @@ for case, original in [('null','null'), ('malformed','{"Locale":'), ('locked',js
         return json.loads(result['content'][0]['text'])
     def close_gui():
         literal = str(exe).replace("'","''")
-        script = "Get-Process -Name TreeGit -ErrorAction SilentlyContinue | Where-Object {$_.Path -eq '"+literal+"'} | ForEach-Object {$null=$_.CloseMainWindow();if(-not $_.WaitForExit(10000)){$_.Kill();$_.WaitForExit()}}"
+        script = "$ErrorActionPreference='Stop';Get-Process -Name TreeGit -ErrorAction SilentlyContinue | Where-Object {$_.Path -eq '"+literal+"'} | ForEach-Object {$null=$_.CloseMainWindow();if(-not $_.WaitForExit(10000)){$_.Kill();$_.WaitForExit();throw 'Owned QA window did not exit normally'}};exit 0"
         subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)
     try:
         rpc('initialize',{'protocolVersion':'2025-11-25'})
