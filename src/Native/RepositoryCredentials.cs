@@ -38,7 +38,7 @@ namespace SourceGit.Native
                     start.ArgumentList.Add("config");
                     start.ArgumentList.Add("--bool");
                     start.ArgumentList.Add("sourcegit.credentialmanager");
-                    using var process = Process.Start(start);
+                    using var process = ProcessLauncher.Start(start);
                     var output = process.StandardOutput.ReadToEndAsync();
                     var error = process.StandardError.ReadToEndAsync();
                     Task.WhenAll(output, error).GetAwaiter().GetResult();
@@ -224,7 +224,7 @@ namespace SourceGit.Native
                 StandardInputEncoding = new UTF8Encoding(false), StandardOutputEncoding = Encoding.UTF8,
             };
             start.ArgumentList.Add("--credential-prompt");
-            using var process = Process.Start(start);
+            using var process = ProcessLauncher.Start(start);
             if (process == null) return null;
             var error = process.StandardError.ReadToEndAsync();
             var retry = Environment.GetEnvironmentVariable("SOURCEGIT_AUTHENTICATION_RETRY") == "TRUE";

@@ -65,7 +65,7 @@ namespace SourceGit.Commands
             {
                 var hash = await new HeadHashQuery(_repo).ReadAsync().ConfigureAwait(false);
                 var patch = BuildPatch(new string('0', hash.Length));
-                using var proc = Process.Start(starter)!;
+                using var proc = Native.ProcessLauncher.Start(starter)!;
                 var errors = proc.StandardError.ReadToEndAsync();
                 await proc.StandardInput.WriteAsync(patch);
                 proc.StandardInput.Close();

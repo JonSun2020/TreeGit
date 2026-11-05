@@ -99,7 +99,7 @@ namespace SourceGit.Native
             Process process = null;
             try
             {
-                process = Process.Start(start) ?? throw new Models.UpdateProblem("start");
+                process = ProcessLauncher.Start(start) ?? throw new Models.UpdateProblem("start");
                 plan.WorkerPid = process.Id;
                 SavePlan(plan);
             }
@@ -407,7 +407,7 @@ namespace SourceGit.Native
         {
             var start = new ProcessStartInfo(Path.Combine(plan.InstallRoot, "TreeGit.exe")) { UseShellExecute = false, WorkingDirectory = plan.InstallRoot };
             if (updated) { start.ArgumentList.Add("--updated"); start.ArgumentList.Add(plan.Id); }
-            return Process.Start(start) ?? throw new Models.UpdateProblem("start");
+            return ProcessLauncher.Start(start) ?? throw new Models.UpdateProblem("start");
         }
 
         private static bool WaitForReady(Models.UpdatePlan plan, Process process)

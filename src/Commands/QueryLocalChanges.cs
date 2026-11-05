@@ -38,7 +38,7 @@ namespace SourceGit.Commands
                 var capturedLock = new object();
 
                 proc.StartInfo = CreateGitStartInfo(true);
-                proc.Start();
+                Native.ProcessLauncher.Start(proc);
                 proc.BeginErrorReadLine();
 
                 if (CancellationToken.CanBeCanceled)

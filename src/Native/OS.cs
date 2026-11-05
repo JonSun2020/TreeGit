@@ -359,7 +359,7 @@ namespace SourceGit.Native
 
             try
             {
-                using var proc = Process.Start(start)!;
+                using var proc = ProcessLauncher.Start(start)!;
                 var stdout = proc.StandardOutput.ReadToEndAsync();
                 var stderr = proc.StandardError.ReadToEndAsync();
                 if (!proc.WaitForExit(3000))

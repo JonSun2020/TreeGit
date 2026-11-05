@@ -21,7 +21,7 @@ namespace SourceGit.Commands
             var exitCode = -1;
             try
             {
-                proc.Start();
+                Native.ProcessLauncher.Start(proc);
                 await proc.WaitForExitAsync().ConfigureAwait(false);
                 exitCode = proc.ExitCode;
             }

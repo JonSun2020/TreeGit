@@ -64,7 +64,7 @@ namespace SourceGit.Commands
             {
                 using var proc = new Process();
                 proc.StartInfo = CreateGitStartInfo(true);
-                proc.Start();
+                Native.ProcessLauncher.Start(proc);
                 proc.BeginErrorReadLine();
 
                 using var ms = new MemoryStream();

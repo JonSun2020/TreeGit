@@ -67,7 +67,7 @@ namespace SourceGit.Commands
                 var capturedLock = new object();
                 try
                 {
-                    proc.Start();
+                    Native.ProcessLauncher.Start(proc);
 
                     // Not safe, please only use `CancellationToken` in readonly commands.
                     if (CancellationToken.CanBeCanceled)
@@ -142,7 +142,7 @@ namespace SourceGit.Commands
 
             try
             {
-                proc.Start();
+                Native.ProcessLauncher.Start(proc);
             }
             catch (Exception e)
             {
@@ -174,7 +174,7 @@ namespace SourceGit.Commands
 
             try
             {
-                proc.Start();
+                Native.ProcessLauncher.Start(proc);
             }
             catch (Exception e)
             {

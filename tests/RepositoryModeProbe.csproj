@@ -8,5 +8,6 @@
   <ItemGroup>
     <Compile Include="RepositoryModeProbe.cs" />
     <Compile Include="../src/Native/RepositoryCredentials.cs" />
+    <Compile Include="../src/Native/ProcessLauncher.cs" />
   </ItemGroup>
 </Project>

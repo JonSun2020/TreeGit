@@ -95,7 +95,7 @@ namespace SourceGit.Commands
             info.ArgumentList.Add("--no-optional-locks");
             info.ArgumentList.Add("--literal-pathspecs");
             foreach (var arg in args) info.ArgumentList.Add(arg);
-            return Process.Start(info) ?? throw new IOException("Cannot start Git.");
+            return Native.ProcessLauncher.Start(info) ?? throw new IOException("Cannot start Git.");
         }
 
         private static async Task<(string Output, int Code)> FinishAsync(Process process, CancellationToken token)

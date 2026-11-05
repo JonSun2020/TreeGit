@@ -61,3 +61,5 @@ MCP 的完整读写意味着 AI 可以修改甚至删除 Git 数据。应在 AI 
 `ui_update` 的 `action` 为 `check` / `state` / `download` / `cancel` / `apply`。先 `check` 打开更新窗口，再通过 `state` 读取状态与进度；准备好后才可 `apply`。应用更新会重启 TreeGit、断开 AI 连接，客户端在更新完成后重新连接即可。Git 命令执行中不会开始替换文件；替换和新版启动期间暂停其他 MCP 操作。此工具属于写入工具，只读连接不提供。
 
 `ui_stashes`：查看、展开 / 收起、筛选和选择侧栏的贮藏条目。`ui_diff` 的 source=stash 可选择当前贮藏中的变更文件。ui_command 支持 stash_apply_dialog / stash_drop_dialog / stash_branch_dialog，仅打开原有确认窗口，不自动执行操作。
+
+二进制对比读取失败时，可调用 `ui_diff` 的 `retry` 动作在原视图重新读取；随后查询 `state` 等待完成。界面显示简明提示，MCP 状态另提供错误信息用于诊断。

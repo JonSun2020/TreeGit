@@ -85,7 +85,7 @@ namespace SourceGit.Native
                 }};
                 uint previousMode = 0;
                 var changedMode = OperatingSystem.IsWindows() && SetThreadErrorMode(GetThreadErrorMode() | 1, out previousMode);
-                try { process.Start(); }
+                try { ProcessLauncher.Start(process); }
                 finally { if (changedMode) SetThreadErrorMode(previousMode, out _); }
                 var stdout = process.StandardOutput.ReadToEndAsync();
                 var stderr = process.StandardError.ReadToEndAsync();

@@ -5,7 +5,8 @@ from pathlib import Path
 source=Path(sys.argv[1]).resolve(); out=Path(sys.argv[2]).resolve()
 proxy=Path(sys.argv[3]).resolve(); out.mkdir(parents=True,exist_ok=True)
 records=[]
-for case in ['config','silent-once','silent-always','mcp-once','mcp-always','nonrepo']:
+cases=['mcp-root-always'] if '--mcp-root-only' in sys.argv[4:] else ['config','silent-once','silent-always','mcp-once','mcp-always','mcp-root-once','mcp-root-always','nonrepo']
+for case in cases:
     app=out/(case+'-app')
     shutil.copytree(source.parent,app,ignore=shutil.ignore_patterns('data','log','.treegit-update'))
     (app/'data').mkdir()
@@ -14,7 +15,7 @@ for case in ['config','silent-once','silent-always','mcp-once','mcp-always','non
     repo=root/'repo'; repo.mkdir(); marker=root/'metadata-probe'
     env={**os.environ,'GIT_CONFIG_GLOBAL':str(root/'global.gitconfig'),'GIT_CONFIG_NOSYSTEM':'1',
          'TREEGIT_TEST_REAL_GIT':shutil.which('git'),'TREEGIT_TEST_PROBE_MARKER':str(marker),
-         'TREEGIT_TEST_PROBE_TARGET':'--absolute-git-dir' if case.startswith('mcp-') else '--show-toplevel',
+         'TREEGIT_TEST_PROBE_TARGET':'--absolute-git-dir' if case in ('mcp-once','mcp-always') else '--show-toplevel',
          'TREEGIT_TEST_PROBE_FAILURE':'once' if case.endswith('-once') else 'always' if case.endswith('-always') else 'pass'}
     def git(*args):
         r=subprocess.run([env['TREEGIT_TEST_REAL_GIT'],'-C',str(repo),*args],env=env,capture_output=True)
@@ -58,12 +59,12 @@ for case in ['config','silent-once','silent-always','mcp-once','mcp-always','non
         if startup:assert startup.pid==pid,'The startup-argument GUI was not the selected desktop'
         if case.startswith('mcp-'):
             result=tool('ui_open_repository',{'repo':str(repo)},allow_error=True);record['openResult']=result
-            assert bool(result.get('isError'))==(case=='mcp-always'),result
+            assert bool(result.get('isError'))==case.endswith('-always'),result
             if case=='mcp-always':
                 message=result['content'][0]['text'];assert 'Try opening the repository again' in message and 'not a trusted' not in message,message
             current=state()
         record['state']=current
-        if case in ('silent-once','mcp-once'):
+        if case in ('silent-once','mcp-once','mcp-root-once'):
             assert any(Path(r['repo']).resolve()==repo for r in current['repositories']),current
         elif case=='nonrepo':assert current['activePage']['pendingDialog']=='Init',current
         else:

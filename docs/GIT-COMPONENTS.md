@@ -13,3 +13,5 @@ MinGit 是 Git for Windows 为第三方程序提供的便携运行组件，包�
 Git 及配套软件分别遵循自己的许可证，不因 TreeGit 的 MIT 许可证而改变。Git 许可证见 `LICENSE.txt`，LFS 和 Git Flow 见 `licenses/`，其他组件的版权、许可证及版本见 `ucrt64/share/licenses/`、`usr/share/licenses/`、`etc/package-versions.txt` 及 Git for Windows 官方发布资料。
 
 内置组件不提供交互式 Git Bash 窗口、Perl 或 Tcl/Tk。TreeGit 的终端入口可使用 Windows PowerShell / cmd；依赖额外解释器的自定义 hooks、aliases 或外部工具仍需要其对应运行环境。需要完整 Git Bash 等环境时，可使用已安装的 Git for Windows，或在偏好设置指定自己的完整 Git。
+
+SSH 密钥生成工具 `usr/bin/ssh-keygen.exe` 来自同版本的 [PortableGit 2.56.0.4](https://github.com/git-for-windows/git/releases/tag/v2.56.0.windows.4)，补齐 MinGit 精简包未提供的组件。构建时使用校验过的 [7-Zip 26.05 7zr](https://github.com/ip7z/7zip/releases/tag/26.05) 仅提取该文件；提取工具和完整 PortableGit 归档不随应用分发。下载地址和 SHA256 均固定在运行时锁文件中。

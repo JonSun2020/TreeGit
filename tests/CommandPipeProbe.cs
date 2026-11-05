@@ -64,6 +64,102 @@ namespace SourceGit.Tests
             Environment.SetEnvironmentVariable("GIT_TRACE2_EVENT", "1");
             Environment.SetEnvironmentVariable("GIT_TRACE2_CONFIG_PARAMS", "treegit.flood");
             var change = new Models.Change { Path = "sample.txt" };
+            if (mode.StartsWith("keygen-", StringComparison.Ordinal))
+            {
+                Environment.SetEnvironmentVariable("GIT_TRACE2_EVENT", null);
+                var keys = Path.Combine(root, "isolated keys");
+                var bundledGit = Environment.GetEnvironmentVariable("TREEGIT_TEST_BUNDLED_GIT") ?? Path.Combine(AppContext.BaseDirectory, "git", "cmd", "git.exe");
+                if (!File.Exists(bundledGit)) throw new IOException("The disposable bundled Git fixture is missing.");
+                Native.OS.GitExecutable = mode == "keygen-missing" ? Path.Combine(root, "missing", "git.exe") : bundledGit;
+                var oldPath = Environment.GetEnvironmentVariable("PATH");
+                Environment.SetEnvironmentVariable("PATH", Environment.GetFolderPath(Environment.SpecialFolder.System));
+                var generator = new ViewModels.SSHKeyGenerator(keys)
+                {
+                    Name = mode == "keygen-invalid" ? "../outside" : "qa_key", Email = "qa@example.invalid",
+                    Type = Models.SSHKeyType.Supported.First(t => t.Cmdline.Contains("ed25519", StringComparison.Ordinal)),
+                    UsePassphrase = mode == "keygen-protected", Passphrase = "QA-test@123", ConfirmedPassphrase = "QA-test@123",
+                };
+                var privateFile = Path.Combine(keys, "qa_key"); var publicFile = privateFile + ".pub";
+                var keySuccess = false;
+                try
+                {
+                    if (mode is "keygen-pub-only" or "keygen-private-only")
+                    {
+                        Directory.CreateDirectory(keys);
+                        File.WriteAllText(mode == "keygen-pub-only" ? publicFile : privateFile, "keep existing key bytes");
+                    }
+                    var pair = generator.Run();
+                    if (mode == "keygen-invalid") keySuccess = pair == null && generator.HasErrors && !Directory.Exists(keys);
+                    else if (mode == "keygen-missing") keySuccess = pair == null && !string.IsNullOrEmpty(generator.ErrorMessage) && !File.Exists(privateFile) && !File.Exists(publicFile);
+                    else if (mode is "keygen-pub-only" or "keygen-private-only")
+                        keySuccess = pair == null && !string.IsNullOrEmpty(generator.ErrorMessage) &&
+                            File.ReadAllText(mode == "keygen-pub-only" ? publicFile : privateFile) == "keep existing key bytes" &&
+                            !File.Exists(mode == "keygen-pub-only" ? privateFile : publicFile);
+                    else
+                    {
+                        keySuccess = pair != null && File.ReadAllText(privateFile).Contains("OPENSSH PRIVATE KEY", StringComparison.Ordinal);
+                        if (keySuccess)
+                        {
+                            var beforePrivate = File.ReadAllBytes(privateFile); var beforePublic = File.ReadAllBytes(publicFile);
+                            var tool = Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(bundledGit)), "usr", "bin", "ssh-keygen.exe");
+                            var info = new System.Diagnostics.ProcessStartInfo(tool) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
+                            foreach (var argument in new[] { "-y", "-P", mode == "keygen-protected" ? "QA-test@123" : "", "-f", privateFile }) info.ArgumentList.Add(argument);
+                            using var check = Native.ProcessLauncher.Start(info); check.StandardInput.Close();
+                            var stdout = check.StandardOutput.ReadToEndAsync(); var stderr = check.StandardError.ReadToEndAsync();
+                            await Task.WhenAll(stdout, stderr, check.WaitForExitAsync());
+                            keySuccess &= check.ExitCode == 0 && File.ReadAllText(publicFile).StartsWith(string.Join(' ', stdout.Result.Trim().Split(' ').Take(2)), StringComparison.Ordinal);
+                            if (mode == "keygen-existing") keySuccess &= generator.Run() == null && !string.IsNullOrEmpty(generator.ErrorMessage) &&
+                                File.ReadAllBytes(privateFile).SequenceEqual(beforePrivate) && File.ReadAllBytes(publicFile).SequenceEqual(beforePublic);
+                        }
+                    }
+                }
+                finally { Environment.SetEnvironmentVariable("PATH", oldPath); }
+                File.WriteAllText(report, JsonSerializer.Serialize(new { mode, success = keySuccess, isolatedDirectory = keys, generator.HasErrors, generator.ErrorMessage }));
+                return keySuccess ? 0 : 1;
+            }
+            if (mode.StartsWith("launch-", StringComparison.Ordinal))
+            {
+                Environment.SetEnvironmentVariable("GIT_TRACE2_EVENT", null);
+                var realGit = Native.OS.GitExecutable;
+                var denied = Path.Combine(root, "denied.exe"); Directory.CreateDirectory(denied);
+                var head = (await new Query { WorkingDirectory = root, Args = "rev-parse HEAD", UseCredentialManager = false }.ReadAsync()).StdOut.Trim();
+                var args = "rev-parse HEAD";
+                if (mode == "launch-exec")
+                {
+                    await Git("add sample.txt");
+                    File.WriteAllText(Path.Combine(root, ".git/hooks/pre-commit"), "#!/bin/sh\necho called >> .git/launch-hook-count\nexit 0\n");
+                    args = "-c user.name=LaunchQA -c user.email=launch@example.invalid commit -m LaunchOnce";
+                }
+                if (mode == "launch-exit") args = "-c alias.treegit-exit=\"!exit 9\" treegit-exit";
+                var attempts = 0;
+                Native.ProcessLauncher.BeforeStart = (process, _) =>
+                {
+                    if (process.StartInfo.WorkingDirectory != root || !process.StartInfo.Arguments.EndsWith(args, StringComparison.Ordinal)) return;
+                    attempts++;
+                    process.StartInfo.FileName = mode == "launch-missing" ? Path.Combine(root, "absent.exe") :
+                        mode == "launch-permanent" || mode != "launch-exit" && attempts == 1 ? denied : realGit;
+                };
+                Commands.Command.Result result = null;
+                var executed = false;
+                try
+                {
+                    var command = new Query { WorkingDirectory = root, Args = args, UseCredentialManager = false, RaiseError = false, Editor = Commands.Command.EditorType.None };
+                    if (mode == "launch-exec") executed = await command.ExecAsync();
+                    else result = mode == "launch-sync" ? command.Read() : await command.ReadAsync();
+                }
+                finally { Native.ProcessLauncher.BeforeStart = null; }
+                var after = (await new Query { WorkingDirectory = root, Args = "rev-parse HEAD", UseCredentialManager = false }.ReadAsync()).StdOut.Trim();
+                var launchSuccess = mode switch
+                {
+                    "launch-exec" => executed && attempts == 2 && head != after && File.ReadAllLines(Path.Combine(root, ".git/launch-hook-count")).Length == 1,
+                    "launch-permanent" => !result.IsSuccess && attempts == 3 && head == after,
+                    "launch-missing" => !result.IsSuccess && attempts == 1 && head == after,
+                    "launch-exit" => !result.IsSuccess && result.ExitCode == 9 && attempts == 1 && head == after,
+                    _ => result.IsSuccess && result.StdOut.Trim() == head && attempts == 2 && head == after,
+                };
+                File.WriteAllText(report, JsonSerializer.Serialize(new { mode, success = launchSuccess, attempts, executed, headUnchanged = head == after, exitCode = result?.ExitCode, message = result?.StdErr }));
+                return launchSuccess ? 0 : 1;
+            }
             if (mode.StartsWith("pointer-", StringComparison.Ordinal))
             {
                 Environment.SetEnvironmentVariable("GIT_TRACE2_EVENT", null);

@@ -19,6 +19,7 @@ namespace SourceGit.Views
         private readonly TextBlock _newTitle = new() { Margin = new Thickness(8, 4), TextTrimming = TextTrimming.CharacterEllipsis };
         private readonly TextBox _address = new() { Width = 116, Watermark = "十六进制地址", Margin = new Thickness(4, 0) };
         private readonly ScrollBar _scroll = new() { Orientation = Avalonia.Layout.Orientation.Vertical, SmallChange = 1 };
+        private readonly Button _retry = new() { Name = "RetryBinaryDiff", IsVisible = false, Margin = new Thickness(2), Padding = new Thickness(8, 3) };
         private readonly HexPane _left;
         private readonly HexPane _right;
         private CancellationTokenSource _cancel;
@@ -27,6 +28,7 @@ namespace SourceGit.Views
         private long _selected = -1;
         private int _bytesPerRow = 16;
         private bool _attached;
+        private string _errorDetails;
         public string Status { get; private set; } = "loading";
         public long SelectedOffset => _selected;
         public long DifferentBytes => _comparison?.DifferentBytes ?? 0;
@@ -39,7 +41,7 @@ namespace SourceGit.Views
             snapshotDirectory = _comparison?.SnapshotDirectory,
 #endif
             oldRevision = (DataContext as Models.BinaryDiff)?.OldRevision, newRevision = (DataContext as Models.BinaryDiff)?.NewRevision,
-            summary = _summary.Text, oldSize = OldSize, newSize = NewSize,
+            summary = _summary.Text, error = _errorDetails, oldSize = OldSize, newSize = NewSize,
             differentBytes = DifferentBytes, selectedOffset = SelectedOffset, topOffset = TopOffset, bytesPerRow = BytesPerRow,
             oldHex = _comparison == null ? null : Convert.ToHexString(_comparison.Read(true, TopOffset, 256)),
             newHex = _comparison == null ? null : Convert.ToHexString(_comparison.Read(false, TopOffset, 256)) };
@@ -59,6 +61,9 @@ namespace SourceGit.Views
             toolbar.Children.Add(_address);
             AddButton(toolbar, "跳转", Jump);
             AddButton(toolbar, "独立窗口", OpenComparisonWindow);
+            _retry.Content = App.Text("BinaryDiff.Retry");
+            _retry.Classes.Add("flat"); _retry.Click += (_, _) => Retry();
+            toolbar.Children.Add(_retry);
             Grid.SetRow(toolbar, 1); root.Children.Add(toolbar);
             var titles = new Grid { ColumnDefinitions = new ColumnDefinitions("*,*") };
             titles.Children.Add(_oldTitle); Grid.SetColumn(_newTitle, 1); titles.Children.Add(_newTitle);
@@ -100,6 +105,7 @@ namespace SourceGit.Views
         {
             var cancellation = _cancel; _cancel = null; cancellation?.Cancel();
             var comparison = _comparison; _comparison = null;
+            _selected = -1; _address.Text = string.Empty; ResizeRows();
             try { await _navigation; } catch (OperationCanceledException) { }
             comparison?.Dispose(); cancellation?.Dispose();
         }
@@ -109,6 +115,7 @@ namespace SourceGit.Views
             Stop();
             if (DataContext is not Models.BinaryDiff diff) return;
             var cancellation = new CancellationTokenSource(); _cancel = cancellation;
+            _retry.IsVisible = false; _errorDetails = null;
             Status = "loading"; _summary.Text = "正在读取二进制文件并比较…";
             _oldTitle.Text = "旧版本 · " + Label(diff.OldRevision) + " · " + diff.OldFilePath;
             _newTitle.Text = "新版本 · " + Label(diff.NewRevision) + " · " + diff.FilePath;
@@ -127,8 +134,14 @@ namespace SourceGit.Views
             catch (Exception ex)
             {
                 if (_cancel != cancellation) return;
-                Status = "error"; _summary.Text = "无法比较二进制文件：" + ex.Message;
+                Status = "error"; _errorDetails = ex.Message;
+                _summary.Text = App.Text("BinaryDiff.LoadFailed"); _retry.IsVisible = true;
             }
+        }
+
+        public void Retry()
+        {
+            if (_attached && Status == "error") Reload();
         }
 
         private static string Label(string revision) => revision == null ? "工作区" : revision.Length == 0 ? "暂存区" : revision.Length > 14 ? revision[..12] : revision;

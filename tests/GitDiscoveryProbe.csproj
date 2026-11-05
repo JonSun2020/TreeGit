@@ -4,5 +4,6 @@
     <Compile Include="GitDiscoveryProbe.cs" />
     <Compile Include="../src/Native/GitExecutableLocator.cs" Link="GitExecutableLocator.cs" />
     <Compile Include="../src/Models/GitVersions.cs" Link="GitVersions.cs" />
+    <Compile Include="../src/Native/ProcessLauncher.cs" />
   </ItemGroup>
 </Project>

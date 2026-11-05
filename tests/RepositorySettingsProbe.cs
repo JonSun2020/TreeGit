@@ -82,6 +82,49 @@ namespace SourceGit.Tests
                                 operationDetails = new { draft = repo.WorkingCopy.CommitMessage, log = repo.Logs.FirstOrDefault()?.Content, messageFileExists = File.Exists(Path.Combine(repo.GitDir, "MERGE_MSG")) };
                                 operationResult = true; break;
                             case "cleanup": operationResult = await new ViewModels.Cleanup(repo).Sure(); break;
+                            case "native_binary_launch_recovery":
+                            {
+                                window.Close();
+                                repo.ShowWorkingCopyOverview();
+                                repo.WorkingCopy.SelectedUnstaged = null;
+                                var denied = fixture + ".denied.exe"; Directory.CreateDirectory(denied);
+                                var failures = 0;
+                                var previousStart = Native.ProcessLauncher.BeforeStart;
+                                Native.ProcessLauncher.BeforeStart = (process, _) =>
+                                {
+                                    if (process.StartInfo.WorkingDirectory == repo.FullPath && process.StartInfo.ArgumentList.Contains("cat-file") &&
+                                        process.StartInfo.ArgumentList.Contains(":" + paths.Single()))
+                                    {
+                                        System.Threading.Interlocked.Increment(ref failures);
+                                        process.StartInfo.FileName = denied;
+                                    }
+                                };
+                                try
+                                {
+                                    repo.WorkingCopy.SetData(await new Commands.QueryLocalChanges(repo.FullPath).GetResultAsync());
+                                    repo.WorkingCopy.SelectedUnstaged = new ViewModels.ChangeSelection(changes);
+                                    Views.BinaryDiffView view = null;
+                                    var main = ((Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow;
+                                    for (var attempt = 0; attempt < 200; attempt++)
+                                    {
+                                        view = main.GetVisualDescendants().OfType<Views.BinaryDiffView>().FirstOrDefault(v => v.IsEffectivelyVisible && v.DataContext is Models.BinaryDiff d && d.Repository == repo.FullPath && d.FilePath == paths.Single());
+                                        if (view?.Status == "error") break;
+                                        await Task.Delay(25);
+                                    }
+                                    if (view?.Status != "error") throw new InvalidOperationException("The actual binary view did not report the bounded startup failure");
+                                    var failedState = JsonSerializer.SerializeToElement(view.Inspect());
+                                    var retry = view.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "RetryBinaryDiff");
+                                    if (!retry.IsEffectivelyVisible || !retry.IsEnabled) throw new InvalidOperationException("The binary retry button is unavailable");
+                                    Native.ProcessLauncher.BeforeStart = previousStart;
+                                    retry.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                                    for (var attempt = 0; attempt < 200 && view.Status != "ready"; attempt++) await Task.Delay(25);
+                                    if (view.Status != "ready") throw new InvalidOperationException("Retry did not recover the same binary view");
+                                    operationDetails = new { before = failedState, after = view.Inspect(), failures, retryHiddenAfterRecovery = !retry.IsVisible };
+                                    operationResult = true;
+                                }
+                                finally { Native.ProcessLauncher.BeforeStart = previousStart; }
+                                break;
+                            }
                             case "binary_snapshot":
                                 try
                                 {

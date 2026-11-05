@@ -36,6 +36,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/index-info-results" --indexes
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/process-launch-results" --launches
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify authentication changes during an in-flight read
         shell: pwsh
         run: |
@@ -61,6 +63,8 @@ jobs:
           New-Item -ItemType Directory -Path src/bin/Debug/net10.0/data -Force | Out-Null
           python tests/git_runtime.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/runtime-ui-results" (Get-Command git.exe).Source
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/ssh-keygen-results" --keygen
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify closing during an active native commit
         shell: pwsh
         run: python tests/close_during_commit.py src/bin/Debug/net10.0/SourceGit.exe "${{ runner.temp }}/close-during-commit-results"
@@ -73,6 +77,9 @@ jobs:
       - name: Verify native amend unstage in SHA-1 and SHA-256 repositories
         shell: pwsh
         run: python tests/amend_unstage.py src/bin/Debug/net10.0/SourceGit.exe "${{ runner.temp }}/amend-unstage-results"
+      - name: Verify binary error retry without leaving the selected file
+        shell: pwsh
+        run: python tests/binary_launch_recovery.py src/bin/Debug/net10.0/SourceGit.exe "${{ runner.temp }}/binary-launch-results"
       - name: Verify local hook rejection is never retried as remote authentication
         shell: pwsh
         run: |
@@ -93,6 +100,8 @@ jobs:
             ${{ runner.temp }}/streaming-query-results/command-pipes-results.json
             ${{ runner.temp }}/pointer-results/command-pipes-results.json
             ${{ runner.temp }}/index-info-results/command-pipes-results.json
+            ${{ runner.temp }}/process-launch-results/command-pipes-results.json
+            ${{ runner.temp }}/ssh-keygen-results/command-pipes-results.json
             ${{ runner.temp }}/mode-results/repository-mode-results.json
             ${{ runner.temp }}/startup-results/ui-startup-results.json
             ${{ runner.temp }}/close-during-commit-results/close-during-commit-results.json
@@ -100,6 +109,7 @@ jobs:
             ${{ runner.temp }}/close-save-results/close-save-results.json
             ${{ runner.temp }}/close-save-results/*.png
             ${{ runner.temp }}/amend-unstage-results/amend-unstage-results.json
+            ${{ runner.temp }}/binary-launch-results/binary-launch-results.json
             ${{ runner.temp }}/local-auth-*/local-auth-failure-results.json
   portable:
     runs-on: windows-latest

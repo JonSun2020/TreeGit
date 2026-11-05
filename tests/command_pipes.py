@@ -12,6 +12,10 @@ if '--pointers' in sys.argv[3:]:
     modes=['stream-pointer-'+mode for mode in ['valid','added','deleted','invalid-size','overflow','short-oid','extra-text','crlf','zero','version']]
 if '--indexes' in sys.argv[3:]:
     modes=['stream-index-'+mode for mode in ['input','sha256','path','mode','rename','symlink']]
+if '--launches' in sys.argv[3:]:
+    modes=['stream-launch-'+mode for mode in ['sync','async','exec','permanent','exit','missing']]
+if '--keygen' in sys.argv[3:]:
+    modes=['stream-keygen-'+mode for mode in ['plain','protected','existing','pub-only','private-only','invalid','missing']]
 for mode in modes:
     report = root/(mode+'.json'); started = time.monotonic()
     p = subprocess.Popen([str(exe), '--integration-command-pipes', str(root/mode), mode, str(report)], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)

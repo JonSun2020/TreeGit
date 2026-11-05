@@ -36,7 +36,7 @@ namespace SourceGit.Commands
 
             try
             {
-                Process.Start(CreateGitStartInfo(false));
+                Native.ProcessLauncher.Start(CreateGitStartInfo(false));
             }
             catch (Exception ex)
             {

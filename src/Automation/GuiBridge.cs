@@ -462,7 +462,16 @@ namespace SourceGit.Automation
                     throw new ArgumentException("This directory is not a trusted Git repository: " + Redact(check.StdErr));
                 }
                 return await Dispatcher.UIThread.InvokeAsync(() =>
-                    (object)new { opened = App.GetLauncher().TryOpenRepositoryFromPath(path), repo = path });
+                {
+                    var launcher = App.GetLauncher();
+                    launcher.TryOpenRepositoryFromPath(path);
+                    if (launcher.ActivePage.Data is not ViewModels.Repository opened ||
+                        !string.Equals(Path.GetFullPath(opened.GitDir).TrimEnd('\\', '/'),
+                            Path.GetFullPath(check.StdOut.Trim()).TrimEnd('\\', '/'),
+                            OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+                        throw new InvalidOperationException("The repository could not be opened. Try opening it again.");
+                    return (object)new { opened = true, repo = path };
+                });
             }
 
             var repo = await Dispatcher.UIThread.InvokeAsync(() =>
@@ -542,7 +551,9 @@ namespace SourceGit.Automation
                         v.DataContext is Models.BinaryDiff d && string.Equals(Path.GetFullPath(d.Repository).TrimEnd('\\', '/'), path,
                             OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)));
                 if (view == null) return new { status = "not_binary" };
-                if (action is "first" or "last" or "next" or "previous")
+                if (action == "retry")
+                    await Dispatcher.UIThread.InvokeAsync(view.Retry);
+                else if (action is "first" or "last" or "next" or "previous")
                 {
                     await Dispatcher.UIThread.InvokeAsync(() => view.NavigateAsync(action));
                 }
@@ -1013,7 +1024,7 @@ namespace SourceGit.Automation
                             ownCredentialHelper = process.StartInfo.Arguments.Contains("--credential-helper", StringComparison.Ordinal),
                         }));
 #endif
-                    process.Start();
+                    Native.ProcessLauncher.Start(process);
                     var stdout = ReadCappedAsync(process.StandardOutput);
                     var stderr = ReadCappedAsync(process.StandardError);
                     await Task.WhenAll(stdout, stderr, process.WaitForExitAsync()).ConfigureAwait(false);

@@ -1186,4 +1186,15 @@
   <x:String x:Key="Text.Launcher.SaveDraftBeforeCloseFailed">提交說明暫時無法儲存，分頁已保留。請檢查磁碟空間、資料夾權限，或關閉占用檔案的其他視窗後重試。</x:String>
   <x:String x:Key="Text.File.ExportFailed">檔案儲存失敗，原目標檔案已保留。請確認所選版本和檔案仍可讀取，並檢查目標資料夾的權限與剩餘空間。</x:String>
   <x:String x:Key="Text.Repository.OpenFailed">暫時無法開啟倉庫，請稍後重新開啟；如果仍然失敗，請檢查倉庫檔案和 Git 設定。</x:String>
+  <x:String x:Key="Text.BinaryDiff.Retry">重試</x:String>
+  <x:String x:Key="Text.BinaryDiff.LoadFailed">暫時無法比較此檔案，請點擊「重試」。如果仍然失敗，請檢查檔案是否可讀，以及 Git 是否可用。</x:String>
+  <x:String x:Key="Text.SSHKeyHelper.Generator.Exists">此密钥名称已存在，请使用其他名称。</x:String>
+  <x:String x:Key="Text.SSHKeyHelper.Generator.Failed">无法创建密钥，请检查密钥文件夹权限和 SSH 工具后重试。</x:String>
+  <x:String x:Key="Text.SSHKeyHelper.Generator.NameRequired">请输入密钥名称。</x:String>
+  <x:String x:Key="Text.SSHKeyHelper.Generator.NameFormat">密钥名称只允许字母、数字、下划线和连字符。</x:String>
+  <x:String x:Key="Text.SSHKeyHelper.Generator.EmailRequired">请输入邮箱地址。</x:String>
+  <x:String x:Key="Text.SSHKeyHelper.Generator.EmailFormat">请输入有效的邮箱地址。</x:String>
+  <x:String x:Key="Text.SSHKeyHelper.Generator.PassphraseRequired">请输入私钥口令。</x:String>
+  <x:String x:Key="Text.SSHKeyHelper.Generator.PassphraseFormat">口令只允许字母、数字及 _ + - = @ # $ % ! &amp;。</x:String>
+  <x:String x:Key="Text.SSHKeyHelper.Generator.PassphraseMismatch">两次输入的口令不一致。</x:String>
 </ResourceDictionary>

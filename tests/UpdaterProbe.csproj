@@ -13,5 +13,6 @@
     <Compile Include="../src/Models/UpdatePackage.cs"/>
     <Compile Include="../src/Models/SelfUpdate.cs"/>
     <Compile Include="../src/Models/TreeGitRelease.cs"/>
+    <Compile Include="../src/Native/ProcessLauncher.cs" />
   </ItemGroup>
 </Project>

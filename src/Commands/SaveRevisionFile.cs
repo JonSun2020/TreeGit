@@ -48,7 +48,7 @@ namespace SourceGit.Commands
                 if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
                 await using (var sw = new FileStream(partial, FileMode.CreateNew, FileAccess.Write, FileShare.None, 65536, true))
                 {
-                    using var proc = Process.Start(starter)!;
+                    using var proc = Native.ProcessLauncher.Start(starter)!;
                     proc.BeginErrorReadLine();
 
                     if (input != null)

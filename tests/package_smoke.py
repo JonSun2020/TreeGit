@@ -10,7 +10,7 @@ for name in ['.env','preference.json','notes.txt','debug.pdb','old.zip']:(source
 (source/'data/preference.json').write_bytes(b'private preferences fixture')
 script=Path(__file__).resolve().parents[1]/'package-treegit.ps1'
 runtime=source/'git'
-required=['cmd/git.exe','usr/bin/ssh.exe','ucrt64/libexec/git-core/git-lfs.exe','ucrt64/libexec/git-core/git-flow.exe','etc/gitconfig','ucrt64/etc/ssl/certs/ca-bundle.crt','LICENSE.txt','licenses/Git-LFS-LICENSE.md','licenses/Git-Flow-LICENSE','COMPONENTS.md']
+required=['cmd/git.exe','usr/bin/ssh.exe','usr/bin/ssh-keygen.exe','ucrt64/libexec/git-core/git-lfs.exe','ucrt64/libexec/git-core/git-flow.exe','etc/gitconfig','ucrt64/etc/ssl/certs/ca-bundle.crt','LICENSE.txt','licenses/Git-LFS-LICENSE.md','licenses/Git-Flow-LICENSE','COMPONENTS.md']
 for name in required:
  p=runtime/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(('component fixture '+name).encode())
 manifest={'schema':1,'inputLockSha256':hashlib.sha256((script.parent/'build/git-runtime.lock.json').read_bytes()).hexdigest(),'files':[{'path':name,'sha256':hashlib.sha256((runtime/name).read_bytes()).hexdigest()} for name in required]}
@@ -30,6 +30,8 @@ private=runtime/'private-user-config';private.write_bytes(b'must not publish')
 blocked=root/'unexpected';r=pack(blocked);check('extra runtime files are rejected before an archive exists',r.returncode!=0 and not list(blocked.glob('*.zip')));private.unlink()
 ssh=runtime/'usr/bin/ssh.exe';saved=ssh.read_bytes();ssh.unlink()
 blocked=root/'missing';r=pack(blocked);check('missing SSH is rejected before an archive exists',r.returncode!=0 and not list(blocked.glob('*.zip')));ssh.write_bytes(saved)
+keygen=runtime/'usr/bin/ssh-keygen.exe';keygen_saved=keygen.read_bytes();keygen.unlink()
+blocked=root/'missing-keygen';r=pack(blocked);check('missing SSH key generator is rejected before an archive exists',r.returncode!=0 and not list(blocked.glob('*.zip')));keygen.write_bytes(keygen_saved)
 ssh.write_bytes(b'corrupted');blocked=root/'corrupt';r=pack(blocked);check('changed runtime bytes are rejected before an archive exists',r.returncode!=0 and not list(blocked.glob('*.zip')));ssh.write_bytes(saved)
 before=archive.read_bytes();r=pack(first);check('an existing version is rejected without changing its bytes',r.returncode!=0 and archive.read_bytes()==before)
 locked=root/'read-failure'

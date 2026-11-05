@@ -21,7 +21,7 @@ namespace SourceGit.Commands
             var stream = new MemoryStream();
             try
             {
-                using var proc = Process.Start(starter)!;
+                using var proc = Native.ProcessLauncher.Start(starter)!;
                 await proc.StandardOutput.BaseStream.CopyToAsync(stream).ConfigureAwait(false);
                 await proc.WaitForExitAsync().ConfigureAwait(false);
                 if (requireSuccess && proc.ExitCode != 0) throw new IOException("The selected revision file could not be read.");
@@ -51,7 +51,7 @@ namespace SourceGit.Commands
             var stream = new MemoryStream();
             try
             {
-                using var proc = Process.Start(starter)!;
+                using var proc = Native.ProcessLauncher.Start(starter)!;
                 await proc.StandardInput.WriteLineAsync("version https://git-lfs.github.com/spec/v1").ConfigureAwait(false);
                 await proc.StandardInput.WriteLineAsync($"oid sha256:{oid}").ConfigureAwait(false);
                 await proc.StandardInput.WriteLineAsync($"size {size}").ConfigureAwait(false);

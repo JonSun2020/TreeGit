@@ -24,7 +24,7 @@ function Test-TreeGitRuntime([string]$Path) {
         $seen[$file]=$true
         if(-not (Test-Path -LiteralPath $file -PathType Leaf) -or (Get-TreeGitHash $file) -ne $entry.sha256){throw ('Bundled Git file verification failed: '+$entry.path)}
     }
-    foreach($required in @('cmd/git.exe','usr/bin/ssh.exe','ucrt64/libexec/git-core/git-lfs.exe','ucrt64/libexec/git-core/git-flow.exe','etc/gitconfig','ucrt64/etc/ssl/certs/ca-bundle.crt','LICENSE.txt','licenses/Git-LFS-LICENSE.md','licenses/Git-Flow-LICENSE','COMPONENTS.md')){
+    foreach($required in @('cmd/git.exe','usr/bin/ssh.exe','usr/bin/ssh-keygen.exe','ucrt64/libexec/git-core/git-lfs.exe','ucrt64/libexec/git-core/git-flow.exe','etc/gitconfig','ucrt64/etc/ssl/certs/ca-bundle.crt','LICENSE.txt','licenses/Git-LFS-LICENSE.md','licenses/Git-Flow-LICENSE','COMPONENTS.md')){
         if(-not $seen.ContainsKey([IO.Path]::GetFullPath((Join-Path $root $required)))){throw ('Required Git component is missing: '+$required)}
     }
     return $manifest
@@ -66,10 +66,16 @@ function Initialize-TreeGitRuntime([string]$Destination,[string]$CacheDirectory,
         Add-Type -AssemblyName System.IO.Compression.FileSystem
         $gitAsset=$lock.assets | Where-Object { $_.kind -eq 'git' }
         [IO.Compression.ZipFile]::ExtractToDirectory((Join-Path $cache $gitAsset.name),$root)
-        foreach($asset in $lock.assets | Where-Object { $_.kind -ne 'git' }){
+        foreach($asset in $lock.assets | Where-Object { $_.kind -ne 'git' -and $_.kind -ne 'build-tool' }){
             $target=Join-Path $root $asset.target
             New-Item -ItemType Directory -Path (Split-Path -Parent $target) -Force | Out-Null
             if($asset.kind -eq 'file'){Copy-Item -LiteralPath (Join-Path $cache $asset.name) -Destination $target}
+            elseif($asset.kind -eq 'extract7z'){
+                $tool=$lock.assets | Where-Object { $_.kind -eq 'build-tool' }
+                if(@($tool).Count -ne 1){throw 'The verified archive extraction tool is missing'}
+                & (Join-Path $cache $tool.name) x -y "-o$root" (Join-Path $cache $asset.name) $asset.entry | Out-Null
+                if($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $target -PathType Leaf)){throw 'SSH key generator extraction failed'}
+            }
             else {
                 $zip=[IO.Compression.ZipFile]::OpenRead((Join-Path $cache $asset.name))
                 try {

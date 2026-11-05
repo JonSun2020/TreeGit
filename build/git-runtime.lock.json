@@ -3,10 +3,55 @@
   "lfsVersion": "3.8.1",
   "flowVersion": "2.1.0",
   "assets": [
-    {"name":"MinGit-2.56.0.4-64-bit.zip","url":"https://github.com/git-for-windows/git/releases/download/v2.56.0.windows.4/MinGit-2.56.0.4-64-bit.zip","sha256":"e3bf78351fe777fba47ddee5950082f8a98bb0f02604fdc7ba3ee2cb68ffa877","kind":"git"},
-    {"name":"git-lfs-windows-amd64-v3.8.1.zip","url":"https://github.com/git-lfs/git-lfs/releases/download/v3.8.1/git-lfs-windows-amd64-v3.8.1.zip","sha256":"5bb771c12b3dacc535e912d0270a010c209d4da2e63819c5918e3547c2defed9","kind":"extract","entry":"git-lfs-3.8.1/git-lfs.exe","target":"ucrt64/libexec/git-core/git-lfs.exe"},
-    {"name":"git-flow-next-v2.1.0-windows-amd64.zip","url":"https://github.com/gittower/git-flow-next/releases/download/v2.1.0/git-flow-next-v2.1.0-windows-amd64.zip","sha256":"9bfbc2746ea647fe664e0a5be375f7d7e144412d5031064f60efb1f8fbe1b656","kind":"extract","entry":"git-flow.exe","target":"ucrt64/libexec/git-core/git-flow.exe"},
-    {"name":"git-lfs-v3.8.1-LICENSE.md","url":"https://raw.githubusercontent.com/git-lfs/git-lfs/v3.8.1/LICENSE.md","sha256":"4fae9062ab5cdd5fb15486b728534d8aded8b4ae9d84b6d66a956f5162c366b6","kind":"file","target":"licenses/Git-LFS-LICENSE.md"},
-    {"name":"git-flow-next-v2.1.0-LICENSE","url":"https://raw.githubusercontent.com/gittower/git-flow-next/v2.1.0/LICENSE","sha256":"ffce931e266741227d90ffde3eff4baca8d9739ccc149d0072de0410d9f6852b","kind":"file","target":"licenses/Git-Flow-LICENSE"}
+    {
+      "name": "MinGit-2.56.0.4-64-bit.zip",
+      "url": "https://github.com/git-for-windows/git/releases/download/v2.56.0.windows.4/MinGit-2.56.0.4-64-bit.zip",
+      "sha256": "e3bf78351fe777fba47ddee5950082f8a98bb0f02604fdc7ba3ee2cb68ffa877",
+      "kind": "git"
+    },
+    {
+      "name": "git-lfs-windows-amd64-v3.8.1.zip",
+      "url": "https://github.com/git-lfs/git-lfs/releases/download/v3.8.1/git-lfs-windows-amd64-v3.8.1.zip",
+      "sha256": "5bb771c12b3dacc535e912d0270a010c209d4da2e63819c5918e3547c2defed9",
+      "kind": "extract",
+      "entry": "git-lfs-3.8.1/git-lfs.exe",
+      "target": "ucrt64/libexec/git-core/git-lfs.exe"
+    },
+    {
+      "name": "git-flow-next-v2.1.0-windows-amd64.zip",
+      "url": "https://github.com/gittower/git-flow-next/releases/download/v2.1.0/git-flow-next-v2.1.0-windows-amd64.zip",
+      "sha256": "9bfbc2746ea647fe664e0a5be375f7d7e144412d5031064f60efb1f8fbe1b656",
+      "kind": "extract",
+      "entry": "git-flow.exe",
+      "target": "ucrt64/libexec/git-core/git-flow.exe"
+    },
+    {
+      "name": "git-lfs-v3.8.1-LICENSE.md",
+      "url": "https://raw.githubusercontent.com/git-lfs/git-lfs/v3.8.1/LICENSE.md",
+      "sha256": "4fae9062ab5cdd5fb15486b728534d8aded8b4ae9d84b6d66a956f5162c366b6",
+      "kind": "file",
+      "target": "licenses/Git-LFS-LICENSE.md"
+    },
+    {
+      "name": "git-flow-next-v2.1.0-LICENSE",
+      "url": "https://raw.githubusercontent.com/gittower/git-flow-next/v2.1.0/LICENSE",
+      "sha256": "ffce931e266741227d90ffde3eff4baca8d9739ccc149d0072de0410d9f6852b",
+      "kind": "file",
+      "target": "licenses/Git-Flow-LICENSE"
+    },
+    {
+      "name": "PortableGit-2.56.0.4-64-bit.7z.exe",
+      "url": "https://github.com/git-for-windows/git/releases/download/v2.56.0.windows.4/PortableGit-2.56.0.4-64-bit.7z.exe",
+      "sha256": "b1f3e52216e2ed6882d1bebfd4d3fdf319bec40d2edbbf9fd26ec4fd3fce7ed1",
+      "kind": "extract7z",
+      "entry": "usr/bin/ssh-keygen.exe",
+      "target": "usr/bin/ssh-keygen.exe"
+    },
+    {
+      "name": "7zr-26.05.exe",
+      "url": "https://github.com/ip7z/7zip/releases/download/26.05/7zr.exe",
+      "sha256": "9bf582b894dfa665f852d7e9112b02290a1c303c2d95a21fcdc41ffcb03143b7",
+      "kind": "build-tool"
+    }
   ]
 }
