@@ -18,7 +18,7 @@ namespace SourceGit.Commands
                 !File.Exists(Path.Combine(WorkingDirectory, "HEAD")))
                 return false;
 
-            var rs = ReadToEnd();
+            var rs = ReadToEnd(retrySilentFailure: true);
             return rs.IsSuccess && rs.StdOut.Trim() == "true";
         }
 
@@ -29,7 +29,7 @@ namespace SourceGit.Commands
                 !File.Exists(Path.Combine(WorkingDirectory, "HEAD")))
                 return false;
 
-            var rs = await ReadToEndAsync().ConfigureAwait(false);
+            var rs = await ReadToEndAsync(retrySilentFailure: true).ConfigureAwait(false);
             return rs.IsSuccess && rs.StdOut.Trim() == "true";
         }
     }

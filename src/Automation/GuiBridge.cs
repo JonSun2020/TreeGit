@@ -454,9 +454,13 @@ namespace SourceGit.Automation
                 if (!Directory.Exists(path))
                     throw new ArgumentException("Repository directory does not exist.");
                 // Never turn an arbitrary directory into a Git repository as a side effect of opening it.
-                var check = await new Query(path, "rev-parse --absolute-git-dir").RunAsync().ConfigureAwait(false);
+                var check = await new Query(path, "rev-parse --absolute-git-dir").RunAsync(retrySilentFailure: true).ConfigureAwait(false);
                 if (!check.IsSuccess)
+                {
+                    if (check.IsSilentFailure)
+                        throw new InvalidOperationException("Git could not read this directory. Try opening the repository again.");
                     throw new ArgumentException("This directory is not a trusted Git repository: " + Redact(check.StdErr));
+                }
                 return await Dispatcher.UIThread.InvokeAsync(() =>
                     (object)new { opened = App.GetLauncher().TryOpenRepositoryFromPath(path), repo = path });
             }
@@ -900,7 +904,7 @@ namespace SourceGit.Automation
                 var stdout = Redact(result.StdOut);
                 var stderr = Redact(result.StdErr);
                 const int limit = 1024 * 1024;
-                return new { isSuccess = result.IsSuccess, stdout = stdout[..Math.Min(stdout.Length, limit)], stderr = stderr[..Math.Min(stderr.Length, limit)], truncated = stdout.Length > limit || stderr.Length > limit };
+                return new { isSuccess = result.IsSuccess, exitCode = result.ExitCode, stdout = stdout[..Math.Min(stdout.Length, limit)], stderr = stderr[..Math.Min(stderr.Length, limit)], truncated = stdout.Length > limit || stderr.Length > limit };
             }
             finally
             {
@@ -994,7 +998,7 @@ namespace SourceGit.Automation
                 RaiseError = false;
             }
 
-            public async Task<Result> RunAsync(bool allowAuthenticationRetry = false)
+            public async Task<Result> RunAsync(bool allowAuthenticationRetry = false, bool retrySilentFailure = false)
             {
                 IsAuthenticationRetry = false;
                 while (true)
@@ -1013,7 +1017,13 @@ namespace SourceGit.Automation
                     var stdout = ReadCappedAsync(process.StandardOutput);
                     var stderr = ReadCappedAsync(process.StandardError);
                     await Task.WhenAll(stdout, stderr, process.WaitForExitAsync()).ConfigureAwait(false);
-                    var result = new Result { IsSuccess = process.ExitCode == 0, StdOut = stdout.Result, StdErr = stderr.Result };
+                    var result = new Result { IsSuccess = process.ExitCode == 0, ExitCode = process.ExitCode, StdOut = stdout.Result, StdErr = stderr.Result };
+                    if (retrySilentFailure && result.IsSilentFailure)
+                    {
+                        retrySilentFailure = false;
+                        await Task.Delay(100).ConfigureAwait(false);
+                        continue;
+                    }
                     if (!result.IsSuccess && allowAuthenticationRetry && OperatingSystem.IsWindows() && Native.RepositoryCredentials.IsAuthenticationFailure(result.StdErr))
                     {
                         IsAuthenticationRetry = true;

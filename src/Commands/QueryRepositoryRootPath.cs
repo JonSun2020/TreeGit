@@ -12,12 +12,12 @@ namespace SourceGit.Commands
 
         public Result GetResult()
         {
-            return ReadToEnd();
+            return ReadToEnd(retrySilentFailure: true);
         }
 
         public async Task<Result> GetResultAsync()
         {
-            return await ReadToEndAsync().ConfigureAwait(false);
+            return await ReadToEndAsync(retrySilentFailure: true).ConfigureAwait(false);
         }
     }
 }

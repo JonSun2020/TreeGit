@@ -727,4 +727,5 @@
   <x:String x:Key="Text.Launcher.SaveBeforeCloseFailed">Your current settings or commit draft could not be saved. Check free disk space, folder permissions, or other windows using these files, then try again. Choose Cancel to keep this window and your draft. Choose OK to exit without saving.</x:String>
   <x:String x:Key="Text.Launcher.SaveDraftBeforeCloseFailed">The commit draft could not be saved, so the tab has been kept open. Check free disk space, folder permissions, or other windows using the file, then try again.</x:String>
   <x:String x:Key="Text.File.ExportFailed">The file could not be saved. The existing target file was kept. Check that the selected revision and file are still available, and that the destination folder is writable with enough free space.</x:String>
+  <x:String x:Key="Text.Repository.OpenFailed">The repository could not be opened. Try opening it again, or check the repository files and Git settings.</x:String>
 </ResourceDictionary>

@@ -12,7 +12,7 @@ namespace SourceGit.Commands
 
         public string GetResult()
         {
-            return Parse(ReadToEnd());
+            return Parse(ReadToEnd(retrySilentFailure: true));
         }
 
         private string Parse(Result rs)

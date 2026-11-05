@@ -15,6 +15,9 @@ namespace SourceGit.Commands
             public bool IsSuccess { get; set; } = false;
             public string StdOut { get; set; } = string.Empty;
             public string StdErr { get; set; } = string.Empty;
+            public int? ExitCode { get; set; }
+
+            internal bool IsSilentFailure => !IsSuccess && string.IsNullOrEmpty(StdOut) && string.IsNullOrEmpty(StdErr);
 
             public static Result Failed(string reason) => new Result() { StdErr = reason };
         }
@@ -131,7 +134,8 @@ namespace SourceGit.Commands
             }
         }
 
-        protected Result ReadToEnd()
+        // Retry is opt-in for read-only discovery. Mutations must never use it.
+        protected Result ReadToEnd(bool retrySilentFailure = false)
         {
             using var proc = new Process();
             proc.StartInfo = CreateGitStartInfo(true);
@@ -154,10 +158,16 @@ namespace SourceGit.Commands
             proc.WaitForExit();
 
             rs.IsSuccess = proc.ExitCode == 0;
+            rs.ExitCode = proc.ExitCode;
+            if (retrySilentFailure && rs.IsSilentFailure)
+            {
+                System.Threading.Thread.Sleep(100);
+                return ReadToEnd();
+            }
             return rs;
         }
 
-        protected async Task<Result> ReadToEndAsync()
+        protected async Task<Result> ReadToEndAsync(bool retrySilentFailure = false)
         {
             using var proc = new Process();
             proc.StartInfo = CreateGitStartInfo(true);
@@ -180,6 +190,12 @@ namespace SourceGit.Commands
             await proc.WaitForExitAsync(CancellationToken).ConfigureAwait(false);
 
             rs.IsSuccess = proc.ExitCode == 0;
+            rs.ExitCode = proc.ExitCode;
+            if (retrySilentFailure && rs.IsSilentFailure)
+            {
+                await Task.Delay(100, CancellationToken).ConfigureAwait(false);
+                return await ReadToEndAsync().ConfigureAwait(false);
+            }
             return rs;
         }
 

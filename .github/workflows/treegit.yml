@@ -158,6 +158,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/cold_sync_actions.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/cold-sync-results" "$env:RUNNER_TEMP/git-delay-proxy/GitDelayProxy.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/repository_open_failures.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/repository-open-results" "$env:RUNNER_TEMP/git-delay-proxy/GitDelayProxy.exe"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -173,6 +175,7 @@ jobs:
             ${{ runner.temp }}/repository-config-recovery-results/repository-config-recovery-results.json
             ${{ runner.temp }}/binary-cancellation-results/binary-cancellation-results.json
             ${{ runner.temp }}/cold-sync-results/cold-sync-results.json
+            ${{ runner.temp }}/repository-open-results/repository-open-results.json
       - uses: actions/upload-artifact@v4
         with:
           name: TreeGit-Windows-x64
