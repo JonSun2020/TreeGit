@@ -41,7 +41,7 @@ namespace SourceGit.Views
             snapshotDirectory = _comparison?.SnapshotDirectory,
 #endif
             oldRevision = (DataContext as Models.BinaryDiff)?.OldRevision, newRevision = (DataContext as Models.BinaryDiff)?.NewRevision,
-            summary = _summary.Text, error = _errorDetails, oldSize = OldSize, newSize = NewSize,
+            summary = _summary.Text, errorDetails = _errorDetails, oldSize = OldSize, newSize = NewSize,
             differentBytes = DifferentBytes, selectedOffset = SelectedOffset, topOffset = TopOffset, bytesPerRow = BytesPerRow,
             oldHex = _comparison == null ? null : Convert.ToHexString(_comparison.Read(true, TopOffset, 256)),
             newHex = _comparison == null ? null : Convert.ToHexString(_comparison.Read(false, TopOffset, 256)) };

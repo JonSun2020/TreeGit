@@ -150,6 +150,10 @@ jobs:
         run: |
           python tests/mcp_protocol.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/treegit-protocol.json"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/binary_diff.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/binary-diff-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/binary_refresh.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/binary-refresh-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/font_settings.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/font-results"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/deferred_loading.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/deferred-results"
@@ -177,6 +181,8 @@ jobs:
           path: |
             ${{ runner.temp }}/font-results/*.json
             ${{ runner.temp }}/font-results/*.png
+            ${{ runner.temp }}/binary-diff-results/binary-results.json
+            ${{ runner.temp }}/binary-refresh-results/*.json
             ${{ runner.temp }}/deferred-results/*.json
             ${{ runner.temp }}/deferred-results/*.png
             ${{ runner.temp }}/updater-results/results.json

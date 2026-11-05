@@ -192,7 +192,8 @@ namespace SourceGit.Automation
                                 var arguments = p.TryGetProperty("arguments", out var a) ? a.Clone() : JsonSerializer.SerializeToElement(new { });
                                 ValidateTool(name, arguments, allowWrite);
                                 var data = await SendAsync(new { name, arguments, allowWrite }).ConfigureAwait(false);
-                                if (data.TryGetProperty("error", out var error))
+                                if (data.ValueKind == JsonValueKind.Object && data.EnumerateObject().Count() == 1 &&
+                                    data.TryGetProperty("error", out var error) && error.ValueKind == JsonValueKind.String)
                                     throw new InvalidOperationException(error.GetString());
                                 if (name == "ui_screenshot")
                                     result = new { content = new object[] { new { type = "image", data = data.GetProperty("png").GetString(), mimeType = "image/png" } }, isError = false };

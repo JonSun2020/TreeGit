@@ -42,6 +42,9 @@ try:
     assert data['failures']>=3 and data['retryHiddenAfterRecovery'],data
     assert after['status']=='ready' and after['differentBytes']==1 and after['selectedOffset']==17,after
     offset=after['topOffset'];assert after['oldHex']==old[offset:offset+256].hex().upper() and after['newHex']==bytes(new[offset:offset+256]).hex().upper(),after
+    remote=tool('ui_diff',{'repo':str(repo),'action':'state'})
+    assert remote['status']=='ready' and remote['differentBytes']==1 and remote.get('errorDetails') is None,remote
+    record['mcpRoundTrip']=remote
     assert git('rev-parse','HEAD')==head and git('write-tree')==index and (repo/'firmware.bin').read_bytes()==bytes(new)
     record['passed']=True
     print('PASS real refused Git start, clear binary error, same-view button retry, exact bytes and untouched repository',flush=True)
