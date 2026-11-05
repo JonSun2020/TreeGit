@@ -237,7 +237,7 @@ namespace SourceGit.Native
         internal static void ValidatePayload(string root, string version)
         {
             if (ReadInstalledVersion(root) != version) throw new Models.UpdateProblem("invalid");
-            foreach (var file in new[] { "av_libglesv2.dll", "libHarfBuzzSharp.dll", "libonigwrap.dll", "libSkiaSharp.dll", "git/cmd/git.exe" })
+            foreach (var file in Models.TreeGitRelease.WindowsNativeLibraries.Append("git/cmd/git.exe"))
                 if (!File.Exists(Path.Combine(root, file))) throw new Models.UpdateProblem("invalid");
             var exe = FileVersionInfo.GetVersionInfo(Path.Combine(root, "TreeGit.exe"));
             var expected = new System.Version(version);

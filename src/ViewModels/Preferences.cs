@@ -35,6 +35,9 @@ namespace SourceGit.ViewModels
             }
         }
 
+        [JsonIgnore]
+        public int LoadRecovery { get; private set; }
+
         public string Locale
         {
             get => _locale;
@@ -497,7 +500,7 @@ namespace SourceGit.ViewModels
 
         public void SetCanModify()
         {
-            _isReadonly = false;
+            _isReadonly = LoadRecovery == 2;
         }
 
         public bool IsGitConfigured()
@@ -670,15 +673,29 @@ namespace SourceGit.ViewModels
             if (!File.Exists(path))
                 return new Preferences();
 
+            Exception failure = null;
             try
             {
                 using var stream = File.OpenRead(path);
-                return JsonSerializer.Deserialize(stream, JsonCodeGen.Default.Preferences);
+                var loaded = JsonSerializer.Deserialize(stream, JsonCodeGen.Default.Preferences);
+                if (loaded != null) return loaded;
             }
-            catch
+            catch (Exception error) { failure = error; }
+
+            // A new build must not replace an unreadable existing configuration during update startup.
+            if (Native.TreeGitUpdateInstaller.BootstrapPlan != null)
+                throw new InvalidDataException("The existing preferences could not be loaded after update.", failure);
+
+            var recovered = new Preferences { LoadRecovery = 2 };
+            if (failure is IOException or UnauthorizedAccessException) return recovered;
+            try
             {
-                return new Preferences();
+                var backup = Path.Combine(Path.GetDirectoryName(path)!, "preference-recovery-" + DateTime.Now.ToString("yyyyMMdd-HHmmss") + "-" + Guid.NewGuid().ToString("N")[..8] + ".json");
+                File.Copy(path, backup, false);
+                recovered.LoadRecovery = 1;
             }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+            return recovered;
         }
 
         private void PrepareGit()

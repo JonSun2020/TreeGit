@@ -267,6 +267,8 @@ namespace SourceGit.Automation
         {
             if (Native.TreeGitUpdateInstaller.HasActiveUpdate(AppContext.BaseDirectory))
                 throw new InvalidOperationException("TreeGit is updating. Retry after it restarts.");
+            if (!Native.UiStartup.IsComplete(AppContext.BaseDirectory))
+                throw new InvalidOperationException(Native.UiStartup.Message(AppContext.BaseDirectory, true));
             // Coordinate cold starts across different AI clients. Keep mutex ownership
             // on this synchronous worker thread, including while waiting for the GUI.
             using var gate = new Mutex(false, "TreeGit.MCP.Start." + PipeName);

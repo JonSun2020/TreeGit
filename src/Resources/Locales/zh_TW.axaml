@@ -1170,4 +1170,6 @@
   <x:String x:Key="Text.Graph.AllBranches">全部分支</x:String>
   <x:String x:Key="Text.Graph.OnlyBranch">目前分支</x:String>
   <x:String x:Key="Text.Graph.MergedHistory">所选分支（含合并历史）</x:String>
+  <x:String x:Key="Text.PreferenceRecovery.Backup" xml:space="preserve">配置文件未能读取，已使用默认设置启动。原文件已备份到 data 文件夹。</x:String>
+  <x:String x:Key="Text.PreferenceRecovery.Readonly" xml:space="preserve">配置文件暂时无法读取，本次设置不会保存。请关闭其他 TreeGit 窗口，或检查配置文件的访问权限后重新打开。</x:String>
 </ResourceDictionary>

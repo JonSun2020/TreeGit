@@ -37,6 +37,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & "$env:RUNNER_TEMP/mode-probe/RepositoryModeProbe.exe" "$env:RUNNER_TEMP/mode-results" (Get-Command git.exe).Source
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify incomplete-package startup guidance
+        shell: pwsh
+        run: |
+          dotnet build tests/UiStartupProbe.csproj -c Release -o "$env:RUNNER_TEMP/startup-probe" -v:q
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "$env:RUNNER_TEMP/startup-probe/UiStartupProbe.exe" "$env:RUNNER_TEMP/startup-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify cancellation affects only the command tree
         shell: pwsh
         run: python tests/process_cancellation.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/cancellation-helper/CancellationHelper.exe" "$env:RUNNER_TEMP/cancellation-results"
@@ -57,6 +64,7 @@ jobs:
             ${{ runner.temp }}/runtime-ui-results
             ${{ runner.temp }}/command-pipes-results
             ${{ runner.temp }}/mode-results/repository-mode-results.json
+            ${{ runner.temp }}/startup-results/ui-startup-results.json
   portable:
     runs-on: windows-latest
     steps:
@@ -101,6 +109,11 @@ jobs:
           python tests/deferred_loading.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/deferred-results"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/package_smoke.py "$env:RUNNER_TEMP/treegit-package-test"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/startup_incomplete.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/startup-incomplete-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/preferences_recovery.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/preferences-recovery-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -111,6 +124,8 @@ jobs:
             ${{ runner.temp }}/deferred-results/*.json
             ${{ runner.temp }}/deferred-results/*.png
             ${{ runner.temp }}/updater-results/results.json
+            ${{ runner.temp }}/startup-incomplete-results/startup-incomplete-results.json
+            ${{ runner.temp }}/preferences-recovery-results/preferences-recovery-results.json
       - uses: actions/upload-artifact@v4
         with:
           name: TreeGit-Windows-x64

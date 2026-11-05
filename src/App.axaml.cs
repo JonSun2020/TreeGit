@@ -41,7 +41,13 @@ namespace SourceGit
                 return;
             }
             if (Native.TreeGitUpdateInstaller.HandleBootstrap(args)) return;
-            Native.OS.SetupBasicDirectories();
+            try { Native.OS.SetupBasicDirectories(); }
+            catch (Exception error)
+            {
+                if (Native.TreeGitUpdateInstaller.BootstrapPlan == null) Native.UiStartup.Show(AppContext.BaseDirectory, false, error);
+                Environment.Exit(1);
+                return;
+            }
             Native.StartupTrace.Mark("directories");
 #if INTEGRATION_TESTS
             if (args.Length > 3 && args[0] == "--integration-command-pipes")
@@ -93,11 +99,21 @@ namespace SourceGit
                 else if (TryLaunchAsRebaseMessageEditor(args, out int exitMessage))
                     Environment.Exit(exitMessage);
                 else
+                {
+                    if (!Native.UiStartup.IsComplete(AppContext.BaseDirectory))
+                    {
+                        if (Native.TreeGitUpdateInstaller.BootstrapPlan == null) Native.UiStartup.Show(AppContext.BaseDirectory, true);
+                        Environment.Exit(1);
+                        return;
+                    }
                     BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
+                }
             }
             catch (Exception ex)
             {
-                Native.OS.LogException(ex);
+                try { Native.OS.LogException(ex); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+                if (Native.TreeGitUpdateInstaller.BootstrapPlan == null) Native.UiStartup.Show(AppContext.BaseDirectory, !Native.UiStartup.IsComplete(AppContext.BaseDirectory), ex);
+                Environment.Exit(1);
             }
         }
 
@@ -594,6 +610,8 @@ namespace SourceGit
             Native.StartupTrace.Mark("launcher-model");
             desktop.MainWindow = new Views.Launcher() { DataContext = _launcher };
             Native.StartupTrace.Mark("launcher-window");
+            if (pref.LoadRecovery != 0)
+                desktop.MainWindow.Opened += (_, _) => Models.Notification.Send(string.Empty, App.Text(pref.LoadRecovery == 1 ? "PreferenceRecovery.Backup" : "PreferenceRecovery.Readonly"), true);
             if (Native.TreeGitUpdateInstaller.BootstrapPlan != null)
                 desktop.MainWindow.Opened += (_, _) => OpenUpdater(bootstrap: true);
             else

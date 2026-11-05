@@ -1,5 +1,5 @@
 """Sustained multi-repository GUI/Git/diff cycles; only disposable repositories are written."""
-import base64, json, os, queue, random, subprocess, sys, tempfile, threading, time, traceback
+import base64, json, os, queue, random, shutil, subprocess, sys, tempfile, threading, time, traceback
 from pathlib import Path
 exe=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
 seconds=float(sys.argv[3]) if len(sys.argv)>3 else 600
@@ -7,8 +7,20 @@ build=json.loads((exe.parent/'build-info.json').read_text('utf-8-sig')) if (exe.
 root=Path(tempfile.mkdtemp(prefix='TreeGit sustained desktop audit '));env=os.environ.copy()
 snapshot_root=root/'snapshots';snapshot_root.mkdir()
 env.update(GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'),GIT_CONFIG_NOSYSTEM='1',TEMP=str(snapshot_root),TMP=str(snapshot_root))
+verifier_git=shutil.which('git');assert verifier_git,'A separate Git verifier is required'
+verifier_retries=[]
+
+def verify_git_process(arguments,**options):
+    for attempt in range(3):
+        try:
+            return subprocess.run([verifier_git,*arguments],env=env,stdin=subprocess.DEVNULL,creationflags=subprocess.CREATE_NO_WINDOW,**options)
+        except PermissionError as error:
+            if getattr(error,'winerror',None)!=5 or attempt==2:raise
+            verifier_retries.append({'seconds':round(time.monotonic()-start,2),'attempt':attempt+1,'error':str(error)})
+            time.sleep(.2*(attempt+1))
+
 def git(repo,*args):
-    r=subprocess.run(['git','-C',str(repo),*args],env=env,capture_output=True,text=True,encoding='utf-8');assert r.returncode==0,r.stderr;return r.stdout.strip()
+    r=verify_git_process(['-C',str(repo),*args],capture_output=True,text=True,encoding='utf-8');assert r.returncode==0,r.stderr;return r.stdout.strip()
 def make_repo(index):
     repo=root/('仓库 '+str(index));repo.mkdir();git(repo,'init','-b','main');git(repo,'config','user.name','Soak QA');git(repo,'config','user.email','soak@example.invalid')
     (repo/'note.txt').write_text('initial\n');(repo/'firmware.bin').write_bytes(bytes([(i+index)%256 for i in range(65537)]));git(repo,'add','.');git(repo,'commit','-m','Initial');return repo
@@ -31,7 +43,7 @@ def close_repositories():
 def save_result():
     ordered=sorted(latencies)
     pending=out/'desktop-soak-results.tmp'
-    pending.write_text(json.dumps({'exe':str(exe),'build':build,'root':str(root),'seconds':round(time.monotonic()-start,1),'requestedDurationSeconds':seconds,'stoppedByRequest':(out/'stop-requested').exists(),'cycles':cycle,'requests':len(latencies),'maxRequestSeconds':max(latencies,default=0),'p95RequestSeconds':ordered[int(len(ordered)*.95)] if ordered else 0,'samples':samples,'ownedSnapshotCount':len(snapshots),'remainingSnapshots':[str(s) for s in snapshots if s.exists()],'failure':failure},ensure_ascii=False,indent=2),encoding='utf-8')
+    pending.write_text(json.dumps({'exe':str(exe),'build':build,'root':str(root),'seconds':round(time.monotonic()-start,1),'requestedDurationSeconds':seconds,'stoppedByRequest':(out/'stop-requested').exists(),'verifierGit':verifier_git,'verifierLaunchRetries':verifier_retries,'cycles':cycle,'requests':len(latencies),'maxRequestSeconds':max(latencies,default=0),'p95RequestSeconds':ordered[int(len(ordered)*.95)] if ordered else 0,'samples':samples,'ownedSnapshotCount':len(snapshots),'remainingSnapshots':[str(s) for s in snapshots if s.exists()],'failure':failure},ensure_ascii=False,indent=2),encoding='utf-8')
     pending.replace(out/'desktop-soak-results.json')
 def sample(label):
     state=tool('ui_state');assert state['processId']==pid and not state['dialogs'],state['dialogs']
@@ -78,7 +90,7 @@ try:
         assert tool('git_action',{'repo':str(repo),'action':'commit','message':'Soak cycle '+str(cycle)})['isSuccess']
         assert git(repo,'status','--porcelain')=='' and not (repo/'.git/index.lock').exists()
         assert git(repo,'show','HEAD:note.txt')==note.strip()
-        actual=subprocess.run(['git','-C',str(repo),'show','HEAD:firmware.bin'],env=env,capture_output=True);assert actual.returncode==0 and actual.stdout==new
+        actual=verify_git_process(['-C',str(repo),'show','HEAD:firmware.bin'],capture_output=True);assert actual.returncode==0 and actual.stdout==new
         if cycle%8==0:
             tab=next(t for t in tool('ui_tabs',{'action':'list'})['tabs'] if t['repo'] and Path(t['repo'])==repo)
             tool('ui_tabs',{'action':'close','index':tab['index']});tool('ui_open_repository',{'repo':str(repo)})
