@@ -100,6 +100,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/lfs_https_auth.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/lfs-https-results"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/git_https_push_auth.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/git-https-push-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -124,6 +126,7 @@ jobs:
             ${{ runner.temp }}/local-auth-*/local-auth-failure-results.json
             ${{ runner.temp }}/push-hook-*/push-hook-failure-results.json
             ${{ runner.temp }}/lfs-https-results/results.json
+            ${{ runner.temp }}/git-https-push-results/results.json
   portable:
     runs-on: windows-latest
     steps:

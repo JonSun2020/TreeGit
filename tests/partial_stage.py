@@ -30,7 +30,7 @@ def native(operation,paths,value=None):
     while time.monotonic()<deadline:
         if result.exists():
             try:r=json.loads(result.read_text(encoding='utf-8'))
-            except json.JSONDecodeError:time.sleep(.05);continue
+            except (json.JSONDecodeError, PermissionError, FileNotFoundError):time.sleep(.05);continue
             assert 'exception' not in r,r
             assert r['operationResult'],r
             return r
