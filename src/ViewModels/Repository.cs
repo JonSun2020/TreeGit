@@ -718,14 +718,39 @@ namespace SourceGit.ViewModels
             });
         }
 
+        private async Task<bool> WaitForRemoteMetadataAsync()
+        {
+            if (_preparingRemoteAction) return false;
+            _preparingRemoteAction = true;
+            try
+            {
+                while (true)
+                {
+                    var refresh = _refreshBranchesTask;
+                    try { await refresh; }
+                    catch (OperationCanceledException) { }
+                    // A newer refresh may supersede the one that was active when the button was clicked.
+                    if (ReferenceEquals(refresh, _refreshBranchesTask)) break;
+                }
+            }
+            catch (Exception)
+            {
+                SendNotification(App.Text("Repository.ReadMetadataFailed"), true);
+                return false;
+            }
+            finally { _preparingRemoteAction = false; }
+            return CanCreatePopup();
+        }
+
         public async Task FetchAsync(bool autoStart)
         {
             if (!CanCreatePopup())
                 return;
+            if (!await WaitForRemoteMetadataAsync()) return;
 
             if (_remotes.Count == 0)
             {
-                SendNotification("No remotes added to this repository!!!", true);
+                SendNotification(App.Text("Repository.NoRemotes"), true);
                 return;
             }
 
@@ -739,16 +764,17 @@ namespace SourceGit.ViewModels
         {
             if (IsBare || !CanCreatePopup())
                 return;
+            if (!await WaitForRemoteMetadataAsync()) return;
 
             if (_remotes.Count == 0)
             {
-                SendNotification("No remotes added to this repository!!!", true);
+                SendNotification(App.Text("Repository.NoRemotes"), true);
                 return;
             }
 
             if (_currentBranch == null)
             {
-                SendNotification("Can NOT find current branch!!!", true);
+                SendNotification(App.Text("Repository.NoCurrentBranch"), true);
                 return;
             }
 
@@ -763,16 +789,17 @@ namespace SourceGit.ViewModels
         {
             if (!CanCreatePopup())
                 return;
+            if (!await WaitForRemoteMetadataAsync()) return;
 
             if (_remotes.Count == 0)
             {
-                SendNotification("No remotes added to this repository!!!", true);
+                SendNotification(App.Text("Repository.NoRemotes"), true);
                 return;
             }
 
             if (_currentBranch == null)
             {
-                SendNotification("Can NOT find current branch!!!", true);
+                SendNotification(App.Text("Repository.NoCurrentBranch"), true);
                 return;
             }
 
@@ -1218,7 +1245,7 @@ namespace SourceGit.ViewModels
             _cancellationRefreshBranches = new CancellationTokenSource();
             var token = _cancellationRefreshBranches.Token;
 
-            Task.Run(async () =>
+            _refreshBranchesTask = Task.Run(async () =>
             {
                 var branches = await new Commands.QueryBranches(FullPath).GetResultAsync().ConfigureAwait(false);
                 var remotes = await new Commands.QueryRemotes(FullPath).GetResultAsync().ConfigureAwait(false);
@@ -2102,6 +2129,8 @@ namespace SourceGit.ViewModels
         private bool _isBisectCommandRunning = false;
 
         private CancellationTokenSource _cancellationRefreshBranches = null;
+        private Task _refreshBranchesTask = Task.CompletedTask;
+        private bool _preparingRemoteAction;
         private CancellationTokenSource _cancellationRefreshTags = null;
         private CancellationTokenSource _cancellationRefreshWorkingCopyChanges = null;
         private CancellationTokenSource _cancellationRefreshCommits = null;

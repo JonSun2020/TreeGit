@@ -96,7 +96,7 @@ namespace SourceGit.ViewModels
                         var currentBranch = _repo.CurrentBranch;
                         if (currentBranch == null)
                         {
-                            _repo.SendNotification("No commits to amend!!!", true);
+                            _repo.SendNotification(App.Text("WorkingCopy.NoCommitsToAmend"), true);
                             _useAmend = false;
                             OnPropertyChanged();
                             return;
@@ -631,13 +631,13 @@ namespace SourceGit.ViewModels
 
             if (!_repo.CanCreatePopup())
             {
-                _repo.SendNotification("Repository has an unfinished job! Please wait!", true);
+                _repo.SendNotification(App.Text("WorkingCopy.OperationBusy"), true);
                 return;
             }
 
             if (autoStage && HasUnsolvedConflicts)
             {
-                _repo.SendNotification("Repository has unsolved conflict(s). Auto-stage and commit is disabled!", true);
+                _repo.SendNotification(App.Text("WorkingCopy.ConflictsBeforeAutoStage"), true);
                 return;
             }
 

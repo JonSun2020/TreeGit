@@ -124,6 +124,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/binary_cancel.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/binary-cancellation-results"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dotnet build tests/GitDelayProxy.csproj -c Release -o "$env:RUNNER_TEMP/git-delay-proxy" -v:q
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/cold_sync_actions.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/cold-sync-results" "$env:RUNNER_TEMP/git-delay-proxy/GitDelayProxy.exe"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -137,6 +141,7 @@ jobs:
             ${{ runner.temp }}/startup-incomplete-results/startup-incomplete-results.json
             ${{ runner.temp }}/preferences-recovery-results/preferences-recovery-results.json
             ${{ runner.temp }}/binary-cancellation-results/binary-cancellation-results.json
+            ${{ runner.temp }}/cold-sync-results/cold-sync-results.json
       - uses: actions/upload-artifact@v4
         with:
           name: TreeGit-Windows-x64

@@ -1173,4 +1173,10 @@
   <x:String x:Key="Text.PreferenceRecovery.Backup" xml:space="preserve">配置文件未能读取，已使用默认设置启动。原文件已备份到 data 文件夹。</x:String>
   <x:String x:Key="Text.PreferenceRecovery.Readonly" xml:space="preserve">配置文件暂时无法读取，本次设置不会保存。请关闭其他 TreeGit 窗口，或检查配置文件的访问权限后重新打开。</x:String>
   <x:String x:Key="Text.Launcher.CloseWhileBusy">操作尚未完成，請等待完成，或在操作視窗中取消後，再關閉分頁或退出。</x:String>
+  <x:String x:Key="Text.Repository.NoRemotes">尚未設定遠端倉庫，請先在「倉庫設定」的「遠端倉庫」中新增。</x:String>
+  <x:String x:Key="Text.Repository.NoCurrentBranch">未找到目前分支。請確認倉庫已有提交，重新整理後重試。</x:String>
+  <x:String x:Key="Text.Repository.ReadMetadataFailed">暫時無法讀取倉庫資訊，請重新整理倉庫後重試。</x:String>
+  <x:String x:Key="Text.WorkingCopy.OperationBusy">其他操作尚未完成，請等待完成後再提交。</x:String>
+  <x:String x:Key="Text.WorkingCopy.ConflictsBeforeAutoStage">請先解決檔案衝突，再執行全部暫存並提交。</x:String>
+  <x:String x:Key="Text.WorkingCopy.NoCommitsToAmend">倉庫還沒有可修改的提交，請先完成第一次提交。</x:String>
 </ResourceDictionary>

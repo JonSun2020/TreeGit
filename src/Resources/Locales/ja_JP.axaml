@@ -1148,4 +1148,10 @@
   <x:String x:Key="Text.PreferenceRecovery.Backup" xml:space="preserve">Your settings could not be read. TreeGit started with defaults and kept a backup in the data folder.</x:String>
   <x:String x:Key="Text.PreferenceRecovery.Readonly" xml:space="preserve">Your settings are temporarily unavailable. Changes will not be saved in this session. Close other TreeGit windows or check file access, then open TreeGit again.</x:String>
   <x:String x:Key="Text.Launcher.CloseWhileBusy">An operation is still running. Wait for it to finish, or cancel it from the operation window, then close TreeGit or this tab.</x:String>
+  <x:String x:Key="Text.Repository.NoRemotes">No remote repository is configured. Add one in Repository Settings, then try again.</x:String>
+  <x:String x:Key="Text.Repository.NoCurrentBranch">The current branch could not be found. Make sure the repository has a commit, refresh it, and try again.</x:String>
+  <x:String x:Key="Text.Repository.ReadMetadataFailed">Repository information could not be read. Refresh the repository and try again.</x:String>
+  <x:String x:Key="Text.WorkingCopy.OperationBusy">An operation is still running. Wait for it to finish, then commit again.</x:String>
+  <x:String x:Key="Text.WorkingCopy.ConflictsBeforeAutoStage">Resolve the file conflicts before staging all changes and committing.</x:String>
+  <x:String x:Key="Text.WorkingCopy.NoCommitsToAmend">There is no commit to amend yet. Create the first commit before using Amend.</x:String>
 </ResourceDictionary>
