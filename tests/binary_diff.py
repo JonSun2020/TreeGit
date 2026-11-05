@@ -81,6 +81,7 @@ def refresh():
 
 rpc('initialize', {'protocolVersion':'2025-11-25'})
 tool('ui_open_repository', {'repo':str(repo)})
+gui_pid = tool('ui_state')['processId']
 tool('ui_window', {'width':1440, 'height':900, 'theme':'SourceTree', 'zoom':1})
 state = select()
 expected = sum(a != b for a, b in zip(staged, working)) + len(working)-len(staged)
@@ -113,6 +114,12 @@ for _ in range(200):
     if state['status'] == 'ready' and comparison_window and state['bytesPerRow'] == expected_columns: break
     time.sleep(.1)
 (out/'independent-window.json').write_text(json.dumps(comparison_window, indent=2), encoding='utf-8')
+area = comparison_window['workArea'] if comparison_window else {}
+check('independent comparison keeps its native caption and frame inside the working area',
+      comparison_window is not None
+      and comparison_window['x'] >= area['x'] and comparison_window['y'] >= area['y']
+      and comparison_window['x'] + comparison_window['width'] * comparison_window['scaling'] <= area['x'] + area['width']
+      and comparison_window['y'] + comparison_window['height'] * comparison_window['scaling'] <= area['y'] + area['height'])
 check('independent comparison uses the available screen width and preserves both snapshots',
       state['status'] == 'ready' and comparison_window is not None
       and state['bytesPerRow'] == expected_columns and state['differentBytes'] == expected
@@ -193,5 +200,13 @@ for _ in range(50):
     time.sleep(.1)
 check('closing the repository cleans its comparison snapshots', bool(owned_snapshots or snapshots_before_close) and not leaked)
 p.stdin.close(); p.wait(timeout=10)
+# A following scenario uses a different isolated snapshot directory. Close only
+# this exact owned QA GUI so its old TEMP cannot leak into the next scenario.
+literal = str(exe).replace("'", "''")
+close_script = ("$p=Get-Process -Id " + str(gui_pid) + " -ErrorAction SilentlyContinue;"
+                "if($p){if($p.Path -ne '" + literal + "'){throw 'Wrong QA process'};"
+                "if(-not $p.CloseMainWindow()){throw 'QA window did not accept close'};"
+                "if(-not $p.WaitForExit(15000)){throw 'QA app did not exit'}};exit 0")
+subprocess.run(['powershell', '-NoProfile', '-Command', close_script], check=True, capture_output=True, timeout=30)
 (out/'binary-results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'repo':str(repo),'exe':str(exe),'ownedSnapshotCount':len(owned_snapshots),'remainingSnapshots':[str(p) for p in owned_snapshots if p.exists()]},ensure_ascii=False,indent=2),encoding='utf-8')
 print('PASSED',len(checks))

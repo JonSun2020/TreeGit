@@ -194,7 +194,23 @@ namespace SourceGit.Views
             window.SystemDecorations = SystemDecorations.Full;
             window.KeyDown += (_, e) => { if (e.Key == Key.Escape) { window.Close(); e.Handled = true; } };
             var screen = owner.Screens.ScreenFromWindow(owner);
-            if (screen != null) { window.MaxWidth = screen.WorkingArea.Width / owner.RenderScaling; window.MaxHeight = screen.WorkingArea.Height / owner.RenderScaling; }
+            if (screen != null)
+            {
+                // Width/Height describe the client area. Reserve room for the
+                // native frame and caption, including on a small or scaled desktop.
+                var area = screen.WorkingArea;
+                var scaling = owner.RenderScaling;
+                window.MaxWidth = Math.Max(1, area.Width / scaling - 32);
+                window.MaxHeight = Math.Max(1, area.Height / scaling - 64);
+                window.MinWidth = Math.Min(window.MinWidth, window.MaxWidth);
+                window.MinHeight = Math.Min(window.MinHeight, window.MaxHeight);
+                window.Width = Math.Min(window.Width, window.MaxWidth);
+                window.Height = Math.Min(window.Height, window.MaxHeight);
+                window.WindowStartupLocation = WindowStartupLocation.Manual;
+                window.Position = new PixelPoint(
+                    area.X + (int)Math.Max(8 * scaling, (area.Width - (window.Width + 16) * scaling) / 2),
+                    area.Y + (int)Math.Max(8 * scaling, (area.Height - (window.Height + 48) * scaling) / 2));
+            }
             window.Show(owner);
         }
 
