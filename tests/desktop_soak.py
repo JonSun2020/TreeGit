@@ -102,4 +102,7 @@ finally:
     save_result();p.stdin.close()
     try:p.wait(timeout=10)
     except subprocess.TimeoutExpired:p.kill()
-    if pid:subprocess.run(['taskkill','/PID',str(pid),'/F'],capture_output=True)
+    if pid:
+        # Retain the exact owned process identity; a long run must not close a reused PID.
+        script="$p=Get-Process -Id "+str(pid)+" -ErrorAction SilentlyContinue;if($p){if($p.Path -ne '"+str(exe).replace("'","''")+"'){throw 'Unexpected process; left unchanged'};$null=$p.CloseMainWindow();if(-not $p.WaitForExit(15000)){$p.Kill();$p.WaitForExit()}}"
+        subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)
