@@ -3,7 +3,7 @@ import json, os, queue, subprocess, sys, tempfile, threading, time
 from pathlib import Path
 
 exe = Path(sys.argv[1]).resolve(); out = Path(sys.argv[2]).resolve(); out.mkdir(parents=True, exist_ok=True)
-root = Path(tempfile.mkdtemp(prefix='TreeGit close while committing ')); repo = root/'repo'; repo.mkdir()
+root = Path(tempfile.mkdtemp(prefix='TreeGit close while committing ')).resolve(); repo = root/'repo'; repo.mkdir()
 fixture = root/'fixture.json'; started = repo/'hook-started'; release = repo/'hook-release'
 env = os.environ.copy(); env.update(GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'), GIT_CONFIG_NOSYSTEM='1', TREEGIT_TEST_SETTINGS_FIXTURE=str(fixture))
 def git(*args):
@@ -38,9 +38,10 @@ try:
     for key in ['windowStayedOpen','quitStayedOpen','otherTabsStayedOpen','rightTabsStayedOpen']:
         assert result['operationDetails'][key],key
     assert git('log','-1','--format=%s')=='Protected native commit'
-    tabs=tool('ui_tabs',{'action':'list'})['tabs']; tab=next(t for t in tabs if t['repo'] and Path(t['repo'])==repo)
+    tabs=tool('ui_tabs',{'action':'list'})['tabs']; report['tabsAfterCommit']=tabs; report['expectedRepository']=str(repo)
+    tab=next(t for t in tabs if t['repo'] and Path(t['repo']).resolve()==repo)
     tool('ui_tabs',{'action':'close','index':tab['index']})
-    assert not any(t['repo'] and Path(t['repo'])==repo for t in tool('ui_tabs',{'action':'list'})['tabs'])
+    assert not any(t['repo'] and Path(t['repo']).resolve()==repo for t in tool('ui_tabs',{'action':'list'})['tabs'])
     report['passed']=True; print('PASS running commit keeps its tab; closing works after completion',flush=True)
 finally:
     release.write_text('continue')

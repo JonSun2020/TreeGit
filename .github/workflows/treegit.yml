@@ -122,6 +122,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/preferences_recovery.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/preferences-recovery-results"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/binary_cancel.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/binary-cancellation-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -134,6 +136,7 @@ jobs:
             ${{ runner.temp }}/updater-results/results.json
             ${{ runner.temp }}/startup-incomplete-results/startup-incomplete-results.json
             ${{ runner.temp }}/preferences-recovery-results/preferences-recovery-results.json
+            ${{ runner.temp }}/binary-cancellation-results/binary-cancellation-results.json
       - uses: actions/upload-artifact@v4
         with:
           name: TreeGit-Windows-x64
