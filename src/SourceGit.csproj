@@ -14,7 +14,7 @@
     <Product>TreeGit</Product>
     <Description>TreeGit desktop Git client, based on SourceGit</Description>
     <Company>TreeGit</Company>
-    <Copyright>Copyright © $([System.DateTime]::Now.Year) sourcegit-scm.</Copyright>
+    <Copyright>Copyright © $([System.DateTime]::Now.Year) TreeGit contributors.</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/JonSun2020/TreeGit</PackageProjectUrl>
     <RepositoryUrl>https://github.com/JonSun2020/TreeGit.git</RepositoryUrl>
