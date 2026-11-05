@@ -4,6 +4,8 @@ namespace SourceGit.Commands
 {
     public class Fetch : Command
     {
+        protected override bool SupportsAuthenticationRetry => true;
+
         public Fetch(string repo, Models.Remote remote, bool noTags, bool force)
         {
             WorkingDirectory = repo;

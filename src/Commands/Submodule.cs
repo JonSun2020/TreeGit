@@ -6,6 +6,10 @@ namespace SourceGit.Commands
 {
     public class Submodule : Command
     {
+        protected override bool SupportsAuthenticationRetry =>
+            Args.StartsWith("submodule update", System.StringComparison.Ordinal) ||
+            Args.StartsWith("--literal-pathspecs -c protocol.file.allow=always submodule add -- ", System.StringComparison.Ordinal);
+
         public Submodule(string repo)
         {
             WorkingDirectory = repo;

@@ -42,6 +42,9 @@ namespace SourceGit.Commands
         public bool RaiseError { get; set; } = true;
         public Models.ICommandLog Log { get; set; } = null;
         protected bool IsAuthenticationRetry { get; set; }
+        // Local hooks can emit authentication errors too. Only replay a transport
+        // operation; never repeat a rejected local mutation automatically.
+        protected virtual bool SupportsAuthenticationRetry => false;
 
         public async Task<bool> ExecAsync()
         {
@@ -109,7 +112,7 @@ namespace SourceGit.Commands
                     var errMsg = string.Join("\n", errs).Trim();
                     // Git rejects/erases an invalid HTTP credential before returning this
                     // error. Keep requesting corrected credentials until success or cancellation.
-                    if (OperatingSystem.IsWindows() && Native.RepositoryCredentials.IsAuthenticationFailure(errMsg))
+                    if (SupportsAuthenticationRetry && OperatingSystem.IsWindows() && Native.RepositoryCredentials.IsAuthenticationFailure(errMsg))
                     {
                         Log?.AppendLine("Authentication was rejected; requesting updated credentials.");
                         IsAuthenticationRetry = true;

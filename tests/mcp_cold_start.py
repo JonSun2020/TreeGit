@@ -27,4 +27,10 @@ try:
     print('PASS 12 concurrent cold clients start one desktop and all exit on EOF',flush=True)
 finally:
     (out/'cold-start-results.json').write_text(json.dumps({'records':records,'seconds':round(time.monotonic()-start,2),'exe':str(exe)},indent=2),encoding='utf-8')
-    for pid in {r['desktop'] for r in records}:subprocess.run(['taskkill','/PID',str(pid),'/F'],capture_output=True)
+    literal=str(exe).replace("'", "''")
+    script=("$ErrorActionPreference='Stop';$target='"+literal+"';"
+            "Get-Process | Where-Object {$_.Path -eq $target} | ForEach-Object {"
+            "if($_.Path -ne $target){throw 'Unexpected process'};"
+            "$null=$_.CloseMainWindow();if(-not $_.WaitForExit(15000)){"
+            "$_.Kill();$_.WaitForExit();throw 'Owned QA desktop did not exit normally'}};exit 0")
+    subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)

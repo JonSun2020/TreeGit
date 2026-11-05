@@ -16,7 +16,7 @@ namespace SourceGit.Native
     internal static class RepositoryCredentials
     {
         public static bool IsAuthenticationFailure(string output)
-            => output?.Contains("Authentication failed", StringComparison.OrdinalIgnoreCase) == true &&
+            => output?.Contains("fatal: Authentication failed for 'http", StringComparison.OrdinalIgnoreCase) == true &&
                 !output.Contains("told us to quit", StringComparison.OrdinalIgnoreCase) &&
                 !output.Contains("User canceled authentication", StringComparison.OrdinalIgnoreCase) &&
                 !output.Contains("User cancelled authentication", StringComparison.OrdinalIgnoreCase);

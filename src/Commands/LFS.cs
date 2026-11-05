@@ -7,6 +7,13 @@ namespace SourceGit.Commands
 {
     public class LFS : Command
     {
+        protected override bool SupportsAuthenticationRetry =>
+            Args.StartsWith("lfs fetch ", System.StringComparison.Ordinal) ||
+            Args.StartsWith("lfs pull ", System.StringComparison.Ordinal) ||
+            Args.StartsWith("lfs push ", System.StringComparison.Ordinal) ||
+            Args.StartsWith("lfs lock ", System.StringComparison.Ordinal) ||
+            Args.StartsWith("lfs unlock ", System.StringComparison.Ordinal);
+
         public LFS(string repo)
         {
             WorkingDirectory = repo;

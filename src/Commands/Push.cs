@@ -4,6 +4,8 @@ namespace SourceGit.Commands
 {
     public class Push : Command
     {
+        protected override bool SupportsAuthenticationRetry => true;
+
         public Push(string repo, Models.Branch local, Models.Remote remote, Models.Branch remoteBranch, bool withTags, bool checkSubmodules, bool track, bool force, bool noVerify)
         {
             WorkingDirectory = repo;

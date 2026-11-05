@@ -4,6 +4,8 @@ namespace SourceGit.Commands
 {
     public class Pull : Command
     {
+        protected override bool SupportsAuthenticationRetry => true;
+
         public Pull(string repo, Models.Remote remote, Models.Branch remoteBranch, bool useRebase)
         {
             WorkingDirectory = repo;

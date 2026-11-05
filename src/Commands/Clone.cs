@@ -4,6 +4,8 @@ namespace SourceGit.Commands
 {
     public class Clone : Command
     {
+        protected override bool SupportsAuthenticationRetry => true;
+
         public Clone(string ctx, string path, string url, string localName, string sshKey, string extraArgs)
         {
             Context = ctx;

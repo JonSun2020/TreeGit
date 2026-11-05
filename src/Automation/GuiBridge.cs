@@ -709,6 +709,7 @@ namespace SourceGit.Automation
             var preserveSubmoduleArguments = false;
             var credentialScope = path;
             bool? useCredentialManager = null;
+            var allowAuthenticationRetry = false;
             var pathComparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
             try
             {
@@ -740,6 +741,10 @@ namespace SourceGit.Automation
                             throw new ArgumentException("arguments must contain a Git command and no NUL characters.");
                         var commandIndex = GitCommandIndex(arguments);
                         var subcommand = commandIndex < arguments.Length ? arguments[commandIndex] : string.Empty;
+                        allowAuthenticationRetry = subcommand is "clone" or "fetch" or "pull" or "push" or "ls-remote" ||
+                            commandIndex + 1 < arguments.Length &&
+                            ((subcommand == "submodule" && arguments[commandIndex + 1] is "add" or "update") ||
+                             (subcommand == "lfs" && arguments[commandIndex + 1] is "fetch" or "pull" or "push" or "lock" or "unlock"));
                         preserveSubmoduleArguments = subcommand == "submodule";
                         if (preserveSubmoduleArguments && OperatingSystem.IsWindows())
                             arguments = arguments.Select(a => Path.IsPathRooted(a) ? a.Replace('\\', '/') : a).ToArray();
@@ -802,6 +807,7 @@ namespace SourceGit.Automation
                             case "fetch":
                             case "pull":
                             case "push":
+                                allowAuthenticationRetry = true;
                                 remote = args.TryGetProperty("remote", out var r) ? r.GetString() : "origin";
                                 // Opening a tab starts an asynchronous refresh. Query configuration
                                 // directly so a fetch immediately after open cannot see a stale VM list.
@@ -875,7 +881,7 @@ namespace SourceGit.Automation
                 }
                 Commands.Command.Result result;
                 try
-                { result = await query.RunAsync().ConfigureAwait(false); }
+                { result = await query.RunAsync(allowAuthenticationRetry).ConfigureAwait(false); }
                 catch (Exception ex) { result = Commands.Command.Result.Failed(ex.Message); }
                 if (write)
                 {
@@ -988,7 +994,7 @@ namespace SourceGit.Automation
                 RaiseError = false;
             }
 
-            public async Task<Result> RunAsync(bool allowAuthenticationRetry = true)
+            public async Task<Result> RunAsync(bool allowAuthenticationRetry = false)
             {
                 IsAuthenticationRetry = false;
                 while (true)
