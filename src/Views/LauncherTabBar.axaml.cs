@@ -164,6 +164,9 @@ namespace SourceGit.Views
 
         private void OnTabsSelectionChanged(object _1, SelectionChangedEventArgs _2)
         {
+            if (LauncherTabsList.SelectedItem == null && DataContext is ViewModels.Launcher launcher &&
+                launcher.ActivePage is { } page && launcher.Pages.Contains(page))
+                LauncherTabsList.SelectedItem = page;
             InvalidateVisual();
         }
 

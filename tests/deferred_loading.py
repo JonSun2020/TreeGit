@@ -73,6 +73,7 @@ try:
     (out/'loaded-tabs.png').write_bytes(c.tool('ui_screenshot'))
     phases=json.loads((out/'startup-trace.json').read_text('utf-8'));names=[p['phase'] for p in phases]
     check('window opens after selected repo and before background repo completion',names.index('active-repository-loaded')<names.index('opened')<names.index('deferred-repository-loaded'))
+    check('only the intended repository is loaded before the first window',names[:names.index('opened')].count('active-repository-loaded')==1)
 finally:c.close()
 saved=json.loads(config.read_text('utf-8-sig'))['Workspaces'][0]
 check('closing a pending tab removes it from saved workspace',saved['Repositories']==expected and saved['ActiveIdx']==4)

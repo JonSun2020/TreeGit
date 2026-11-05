@@ -29,6 +29,8 @@ namespace SourceGit.ViewModels
             get => _activePage;
             set
             {
+                if (value == null && _activePage != null && Pages.Contains(_activePage))
+                    return;
                 if (SetProperty(ref _activePage, value))
                     PostActivePageChanged();
             }
