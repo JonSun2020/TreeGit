@@ -34,7 +34,15 @@ python tests/desktop_soak.py <另一测试副本>/TreeGit.exe <结果目录>/soa
 
 `--integration-probe <临时目录> <报告.json>` 验证原始命令、图谱、bundle、子模块、工作树、LFS 对象传输和 Git Flow。其 Git Flow 检查要求 `git flow version` 可找到 Git Flow Next。不要在业务仓库运行这些写入专项。
 
-## 真实 SSH
+## Git 自动检测与内置回退
+
+`GitDiscoveryProbe.csproj` 编译真正的检测器，使用构造的可用、过旧、损坏、挂起程序检查优先级、超时、PATH 与 SSH 配套范围，不修改用户注册表或已安装 Git。可选最后一个参数校验真实便携 `git/cmd/git.exe`。
+
+`git_runtime.py` 需要集成构建、旁边完整的 `git/` 和独立 `data/`。测试在应用子进程中移除 PATH 的 Git 项，并通过**仅集成构建存在**的搜索源覆盖模拟没有系统 Git；它不更改操作系统安装状态。检查真实界面启动、旧路径、内置后重新发现系统 Git、手动路径、组件缺失/损坏提示，以及实际提交、推送、克隆、LFS/Flow/SSH。正常发布不包含该环境变量覆盖。CI 同时执行检测器边界、GUI 回退及正常包检查。
+
+标准构建现在自动准备固定版本、校验过下载文件的便携组件；`package_smoke.py` 包含组件缺失、字节被改动、额外文件和发布隔离的拒绝检查。初次构建需要下载组件，缓存校验通过后可复用；最终用户的 Git 回退不需要下载。
+
+## 真实 SSH 传输
 
 `ssh_transport.py` 使用真实 OpenSSH、回环 SSH 服务及实际 Git 上传/接收协议。服务端测试依赖 Paramiko；不会加入主程序发布包。
 

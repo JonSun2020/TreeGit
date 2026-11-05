@@ -330,57 +330,22 @@ namespace SourceGit.Native
 
         private static void UpdateGitVersion()
         {
-            if (string.IsNullOrEmpty(_gitExecutable) || !File.Exists(_gitExecutable))
+            GitVersionString = string.Empty;
+            GitVersion = new Version(0, 0, 0);
+            GitFlowVersion = Models.GitFlowVersion.None;
+            if (GitExecutableLocator.TryReadVersion(_gitExecutable, out var text, out var version))
             {
-                GitVersionString = string.Empty;
-                GitVersion = new Version(0, 0, 0);
-                GitFlowVersion = Models.GitFlowVersion.None;
-                return;
-            }
-
-            var start = new ProcessStartInfo();
-            start.FileName = _gitExecutable;
-            start.Arguments = "--version";
-            start.UseShellExecute = false;
-            start.CreateNoWindow = true;
-            start.RedirectStandardOutput = true;
-            start.RedirectStandardError = true;
-            start.StandardOutputEncoding = Encoding.UTF8;
-            start.StandardErrorEncoding = Encoding.UTF8;
-
-            try
-            {
-                using var proc = Process.Start(start)!;
-                var rs = proc.StandardOutput.ReadToEnd();
-                proc.WaitForExit();
-                if (proc.ExitCode == 0 && !string.IsNullOrWhiteSpace(rs))
-                {
-                    GitVersionString = rs.Trim();
-
-                    var match = REG_GIT_VERSION().Match(GitVersionString);
-                    if (match.Success)
-                    {
-                        var major = int.Parse(match.Groups[1].Value);
-                        var minor = int.Parse(match.Groups[2].Value);
-                        var build = int.Parse(match.Groups[3].Value);
-                        GitVersion = new Version(major, minor, build);
-                        GitVersionString = GitVersionString.Substring(11).Trim();
-                    }
-
-                    // Update git flow version in background to avoid blocking the UI
-                    Task.Run(UpdateGitFlowVersion);
-                }
-            }
-            catch
-            {
-                // Ignore errors
+                GitVersion = version;
+                GitVersionString = text.Substring("git version ".Length).Trim();
+                Task.Run(UpdateGitFlowVersion);
             }
         }
 
         private static void UpdateGitFlowVersion()
         {
+            var executable = _gitExecutable;
             var start = new ProcessStartInfo();
-            start.FileName = _gitExecutable;
+            start.FileName = executable;
             start.Arguments = "flow version";
             start.UseShellExecute = false;
             start.CreateNoWindow = true;
@@ -389,16 +354,21 @@ namespace SourceGit.Native
             start.StandardOutputEncoding = Encoding.UTF8;
             start.StandardErrorEncoding = Encoding.UTF8;
 
-            GitFlowVersion = Models.GitFlowVersion.None;
+            if (OperatingSystem.IsWindows()) GitExecutableLocator.ConfigureProcess(start, executable);
 
             try
             {
                 using var proc = Process.Start(start)!;
-                var rs = proc.StandardOutput.ReadToEnd();
-                proc.WaitForExit();
-                if (proc.ExitCode == 0 && !string.IsNullOrWhiteSpace(rs))
+                var stdout = proc.StandardOutput.ReadToEndAsync();
+                var stderr = proc.StandardError.ReadToEndAsync();
+                if (!proc.WaitForExit(3000))
                 {
-                    if (rs.Contains("git-flow-next", StringComparison.Ordinal))
+                    try { proc.Kill(entireProcessTree: true); } catch (InvalidOperationException) { }
+                    return;
+                }
+                if (proc.ExitCode == 0 && Task.WhenAll(stdout, stderr).Wait(1000) && _gitExecutable == executable && !string.IsNullOrWhiteSpace(stdout.Result))
+                {
+                    if (stdout.Result.Contains("git-flow-next", StringComparison.Ordinal))
                         GitFlowVersion = Models.GitFlowVersion.Next;
                     else
                         GitFlowVersion = Models.GitFlowVersion.Legacy;
@@ -409,9 +379,6 @@ namespace SourceGit.Native
                 // Ignore errors
             }
         }
-
-        [GeneratedRegex(@"^git version[\s\w]*(\d+)\.(\d+)[\.\-](\d+).*$")]
-        private static partial Regex REG_GIT_VERSION();
 
         private static IBackend _backend = null;
         private static string _gitExecutable = string.Empty;

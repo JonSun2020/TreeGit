@@ -17,6 +17,8 @@ $treeGitSourceCommit=(& git -C $PSScriptRoot rev-parse HEAD).Trim()
 $treeGitVersionSource=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'src/Models/TreeGitRelease.cs') -Raw
 if($treeGitVersionSource -notmatch 'public const string Version = "([0-9]+\.[0-9]+\.[0-9]+)"'){throw 'TreeGit release version is missing'}
 $treeGitVersion=$Matches[1]
+. (Join-Path $PSScriptRoot 'build/git-runtime.ps1')
+$treeGitRuntime=Initialize-TreeGitRuntime -Destination (Join-Path $Destination 'git') -CacheDirectory (Join-Path $workspace 'output/TreeGit/component-cache') -LockFile (Join-Path $PSScriptRoot 'build/git-runtime.lock.json') -Notices (Join-Path $PSScriptRoot 'docs/GIT-COMPONENTS.md')
 $testProperty='-p:EnableIntegrationTests='+$IntegrationTests.IsPresent.ToString().ToLowerInvariant()
 & $dotnet publish (Join-Path $PSScriptRoot 'src/SourceGit.csproj') -c Release -r win-x64 "-p:TreeGitVersion=$treeGitVersion" -p:PublishAot=false -p:PublishTrimmed=true -p:TrimMode=link -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:DebugType=None -p:DebugSymbols=false $testProperty -o $Destination
 if($LASTEXITCODE -ne 0){throw 'TreeGit publish failed'}
@@ -29,5 +31,5 @@ $config=@{mcpServers=@{treegit=@{command='C:\Tools\TreeGit\TreeGit.exe';args=@('
 $config | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 (Join-Path $Destination 'mcp-readonly.json')
 $config.mcpServers.treegit.args=@('--mcp')
 $config | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 (Join-Path $Destination 'mcp-readwrite.json')
-@{product='TreeGit';version=$treeGitVersion;sourceCommit=$treeGitSourceCommit;upstreamCommit='c0f40a2e78d81a7474628847727644fc0c56f558';integrationTests=$IntegrationTests.IsPresent;selfContained=$true;trimmed=$true;singleFileCompression=$true} | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $Destination 'build-info.json')
+@{product='TreeGit';version=$treeGitVersion;sourceCommit=$treeGitSourceCommit;upstreamCommit='c0f40a2e78d81a7474628847727644fc0c56f558';integrationTests=$IntegrationTests.IsPresent;selfContained=$true;trimmed=$true;singleFileCompression=$true;bundledGit=$true;gitVersion=$treeGitRuntime.gitVersion;lfsVersion=$treeGitRuntime.lfsVersion;flowVersion=$treeGitRuntime.flowVersion} | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $Destination 'build-info.json')
 Write-Output ('TreeGit portable program: '+$Destination)

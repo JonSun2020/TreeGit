@@ -27,11 +27,21 @@ jobs:
       - name: Verify cancellation affects only the command tree
         shell: pwsh
         run: python tests/process_cancellation.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/cancellation-helper/CancellationHelper.exe" "$env:RUNNER_TEMP/cancellation-results"
+      - name: Verify GUI without an installed Git
+        shell: pwsh
+        run: |
+          . ./build/git-runtime.ps1
+          $null=Initialize-TreeGitRuntime -Destination src/bin/Debug/net10.0/git -CacheDirectory "$env:RUNNER_TEMP/component-cache" -LockFile ./build/git-runtime.lock.json -Notices ./docs/GIT-COMPONENTS.md
+          New-Item -ItemType Directory -Path src/bin/Debug/net10.0/data -Force | Out-Null
+          python tests/git_runtime.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/runtime-ui-results" (Get-Command git.exe).Source
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: TreeGit-cancellation-results
-          path: ${{ runner.temp }}/cancellation-results
+          path: |
+            ${{ runner.temp }}/cancellation-results
+            ${{ runner.temp }}/runtime-ui-results
   portable:
     runs-on: windows-latest
     steps:
@@ -51,6 +61,13 @@ jobs:
         shell: pwsh
         run: |
           ./package-treegit.ps1 -Source "$env:RUNNER_TEMP/TreeGit" -Destination .
+      - name: Verify Git discovery and bundled runtime
+        shell: pwsh
+        run: |
+          dotnet build tests/GitDiscoveryProbe.csproj -c Release -o "$env:RUNNER_TEMP/discovery-probe" -v:q
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          & "$env:RUNNER_TEMP/discovery-probe/GitDiscoveryProbe.exe" "$env:RUNNER_TEMP/discovery-results" "$env:RUNNER_TEMP/TreeGit/git/cmd/git.exe"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify MCP protocol and portable packaging
         shell: pwsh
         run: |

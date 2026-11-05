@@ -250,14 +250,12 @@ namespace SourceGit.Commands
             if (!OperatingSystem.IsLinux())
                 start.Environment["DISPLAY"] = "required";
 
-            var bundledSSH = System.IO.Path.Combine(AppContext.BaseDirectory, "git", "usr", "bin", "ssh.exe");
-            if (OperatingSystem.IsWindows() && System.IO.File.Exists(bundledSSH))
+            var runtimeSSH = OperatingSystem.IsWindows() ? Native.GitExecutableLocator.ConfigureProcess(start, Native.OS.GitExecutable) : null;
+            if (runtimeSSH != null)
             {
-                start.Environment["PATH"] = System.IO.Path.GetDirectoryName(bundledSSH) + System.IO.Path.PathSeparator +
-                    System.IO.Path.Combine(AppContext.BaseDirectory, "git", "ucrt64", "bin") + System.IO.Path.PathSeparator + start.Environment["PATH"];
                 if (!start.Environment.ContainsKey("GIT_SSH_COMMAND"))
                 {
-                    var ssh = "'" + bundledSSH.Replace('\\', '/').Replace("'", "'\\''", StringComparison.Ordinal) + "'";
+                    var ssh = "'" + runtimeSSH.Replace('\\', '/').Replace("'", "'\\''", StringComparison.Ordinal) + "'";
                     if (!string.IsNullOrEmpty(SSHKey))
                         ssh += " -i '" + SSHKey.Replace('\\', '/').Replace("'", "'\\''", StringComparison.Ordinal) + "' -o AddKeysToAgent=yes";
                     start.Environment["GIT_SSH_COMMAND"] = ssh;

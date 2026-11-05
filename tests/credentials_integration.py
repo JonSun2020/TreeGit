@@ -44,6 +44,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
 server = http.server.ThreadingHTTPServer(('127.0.0.1',0), Handler)
 if https_mode:
     openssl=git.parent.parent/'usr/bin/openssl.exe'
+    if not openssl.exists():
+        # MinGit ships OpenSSL libraries for transport, not the openssl CLI.
+        # The fixture certificate may be generated with the test host's tool.
+        import shutil
+        host_git=shutil.which('git')
+        openssl=Path(host_git).parent.parent/'usr/bin/openssl.exe' if host_git else Path(shutil.which('openssl') or '')
     assert openssl.exists(),openssl
     certificate=root/'localhost-cert.pem';private_key=root/'localhost-key.pem'
     generated=subprocess.run([str(openssl),'req','-x509','-newkey','rsa:2048','-nodes','-days','1',

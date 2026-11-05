@@ -89,6 +89,8 @@ namespace SourceGit.Automation
             var args = request.GetProperty("arguments");
             if (args.ValueKind != JsonValueKind.Object)
                 throw new ArgumentException("arguments must be an object.");
+            if (name.StartsWith("git_", StringComparison.Ordinal) && !ViewModels.Preferences.Instance.IsGitConfigured())
+                throw new InvalidOperationException(App.Text("NotConfigured"));
             if (name == "ui_state")
                 return await Dispatcher.UIThread.InvokeAsync(() =>
                 {
@@ -99,6 +101,8 @@ namespace SourceGit.Automation
                     {
                         application = "TreeGit",
                         processId = Environment.ProcessId,
+                        git = new { path = Native.OS.GitExecutable, version = Native.OS.GitVersionString,
+                            bundled = OperatingSystem.IsWindows() && Native.GitExecutableLocator.IsBundled(Native.OS.GitExecutable) },
 #if INTEGRATION_TESTS
                         layoutProbe = UiLayoutProbe.Inspect(((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow),
 #endif
@@ -365,6 +369,8 @@ namespace SourceGit.Automation
             var path = Path.GetFullPath(Text(args, "repo")).TrimEnd('\\', '/');
             if (name == "ui_open_repository")
             {
+                if (!ViewModels.Preferences.Instance.IsGitConfigured())
+                    throw new InvalidOperationException(App.Text("NotConfigured"));
                 if (!Directory.Exists(path))
                     throw new ArgumentException("Repository directory does not exist.");
                 // Never turn an arbitrary directory into a Git repository as a side effect of opening it.

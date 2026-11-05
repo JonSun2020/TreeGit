@@ -70,27 +70,7 @@ namespace SourceGit.Native
 
         public string FindGitExecutable()
         {
-            var bundled = Path.Combine(AppContext.BaseDirectory, "git", "cmd", "git.exe");
-            if (File.Exists(bundled))
-                return bundled;
-
-            var reg = Microsoft.Win32.RegistryKey.OpenBaseKey(
-                Microsoft.Win32.RegistryHive.LocalMachine,
-                Microsoft.Win32.RegistryView.Registry64);
-
-            var git = reg.OpenSubKey(@"SOFTWARE\GitForWindows");
-            if (git?.GetValue("InstallPath") is string installPath)
-                return Path.Combine(installPath, "bin", "git.exe");
-
-            var builder = new StringBuilder("git.exe", 259);
-            if (!PathFindOnPath(builder, null))
-                return null;
-
-            var exePath = builder.ToString();
-            if (!string.IsNullOrEmpty(exePath))
-                return exePath;
-
-            return null;
+            return GitExecutableLocator.FindWindowsGit();
         }
 
         public string FindTerminal(Models.ShellOrTerminal shell)
@@ -126,7 +106,7 @@ namespace SourceGit.Native
 
                     break;
                 case "cmd":
-                    return @"C:\Windows\System32\cmd.exe";
+                    return Path.Combine(Environment.SystemDirectory, "cmd.exe");
                 case "wt":
                     var wtFinder = new StringBuilder("wt.exe", 512);
                     if (PathFindOnPath(wtFinder, null))

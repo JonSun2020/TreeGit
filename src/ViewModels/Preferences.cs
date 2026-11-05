@@ -663,7 +663,8 @@ namespace SourceGit.ViewModels
         private void PrepareGit()
         {
             var path = Native.OS.GitExecutable;
-            if (string.IsNullOrEmpty(path) || !File.Exists(path))
+            if (string.IsNullOrEmpty(path) || !File.Exists(path) || Native.OS.GitVersion < Models.GitVersions.MINIMAL ||
+                (OperatingSystem.IsWindows() && Native.GitExecutableLocator.IsManagedBundle(path)))
                 GitInstallPath = Native.OS.FindGitExecutable();
         }
 

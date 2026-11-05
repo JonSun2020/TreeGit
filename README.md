@@ -28,8 +28,8 @@
 从 [最新正式版](https://github.com/JonSun2020/TreeGit/releases/latest) 下载 [TreeGit-2026.23.5-Windows-x64.zip](https://github.com/JonSun2020/TreeGit/releases/download/treegit-v2026.23.5/TreeGit-2026.23.5-Windows-x64.zip)，完整解压后运行 `TreeGit/TreeGit.exe`。校验值见同页的 `SHA256SUMS.txt`。开发构建仍可从 **Actions → TreeGit Windows portable** 下载。
 
 - 自带裁剪和压缩后的 .NET 运行时，无需安装 .NET。
-- 主包不重复捆绑完整 Git，默认检测电脑上已有的 Git，与 SourceGit 的使用方式一致。
-- 没有 Git 时，可将 Git for Windows 便携组件放在程序目录的 `git/` 下，使 `git/cmd/git.exe` 存在；也可在偏好设置中指定现有 Git。
+- 自动优先使用电脑上已有且可用的 Git；没有安装、路径失效或版本不兼容时，自动使用随包的便携 Git，无需另行安装或联网下载。
+- 请完整解压并保留 `git/` 目录。内置 MinGit、OpenSSH、OpenSSL、CA 证书、Git LFS 和 Git Flow；组件及许可证见[随包 Git 说明](docs/GIT-COMPONENTS.md)。仍可在偏好设置指定自己的 Git。
 - 偏好和缓存保存在旁边的 `data/` 中。复制旧版偏好即可保留个人配置；仓库内的 SourceGit 设置继续兼容。
 - 当前发布和主要验收平台为 **Windows x64**。
 

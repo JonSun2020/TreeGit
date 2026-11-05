@@ -78,6 +78,15 @@ The project uses the following third-party libraries or assets
 
 ## Grammar Files
 
+### Bundled Git runtime (Windows portable distribution)
+
+The Windows package includes separately licensed Git for Windows/MinGit, OpenSSH,
+OpenSSL, Git LFS, Git Flow Next and their runtime dependencies. Their versions,
+upstream source/release links and license locations are documented in
+[docs/GIT-COMPONENTS.md](docs/GIT-COMPONENTS.md), also shipped as `git/COMPONENTS.md`.
+Original component licenses accompany the binaries. These components retain their
+own licenses and are invoked as separate programs.
+
 ### haxe-TmLanguage
 
 - **Source**: https://github.com/vshaxe/haxe-TmLanguage
