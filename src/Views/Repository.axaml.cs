@@ -85,8 +85,52 @@ namespace SourceGit.Views
         protected override void OnLoaded(RoutedEventArgs e)
         {
             base.OnLoaded(e);
+            BindHistoryBranchSelection();
             UpdateLeftSidebarLayout();
         }
+
+        protected override void OnDataContextChanged(EventArgs e)
+        {
+            base.OnDataContextChanged(e);
+            BindHistoryBranchSelection();
+        }
+
+        protected override void OnUnloaded(RoutedEventArgs e)
+        {
+            if (_historySelectionSource != null)
+                _historySelectionSource.HistoryBranchSelectionRequested -= OnHistoryBranchSelection;
+            _historySelectionSource = null;
+            base.OnUnloaded(e);
+        }
+
+        private void BindHistoryBranchSelection()
+        {
+            if (_historySelectionSource != null)
+                _historySelectionSource.HistoryBranchSelectionRequested -= OnHistoryBranchSelection;
+            _historySelectionSource = IsLoaded ? DataContext as ViewModels.Repository : null;
+            if (_historySelectionSource != null)
+                _historySelectionSource.HistoryBranchSelectionRequested += OnHistoryBranchSelection;
+        }
+
+        private void OnHistoryBranchSelection(Models.Branch branch)
+        {
+            LocalBranchTree.UnselectAll();
+            RemoteBranchTree.UnselectAll();
+            TagsList.UnselectAll();
+            if (branch == null || DataContext is not ViewModels.Repository repo) return;
+            if (branch.IsLocal)
+            {
+                repo.IsLocalBranchGroupExpanded = true;
+                LocalBranchTree.Select(branch, false);
+            }
+            else
+            {
+                repo.IsRemoteGroupExpanded = true;
+                RemoteBranchTree.Select(branch, false);
+            }
+        }
+
+        private ViewModels.Repository _historySelectionSource;
 
         private void OnShowWorkingCopyOverview(object sender, RoutedEventArgs e)
         {

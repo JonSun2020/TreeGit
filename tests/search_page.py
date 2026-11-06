@@ -32,7 +32,7 @@ main_head=git('rev-parse','HEAD')
 git('checkout','--detach',initial)
 (repo/'orphan.txt').write_text('Unreachable search result\n');git('add','.');git('commit','-m','Detached calibration')
 unreachable=git('rev-parse','HEAD');git('checkout','main')
-(repo/'.git/sourcegit.uistates').write_text(json.dumps({'ShowOnlyGraphBranch':True,'ShowRemoteBranchesInHistory':False,'HistoryShowFlags':6}),'utf-8')
+(repo/'.git/sourcegit.uistates').write_text(json.dumps({'ShowOnlyGraphBranch':True,'ShowRemoteBranchesInHistory':False,'HistoryShowFlags':6,'IsLocalBranchesExpandedInSideBar':False,'IsRemotesExpandedInSideBar':False}),'utf-8')
 (exe.parent/'data').mkdir(exist_ok=True)
 (exe.parent/'data/preference.json').write_text(json.dumps({'Locale':'zh_CN','Theme':'Blue','MaxHistoryCommits':2,'EnableAutoFetch':False,'Check4UpdatesOnStartup':False}),'utf-8')
 p = subprocess.Popen([str(exe), '--mcp'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', creationflags=subprocess.CREATE_NO_WINDOW)
@@ -65,6 +65,42 @@ def search(query, method='message', current=False):
         time.sleep(.1)
     raise AssertionError('Search did not finish')
 
+def wait_refs(expected,absent=()):
+    for _ in range(150):
+        current=state();refs={b['reference']:b['head'] for b in current['loadedBranches']}
+        if all(refs.get(ref)==sha for ref,sha in expected.items()) and all(ref not in refs for ref in absent):return
+        time.sleep(.1)
+    raise AssertionError(current)
+
+def open_history(label,sha,local=None,remote=None):
+    tool('ui_graph',{'repo':str(repo),'mode':'current','showRemotes':False})
+    for _ in range(100):
+        current=state()
+        if not current['graphLoading'] and current['graphMode']==1 and not current['graphShowRemotes']:break
+        time.sleep(.1)
+    search(sha,'sha');tool('ui_search',{'repo':str(repo),'select':sha})
+    current=state()
+    check(label+' single selection remains on the search page',current['searchActive'] and current['searchSelected']==sha)
+    tool('ui_search',{'repo':str(repo),'open':True})
+    for _ in range(150):
+        current=state()
+        if (not current['graphLoading'] and not current['searchActive'] and current['view']==0 and
+            current['graphMode']==0 and current['graphShowRemotes'] and current['historyVisible'] and
+            current['selectedCommits']==[sha] and current['historySelectedCommits']==[sha] and current['detailCommit']==sha and
+            (current['localBranchSelection'] or [])==([local] if local else []) and
+            (current['remoteBranchSelection'] or [])==([remote] if remote else []) and
+            (not local or current['localBranchTreeVisible']) and (not remote or current['remoteBranchTreeVisible'])):break
+        time.sleep(.1)
+    else:raise AssertionError(current)
+    check(label+' opens history with all branches and remotes',current['graphMode']==0 and current['graphShowRemotes'] and not current['searchActive'])
+    check(label+' keeps the selected result and matching details after sidebar selection',current['historySelectedCommits']==[sha] and current['detailCommit']==sha)
+    check(label+' selects the expected local branch', (current['localBranchSelection'] or [])==([local] if local else []))
+    check(label+' selects the expected remote branch', (current['remoteBranchSelection'] or [])==([remote] if remote else []))
+    check(label+' expands the corresponding sidebar group', (not local or current['localBranchTreeVisible']) and (not remote or current['remoteBranchTreeVisible']))
+    check(label+' is included without unlimited history loading',sha in {c['sha'] for c in current['graphCommits']} and current['graphTotal']<=202)
+    check(label+' never checks out or changes HEAD',git('branch','--show-current')=='main' and git('rev-parse','HEAD')==main_head)
+    (out/(label+'-history.png')).write_bytes(tool('ui_screenshot'))
+
 failure=None
 try:
     rpc('initialize', {'protocolVersion':'2025-11-25'})
@@ -94,29 +130,29 @@ try:
     s = search('')
     check('clearing the search clears results and selection', not s['searchResults'] and s['searchSelected'] is None and not s['searchQuerying'])
     search('Calibrate')
-    for label,sha in [('remote-result',feature),('older-result',initial),('unreachable-result',unreachable)]:
-        tool('ui_graph',{'repo':str(repo),'mode':'current','showRemotes':False})
-        for _ in range(100):
-            current=state()
-            if not current['graphLoading'] and current['graphMode']==1 and not current['graphShowRemotes']:break
-            time.sleep(.1)
-        search(sha,'sha')
-        tool('ui_search',{'repo':str(repo),'select':sha})
-        current=state()
-        check(label+' single selection remains on the search page',current['searchActive'] and current['searchSelected']==sha)
-        tool('ui_search',{'repo':str(repo),'open':True})
-        for _ in range(150):
-            current=state()
-            if (not current['graphLoading'] and not current['searchActive'] and current['view']==0 and
-                current['graphMode']==0 and current['graphShowRemotes'] and current['historyVisible'] and
-                current['selectedCommits']==[sha] and current['historySelectedCommits']==[sha] and current['detailCommit']==sha):break
-            time.sleep(.1)
-        else:raise AssertionError(current)
-        check(label+' opens history with all branches and remotes',current['graphMode']==0 and current['graphShowRemotes'] and not current['searchActive'])
-        check(label+' is highlighted in the real history grid and shows matching details',current['historySelectedCommits']==[sha] and current['detailCommit']==sha)
-        check(label+' is included without unlimited history loading',sha in {c['sha'] for c in current['graphCommits']} and current['graphTotal']<=202)
-        check(label+' never checks out or changes HEAD',git('branch','--show-current')=='main' and git('rev-parse','HEAD')==main_head)
-        (out/(label+'-history.png')).write_bytes(tool('ui_screenshot'))
+    open_history('remote-result',feature,remote='refs/remotes/origin/feature/search')
+    open_history('older-result',initial,remote='refs/remotes/origin/feature/search')
+    open_history('unreachable-result',unreachable)
+    open_history('local-only-result',git('rev-parse','main~2'),local='refs/heads/main')
+
+    git('branch','local/calibration',initial)
+    git('config','branch.local/calibration.remote','origin')
+    git('config','branch.local/calibration.merge','refs/heads/feature/search')
+    tool('ui_refresh',{'repo':str(repo)})
+    wait_refs({'refs/heads/local/calibration':initial})
+    open_history('tracked-local-behind',feature,local='refs/heads/local/calibration')
+    check('renamed local tracking branch is still behind the searched remote result',git('rev-parse','local/calibration')!=feature)
+
+    ahead=git('commit-tree',git('rev-parse',feature+'^{tree}'),'-p',feature,'-m','Local tracking commit')
+    git('update-ref','refs/heads/local/calibration',ahead)
+    tool('ui_refresh',{'repo':str(repo)})
+    wait_refs({'refs/heads/local/calibration':ahead})
+    open_history('tracked-local-ahead',ahead,local='refs/heads/local/calibration')
+    open_history('unreachable-after-local',unreachable)
+
+    git('branch','-D','local/calibration');tool('ui_refresh',{'repo':str(repo)})
+    wait_refs({},absent=['refs/heads/local/calibration'])
+    open_history('remote-after-local-removal',feature,remote='refs/remotes/origin/feature/search')
 
     search(feature,'sha');tool('ui_search',{'repo':str(repo),'open':True})
     tool('ui_working_copy',{'repo':str(repo)})

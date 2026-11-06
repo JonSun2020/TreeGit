@@ -319,7 +319,15 @@ namespace SourceGit.Views
             InitializeComponent();
         }
 
-        public void Select(Models.Branch branch)
+        public void Select(Models.Branch branch, bool navigateToTip = true)
+        {
+            var previous = _suppressNavigation;
+            _suppressNavigation |= !navigateToTip;
+            try { SelectCore(branch); }
+            finally { _suppressNavigation = previous; }
+        }
+
+        private void SelectCore(Models.Branch branch)
         {
             if (branch == null)
                 return;
@@ -476,7 +484,7 @@ namespace SourceGit.Views
             if (selected == null || selected.Count == 0)
                 return;
 
-            if (selected.Count == 1 && selected[0] is ViewModels.BranchTreeNode { Backend: Models.Branch branch })
+            if (!_suppressNavigation && selected.Count == 1 && selected[0] is ViewModels.BranchTreeNode { Backend: Models.Branch branch })
                 repo.Histories.NavigateToBranch(branch);
 
             ViewModels.BranchTreeNode prev = null;
@@ -1455,5 +1463,6 @@ namespace SourceGit.Views
 
         private List<ViewModels.BranchTreeNode> _nodes = null;
         private bool _disableSelectionChangingEvent = false;
+        private bool _suppressNavigation = false;
     }
 }

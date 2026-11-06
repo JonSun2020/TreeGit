@@ -1050,9 +1050,37 @@ namespace SourceGit.ViewModels
             _historyNavigationCommit = string.Empty;
         }
 
+        public event Action<Models.Branch> HistoryBranchSelectionRequested;
+
+        private Models.Branch FindHistoryBranch(string sha, HashSet<string> containing)
+        {
+            var exactRemotes = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var branch in _branches)
+                if (!branch.IsLocal && branch.Head == sha) exactRemotes.Add(branch.FullName);
+
+            Models.Branch Pick(List<Models.Branch> candidates)
+            {
+                int Rank(Models.Branch branch) => (branch.Head == sha ? 4 : 0) +
+                    (!string.IsNullOrEmpty(branch.Upstream) && exactRemotes.Contains(branch.Upstream) ? 2 : 0) + (branch.IsCurrent ? 1 : 0);
+                candidates.Sort((a, b) =>
+                {
+                    var order = Rank(b).CompareTo(Rank(a));
+                    return order != 0 ? order : StringComparer.Ordinal.Compare(a.FullName, b.FullName);
+                });
+                return candidates.Count > 0 ? candidates[0] : null;
+            }
+
+            var tracked = _branches.FindAll(b => b.IsLocal && !b.IsDetachedHead && !string.IsNullOrEmpty(b.Upstream) &&
+                (containing.Contains(b.FullName) || containing.Contains(b.Upstream)));
+            var remotes = _branches.FindAll(b => !b.IsLocal && containing.Contains(b.FullName));
+            var locals = _branches.FindAll(b => b.IsLocal && !b.IsDetachedHead && containing.Contains(b.FullName));
+            return Pick(tracked) ?? Pick(remotes) ?? Pick(locals);
+        }
+
         public void RevealCommitInHistory(Models.Commit commit)
         {
             if (commit == null) return;
+            Filter = string.Empty;
             ShowHistoryPage();
             if (_uiStates.HistoryFilters.Count > 0) ClearHistoryFilters();
             _uiStates.HistoryShowFlags &= ~(Models.HistoryShowFlags.FirstParentOnly | Models.HistoryShowFlags.SimplifyByDecoration);
@@ -1409,6 +1437,10 @@ namespace SourceGit.ViewModels
                     }
                 }
 
+                var containingBranches = !string.IsNullOrEmpty(graphView.NavigationCommit)
+                    ? await new Commands.QueryBranchesContainingCommit(FullPath, graphView.NavigationCommit).GetResultAsync().ConfigureAwait(false)
+                    : null;
+
                 var merged = new HashSet<string>();
                 foreach (var c in commits)
                 {
@@ -1452,6 +1484,9 @@ namespace SourceGit.ViewModels
                             CancelHistoryNavigation();
                             SendNotification("该提交已不可用，请重新搜索。", true);
                         }
+                        if (!string.IsNullOrEmpty(graphView.NavigationCommit) && _historyNavigationCommit == graphView.NavigationCommit &&
+                            _navigateToCommitDelayed == graphView.NavigationCommit && !_histories.IsSearchingCommits)
+                            HistoryBranchSelectionRequested?.Invoke(FindHistoryBranch(graphView.NavigationCommit, containingBranches));
                         if (!string.IsNullOrEmpty(_navigateToCommitDelayed) && !_histories.IsSearchingCommits)
                             NavigateToCommit(_navigateToCommitDelayed);
                     }
