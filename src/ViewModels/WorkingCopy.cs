@@ -53,13 +53,13 @@ namespace SourceGit.ViewModels
         public bool IsStaging
         {
             get => _isStaging;
-            private set => SetProperty(ref _isStaging, value);
+            private set { if (SetProperty(ref _isStaging, value)) OnPropertyChanged(nameof(CanChangeIndex)); }
         }
 
         public bool IsUnstaging
         {
             get => _isUnstaging;
-            private set => SetProperty(ref _isUnstaging, value);
+            private set { if (SetProperty(ref _isUnstaging, value)) OnPropertyChanged(nameof(CanChangeIndex)); }
         }
 
         public bool IsCommitting
@@ -68,7 +68,10 @@ namespace SourceGit.ViewModels
             private set
             {
                 if (SetProperty(ref _isCommitting, value))
+                {
                     _repo.NotifyIsSkippingOrAbortingMergeChanged();
+                    OnPropertyChanged(nameof(CanChangeIndex));
+                }
             }
         }
 
@@ -372,76 +375,108 @@ namespace SourceGit.ViewModels
             UpdateDetail();
         }
 
-        public async Task<bool> StageChangesAsync(List<Models.Change> changes, Models.Change next)
-        {
-            if (IsStaging) return false;
-            var canStaged = await GetCanStageChangesAsync(changes);
-            if (IsStaging) return false;
-            if (canStaged.Count == 0) return changes.Count == 0;
+        public bool CanChangeIndex => !IsStaging && !IsUnstaging && !IsCommitting;
 
+        public Task<bool> StageChangesAsync(List<Models.Change> changes, Models.Change next)
+            => StageAsync(new List<Models.Change>(changes), next, false);
+
+        public Task<bool> StageAllChangesAsync() => StageAsync(null, null, true);
+
+        private async Task<bool> StageAsync(List<Models.Change> changes, Models.Change next, bool allVisible)
+        {
+            if (IsStaging || IsUnstaging) return false;
             IsStaging = true;
-            _selectedUnstaged = new(next != null ? new List<Models.Change> { next } : null);
             using var lockWatcher = _repo.LockWatcher();
-            var log = _repo.CreateLog("Stage");
+            CommandLog log = null;
             string pathSpecFile = null;
             try
             {
+                // A previous index operation can finish before the file watcher
+                // repaints the lists. Batch actions must use the current index.
+                if (allVisible)
+                {
+                    var current = await new Commands.QueryLocalChanges(_repo.FullPath, IncludeUntracked).GetResultAsync();
+                    changes = GetVisibleChanges(current.FindAll(c => c.WorkTree != Models.ChangeState.None));
+                }
+                var canStage = await GetCanStageChangesAsync(changes);
+                if (canStage.Count == 0) return changes.Count == 0;
+                _selectedUnstaged = new(next != null ? new List<Models.Change> { next } : null);
+                log = _repo.CreateLog("Stage");
                 pathSpecFile = Path.GetTempFileName();
                 await using (var writer = new StreamWriter(pathSpecFile))
                 {
-                    foreach (var c in canStaged) await writer.WriteLineAsync(c.Path);
+                    foreach (var c in canStage) await writer.WriteLineAsync(c.Path);
                 }
                 var success = await new Commands.Add(_repo.FullPath, pathSpecFile).Use(log).ExecAsync();
-                return success && canStaged.Count == changes.Count;
+                return success && canStage.Count == changes.Count;
             }
             finally
             {
-                try { if (pathSpecFile != null) File.Delete(pathSpecFile); }
-                catch (IOException) { }
-                catch (UnauthorizedAccessException) { }
-                log.Complete();
+                DeletePathSpec(pathSpecFile);
+                log?.Complete();
                 _repo.MarkWorkingCopyDirtyManually();
                 IsStaging = false;
             }
         }
 
-        public async Task UnstageChangesAsync(List<Models.Change> changes, Models.Change next)
+        public Task UnstageChangesAsync(List<Models.Change> changes, Models.Change next)
+            => UnstageAsync(new List<Models.Change>(changes), next, false);
+
+        public Task UnstageAllChangesAsync() => UnstageAsync(null, null, true);
+
+        private async Task UnstageAsync(List<Models.Change> changes, Models.Change next, bool allVisible)
         {
-            var count = changes.Count;
-            if (count == 0)
-                return;
-
+            if (IsStaging || IsUnstaging || IsCommitting) return;
             IsUnstaging = true;
-            _selectedStaged = new(next != null ? new List<Models.Change> { next } : null);
-
             using var lockWatcher = _repo.LockWatcher();
-
-            var log = _repo.CreateLog("Unstage");
-            if (_useAmend)
+            CommandLog log = null;
+            string pathSpecFile = null;
+            try
             {
-                log.AppendLine("$ git update-index --index-info ");
-                await new Commands.UpdateIndexInfo(_repo.FullPath, changes).ExecAsync();
-            }
-            else
-            {
-                var pathSpecFile = Path.GetTempFileName();
-                await using (var writer = new StreamWriter(pathSpecFile))
+                if (allVisible)
                 {
-                    foreach (var c in changes)
-                    {
-                        await writer.WriteLineAsync(c.Path);
-                        if (c.Index == Models.ChangeState.Renamed)
-                            await writer.WriteLineAsync(c.OriginalPath);
-                    }
+                    var current = await new Commands.QueryLocalChanges(_repo.FullPath, IncludeUntracked).GetResultAsync();
+                    var staged = _useAmend
+                        ? await Task.Run(() => new Commands.QueryStagedChangesWithAmend(_repo.FullPath).GetResult())
+                        : current.FindAll(c => c.Index != Models.ChangeState.None);
+                    changes = GetVisibleChanges(staged);
                 }
-
-                await new Commands.Reset(_repo.FullPath, pathSpecFile).Use(log).ExecAsync();
-                File.Delete(pathSpecFile);
+                if (changes.Count == 0) return;
+                _selectedStaged = new(next != null ? new List<Models.Change> { next } : null);
+                log = _repo.CreateLog("Unstage");
+                if (_useAmend)
+                {
+                    log.AppendLine("$ git update-index --index-info ");
+                    await new Commands.UpdateIndexInfo(_repo.FullPath, changes).ExecAsync();
+                }
+                else
+                {
+                    pathSpecFile = Path.GetTempFileName();
+                    await using (var writer = new StreamWriter(pathSpecFile))
+                    {
+                        foreach (var c in changes)
+                        {
+                            await writer.WriteLineAsync(c.Path);
+                            if (c.Index == Models.ChangeState.Renamed) await writer.WriteLineAsync(c.OriginalPath);
+                        }
+                    }
+                    await new Commands.Reset(_repo.FullPath, pathSpecFile).Use(log).ExecAsync();
+                }
             }
-            log.Complete();
+            finally
+            {
+                DeletePathSpec(pathSpecFile);
+                log?.Complete();
+                _repo.MarkWorkingCopyDirtyManually();
+                IsUnstaging = false;
+            }
+        }
 
-            _repo.MarkWorkingCopyDirtyManually();
-            IsUnstaging = false;
+        private static void DeletePathSpec(string path)
+        {
+            try { if (path != null) File.Delete(path); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
         }
 
         public async Task SaveChangesToPatchAsync(List<Models.Change> changes, bool isUnstaged, string saveTo)
@@ -626,7 +661,7 @@ namespace SourceGit.ViewModels
 
         public async Task CommitAsync(bool autoStage, bool autoPush)
         {
-            if (IsCommitting || string.IsNullOrWhiteSpace(_commitMessage))
+            if (!CanChangeIndex || string.IsNullOrWhiteSpace(_commitMessage))
                 return;
 
             if (!_repo.CanCreatePopup())
@@ -734,7 +769,7 @@ namespace SourceGit.ViewModels
 
         private async Task<List<Models.Change>> GetCanStageChangesAsync(List<Models.Change> changes)
         {
-            if (!HasUnsolvedConflicts)
+            if (!changes.Exists(c => c.IsConflicted))
                 return changes;
 
             var outs = new List<Models.Change>();

@@ -10,7 +10,7 @@
     <v:HistoriesLayout.ColumnDefinitions>
       <ColumnDefinition Width="{Binding LeftArea, Mode=TwoWay}" MinWidth="300"/>
       <ColumnDefinition Width="3"/>
-      <ColumnDefinition Width="{Binding RightArea, Mode=TwoWay}" MinWidth="440"/>
+      <ColumnDefinition Width="{Binding RightArea, Mode=TwoWay}" MinWidth="460"/>
     </v:HistoriesLayout.ColumnDefinitions>
 
     <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3">

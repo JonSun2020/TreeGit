@@ -239,7 +239,7 @@ namespace SourceGit.Views
         private async void OnStageAllButtonClicked(object sender, RoutedEventArgs e)
         {
             if (DataContext is ViewModels.WorkingCopy vm && sender is Button { IsEffectivelyVisible: true })
-                await vm.StageChangesAsync(vm.VisibleUnstaged, null);
+                await vm.StageAllChangesAsync();
 
             e.Handled = true;
         }
@@ -259,7 +259,7 @@ namespace SourceGit.Views
         private async void OnUnstageAllButtonClicked(object sender, RoutedEventArgs e)
         {
             if (DataContext is ViewModels.WorkingCopy vm && sender is Button { IsEffectivelyVisible: true })
-                await vm.UnstageChangesAsync(vm.VisibleStaged, null);
+                await vm.UnstageAllChangesAsync();
 
             e.Handled = true;
         }

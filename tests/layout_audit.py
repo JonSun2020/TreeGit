@@ -74,16 +74,29 @@ data = exe.parent / 'data'
 data.mkdir(exist_ok=True)
 preferences = {'Locale': 'zh_CN', 'Theme': 'Blue', 'EnableAutoFetch': False, 'Check4UpdatesOnStartup': False}
 (data / 'preference.json').write_text(json.dumps(preferences), encoding='utf-8')
-p = subprocess.Popen([str(exe), '--mcp'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                     text=True, encoding='utf-8', env=env, creationflags=subprocess.CREATE_NO_WINDOW)
-messages = queue.Queue()
-threading.Thread(target=lambda: [messages.put(line) for line in p.stdout], daemon=True).start()
 errors = []
-threading.Thread(target=lambda: [errors.append(line[-2000:]) for line in p.stderr], daemon=True).start()
+
+def start_process():
+    process = subprocess.Popen([str(exe), '--mcp'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                               text=True, encoding='utf-8', env=env, creationflags=subprocess.CREATE_NO_WINDOW)
+    inbox = queue.Queue()
+    threading.Thread(target=lambda: [inbox.put(line) for line in process.stdout], daemon=True).start()
+    threading.Thread(target=lambda: [errors.append(line[-2000:]) for line in process.stderr], daemon=True).start()
+    return process, inbox
+
+p, messages = start_process()
 seq = 0
 pid = None
 checks = []
 records = []
+
+def stop_session():
+    p.stdin.close()
+    try: p.wait(timeout=10)
+    except subprocess.TimeoutExpired: p.kill(); p.wait(timeout=5)
+    if pid:
+        code = "$p=Get-Process -Id " + str(pid) + " -ErrorAction SilentlyContinue; if($p){if($p.Path -ne '" + str(exe).replace("'", "''") + "'){throw 'Wrong QA process'};if(-not $p.CloseMainWindow()){throw 'Owned QA window did not close'};if(-not $p.WaitForExit(15000)){throw 'Owned QA window did not exit'}}"
+        subprocess.run(['powershell', '-NoProfile', '-Command', code], capture_output=True, check=True)
 
 def rpc(method, params=None):
     global seq
@@ -119,6 +132,10 @@ def state():
 def check(label, ok, detail=None):
     checks.append({'name': label, 'ok': bool(ok), 'detail': detail})
     print(('PASS ' if ok else 'FAIL ') + label, flush=True)
+
+def click_ready(name):
+    wait_for(lambda: any(b['name'] == name and b['enabled'] for b in tool('ui_layout')['buttons']))
+    tool('ui_layout', {'action': 'test_click', 'button': name})
 
 def screenshot(label, active=False):
     (out / (label + '.png')).write_bytes(tool('ui_screenshot', {'window': 'active' if active else 'main'}))
@@ -228,17 +245,17 @@ try:
     # Exercise the actual UI click handlers, then restore the fixture's original
     # index. This checks operation targets as well as geometry after dragging.
     repo_tool('ui_diff', action='select', source='unstaged', file='text.txt')
-    tool('ui_layout', {'action': 'test_click', 'button': 'StageSelectedChanges'})
+    click_ready('StageSelectedChanges')
     wait_for(lambda: git('show', ':text.txt') == 'staged change\nunstaged change')
     check('stage selected button stages exactly the selected text content', git('diff', '--name-only', '--', 'text.txt') == '')
     repo_tool('ui_diff', action='select', source='staged', file='text.txt')
-    tool('ui_layout', {'action': 'test_click', 'button': 'UnstageSelectedChanges'})
+    click_ready('UnstageSelectedChanges')
     wait_for(lambda: git('diff', '--cached', '--name-only', '--', 'text.txt') == '')
     check('unstage selected button leaves working file intact', (repo / 'text.txt').read_text() == 'staged change\nunstaged change\n')
-    tool('ui_layout', {'action': 'test_click', 'button': 'StageAllChanges'})
+    click_ready('StageAllChanges')
     wait_for(lambda: git('status', '--porcelain') and all(line[1] == ' ' for line in git('status', '--porcelain').splitlines()))
     check('stage all includes nested untracked files and binary changes', len(git('diff', '--cached', '--name-only').splitlines()) == 4)
-    tool('ui_layout', {'action': 'test_click', 'button': 'UnstageAllChanges'})
+    click_ready('UnstageAllChanges')
     wait_for(lambda: git('diff', '--cached', '--name-only') == '')
     check('unstage all preserves all working files', (folder / 'a very long untracked filename with spaces and unicode 中文.txt').exists() and (repo / 'firmware.bin').stat().st_size == 16384)
     git('update-index', '--cacheinfo', '100644,' + staged_blob + ',text.txt')
@@ -287,6 +304,22 @@ try:
     check('resizing preserves staged and unstaged content', git('show', ':text.txt') == 'staged change' and (repo / 'text.txt').read_text() == 'staged change\nunstaged change\n')
     check('resizing never changes history target', state()['detailCommit'] == head)
     inspect('final-restored', '日志 / 历史', capture=True)
+    expected_columns = repo_tool('ui_history_columns', graph=160, description=600, date=190, author=220)
+    stop_session()
+    pid = None
+    p, messages = start_process()
+    seq = 0
+    rpc('initialize', {'protocolVersion': '2025-11-25'})
+    repo_tool('ui_open_repository')
+    pid = tool('ui_state')['processId']
+    wait_for(lambda: state()['graphCommits'])
+    tool('ui_window', {'state': 'maximized', 'theme': 'Blue', 'zoom': 1})
+    actual_columns = repo_tool('ui_history_columns')
+    check('column widths survive closing and reopening', all(abs(actual_columns[k] - expected_columns[k]) < 1.1 for k in ['graph', 'description', 'date', 'author']), actual_columns)
+    repo_tool('ui_select_commit', revision=head)
+    inspect('cold-reopen-saved-layout', '日志 / 历史', capture=True)
+    check('reopening a resized layout preserves HEAD and the index', git('rev-parse', 'HEAD') == head and git('rev-parse', ':text.txt') == staged_blob)
+
 except Exception as error:
     checks.append({'name': 'audit exception', 'ok': False, 'detail': repr(error)})
     print('FAIL audit exception: ' + repr(error), flush=True)
@@ -294,12 +327,7 @@ except Exception as error:
     except Exception: pass
 finally:
     (out / 'layout-audit-results.json').write_text(json.dumps({'checks': checks, 'failures': [c for c in checks if not c['ok']], 'records': records, 'stderr': errors[-15:]}, ensure_ascii=False, indent=2), encoding='utf-8')
-    p.stdin.close()
-    try: p.wait(timeout=10)
-    except subprocess.TimeoutExpired: p.kill(); p.wait(timeout=5)
-    if pid:
-        code = "$p=Get-Process -Id " + str(pid) + " -ErrorAction SilentlyContinue; if($p){if($p.Path -ne '" + str(exe).replace("'", "''") + "'){throw 'Wrong QA process'};if(-not $p.CloseMainWindow()){throw 'Owned QA window did not close'};if(-not $p.WaitForExit(15000)){throw 'Owned QA window did not exit'}}"
-        subprocess.run(['powershell', '-NoProfile', '-Command', code], capture_output=True, check=True)
+    stop_session()
     def readonly(fn, path, _):
         owned = Path(path)
         assert owned.resolve().is_relative_to(root) and not owned.is_symlink() and not owned.is_junction()
