@@ -599,7 +599,8 @@ namespace SourceGit.Automation
                 {
                     if (repo.IsBare) throw new ArgumentException("Bare repositories have no working copy.");
                     repo.ShowWorkingCopyOverview();
-                    return (object)new { selected = "uncommitted_changes", repo = path };
+                    if (args.TryGetProperty("filter", out var filter)) repo.WorkingCopy.Filter = filter.GetString() ?? string.Empty;
+                    return (object)new { selected = "uncommitted_changes", repo = path, filter = repo.WorkingCopy.Filter };
                 });
 
             if (name == "ui_search")

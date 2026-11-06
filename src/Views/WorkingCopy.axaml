@@ -159,13 +159,13 @@
       
     </Grid>
   <GridSplitter Grid.Row="1" MinHeight="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent" Focusable="False" Grid.Column="0" Grid.ColumnSpan="3"/><v:CommitMessageToolBox Grid.Row="2" ShowAdvancedOptions="True" CommitMessage="{Binding CommitMessage, Mode=TwoWay}" Grid.Column="0" Grid.ColumnSpan="3" Margin="8,0,8,0"/><Grid Grid.Row="3" VerticalAlignment="Center" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto" Grid.Column="0" Grid.ColumnSpan="3" Margin="8,0,8,0">
-        <CheckBox Grid.Column="0" Height="24" Margin="1,0,0,0" HorizontalAlignment="Left" IsChecked="{Binding EnableSignOff, Mode=TwoWay}" Content="{DynamicResource Text.WorkingCopy.SignOff}" ToolTip.Tip="--signoff" ToolTip.Placement="Top" ToolTip.VerticalOffset="0"/>
+        <CheckBox Grid.Column="0" IsEnabled="{Binding CanChangeIndex}" Height="24" Margin="1,0,0,0" HorizontalAlignment="Left" IsChecked="{Binding EnableSignOff, Mode=TwoWay}" Content="{DynamicResource Text.WorkingCopy.SignOff}" ToolTip.Tip="--signoff" ToolTip.Placement="Top" ToolTip.VerticalOffset="0"/>
 
-        <CheckBox Grid.Column="1" Height="24" Margin="12,0,0,0" HorizontalAlignment="Left" IsChecked="{Binding NoVerifyOnCommit, Mode=TwoWay}" Content="{DynamicResource Text.WorkingCopy.NoVerify}" ToolTip.Tip="--no-verify" ToolTip.Placement="Top" ToolTip.VerticalOffset="0"/>
+        <CheckBox Grid.Column="1" IsEnabled="{Binding CanChangeIndex}" Height="24" Margin="12,0,0,0" HorizontalAlignment="Left" IsChecked="{Binding NoVerifyOnCommit, Mode=TwoWay}" Content="{DynamicResource Text.WorkingCopy.NoVerify}" ToolTip.Tip="--no-verify" ToolTip.Placement="Top" ToolTip.VerticalOffset="0"/>
 
-        <CheckBox Grid.Column="2" Height="24" Margin="12,0,0,0" HorizontalAlignment="Left" IsChecked="{Binding UseAmend, Mode=TwoWay}" Content="{DynamicResource Text.WorkingCopy.Amend}" ToolTip.Tip="--amend" ToolTip.Placement="Top" ToolTip.VerticalOffset="0"/>
+        <CheckBox Grid.Column="2" IsEnabled="{Binding CanChangeIndex}" Height="24" Margin="12,0,0,0" HorizontalAlignment="Left" IsChecked="{Binding UseAmend, Mode=TwoWay}" Content="{DynamicResource Text.WorkingCopy.Amend}" ToolTip.Tip="--amend" ToolTip.Placement="Top" ToolTip.VerticalOffset="0"/>
 
-        <CheckBox Grid.Column="3" Height="24" Margin="12,0,0,0" HorizontalAlignment="Left" IsChecked="{Binding ResetAuthor, Mode=TwoWay}" IsVisible="{Binding UseAmend}" Content="{DynamicResource Text.WorkingCopy.ResetAuthor}" ToolTip.Tip="--reset-author" ToolTip.Placement="Top" ToolTip.VerticalOffset="0"/>
+        <CheckBox Grid.Column="3" IsEnabled="{Binding CanChangeIndex}" Height="24" Margin="12,0,0,0" HorizontalAlignment="Left" IsChecked="{Binding ResetAuthor, Mode=TwoWay}" IsVisible="{Binding UseAmend}" Content="{DynamicResource Text.WorkingCopy.ResetAuthor}" ToolTip.Tip="--reset-author" ToolTip.Placement="Top" ToolTip.VerticalOffset="0"/>
 
         <v:LoadingIcon Grid.Column="4" Width="18" Height="18" HorizontalAlignment="Right" IsVisible="{Binding IsCommitting}"/>
 

@@ -244,6 +244,12 @@ jobs:
           New-Item -ItemType Directory -Path src/bin/Debug/net10.0/data -Force | Out-Null
           & src/bin/Debug/net10.0/SourceGit.exe --integration-update-ui $archive "$env:RUNNER_TEMP/updater-ui-results"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify splitter extremes, native staging buttons and saved layouts
+        shell: pwsh
+        run: python tests/layout_audit.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/layout-audit-results"
+      - name: Verify configuration and operation dialogs at multiple zoom levels
+        shell: pwsh
+        run: python tests/dialog_audit.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/dialog-audit-results"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -251,3 +257,7 @@ jobs:
           path: |
             ${{ runner.temp }}/updater-ui-results/results.json
             ${{ runner.temp }}/updater-ui-results/*.png
+            ${{ runner.temp }}/layout-audit-results/*.json
+            ${{ runner.temp }}/layout-audit-results/*.png
+            ${{ runner.temp }}/dialog-audit-results/*.json
+            ${{ runner.temp }}/dialog-audit-results/*.png

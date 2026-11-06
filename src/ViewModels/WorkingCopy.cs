@@ -385,6 +385,8 @@ namespace SourceGit.ViewModels
         private async Task<bool> StageAsync(List<Models.Change> changes, Models.Change next, bool allVisible)
         {
             if (IsStaging || IsUnstaging) return false;
+            var filter = _filter;
+            var includeUntracked = IncludeUntracked;
             IsStaging = true;
             using var lockWatcher = _repo.LockWatcher();
             CommandLog log = null;
@@ -395,8 +397,8 @@ namespace SourceGit.ViewModels
                 // repaints the lists. Batch actions must use the current index.
                 if (allVisible)
                 {
-                    var current = await new Commands.QueryLocalChanges(_repo.FullPath, IncludeUntracked).GetResultAsync();
-                    changes = GetVisibleChanges(current.FindAll(c => c.WorkTree != Models.ChangeState.None));
+                    var current = await new Commands.QueryLocalChanges(_repo.FullPath, includeUntracked).GetResultAsync();
+                    changes = GetVisibleChanges(current.FindAll(c => c.WorkTree != Models.ChangeState.None), filter);
                 }
                 var canStage = await GetCanStageChangesAsync(changes);
                 if (canStage.Count == 0) return changes.Count == 0;
@@ -427,6 +429,9 @@ namespace SourceGit.ViewModels
         private async Task UnstageAsync(List<Models.Change> changes, Models.Change next, bool allVisible)
         {
             if (IsStaging || IsUnstaging || IsCommitting) return;
+            var filter = _filter;
+            var includeUntracked = IncludeUntracked;
+            var useAmend = _useAmend;
             IsUnstaging = true;
             using var lockWatcher = _repo.LockWatcher();
             CommandLog log = null;
@@ -435,16 +440,16 @@ namespace SourceGit.ViewModels
             {
                 if (allVisible)
                 {
-                    var current = await new Commands.QueryLocalChanges(_repo.FullPath, IncludeUntracked).GetResultAsync();
-                    var staged = _useAmend
+                    var current = await new Commands.QueryLocalChanges(_repo.FullPath, includeUntracked).GetResultAsync();
+                    var staged = useAmend
                         ? await Task.Run(() => new Commands.QueryStagedChangesWithAmend(_repo.FullPath).GetResult())
                         : current.FindAll(c => c.Index != Models.ChangeState.None);
-                    changes = GetVisibleChanges(staged);
+                    changes = GetVisibleChanges(staged, filter);
                 }
                 if (changes.Count == 0) return;
                 _selectedStaged = new(next != null ? new List<Models.Change> { next } : null);
                 log = _repo.CreateLog("Unstage");
-                if (_useAmend)
+                if (useAmend)
                 {
                     log.AppendLine("$ git update-index --index-info ");
                     await new Commands.UpdateIndexInfo(_repo.FullPath, changes).ExecAsync();
@@ -751,16 +756,18 @@ namespace SourceGit.ViewModels
             }
         }
 
-        private List<Models.Change> GetVisibleChanges(List<Models.Change> changes)
+        private List<Models.Change> GetVisibleChanges(List<Models.Change> changes) => GetVisibleChanges(changes, _filter);
+
+        private static List<Models.Change> GetVisibleChanges(List<Models.Change> changes, string filter)
         {
-            if (string.IsNullOrEmpty(_filter))
+            if (string.IsNullOrEmpty(filter))
                 return changes;
 
             var visible = new List<Models.Change>();
 
             foreach (var c in changes)
             {
-                if (c.Path.Contains(_filter, StringComparison.OrdinalIgnoreCase))
+                if (c.Path.Contains(filter, StringComparison.OrdinalIgnoreCase))
                     visible.Add(c);
             }
 
