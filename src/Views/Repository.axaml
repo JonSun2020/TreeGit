@@ -387,7 +387,7 @@
             </GridSplitter>
 
             <!-- Right Page -->
-            <Grid Grid.Column="2" RowDefinitions="*,28"><ScrollViewer x:Name="PageViewport" AllowAutoHide="False" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"><Grid Width="{Binding #PageViewport.Viewport.Width}" Height="{Binding #PageViewport.Viewport.Height}" MinWidth="780" MinHeight="400">
+            <Grid Grid.Column="2" RowDefinitions="*,28"><v:ContentViewport x:Name="PageViewport" AllowAutoHide="False" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"><Grid MinWidth="780" MinHeight="400">
               <!-- Dashboard (History) Page -->
               <Border IsVisible="{Binding IsDashboardVisible, Mode=OneWay}" PropertyChanged="OnRightPagePropertyChanged">
                 <Grid RowDefinitions="Auto,Auto,*" Background="{DynamicResource Brush.SubPanel}">
@@ -509,7 +509,7 @@
                 </Border>
               </Border>
             </Grid>
-          </ScrollViewer><StackPanel Grid.Row="1" Orientation="Horizontal" Background="{DynamicResource Brush.ToolBar}"><Button Classes="treegit_bottom_tab" Content="文件状态" Click="OnShowWorkingCopyOverview" Classes.active="{Binding IsFileStatusTabSelected}"/><Button Classes="treegit_bottom_tab" Content="日志 / 历史" Click="OnShowHistory" Classes.active="{Binding IsHistoryTabSelected}"/><Button Classes="treegit_bottom_tab" Content="搜索" Click="OnShowSearch" Classes.active="{Binding IsSearchTabSelected}"/></StackPanel></Grid></Grid>
+          </v:ContentViewport><StackPanel Grid.Row="1" Orientation="Horizontal" Background="{DynamicResource Brush.ToolBar}"><Button Classes="treegit_bottom_tab" Content="文件状态" Click="OnShowWorkingCopyOverview" Classes.active="{Binding IsFileStatusTabSelected}"/><Button Classes="treegit_bottom_tab" Content="日志 / 历史" Click="OnShowHistory" Classes.active="{Binding IsHistoryTabSelected}"/><Button Classes="treegit_bottom_tab" Content="搜索" Click="OnShowSearch" Classes.active="{Binding IsSearchTabSelected}"/></StackPanel></Grid></Grid>
         </Grid>
       </Border>
     </Border>

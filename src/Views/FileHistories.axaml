@@ -44,8 +44,8 @@
     </Grid>
 
     <!-- Body -->
-    <ScrollViewer x:Name="FileHistoriesViewport" Grid.Row="2" AllowAutoHide="False" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-      <Grid Width="{Binding #FileHistoriesViewport.Viewport.Width}" Height="{Binding #FileHistoriesViewport.Viewport.Height}" MinWidth="600" MinHeight="360">
+    <v:ContentViewport x:Name="FileHistoriesViewport" Grid.Row="2" AllowAutoHide="False" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+      <Grid MinWidth="600" MinHeight="360">
 <v:SplitViewGrid>
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="300" MinWidth="300" MaxWidth="600"/>
@@ -265,6 +265,6 @@
                      IsVisible="{Binding IsLoading}"/>
     </v:SplitViewGrid>
       </Grid>
-    </ScrollViewer>
+    </v:ContentViewport>
   </Grid>
 </v:ChromelessWindow>

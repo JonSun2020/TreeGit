@@ -131,7 +131,7 @@ try:
                 generated=capture(f'dialog-ssh-generator-{zoom}',True)
                 check(f'SSH generator {zoom} window stays on screen',within(generated['dialogs'][0]))
                 g=tool('ui_layout',{'window':'active'})
-                check(f'SSH generator {zoom} retains a scrollable body',any(s['name']=='KeyViewport' and s['visible'] and s['horizontal']=='Auto' and s['vertical']=='Auto' for s in g['scrolls']))
+                check(f'SSH generator {zoom} retains a scrollable body',any(s['name']=='KeyViewport' and s['visible'] and s['adaptive'] for s in g['scrolls']))
             tool('ui_command',{'command':'close_dialog'})
         for command in ['create_branch','create_tag','reset_dialog','fetch_dialog','pull_dialog','push_dialog','stash_dialog','apply_patch']:
             tool('ui_command',{'repo':str(repo),'command':command})

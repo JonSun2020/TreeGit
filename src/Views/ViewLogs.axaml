@@ -38,8 +38,8 @@
     </Grid>
 
     <!-- Body -->
-    <ScrollViewer x:Name="ViewLogsViewport" Grid.Row="1" AllowAutoHide="False" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-      <Grid Width="{Binding #ViewLogsViewport.Viewport.Width}" Height="{Binding #ViewLogsViewport.Viewport.Height}" MinWidth="600" MinHeight="300">
+    <v:ContentViewport x:Name="ViewLogsViewport" Grid.Row="1" AllowAutoHide="False" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+      <Grid MinWidth="600" MinHeight="300">
 <v:SplitViewGrid Margin="8">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="300" MaxWidth="500" MinWidth="250"/>
@@ -134,7 +134,7 @@
       </Border>
     </v:SplitViewGrid>
       </Grid>
-    </ScrollViewer>
+    </v:ContentViewport>
 
     <Grid Grid.Row="2" Margin="0,0,0,8">
       <Button Classes="flat primary"

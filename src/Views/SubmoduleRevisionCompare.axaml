@@ -34,8 +34,8 @@
 
       <!-- Caption Buttons (Windows/Linux) -->
       <v:CaptionButtons HorizontalAlignment="Right" IsVisible="{OnPlatform True, macOS=False}"/>
-    </Grid><ScrollViewer x:Name="SubmoduleRevisionCompareViewport" Grid.Row="1" AllowAutoHide="False" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-      <Grid Width="{Binding #SubmoduleRevisionCompareViewport.Viewport.Width}" Height="{Binding #SubmoduleRevisionCompareViewport.Viewport.Height}" MinWidth="780" MinHeight="480" RowDefinitions="0,64,*">
+    </Grid><v:ContentViewport x:Name="SubmoduleRevisionCompareViewport" Grid.Row="1" AllowAutoHide="False" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+      <Grid MinWidth="780" MinHeight="480" RowDefinitions="0,64,*">
 
 
     <!-- Compare Targets -->
@@ -197,5 +197,5 @@
     </Border>
 
       </Grid>
-    </ScrollViewer></Grid>
+    </v:ContentViewport></Grid>
 </v:ChromelessWindow>

@@ -151,6 +151,7 @@ namespace SourceGit.Automation
                 diffs = controls.OfType<Views.DiffView>().Where(v => v.IsEffectivelyVisible && v.DataContext is ViewModels.DiffContext)
                     .Select(v => new { file = ((ViewModels.DiffContext)v.DataContext).Title, type = ((ViewModels.DiffContext)v.DataContext).Content?.GetType().Name }).ToArray(),
                 scrolls = controls.OfType<ScrollViewer>().Select((s, index) => new { index, name = s.Name, visible = s.IsEffectivelyVisible,
+                    adaptive = s is Views.ContentViewport,
                     bounds = Bounds(s), viewport = new { width = s.Viewport.Width, height = s.Viewport.Height },
                     extent = new { width = s.Extent.Width, height = s.Extent.Height }, offset = new { x = s.Offset.X, y = s.Offset.Y },
                     horizontal = s.HorizontalScrollBarVisibility.ToString(), vertical = s.VerticalScrollBarVisibility.ToString() }).ToArray(),

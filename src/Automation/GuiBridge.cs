@@ -164,7 +164,7 @@ namespace SourceGit.Automation
                                 workingCopyState = r.WorkingCopy == null ? null : new { staging = r.WorkingCopy.IsStaging, unstaging = r.WorkingCopy.IsUnstaging,
                                     committing = r.WorkingCopy.IsCommitting, canChangeIndex = r.WorkingCopy.CanChangeIndex,
                                     staged = r.WorkingCopy.Staged.Take(256).Select(c => c.Path).ToArray(), unstaged = r.WorkingCopy.Unstaged.Take(256).Select(c => c.Path).ToArray(),
-                                    selectedStaged = r.WorkingCopy.SelectedStaged?.Changes.Select(c => c.Path).ToArray(), selectedUnstaged = r.WorkingCopy.SelectedUnstaged?.Changes.Select(c => c.Path).ToArray() },
+                                    selectedStaged = r.WorkingCopy.SelectedStaged?.Changes.Take(256).Select(c => c.Path).ToArray(), selectedUnstaged = r.WorkingCopy.SelectedUnstaged?.Changes.Take(256).Select(c => c.Path).ToArray() },
                                 ahead = r.CurrentBranch?.Ahead.Count ?? 0,
                                 behind = r.CurrentBranch?.Behind.Count ?? 0,
                                 workingCopySelected = r.Histories?.IsWorkingCopySelected,

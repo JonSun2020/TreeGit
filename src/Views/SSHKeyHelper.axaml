@@ -38,8 +38,8 @@
     </Grid>
 
     <!-- Body -->
-    <ScrollViewer x:Name="KeyViewport" Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-    <Grid Width="{Binding #KeyViewport.Viewport.Width}" Height="{Binding #KeyViewport.Viewport.Height}" MinWidth="600" MinHeight="340">
+    <v:ContentViewport x:Name="KeyViewport" Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+    <Grid MinWidth="600" MinHeight="340">
     <Grid Margin="8">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="200" MinWidth="100" MaxWidth="300"/>
@@ -292,6 +292,6 @@
       </ContentControl>
     </Border>
     </Grid>
-    </ScrollViewer>
+    </v:ContentViewport>
   </Grid>
 </v:ChromelessWindow>
