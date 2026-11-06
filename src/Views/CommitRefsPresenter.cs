@@ -184,7 +184,6 @@ namespace SourceGit.Views
             if (_items.Count == 0)
                 return;
 
-            var useGraphColor = UseGraphColor;
             var fg = Foreground;
             var bg = Background;
             var allowWrap = AllowWrap;
@@ -213,26 +212,15 @@ namespace SourceGit.Views
                 }
 
                 var entireRect = new RoundedRect(new Rect(x, y, frameWidth, 16), new CornerRadius(4));
-                if (item.IsHead)
-                {
-                    if (useGraphColor)
-                    {
-                        if (bg != null)
-                            context.DrawRectangle(bg, null, entireRect);
+                if (bg != null)
+                    context.DrawRectangle(bg, null, entireRect);
 
-                        using (context.PushOpacity(.6))
-                            context.DrawRectangle(item.Brush, null, entireRect);
-                    }
-                }
-                else
-                {
-                    if (bg != null)
-                        context.DrawRectangle(bg, null, entireRect);
+                var labelRect = new RoundedRect(new Rect(x + 16, y, frameWidth - 16, 16), new CornerRadius(0, 4, 4, 0));
+                using (context.PushOpacity(.2))
+                    context.DrawRectangle(item.Brush, null, labelRect);
 
-                    var labelRect = new RoundedRect(new Rect(x + 16, y, frameWidth - 16, 16), new CornerRadius(4, 0, 0, 4));
-                    using (context.PushOpacity(.2))
-                        context.DrawRectangle(item.Brush, null, labelRect);
-                }
+                var iconRect = new RoundedRect(new Rect(x, y, 16, 16), new CornerRadius(4, 0, 0, 4));
+                context.DrawRectangle(item.Brush, null, iconRect);
 
                 context.DrawLine(new Pen(item.Brush), new Point(x + 16, y), new Point(x + 16, y + 16));
                 context.DrawText(item.Label, new Point(x + 20, y + 8.0 - item.Label.Height * 0.5));
@@ -285,7 +273,7 @@ namespace SourceGit.Views
                     : item.Decorator.Type;
                 var icon = CommitRefsIconCache.Instance.GetIcon(iconType);
                 using (context.PushTransform(Matrix.CreateTranslation(x + 3, y + 3)))
-                    context.DrawGeometry(item.Brush, null, icon);
+                    context.DrawGeometry(Brushes.White, null, icon);
 
                 x = itemX + item.Width + 4;
             }
