@@ -9,11 +9,11 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="SourceGit.Views.RevisionFiles"
              x:DataType="vm:CommitDetail">
-  <Grid>
+  <v:SplitViewGrid>
     <Grid.ColumnDefinitions>
       <ColumnDefinition Width="{Binding Source={x:Static vm:Preferences.Instance}, Path=Layout.CommitDetailFilesLeftWidth, Mode=TwoWay}" MinWidth="200"/>
       <ColumnDefinition Width="4"/>
-      <ColumnDefinition Width="*" MinWidth="100"/>
+      <ColumnDefinition Width="*" MinWidth="220"/>
     </Grid.ColumnDefinitions>
 
     <!-- Left -->
@@ -162,5 +162,5 @@
         </Grid>
       </Border>
     </Border>
-  </Grid>
+  </v:SplitViewGrid>
 </UserControl>

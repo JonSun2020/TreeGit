@@ -168,7 +168,11 @@ def sweep(label, selected=None, captures=False, active=False):
             old_lengths = s['actualColumns'] if direction == 'x' else s['actualRows']
             changed |= any(abs(a - b) > 1 for a, b in zip(lengths, old_lengths))
             check(case + ': respects pane minimums', all(a >= m - 1 for a, m in zip(lengths, mins)), {'actual': lengths, 'minimums': mins})
-        check(label + ': splitter ' + str(s['index']) + ' actually moves', changed)
+        position = s['column'] if direction == 'x' else s['row']
+        lengths = s['actualColumns'] if direction == 'x' else s['actualRows']
+        mins = s['minColumns'] if direction == 'x' else s['minRows']
+        slack = sum(max(0, lengths[i] - mins[i]) for i in [position - 1, position + 1] if 0 <= i < len(lengths))
+        check(label + ': splitter ' + str(s['index']) + ' moves when space permits', changed or slack < 1.1, {'slack': slack})
         tool('ui_layout', {**scope, 'action': 'restore', 'splitter': s['index'], 'columns': s['columns'], 'rows': s['rows']})
         time.sleep(.08)
     inspect(label + '-restored', selected, active=active)
@@ -228,6 +232,15 @@ try:
         tool('ui_window', {'theme': theme, 'zoom': zoom, 'state': 'maximized'})
         repo_tool('ui_working_copy')
         sweep(f'zoom-{theme}-{zoom}', '文件状态', True)
+        geometry = tool('ui_layout')
+        viewport = next(s for s in geometry['scrolls'] if s['name'] == 'PageViewport' and s['visible'])
+        if viewport['extent']['width'] > viewport['viewport']['width'] + 1 or viewport['extent']['height'] > viewport['viewport']['height'] + 1:
+            tool('ui_layout', {'action': 'scroll', 'scroller': viewport['index'], 'dx': 5000, 'dy': 5000})
+            geometry = inspect(f'zoom-{theme}-{zoom}-scroll-end', '文件状态', capture=True)
+            last = next(s for s in geometry['scrolls'] if s['index'] == viewport['index'])
+            check(f'zoom-{theme}-{zoom}: overflow is reachable by scrolling',
+                  abs(last['offset']['x'] + last['viewport']['width'] - last['extent']['width']) < 1.1 and abs(last['offset']['y'] + last['viewport']['height'] - last['extent']['height']) < 1.1)
+            tool('ui_layout', {'action': 'scroll', 'scroller': viewport['index'], 'dx': 0, 'dy': 0})
     tool('ui_window', {'theme': 'Blue', 'zoom': 1, 'state': 'normal', 'width': 1024, 'height': 640})
     inspect('minimum-normal-window', '文件状态', capture=True)
     tool('ui_window', {'state': 'maximized'})

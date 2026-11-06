@@ -12,7 +12,7 @@ namespace SourceGit.Automation
     {
         public static object Inspect(Window window)
         {
-            var views = window.GetVisualDescendants().OfType<Views.WorkingCopy>().Where(v => v.IsEffectivelyVisible && v.IsOverview);
+            var views = window.GetVisualDescendants().OfType<Views.WorkingCopy>().Where(v => v.IsEffectivelyVisible);
             var overflow = views.SelectMany(view => view.GetVisualDescendants().OfType<Button>())
                 .Where(b => b.Classes.Contains("treegit_stage_action"))
                 .Where(b =>

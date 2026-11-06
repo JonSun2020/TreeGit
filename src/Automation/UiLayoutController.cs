@@ -31,6 +31,16 @@ namespace SourceGit.Automation
                 if (args.TryGetProperty("width", out var width)) window.Width = Dimension(width);
                 if (args.TryGetProperty("height", out var height)) window.Height = Dimension(height);
             }
+            else if (action == "scroll")
+            {
+                var scrollers = window.GetVisualDescendants().OfType<ScrollViewer>().ToArray();
+                var index = args.TryGetProperty("scroller", out var selected) ? selected.GetInt32() : -1;
+                if (index < 0 || index >= scrollers.Length) throw new ArgumentException("List the scroll areas first and use an existing index.");
+                var scroller = scrollers[index];
+                if (!scroller.IsEffectivelyVisible) throw new InvalidOperationException("This scroll area is hidden.");
+                scroller.Offset = new Vector(args.TryGetProperty("dx", out _) ? Change(args, "dx") : scroller.Offset.X,
+                    args.TryGetProperty("dy", out _) ? Change(args, "dy") : scroller.Offset.Y);
+            }
             else if (action is "drag" or "restore")
             {
                 var index = args.TryGetProperty("splitter", out var selected) ? selected.GetInt32() : -1;
@@ -98,6 +108,7 @@ namespace SourceGit.Automation
                 {
                     var grid = ParentGrid(splitter);
                     return new { index, name = splitter.Name, owner = splitter.GetVisualAncestors().OfType<UserControl>().FirstOrDefault()?.GetType().Name,
+                        column = Grid.GetColumn(splitter), row = Grid.GetRow(splitter),
                         visible = splitter.IsEffectivelyVisible && splitter.Bounds.Width > 0 && splitter.Bounds.Height > 0, enabled = splitter.IsEnabled, bounds = Bounds(splitter),
                         columns = grid?.ColumnDefinitions.Select(d => d.Width.ToString()).ToArray(), rows = grid?.RowDefinitions.Select(d => d.Height.ToString()).ToArray(),
                         actualColumns = grid?.ColumnDefinitions.Select(d => d.ActualWidth).ToArray(), actualRows = grid?.RowDefinitions.Select(d => d.ActualHeight).ToArray(),
@@ -113,6 +124,10 @@ namespace SourceGit.Automation
                 }).ToArray(),
                 panes = controls.OfType<UserControl>().Where(v => v.IsEffectivelyVisible && v.Bounds.Width > 0 && v.Bounds.Height > 0)
                     .Select(v => new { type = v.GetType().Name, name = v.Name, bounds = Bounds(v) }).ToArray(),
+                scrolls = controls.OfType<ScrollViewer>().Select((s, index) => new { index, name = s.Name, visible = s.IsEffectivelyVisible,
+                    bounds = Bounds(s), viewport = new { width = s.Viewport.Width, height = s.Viewport.Height },
+                    extent = new { width = s.Extent.Width, height = s.Extent.Height }, offset = new { x = s.Offset.X, y = s.Offset.Y },
+                    horizontal = s.HorizontalScrollBarVisibility.ToString(), vertical = s.VerticalScrollBarVisibility.ToString() }).ToArray(),
                 bottomTabs = controls.OfType<Button>().Where(b => b.Classes.Contains("treegit_bottom_tab") && b.IsEffectivelyVisible)
                     .Select(b => new { text = b.Content as string, active = b.Classes.Contains("active"), bounds = Bounds(b),
                         content = b.GetVisualDescendants().OfType<TextBlock>().Select(t => Bounds(t)).ToArray() }).ToArray()

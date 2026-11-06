@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 
 namespace SourceGit.Views
 {
@@ -46,6 +47,30 @@ namespace SourceGit.Views
                 WindowState = WindowState.Maximized;
 
             e.Handled = true;
+        }
+
+        protected override void OnOpened(EventArgs e)
+        {
+            base.OnOpened(e);
+            if (!CanResize || this is Launcher) return;
+            var screen = Screens.ScreenFromWindow(this) ?? Screens.Primary;
+            if (screen == null) return;
+            var area = screen.WorkingArea;
+            var scale = screen.Scaling;
+            // Reserve room for native captions/borders as well as custom frames.
+            var width = Math.Max(1, area.Width / scale - 32);
+            var height = Math.Max(1, area.Height / scale - 64);
+            MinWidth = Math.Min(MinWidth, width);
+            MinHeight = Math.Min(MinHeight, height);
+            if (Bounds.Width > width) Width = width;
+            if (Bounds.Height > height) Height = height;
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (!IsVisible || WindowState != WindowState.Normal) return;
+                Position = new PixelPoint(
+                    (int)Math.Clamp(Position.X, area.X, Math.Max(area.X, area.Right - Bounds.Width * scale)),
+                    (int)Math.Clamp(Position.Y, area.Y, Math.Max(area.Y, area.Bottom - Bounds.Height * scale)));
+            }, DispatcherPriority.Background);
         }
 
         protected override void OnApplyTemplate(TemplateAppliedEventArgs e)

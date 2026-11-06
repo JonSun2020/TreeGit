@@ -1,6 +1,12 @@
 ﻿<?xml version='1.0' encoding='utf-8'?>
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:vm="using:SourceGit.ViewModels" xmlns:v="using:SourceGit.Views" xmlns:c="using:SourceGit.Converters" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600" x:Class="SourceGit.Views.WorkingCopy" x:DataType="vm:WorkingCopy">
-  <Grid x:Name="MainLayout" SizeChanged="OnMainLayoutSizeChanged" Background="{DynamicResource Brush.SubPanel}" RowDefinitions="*,4,128,40">
+  <v:SplitViewGrid x:Name="MainLayout" SizeChanged="OnMainLayoutSizeChanged" Background="{DynamicResource Brush.SubPanel}" >
+    <v:SplitViewGrid.RowDefinitions>
+      <RowDefinition Height="*" MinHeight="237"/>
+      <RowDefinition Height="4"/>
+      <RowDefinition Height="128" MinHeight="80"/>
+      <RowDefinition Height="40"/>
+    </v:SplitViewGrid.RowDefinitions>
     <Grid.ColumnDefinitions>
       <ColumnDefinition Width="{Binding Source={x:Static vm:Preferences.Instance}, Path=Layout.WorkingCopyLeftWidth, Mode=TwoWay}" MinWidth="300"/>
       <ColumnDefinition Width="4"/>
@@ -256,5 +262,5 @@
             </MultiBinding>
           </Button.IsVisible>
         </Button>
-      </Grid></Grid>
+      </Grid></v:SplitViewGrid>
 </UserControl>

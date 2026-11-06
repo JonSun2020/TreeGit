@@ -54,6 +54,11 @@ namespace SourceGit.Views
             set => SetAndRaise(SidebarMinWidthProperty, ref _sidebarMinWidth, value);
         }
 
+        public static readonly DirectProperty<Repository, double> SidebarMaxWidthProperty =
+            AvaloniaProperty.RegisterDirect<Repository, double>(nameof(SidebarMaxWidth),
+                static o => o.SidebarMaxWidth);
+        public double SidebarMaxWidth => _sidebarMaxWidth;
+
         public static readonly DirectProperty<Repository, GridLength> SidebarWidthProperty =
             AvaloniaProperty.RegisterDirect<Repository, GridLength>(
                 nameof(SidebarWidth),
@@ -80,6 +85,16 @@ namespace SourceGit.Views
         {
             _sidebarWidth = new GridLength(ViewModels.Preferences.Instance.Layout.RepositorySidebarWidth);
             InitializeComponent();
+            SizeChanged += (_, _) => ConstrainSidebar();
+        }
+
+        private void ConstrainSidebar()
+        {
+            if (Bounds.Width <= 0) return;
+            SetAndRaise(SidebarMaxWidthProperty, ref _sidebarMaxWidth, Math.Max(49, Bounds.Width - 321));
+            SidebarMinWidth = _isNormalSidebarVisible || _isCommitSearchPanelVisible ? Math.Min(200, _sidebarMaxWidth) : 49;
+            if (SidebarWidth.Value > _sidebarMaxWidth)
+                SidebarWidth = new GridLength(_sidebarMaxWidth);
         }
 
         protected override void OnLoaded(RoutedEventArgs e)
@@ -649,11 +664,13 @@ namespace SourceGit.Views
                 SidebarMinWidth = 49;
                 SidebarWidth = new GridLength(49, GridUnitType.Pixel);
             }
+            ConstrainSidebar();
         }
 
         private bool _isNormalSidebarVisible = true;
         private bool _isCommitSearchPanelVisible = false;
         private double _sidebarMinWidth = 200;
+        private double _sidebarMaxWidth = double.PositiveInfinity;
         private GridLength _sidebarWidth;
     }
 }

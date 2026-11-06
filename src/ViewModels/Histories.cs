@@ -187,7 +187,11 @@ namespace SourceGit.ViewModels
             get => _isWorkingCopySelected;
             private set
             {
-                if (SetProperty(ref _isWorkingCopySelected, value)) _repo.NotifyNavigationTabsChanged();
+                if (SetProperty(ref _isWorkingCopySelected, value))
+                {
+                    _repo.NotifyNavigationTabsChanged();
+                    OnPropertyChanged(nameof(DetailsMinimumHeight));
+                }
             }
         }
 
@@ -319,6 +323,8 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _topArea, value);
         }
 
+        public double DetailsMinimumHeight => _isCollapseDetails ? 28 : IsWorkingCopySelected ? 268 : 280;
+
         public GridLength BottomArea
         {
             get => _isCollapseDetails ? new GridLength(28, GridUnitType.Pixel) : _bottomArea;
@@ -349,6 +355,7 @@ namespace SourceGit.ViewModels
                 {
                     OnPropertyChanged(nameof(TopArea));
                     OnPropertyChanged(nameof(BottomArea));
+                    OnPropertyChanged(nameof(DetailsMinimumHeight));
                 }
             }
         }

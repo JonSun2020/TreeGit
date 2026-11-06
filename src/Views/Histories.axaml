@@ -4,18 +4,19 @@
     <v:HistoriesLayout.RowDefinitions>
       <RowDefinition Height="{Binding TopArea, Mode=TwoWay}" MinHeight="100"/>
       <RowDefinition Height="3"/>
-      <RowDefinition Height="{Binding BottomArea, Mode=TwoWay}" MinHeight="28"/>
+      <RowDefinition Height="{Binding BottomArea, Mode=TwoWay}" MinHeight="{Binding DetailsMinimumHeight}"/>
     </v:HistoriesLayout.RowDefinitions>
 
     <v:HistoriesLayout.ColumnDefinitions>
-      <ColumnDefinition Width="{Binding LeftArea, Mode=TwoWay}" MinWidth="100"/>
+      <ColumnDefinition Width="{Binding LeftArea, Mode=TwoWay}" MinWidth="300"/>
       <ColumnDefinition Width="3"/>
-      <ColumnDefinition Width="{Binding RightArea, Mode=TwoWay}" MinWidth="100"/>
+      <ColumnDefinition Width="{Binding RightArea, Mode=TwoWay}" MinWidth="440"/>
     </v:HistoriesLayout.ColumnDefinitions>
 
     <Grid Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3">
-      <Grid RowDefinitions="26,*" IsVisible="{Binding !IsSearchingCommits}">
-      <Border Grid.Row="0" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Brush.Border0}" Background="{DynamicResource Brush.SubPanel}">
+      <Grid RowDefinitions="Auto,*" IsVisible="{Binding !IsSearchingCommits}">
+      <Border Grid.Row="0" MinHeight="26" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Brush.Border0}" Background="{DynamicResource Brush.SubPanel}">
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
         <Grid ColumnDefinitions="Auto,Auto,Auto,Auto,*" Margin="2,0">
           <ComboBox Grid.Column="0" Width="142" Height="22" Padding="4,0" SelectedIndex="{Binding BranchDisplayMode, Mode=TwoWay}">
             <ComboBoxItem Content="{DynamicResource Text.Graph.AllBranches}"/>
@@ -23,6 +24,7 @@
           </ComboBox>
           <CheckBox Grid.Column="1" Content="显示远程分支" Margin="12,0" IsChecked="{Binding ShowRemoteBranches, Mode=TwoWay}"/><ComboBox Grid.Column="2" Width="136" MinWidth="136" Height="22" Padding="6,0" SelectedIndex="{Binding SortMode, Mode=TwoWay}"><ComboBoxItem Content="按日期排序"/><ComboBoxItem Content="按拓扑排序"/></ComboBox><TextBlock Grid.Column="3" Margin="12,0,0,0" Foreground="{DynamicResource Brush.FG2}" Text="{Binding GraphBranchName}" FontSize="11" TextTrimming="CharacterEllipsis"/>
         </Grid>
+        </ScrollViewer>
       </Border>
       <v:HistoriesCommitList Grid.Row="1" x:Name="CommitListContainer" Classes="static_scrollbar" ScrollViewer.AllowAutoHide="False" Background="Transparent" ItemsSource="{Binding Commits, Mode=OneWay}" TotalCommits="{Binding Commits.Count, Mode=OneWay}" SelectedCommits="{Binding SelectedCommits, Mode=TwoWay}" ColumnHeaderHeight="24" RowHeight="19" LayoutUpdated="OnCommitListLayoutUpdated" ContextRequested="OnCommitListContextRequested" DoubleTapped="OnCommitListDoubleTapped">
         <DataGrid.Styles>

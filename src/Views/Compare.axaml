@@ -12,7 +12,7 @@
                     x:Name="ThisControl"
                     Icon="/App.ico"
                     Title="{DynamicResource Text.Compare}"
-                    MinWidth="1280" MinHeight="720">
+                    Width="1100" Height="720" MinWidth="800" MinHeight="520">
   <Grid RowDefinitions="Auto,64,Auto,*">
     <!-- TitleBar -->
     <Grid Grid.Row="0" Height="28" IsVisible="{Binding !#ThisControl.UseSystemWindowFrame}">
