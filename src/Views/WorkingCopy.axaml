@@ -65,7 +65,7 @@
             <Button Classes="icon_button" Width="26" Height="14" Padding="0" IsVisible="{Binding HasUnsolvedConflicts}" ToolTip.Tip="{DynamicResource Text.WorkingCopy.Conflicts.OpenExternalMergeToolAllConflicts}" Click="OnOpenExternalMergeToolAllConflicts" Margin="3,2">
               <Path Width="14" Height="14" Data="{StaticResource Icons.Conflict}"/>
             </Button>
-            <Button Classes="flat treegit_stage_action" Width="70" Height="20" Padding="4,0" HotKey="{OnPlatform Ctrl+Shift+S, macOS=⌘+Shift+S}" Click="OnStageAllButtonClicked" Margin="3,2" FontSize="11">
+            <Button Classes="flat treegit_stage_action" Width="70" Height="20" Padding="4,0" HotKey="{OnPlatform Ctrl+Shift+S, macOS=⌘+Shift+S}" x:Name="StageAllChanges" Click="OnStageAllButtonClicked" Margin="3,2" FontSize="11">
               <ToolTip.Tip>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                   <TextBlock Text="{DynamicResource Text.WorkingCopy.Unstaged.StageAll}" VerticalAlignment="Center"/>
@@ -73,7 +73,7 @@
                 </StackPanel>
               </ToolTip.Tip>
               <TextBlock Text="暂存所有"/></Button>
-          <Button Classes="flat treegit_stage_action" Width="70" Height="20" Padding="4,0" Click="OnStageSelectedButtonClicked" Margin="3,2" FontSize="11">
+          <Button Classes="flat treegit_stage_action" Width="70" Height="20" Padding="4,0" x:Name="StageSelectedChanges" Click="OnStageSelectedButtonClicked" Margin="3,2" FontSize="11">
               <ToolTip.Tip>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                   <TextBlock Text="{DynamicResource Text.WorkingCopy.Unstaged.Stage}" VerticalAlignment="Center"/>
@@ -100,7 +100,7 @@
               <Run Text="{Binding StagedCountInfo, Mode=OneWay}"/>
             </TextBlock>
             <v:LoadingIcon Width="14" Height="14" Margin="8,0,0,0" IsVisible="{Binding IsUnstaging}"/>
-            </StackPanel><v:RightAlignedWrapPanel HorizontalAlignment="Stretch" VerticalAlignment="Center"><Button Classes="flat treegit_stage_action" Width="92" Height="20" Padding="4,0" HotKey="{OnPlatform Ctrl+Shift+U, macOS=⌘+Shift+U}" Click="OnUnstageAllButtonClicked" Margin="3,2" FontSize="11">
+            </StackPanel><v:RightAlignedWrapPanel HorizontalAlignment="Stretch" VerticalAlignment="Center"><Button Classes="flat treegit_stage_action" Width="92" Height="20" Padding="4,0" HotKey="{OnPlatform Ctrl+Shift+U, macOS=⌘+Shift+U}" x:Name="UnstageAllChanges" Click="OnUnstageAllButtonClicked" Margin="3,2" FontSize="11">
               <ToolTip.Tip>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                   <TextBlock Text="{DynamicResource Text.WorkingCopy.Staged.UnstageAll}" VerticalAlignment="Center"/>
@@ -108,7 +108,7 @@
                 </StackPanel>
               </ToolTip.Tip>
               <TextBlock Text="取消所有暂存"/></Button>
-          <Button Classes="flat treegit_stage_action" Width="92" Height="20" Padding="4,0" Click="OnUnstageSelectedButtonClicked" Margin="3,2" FontSize="11">
+          <Button Classes="flat treegit_stage_action" Width="92" Height="20" Padding="4,0" x:Name="UnstageSelectedChanges" Click="OnUnstageSelectedButtonClicked" Margin="3,2" FontSize="11">
               <ToolTip.Tip>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                   <TextBlock Text="{DynamicResource Text.WorkingCopy.Staged.Unstage}" VerticalAlignment="Center"/>

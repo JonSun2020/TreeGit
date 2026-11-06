@@ -61,6 +61,7 @@ git('push', '-u', 'origin', 'main')
 git('stash', 'push', '-m', 'Long stash title with text and binary changes for resizable detail panels')
 (repo / 'text.txt').write_text('staged change\n', encoding='utf-8')
 git('add', 'text.txt')
+staged_blob = git('rev-parse', ':text.txt')
 (repo / 'text.txt').write_text('staged change\nunstaged change\n', encoding='utf-8')
 (repo / 'firmware.bin').write_bytes(bytes(range(256)) * 64)
 (repo / 'image.png').write_bytes(make_png((192, 128, 32)))
@@ -166,7 +167,7 @@ def sweep(label, selected=None, captures=False, active=False):
             moved = next(x for x in g['splitters'] if x['index'] == s['index'])
             lengths, mins = (moved['actualColumns'], moved['minColumns']) if direction == 'x' else (moved['actualRows'], moved['minRows'])
             old_lengths = s['actualColumns'] if direction == 'x' else s['actualRows']
-            changed |= any(abs(a - b) > 1 for a, b in zip(lengths, old_lengths))
+            changed |= any(abs(a - b) > .1 for a, b in zip(lengths, old_lengths))
             check(case + ': respects pane minimums', all(a >= m - 1 for a, m in zip(lengths, mins)), {'actual': lengths, 'minimums': mins})
         position = s['column'] if direction == 'x' else s['row']
         lengths = s['actualColumns'] if direction == 'x' else s['actualRows']
@@ -211,6 +212,25 @@ try:
     # Full commit editor and overview are distinct existing entry points.
     repo_tool('ui_select_view', view='working_copy')
     sweep('commit-editor', '文件状态', True)
+    # Exercise the actual UI click handlers, then restore the fixture's original
+    # index. This checks operation targets as well as geometry after dragging.
+    repo_tool('ui_diff', action='select', source='unstaged', file='text.txt')
+    tool('ui_layout', {'action': 'test_click', 'button': 'StageSelectedChanges'})
+    wait_for(lambda: git('show', ':text.txt') == 'staged change\nunstaged change')
+    check('stage selected button stages exactly the selected text content', git('diff', '--name-only', '--', 'text.txt') == '')
+    repo_tool('ui_diff', action='select', source='staged', file='text.txt')
+    tool('ui_layout', {'action': 'test_click', 'button': 'UnstageSelectedChanges'})
+    wait_for(lambda: git('diff', '--cached', '--name-only', '--', 'text.txt') == '')
+    check('unstage selected button leaves working file intact', (repo / 'text.txt').read_text() == 'staged change\nunstaged change\n')
+    tool('ui_layout', {'action': 'test_click', 'button': 'StageAllChanges'})
+    wait_for(lambda: git('status', '--porcelain') and all(line[1] == ' ' for line in git('status', '--porcelain').splitlines()))
+    check('stage all includes nested untracked files and binary changes', len(git('diff', '--cached', '--name-only').splitlines()) == 4)
+    tool('ui_layout', {'action': 'test_click', 'button': 'UnstageAllChanges'})
+    wait_for(lambda: git('diff', '--cached', '--name-only') == '')
+    check('unstage all preserves all working files', (folder / 'a very long untracked filename with spaces and unicode 中文.txt').exists() and (repo / 'firmware.bin').stat().st_size == 16384)
+    git('update-index', '--cacheinfo', '100644,' + staged_blob + ',text.txt')
+    repo_tool('ui_refresh')
+    time.sleep(.5)
     repo_tool('ui_diff', action='select', source='unstaged', file='firmware.bin')
     wait_for(lambda: repo_tool('ui_diff')['status'] != 'not_binary')
     sweep('binary-diff', '文件状态', True)

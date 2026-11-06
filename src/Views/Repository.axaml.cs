@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 
 using Avalonia;
 using Avalonia.Controls;
@@ -113,7 +114,10 @@ namespace SourceGit.Views
         protected override void OnUnloaded(RoutedEventArgs e)
         {
             if (_historySelectionSource != null)
+            {
                 _historySelectionSource.HistoryBranchSelectionRequested -= OnHistoryBranchSelection;
+                _historySelectionSource.PropertyChanged -= OnNavigationPropertyChanged;
+            }
             _historySelectionSource = null;
             base.OnUnloaded(e);
         }
@@ -121,10 +125,23 @@ namespace SourceGit.Views
         private void BindHistoryBranchSelection()
         {
             if (_historySelectionSource != null)
+            {
                 _historySelectionSource.HistoryBranchSelectionRequested -= OnHistoryBranchSelection;
+                _historySelectionSource.PropertyChanged -= OnNavigationPropertyChanged;
+            }
             _historySelectionSource = IsLoaded ? DataContext as ViewModels.Repository : null;
             if (_historySelectionSource != null)
+            {
                 _historySelectionSource.HistoryBranchSelectionRequested += OnHistoryBranchSelection;
+                _historySelectionSource.PropertyChanged += OnNavigationPropertyChanged;
+            }
+        }
+
+        private void OnNavigationPropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName is nameof(ViewModels.Repository.SelectedViewIndex) or nameof(ViewModels.Repository.IsFileStatusTabSelected)
+                or nameof(ViewModels.Repository.IsHistoryTabSelected) or nameof(ViewModels.Repository.IsSearchTabSelected))
+                PageViewport.Offset = default;
         }
 
         private void OnHistoryBranchSelection(Models.Branch branch)

@@ -11,7 +11,7 @@
       <Border Grid.Row="0" BorderBrush="{DynamicResource Brush.Border0}" BorderThickness="0,0,0,1" Padding="8,6" Margin="0,0,0,4" MaxHeight="156">
         <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="3">
-          <TextBlock FontSize="12" TextWrapping="Wrap"><Run FontWeight="Bold" Text="{DynamicResource Text.CommitChanges.CommitLabel}"/><Run Text="{Binding Commit.SHA}"/></TextBlock>
+          <TextBlock FontSize="12" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Commit.SHA}"><Run FontWeight="Bold" Text="{DynamicResource Text.CommitChanges.CommitLabel}"/><Run Text="{Binding Commit.SHA}"/></TextBlock>
           <TextBlock FontSize="12" TextWrapping="Wrap"><Run FontWeight="Bold" Text="{DynamicResource Text.CommitChanges.AuthorLabel}"/><Run Text="{Binding Commit.Author.Name}"/><Run Text=" &lt;"/><Run Text="{Binding Commit.Author.Email}"/><Run Text="&gt;"/></TextBlock>
           <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock FontSize="12" FontWeight="Bold" Text="{DynamicResource Text.CommitChanges.DateLabel}"/><v:DateTimePresenter Timestamp="{Binding Commit.CommitterTime}" FontSize="12"/></StackPanel>
           <TextBlock Text="{Binding Commit.Subject}" Margin="0,5,0,2" TextWrapping="Wrap" FontWeight="SemiBold"/>

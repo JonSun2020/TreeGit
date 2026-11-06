@@ -387,7 +387,7 @@
             </GridSplitter>
 
             <!-- Right Page -->
-            <Grid Grid.Column="2" RowDefinitions="*,28"><ScrollViewer x:Name="PageViewport" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"><Grid Width="{Binding #PageViewport.Viewport.Width}" Height="{Binding #PageViewport.Viewport.Height}" MinWidth="780" MinHeight="400">
+            <Grid Grid.Column="2" RowDefinitions="*,28"><ScrollViewer x:Name="PageViewport" AllowAutoHide="False" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"><Grid Width="{Binding #PageViewport.Viewport.Width}" Height="{Binding #PageViewport.Viewport.Height}" MinWidth="780" MinHeight="400">
               <!-- Dashboard (History) Page -->
               <Border IsVisible="{Binding IsDashboardVisible, Mode=OneWay}" PropertyChanged="OnRightPagePropertyChanged">
                 <Grid RowDefinitions="Auto,Auto,*" Background="{DynamicResource Brush.SubPanel}">

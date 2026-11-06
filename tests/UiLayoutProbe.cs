@@ -4,12 +4,22 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media;
+using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 
 namespace SourceGit.Automation
 {
     internal static class UiLayoutProbe
     {
+        public static void ClickButton(Window window, string name)
+        {
+            var button = window.GetVisualDescendants().OfType<Button>()
+                .Single(b => b.Name == name && b.IsEffectivelyVisible);
+            if (!button.IsEnabled) throw new InvalidOperationException("The selected button is disabled.");
+            button.BringIntoView();
+            button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        }
+
         public static object Inspect(Window window)
         {
             var views = window.GetVisualDescendants().OfType<Views.WorkingCopy>().Where(v => v.IsEffectivelyVisible);

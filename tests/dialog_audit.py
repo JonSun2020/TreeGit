@@ -118,6 +118,15 @@ try:
             dialog=state['dialogs'][0]
             check(f'repository {page} {zoom} has visible confirmation within screen',within(dialog) and dialog['confirmVisible'])
         tool('ui_command',{'command':'close_dialog'})
+        for command in ['credentials','about','mcp_connection','ssh_keys']:
+            tool('ui_command',{'repo':str(repo),'command':command})
+            state=capture(f'dialog-{command}-{zoom}',True)
+            check(f'{command} {zoom} fits the screen',len(state['dialogs'])==1 and within(state['dialogs'][0]))
+            layout=tool('ui_layout',{'window':'active'})
+            w=layout['window']
+            fixed=[b for b in layout['buttons'] if not b['inScrollArea']]
+            check(f'{command} {zoom} fixed actions remain visible',all(b['bounds']['x']>=-.5 and b['bounds']['y']>=-.5 and b['bounds']['x']+b['bounds']['width']<=w['width']+.5 and b['bounds']['y']+b['bounds']['height']<=w['height']+.5 for b in fixed))
+            tool('ui_command',{'command':'close_dialog'})
         for command in ['create_branch','create_tag','reset_dialog','fetch_dialog','pull_dialog','push_dialog','stash_dialog','apply_patch']:
             tool('ui_command',{'repo':str(repo),'command':command})
             state=capture(f'popup-{command}-{zoom}')

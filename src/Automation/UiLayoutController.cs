@@ -41,6 +41,10 @@ namespace SourceGit.Automation
                 scroller.Offset = new Vector(args.TryGetProperty("dx", out _) ? Change(args, "dx") : scroller.Offset.X,
                     args.TryGetProperty("dy", out _) ? Change(args, "dy") : scroller.Offset.Y);
             }
+#if INTEGRATION_TESTS
+            else if (action == "test_click")
+                UiLayoutProbe.ClickButton(window, args.GetProperty("button").GetString());
+#endif
             else if (action is "drag" or "restore")
             {
                 var index = args.TryGetProperty("splitter", out var selected) ? selected.GetInt32() : -1;
@@ -119,6 +123,7 @@ namespace SourceGit.Automation
                     var border = b.FindAncestorOfType<Border>();
                     var point = border == null ? null : b.TranslatePoint(default, border);
                     return new { name = b.Name, text = b.Content as string ?? string.Join("", b.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text)), classes = b.Classes.ToArray(), enabled = b.IsEnabled, bounds = Bounds(b),
+                        inScrollArea = b.FindAncestorOfType<ScrollViewer>() != null,
                         parentBorderWidth = border?.Bounds.Width, parentBorderHeight = border?.Bounds.Height,
                         outsideParentBorder = point.HasValue && (point.Value.X < -.5 || point.Value.Y < -.5 || point.Value.X + b.Bounds.Width > border.Bounds.Width + .5 || point.Value.Y + b.Bounds.Height > border.Bounds.Height + .5) };
                 }).ToArray(),
