@@ -174,6 +174,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/deferred_loading.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/deferred-results"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/treegit_graph.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/reference-graph-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/package_smoke.py "$env:RUNNER_TEMP/treegit-package-test"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/startup_incomplete.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/startup-incomplete-results"
@@ -195,6 +197,8 @@ jobs:
         with:
           name: TreeGit-ui-regressions
           path: |
+            ${{ runner.temp }}/reference-graph-results/*.json
+            ${{ runner.temp }}/reference-graph-results/*.png
             ${{ runner.temp }}/font-results/*.json
             ${{ runner.temp }}/font-results/*.png
             ${{ runner.temp }}/binary-diff-results/*.json

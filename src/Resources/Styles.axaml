@@ -11,9 +11,7 @@
     </StackPanel>
   </Design.PreviewWith>
 
-  <Style Selector="v|CommitRefsPresenter">
-    <Setter Property="TagIconBrush" Value="{DynamicResource Brush.TreeGit.TagIcon}"/>
-  </Style>
+
 
 
   <Style Selector="Window">

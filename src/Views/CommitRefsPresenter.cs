@@ -73,6 +73,7 @@ namespace SourceGit.Views
             public FormattedText TrackStatus { get; set; } = null;
             public IBrush Brush { get; set; } = null;
             public bool IsHead { get; set; } = false;
+            public bool HasTrailingHead { get; set; } = false;
             public double Width { get; set; } = 0.0;
             public List<FormattedText> Remotes { get; set; } = [];
         }
@@ -111,15 +112,6 @@ namespace SourceGit.Views
         {
             get => GetValue(ForegroundProperty);
             set => SetValue(ForegroundProperty, value);
-        }
-
-        public static readonly StyledProperty<IBrush> TagIconBrushProperty =
-            AvaloniaProperty.Register<CommitRefsPresenter, IBrush>(nameof(TagIconBrush), new SolidColorBrush(Color.Parse("#16836D")));
-
-        public IBrush TagIconBrush
-        {
-            get => GetValue(TagIconBrushProperty);
-            set => SetValue(TagIconBrushProperty, value);
         }
 
         public static readonly StyledProperty<bool> UseCompactBranchNamesProperty =
@@ -229,27 +221,45 @@ namespace SourceGit.Views
                 context.DrawLine(new Pen(item.Brush), new Point(x + 16, y), new Point(x + 16, y + 16));
                 context.DrawText(item.Label, new Point(x + 20, y + 8.0 - item.Label.Height * 0.5));
 
+                var rx = x + 20 + item.Label.WidthIncludingTrailingWhitespace + 4;
                 if (item.Remotes.Count > 0)
                 {
-                    var rx = x + 20 + item.Label.WidthIncludingTrailingWhitespace + 4;
-
-                    if (hasSingleRemote)
+                    if (item.HasTrailingHead)
+                    {
+                        if (!hasSingleRemote)
+                        {
+                            foreach (var remote in item.Remotes)
+                            {
+                                context.DrawLine(new Pen(item.Brush), new Point(rx, y), new Point(rx, y + 16));
+                                context.DrawText(remote, new Point(rx + 4, y + 8.0 - remote.Height * 0.5));
+                                rx += remote.WidthIncludingTrailingWhitespace + 8;
+                            }
+                        }
+                    }
+                    else if (hasSingleRemote)
                     {
                         context.DrawLine(new Pen(item.Brush), new Point(rx, y), new Point(rx, y + 16));
-                        using (context.PushTransform(Matrix.CreateTranslation(rx + 4, y + 4)))
-                            context.DrawGeometry(fg, null, remoteIcon);
+                        using (context.PushTransform(Matrix.CreateTranslation(rx + 4, y + 3)))
+                            context.DrawGeometry(item.Brush, null, remoteIcon);
                     }
                     else
                     {
                         foreach (var remote in item.Remotes)
                         {
                             context.DrawLine(new Pen(item.Brush), new Point(rx, y), new Point(rx, y + 16));
-                            using (context.PushTransform(Matrix.CreateTranslation(rx + 4, y + 4)))
-                                context.DrawGeometry(fg, null, remoteIcon);
+                            using (context.PushTransform(Matrix.CreateTranslation(rx + 4, y + 3)))
+                                context.DrawGeometry(item.Brush, null, remoteIcon);
                             context.DrawText(remote, new Point(rx + 16, y + 8.0 - remote.Height * 0.5));
                             rx += remote.WidthIncludingTrailingWhitespace + 22;
                         }
                     }
+                }
+
+                if (item.HasTrailingHead)
+                {
+                    context.DrawLine(new Pen(item.Brush), new Point(rx, y), new Point(rx, y + 16));
+                    using (context.PushTransform(Matrix.CreateTranslation(rx + 4, y + 3)))
+                        context.DrawGeometry(fg, null, CommitRefsIconCache.Instance.GetIcon(Models.DecoratorType.CurrentBranchHead));
                 }
 
                 context.DrawRectangle(null, new Pen(item.Brush), entireRect);
@@ -261,9 +271,13 @@ namespace SourceGit.Views
                     context.DrawText(item.TrackStatus, new Point(badge.X + 3, badge.Center.Y - item.TrackStatus.Height / 2));
                 }
 
-                var icon = CommitRefsIconCache.Instance.GetIcon(item.Decorator.Type);
+                var iconType = item.HasTrailingHead
+                    ? item.Remotes.Count > 0 ? Models.DecoratorType.RemoteBranchHead : Models.DecoratorType.LocalBranchHead
+                    : item.Decorator.Type;
+                var icon = CommitRefsIconCache.Instance.GetIcon(iconType);
+                var iconBrush = iconType is Models.DecoratorType.Tag or Models.DecoratorType.RemoteBranchHead ? item.Brush : fg;
                 using (context.PushTransform(Matrix.CreateTranslation(x + 3, y + 3)))
-                    context.DrawGeometry(item.Decorator.IsTag ? TagIconBrush : fg, null, icon);
+                    context.DrawGeometry(iconBrush, null, icon);
 
                 x += item.Width + 4;
             }
@@ -272,9 +286,6 @@ namespace SourceGit.Views
         protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
         {
             base.OnPropertyChanged(change);
-
-            if (change.Property == TagIconBrushProperty)
-                InvalidateVisual();
 
             if (change.Property == FontFamilyProperty ||
                 change.Property == FontSizeProperty ||
@@ -334,8 +345,9 @@ namespace SourceGit.Views
                 var item = new RenderItem()
                 {
                     Decorator = decorator,
-                    Brush = decorator.Type == Models.DecoratorType.Tag ? Brushes.Gray : normalBG,
+                    Brush = normalBG,
                     IsHead = decorator.Type is Models.DecoratorType.CurrentBranchHead or Models.DecoratorType.CurrentCommitHead,
+                    HasTrailingHead = decorator.Type == Models.DecoratorType.CurrentBranchHead,
                 };
                 _items.Add(item);
 
@@ -394,14 +406,17 @@ namespace SourceGit.Views
                             item.Remotes.Add(remote);
 
                             if (hasSingleRemote)
-                                item.Width += 18;
+                                item.Width += item.HasTrailingHead ? 0 : 18;
                             else
-                                item.Width += remote.WidthIncludingTrailingWhitespace + 22;
+                                item.Width += remote.WidthIncludingTrailingWhitespace + (item.HasTrailingHead ? 8 : 22);
 
                             skippedIdx.Add(j);
                         }
                     }
                 }
+
+                if (item.HasTrailingHead)
+                    item.Width += 18;
 
                 x += item.Width + 4;
                 if (allowWrap)
