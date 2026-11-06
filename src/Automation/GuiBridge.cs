@@ -704,6 +704,7 @@ namespace SourceGit.Automation
                             var submoduleDiff = owner.GetVisualDescendants().OfType<Views.DiffView>()
                                 .Where(v => v.IsEffectivelyVisible).Select(v => (v.DataContext as ViewModels.DiffContext)?.Content)
                                 .OfType<Models.SubmoduleDiff>().FirstOrDefault() ?? throw new InvalidOperationException("Select a loaded submodule change first.");
+                            if (!submoduleDiff.CanOpenDetails) throw new InvalidOperationException("Initialize the submodule and load both revisions before comparing them.");
                             Views.ControlExtensions.ShowWindow(owner, new ViewModels.SubmoduleRevisionCompare(submoduleDiff));
                             break;
                         case "interactive_rebase":
