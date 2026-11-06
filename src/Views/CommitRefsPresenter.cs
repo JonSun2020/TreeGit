@@ -73,7 +73,7 @@ namespace SourceGit.Views
             public FormattedText TrackStatus { get; set; } = null;
             public IBrush Brush { get; set; } = null;
             public bool IsHead { get; set; } = false;
-            public bool HasTrailingHead { get; set; } = false;
+            public bool HasLeadingHeadMarker { get; set; } = false;
             public double Width { get; set; } = 0.0;
             public List<FormattedText> Remotes { get; set; } = [];
         }
@@ -161,12 +161,18 @@ namespace SourceGit.Views
 
         public Models.Decorator DecoratorAt(Point point)
         {
-            var x = 0.0;
+            var x = 1.5;
+            var y = 0.5;
             foreach (var item in _items)
             {
-                x += item.Width;
-                if (point.X < x)
+                if (AllowWrap && x > 1.5 && x + item.Width > Bounds.Width)
+                {
+                    x = 1.5;
+                    y += 20.0;
+                }
+                if (new Rect(x, y, item.Width, 16).Contains(point))
                     return item.Decorator;
+                x += item.Width + 4;
             }
 
             return null;
@@ -196,7 +202,16 @@ namespace SourceGit.Views
                     y += 20.0;
                 }
 
-                var entireRect = new RoundedRect(new Rect(x, y, item.Width, 16), new CornerRadius(4));
+                var itemX = x;
+                var frameWidth = item.Width;
+                if (item.HasLeadingHeadMarker)
+                {
+                    context.DrawEllipse(null, new Pen(fg, 2), new Rect(x + 2, y + 4.5, 7, 7));
+                    x += 14;
+                    frameWidth -= 14;
+                }
+
+                var entireRect = new RoundedRect(new Rect(x, y, frameWidth, 16), new CornerRadius(4));
                 if (item.IsHead)
                 {
                     if (useGraphColor)
@@ -213,7 +228,7 @@ namespace SourceGit.Views
                     if (bg != null)
                         context.DrawRectangle(bg, null, entireRect);
 
-                    var labelRect = new RoundedRect(new Rect(x + 16, y, item.Width - 16, 16), new CornerRadius(4, 0, 0, 4));
+                    var labelRect = new RoundedRect(new Rect(x + 16, y, frameWidth - 16, 16), new CornerRadius(4, 0, 0, 4));
                     using (context.PushOpacity(.2))
                         context.DrawRectangle(item.Brush, null, labelRect);
                 }
@@ -224,7 +239,7 @@ namespace SourceGit.Views
                 var rx = x + 20 + item.Label.WidthIncludingTrailingWhitespace + 4;
                 if (item.Remotes.Count > 0)
                 {
-                    if (item.HasTrailingHead)
+                    if (item.HasLeadingHeadMarker)
                     {
                         if (!hasSingleRemote)
                         {
@@ -255,23 +270,16 @@ namespace SourceGit.Views
                     }
                 }
 
-                if (item.HasTrailingHead)
-                {
-                    context.DrawLine(new Pen(item.Brush), new Point(rx, y), new Point(rx, y + 16));
-                    using (context.PushTransform(Matrix.CreateTranslation(rx + 4, y + 3)))
-                        context.DrawGeometry(fg, null, CommitRefsIconCache.Instance.GetIcon(Models.DecoratorType.CurrentBranchHead));
-                }
-
                 context.DrawRectangle(null, new Pen(item.Brush), entireRect);
 
                 if (item.TrackStatus != null)
                 {
-                    var badge = new Rect(x + item.Width - item.TrackStatus.Width - 9, y + 1, item.TrackStatus.Width + 6, 14);
+                    var badge = new Rect(x + frameWidth - item.TrackStatus.Width - 9, y + 1, item.TrackStatus.Width + 6, 14);
                     context.DrawRectangle(new SolidColorBrush(Color.Parse("#7A869A")), null, new RoundedRect(badge, 2));
                     context.DrawText(item.TrackStatus, new Point(badge.X + 3, badge.Center.Y - item.TrackStatus.Height / 2));
                 }
 
-                var iconType = item.HasTrailingHead
+                var iconType = item.HasLeadingHeadMarker
                     ? item.Remotes.Count > 0 ? Models.DecoratorType.RemoteBranchHead : Models.DecoratorType.LocalBranchHead
                     : item.Decorator.Type;
                 var icon = CommitRefsIconCache.Instance.GetIcon(iconType);
@@ -279,7 +287,7 @@ namespace SourceGit.Views
                 using (context.PushTransform(Matrix.CreateTranslation(x + 3, y + 3)))
                     context.DrawGeometry(iconBrush, null, icon);
 
-                x += item.Width + 4;
+                x = itemX + item.Width + 4;
             }
         }
 
@@ -347,7 +355,7 @@ namespace SourceGit.Views
                     Decorator = decorator,
                     Brush = normalBG,
                     IsHead = decorator.Type is Models.DecoratorType.CurrentBranchHead or Models.DecoratorType.CurrentCommitHead,
-                    HasTrailingHead = decorator.Type == Models.DecoratorType.CurrentBranchHead,
+                    HasLeadingHeadMarker = decorator.Type == Models.DecoratorType.CurrentBranchHead,
                 };
                 _items.Add(item);
 
@@ -406,17 +414,17 @@ namespace SourceGit.Views
                             item.Remotes.Add(remote);
 
                             if (hasSingleRemote)
-                                item.Width += item.HasTrailingHead ? 0 : 18;
+                                item.Width += item.HasLeadingHeadMarker ? 0 : 18;
                             else
-                                item.Width += remote.WidthIncludingTrailingWhitespace + (item.HasTrailingHead ? 8 : 22);
+                                item.Width += remote.WidthIncludingTrailingWhitespace + (item.HasLeadingHeadMarker ? 8 : 22);
 
                             skippedIdx.Add(j);
                         }
                     }
                 }
 
-                if (item.HasTrailingHead)
-                    item.Width += 18;
+                if (item.HasLeadingHeadMarker)
+                    item.Width += 14;
 
                 x += item.Width + 4;
                 if (allowWrap)

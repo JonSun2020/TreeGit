@@ -34,7 +34,7 @@ namespace SourceGit.Automation
                     return items.Where(item => item.Decorator.IsTag).Select(item => new
                     {
                         color = (item.Brush as ISolidColorBrush)?.Color.ToString(),
-                        graphColor = (Models.CommitGraph.Pens[commit.Color].Brush as ISolidColorBrush)?.Color.ToString(),
+                        graphColor = ((v.UseGraphColor ? Models.CommitGraph.Pens[commit.Color].Brush : Brushes.Gray) as ISolidColorBrush)?.Color.ToString(),
                         refs = new[] { item.Decorator.Name },
                     });
                 }).ToArray();
