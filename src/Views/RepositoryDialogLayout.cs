@@ -9,6 +9,37 @@ namespace SourceGit.Views
 {
     internal static class RepositoryDialogLayout
     {
+        public static void FitFixedWindow(ChromelessWindow window, double width, double height)
+        {
+            void Fit(bool center)
+            {
+                if (!window.IsVisible) return;
+                var parent = window.Owner as Window;
+                var screen = center && parent != null ? parent.Screens.ScreenFromWindow(parent) : window.Screens.ScreenFromWindow(window);
+                screen ??= window.Screens.Primary;
+                if (screen == null) return;
+                var area = screen.WorkingArea;
+                var scale = screen.Scaling;
+                var x = center && parent != null ? parent.Position.X + parent.Bounds.Width * scale / 2 : window.Position.X + window.Bounds.Width * scale / 2;
+                var y = center && parent != null ? parent.Position.Y + parent.Bounds.Height * scale / 2 : window.Position.Y + window.Bounds.Height * scale / 2;
+                window.SizeToContent = SizeToContent.Manual;
+                window.MaxWidth = Math.Max(1, area.Width / scale - 32);
+                window.MaxHeight = Math.Max(1, area.Height / scale - 32);
+                window.Width = Math.Min(width * ViewModels.Preferences.Instance.Zoom, window.MaxWidth);
+                window.Height = Math.Min(height * ViewModels.Preferences.Instance.Zoom, window.MaxHeight);
+                window.Position = new PixelPoint(
+                    (int)Math.Clamp(x - window.Width * scale / 2, area.X + 8, Math.Max(area.X + 8, area.Right - window.Width * scale - 8)),
+                    (int)Math.Clamp(y - window.Height * scale / 2, area.Y + 8, Math.Max(area.Y + 8, area.Bottom - window.Height * scale - 8)));
+            }
+            void Changed(object _, PropertyChangedEventArgs e)
+            {
+                if (e.PropertyName == nameof(ViewModels.Preferences.Zoom)) Fit(false);
+            }
+            window.Opened += (_, _) => Fit(true);
+            ViewModels.Preferences.Instance.PropertyChanged += Changed;
+            window.Closed += (_, _) => ViewModels.Preferences.Instance.PropertyChanged -= Changed;
+        }
+
         public static void Apply(ChromelessWindow window, StackPanel body, Control footer, double width)
         {
             var margin = body.Margin;

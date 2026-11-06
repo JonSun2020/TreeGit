@@ -100,11 +100,11 @@
 
     <!-- Changes -->
     <Border Grid.Row="2">
-      <Grid Margin="8,0,8,8">
+      <v:SplitViewGrid Margin="8,0,8,8">
         <Grid.ColumnDefinitions>
           <ColumnDefinition Width="256" MinWidth="200" MaxWidth="480"/>
           <ColumnDefinition Width="4"/>
-          <ColumnDefinition Width="*"/>
+          <ColumnDefinition Width="*" MinWidth="240"/>
         </Grid.ColumnDefinitions>
 
         <Grid Grid.Column="0" RowDefinitions="26,*,26">
@@ -191,7 +191,7 @@
             </ContentControl.DataTemplates>
           </ContentControl>
         </Grid>
-      </Grid>
+      </v:SplitViewGrid>
     </Border>
   </Grid>
 </v:ChromelessWindow>

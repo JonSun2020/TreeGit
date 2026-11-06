@@ -52,8 +52,7 @@ namespace SourceGit.Views
             panel.Children.Add(write);
             panel.Children.Add(configuration);
             panel.Children.Add(state);
-            panel.Children.Add(buttons);
-            Content = panel;
+            RepositoryDialogLayout.Apply(this, panel, buttons, 650);
         }
     }
 }

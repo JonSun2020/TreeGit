@@ -13,7 +13,7 @@
     <Grid.ColumnDefinitions>
       <ColumnDefinition Width="{Binding Source={x:Static vm:Preferences.Instance}, Path=Layout.StashesLeftWidth, Mode=TwoWay}" MinWidth="160"/>
       <ColumnDefinition Width="4"/>
-      <ColumnDefinition Width="*" MinWidth="160"/>
+      <ColumnDefinition Width="*" MinWidth="240"/>
     </Grid.ColumnDefinitions>
 
     <Border Grid.Row="0" Grid.ColumnSpan="3" Padding="8,4" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Brush.Border0}" Background="{DynamicResource Brush.ToolBar}">

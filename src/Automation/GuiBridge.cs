@@ -536,11 +536,18 @@ namespace SourceGit.Automation
                         var source = args.TryGetProperty("source", out var s) ? s.GetString() : "unstaged";
                         if (source == "history")
                         {
-                            if (repo.Histories.DetailContext is not ViewModels.CommitDetail detail)
-                                throw new InvalidOperationException("Select a commit first.");
-                            var change = detail.Changes?.FirstOrDefault(c => c.Path == file) ?? throw new ArgumentException("File is not in the selected commit.");
-                            detail.ActiveTabIndex = 1;
-                            if (!IsSelected(detail.ChangeSelection, change)) detail.ChangeSelection = new ViewModels.ChangeSelection(new[] { change });
+                            if (repo.Histories.DetailContext is ViewModels.CommitDetail detail)
+                            {
+                                var change = detail.Changes?.FirstOrDefault(c => c.Path == file) ?? throw new ArgumentException("File is not in the selected commit.");
+                                detail.ActiveTabIndex = 1;
+                                if (!IsSelected(detail.ChangeSelection, change)) detail.ChangeSelection = new ViewModels.ChangeSelection(new[] { change });
+                            }
+                            else if (repo.Histories.DetailContext is ViewModels.RevisionCompare comparison)
+                            {
+                                var change = comparison.VisibleChanges?.FirstOrDefault(c => c.Path == file) ?? throw new ArgumentException("File is not in the selected comparison.");
+                                if (!IsSelected(comparison.ChangeSelection, change)) comparison.ChangeSelection = new ViewModels.ChangeSelection(new[] { change });
+                            }
+                            else throw new InvalidOperationException("Select a commit or two commits to compare first.");
                         }
                         else if (source == "stash")
                         {
@@ -678,6 +685,17 @@ namespace SourceGit.Automation
                             var to = repo.Branches.Find(b => b.FullName == Text(args, "to") || b.FriendlyName == Text(args, "to"))
                                 ?? throw new ArgumentException("Target branch does not exist.");
                             Views.ControlExtensions.ShowWindow(owner, new ViewModels.Compare(repo, based, to));
+                            break;
+                        case "compare_commits":
+                            var baseCommit = repo.Histories.Commits.Find(c => c.SHA == Text(args, "base")) ?? throw new ArgumentException("Base commit is not loaded in history.");
+                            var toCommit = repo.Histories.Commits.Find(c => c.SHA == Text(args, "to")) ?? throw new ArgumentException("Target commit is not loaded in history.");
+                            if (baseCommit == toCommit) throw new ArgumentException("Choose two different commits.");
+                            repo.ShowHistoryPage();
+                            repo.Histories.SelectedCommits = [toCommit, baseCommit];
+                            break;
+                        case "interactive_rebase":
+                            var rebaseOn = repo.Histories.Commits.Find(c => c.SHA == Text(args, "base")) ?? throw new ArgumentException("Base commit is not loaded in history.");
+                            _ = Views.ControlExtensions.ShowDialogAsync(owner, new ViewModels.InteractiveRebase(repo, rebaseOn));
                             break;
                         case "commit_info":
                         case "commit_changes":

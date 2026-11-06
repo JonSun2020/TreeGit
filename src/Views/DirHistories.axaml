@@ -47,11 +47,11 @@
     <Rectangle Grid.Row="2" Height="0.8" HorizontalAlignment="Stretch" VerticalAlignment="Top" Fill="{DynamicResource Brush.Border0}"/>
 
     <!-- Body -->
-    <Grid Grid.Row="3">
+    <v:SplitViewGrid Grid.Row="3">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="300" MinWidth="300" MaxWidth="600"/>
         <ColumnDefinition Width="4"/>
-        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="*" MinWidth="440"/>
       </Grid.ColumnDefinitions>
 
       <!-- Commits -->
@@ -136,6 +136,6 @@
           </ContentControl.DataTemplates>
         </ContentControl>
       </Border>
-    </Grid>
+    </v:SplitViewGrid>
   </Grid>
 </v:ChromelessWindow>

@@ -38,11 +38,11 @@
     </Grid>
 
     <!-- Body -->
-    <Grid Grid.Row="1" Margin="8">
+    <v:SplitViewGrid Grid.Row="1" Margin="8">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="300" MaxWidth="500" MinWidth="250"/>
         <ColumnDefinition Width="4"/>
-        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="*" MinWidth="220"/>
       </Grid.ColumnDefinitions>
 
       <ListBox Grid.Column="0"
@@ -130,7 +130,7 @@
                                       HorizontalScrollBarVisibility="Auto"
                                       VerticalScrollBarVisibility="Auto"/>
       </Border>
-    </Grid>
+    </v:SplitViewGrid>
 
     <Grid Grid.Row="2" Margin="0,0,0,8">
       <Button Classes="flat primary"

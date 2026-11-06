@@ -8,10 +8,10 @@
                     x:Name="ThisControl"
                     Icon="/App.ico"
                     Title="{DynamicResource Text.About}"
-                    SizeToContent="WidthAndHeight"
+                    Width="680" Height="440"
                     CanResize="False"
                     WindowStartupLocation="CenterOwner">
-  <StackPanel Orientation="Vertical">
+  <Grid RowDefinitions="Auto,*">
     <!-- TitleBar -->
     <Grid Height="28" IsVisible="{Binding !#ThisControl.UseSystemWindowFrame}">
       <Border Background="{DynamicResource Brush.TitleBar}"
@@ -35,7 +35,8 @@
     </Grid>
 
     <!-- Content -->
-    <StackPanel Orientation="Horizontal">
+    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <WrapPanel Orientation="Horizontal">
       <Image Width="144" Height="144"
              Margin="24,20"
              Source="/Resources/Images/TreeGit.png"
@@ -81,6 +82,7 @@
         <TextBlock x:Name="TxtReleaseDate" Margin="0,28,0,0" Foreground="{DynamicResource Brush.FG2}"/>
         <TextBlock x:Name="TxtCopyright" Margin="0,2,0,0" Foreground="{DynamicResource Brush.FG2}"/>
       </StackPanel>
-    </StackPanel>
-  </StackPanel>
+    </WrapPanel>
+    </ScrollViewer>
+  </Grid>
 </v:ChromelessWindow>

@@ -8,6 +8,8 @@ namespace SourceGit.Views
         public SSHKeyHelper()
         {
             InitializeComponent();
+            CloseOnESC = true;
+            RepositoryDialogLayout.FitFixedWindow(this, 640, 400);
         }
 
         private void OnAddNewKey(object sender, RoutedEventArgs e)
