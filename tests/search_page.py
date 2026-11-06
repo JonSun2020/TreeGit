@@ -3,6 +3,7 @@ import base64
 import json
 from pathlib import Path
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -141,5 +142,10 @@ finally:
         subprocess.run(['powershell','-NoProfile','-Command',code],capture_output=True,check=True)
     assert repo.name.startswith('TreeGit search ') and not repo.is_symlink() and not repo.is_junction()
     assert repo.parent==Path(tempfile.gettempdir()).resolve()
-    shutil.rmtree(repo)
+    def remove_readonly(function,path,error):
+        owned=Path(path)
+        assert owned.resolve().is_relative_to(repo) and not owned.is_symlink() and not owned.is_junction()
+        owned.chmod(owned.stat().st_mode | stat.S_IWRITE)
+        function(path)
+    shutil.rmtree(repo,onerror=remove_readonly)
     (exe.parent/'data/preference.json').write_text(json.dumps({'Locale':'zh_CN','Theme':'Blue','MaxHistoryCommits':20000,'EnableAutoFetch':False,'Check4UpdatesOnStartup':False}),'utf-8')
