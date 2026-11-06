@@ -2,7 +2,7 @@
 <ResourceDictionary xmlns:m="using:SourceGit.Models" xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <ResourceDictionary.ThemeDictionaries>
     <ResourceDictionary x:Key="Light">
-      <Color x:Key="Color.TreeGit.TagIcon">#FF103F47</Color>
+      <Color x:Key="Color.TreeGit.TagIcon">#FF16836D</Color>
       <Color x:Key="SystemAccentColor">#FF195F69</Color>
       <Color x:Key="SystemListLowColor">#FFDDECEF</Color>
       <Color x:Key="Color.TreeGit.Chrome">#FF16836D</Color>
@@ -44,7 +44,7 @@
     <Color x:Key="Color.TreeGit.ChromeForeground">#FFFFFFFF</Color><Color x:Key="Color.TreeGit.ToolbarOutline">#FF286D76</Color><Color x:Key="Color.TreeGit.TabInactive">#FFE1E6E9</Color><Color x:Key="Color.TreeGit.TabActive">#FFF4F5F7</Color><Color x:Key="Color.TreeGit.TabActiveBorder">#FF16836D</Color></ResourceDictionary>
 
     <ResourceDictionary x:Key="Dark">
-      <Color x:Key="Color.TreeGit.TagIcon">#FF103F47</Color>
+      <Color x:Key="Color.TreeGit.TagIcon">#FF16836D</Color>
       <Color x:Key="SystemAccentColor">#FF68C1CB</Color>
       <Color x:Key="SystemListLowColor">#FF234249</Color>
       <Color x:Key="Color.TreeGit.Chrome">#FF1F1F1F</Color>

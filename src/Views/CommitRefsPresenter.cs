@@ -114,7 +114,7 @@ namespace SourceGit.Views
         }
 
         public static readonly StyledProperty<IBrush> TagIconBrushProperty =
-            AvaloniaProperty.Register<CommitRefsPresenter, IBrush>(nameof(TagIconBrush), new SolidColorBrush(Color.Parse("#103F47")));
+            AvaloniaProperty.Register<CommitRefsPresenter, IBrush>(nameof(TagIconBrush), new SolidColorBrush(Color.Parse("#16836D")));
 
         public IBrush TagIconBrush
         {
