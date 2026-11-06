@@ -147,6 +147,12 @@ try:
     git('update-ref','refs/heads/local/calibration',ahead)
     tool('ui_refresh',{'repo':str(repo)})
     wait_refs({'refs/heads/local/calibration':ahead})
+    for _ in range(150):
+        current=state()
+        if not current['graphLoading'] and current['localBranchSelection']==['refs/heads/local/calibration'] and current['historySelectedCommits']==[feature]:break
+        time.sleep(.1)
+    else:raise AssertionError(current)
+    check('background branch refresh preserves sidebar selection without moving the result to the new branch tip',current['historySelectedCommits']==[feature])
     open_history('tracked-local-ahead',ahead,local='refs/heads/local/calibration')
     open_history('unreachable-after-local',unreachable)
 

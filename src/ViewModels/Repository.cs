@@ -1485,7 +1485,8 @@ namespace SourceGit.ViewModels
                             SendNotification("该提交已不可用，请重新搜索。", true);
                         }
                         if (!string.IsNullOrEmpty(graphView.NavigationCommit) && _historyNavigationCommit == graphView.NavigationCommit &&
-                            _navigateToCommitDelayed == graphView.NavigationCommit && !_histories.IsSearchingCommits)
+                            !_histories.IsSearchingCommits && (_navigateToCommitDelayed == graphView.NavigationCommit ||
+                                (_histories.SelectedCommits.Count == 1 && _histories.SelectedCommits[0].SHA == graphView.NavigationCommit)))
                             HistoryBranchSelectionRequested?.Invoke(FindHistoryBranch(graphView.NavigationCommit, containingBranches));
                         if (!string.IsNullOrEmpty(_navigateToCommitDelayed) && !_histories.IsSearchingCommits)
                             NavigateToCommit(_navigateToCommitDelayed);
