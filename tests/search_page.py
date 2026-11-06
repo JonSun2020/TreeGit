@@ -118,6 +118,14 @@ try:
         check(label+' never checks out or changes HEAD',git('branch','--show-current')=='main' and git('rev-parse','HEAD')==main_head)
         (out/(label+'-history.png')).write_bytes(tool('ui_screenshot'))
 
+    search(feature,'sha');tool('ui_search',{'repo':str(repo),'open':True})
+    tool('ui_working_copy',{'repo':str(repo)})
+    for _ in range(150):
+        if not state()['graphLoading']:break
+        time.sleep(.1)
+    time.sleep(.3)
+    check('a later file-status action is not overridden by a pending search jump',state()['workingCopySelected'] and not state()['searchActive'])
+
     search('Calibrate')
     tool('ui_select_view', {'repo':str(repo), 'view':'history'}); s = state()
     check('history tab exits search and restores the history page', not s['searchActive'] and s['view'] == 0 and s['sidebarVisible'])

@@ -82,6 +82,7 @@ namespace SourceGit.ViewModels
             get => _selectedViewIndex;
             set
             {
+                if (value != 0) CancelHistoryNavigation();
                 if (value != 0 && _histories?.IsSearchingCommits == true)
                     _histories.IsSearchingCommits = false;
                 if (SetProperty(ref _selectedViewIndex, value))
@@ -103,6 +104,7 @@ namespace SourceGit.ViewModels
 
         public void ShowHistoryPage()
         {
+            CancelHistoryNavigation();
             var wasSearching = _histories.IsSearchingCommits;
             _histories.IsSearchingCommits = false;
             SelectedViewIndex = 0;
@@ -112,6 +114,7 @@ namespace SourceGit.ViewModels
 
         public void ShowWorkingCopyOverview()
         {
+            CancelHistoryNavigation();
             _histories.IsSearchingCommits = false;
             SelectedViewIndex = 0;
             _histories.ShowWorkingCopyOverview();
