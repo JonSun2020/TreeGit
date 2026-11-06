@@ -90,11 +90,11 @@ try:
         check('reflog recovery entry reveals the lost commit, call '+str(attempt+1),has_lost())
     tool('git_run',{'repo':str(repo),'arguments':['branch','recovered',lost]})
     check('a recovered branch keeps the lost commit reachable',git('rev-parse','recovered')==lost)
-    for theme,color in [('Blue','#ff0747a6'),('Light','#ff103f47'),('Dark','#ff103f47'),('Default','#ff103f47'),('Blue','#ff0747a6')]:
+    for theme in ['Blue','Light','Dark','Default','Blue']:
         tool('ui_window',{'theme':theme})
         state=capture('tag-theme-'+theme.lower())
         colors=state['layoutProbe']['taggedRefs']
-        check('live tag icon color for '+theme,bool(colors) and all(c['color'].lower()==color for c in colors))
+        check('live tag follows graph lane for '+theme,bool(colors) and all(c['color'] is not None and c['color']==c['graphColor'] for c in colors))
     for zoom in ([float(os.environ['TREEGIT_AUDIT_ZOOM'])] if 'TREEGIT_AUDIT_ZOOM' in os.environ else [1,1.5,2]):
         print('Opening small window at zoom '+str(zoom),flush=True)
         tool('ui_window',{'width':1024,'height':720,'zoom':zoom})

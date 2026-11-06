@@ -26,7 +26,18 @@ namespace SourceGit.Automation
                 .Select(t => new { text = t.Text, y = t.TranslatePoint(new Point(0, t.Bounds.Height / 2), toolbar)?.Y }).ToArray();
             var taggedRefs = window.GetVisualDescendants().OfType<Views.CommitRefsPresenter>()
                 .Where(v => v.IsEffectivelyVisible && v.ShowTags && v.DataContext is Models.Commit c && c.Decorators.Any(r => r.IsTag))
-                .Select(v => new { color = (v.TagIconBrush as ISolidColorBrush)?.Color.ToString(), refs = ((Models.Commit)v.DataContext).Decorators.Where(r => r.IsTag).Select(r => r.Name).ToArray() }).ToArray();
+                .SelectMany(v =>
+                {
+                    var commit = (Models.Commit)v.DataContext;
+                    var items = (System.Collections.Generic.List<Views.CommitRefsPresenter.RenderItem>)typeof(Views.CommitRefsPresenter)
+                        .GetField("_items", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(v);
+                    return items.Where(item => item.Decorator.IsTag).Select(item => new
+                    {
+                        color = (item.Brush as ISolidColorBrush)?.Color.ToString(),
+                        graphColor = (Models.CommitGraph.Pens[commit.Color].Brush as ISolidColorBrush)?.Color.ToString(),
+                        refs = new[] { item.Decorator.Name },
+                    });
+                }).ToArray();
             var popups = window.GetVisualDescendants().OfType<Control>().Where(v => v.Name == "PopupPanel" && v.IsEffectivelyVisible)
                 .Select(v => Bounds(v, window)).ToArray();
             var dialogs = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).Windows

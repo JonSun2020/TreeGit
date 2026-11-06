@@ -13,7 +13,7 @@ import time
 exe = Path(sys.argv[1]).resolve()
 out = Path(sys.argv[2]).resolve()
 out.mkdir(parents=True, exist_ok=True)
-repo = Path(tempfile.mkdtemp(prefix='TreeGit graph 中文 '))
+repo = Path(tempfile.mkdtemp(prefix='TreeGit graph 中文 ')).resolve()
 git = shutil.which('git')
 clock = 0
 checks = []
@@ -61,7 +61,7 @@ def tool(name,args={}):
     if name=='ui_screenshot':return base64.b64decode(r['content'][0]['data'])
     return json.loads(r['content'][0]['text'])
 def state():
-    return next(r for r in tool('ui_state')['repositories'] if Path(r['repo'])==repo)
+    return next(r for r in tool('ui_state')['repositories'] if Path(r['repo']).resolve()==repo)
 def wait(expected):
     for _ in range(100):
         s=state()
