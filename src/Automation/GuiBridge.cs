@@ -211,6 +211,9 @@ namespace SourceGit.Automation
                     return (object)new { png = Convert.ToBase64String(stream.ToArray()), width, height };
                 });
 
+            if (name == "ui_layout")
+                return await Dispatcher.UIThread.InvokeAsync(() => UiLayoutController.Execute(args));
+
             if (name == "ui_tabs")
                 return await Dispatcher.UIThread.InvokeAsync(() =>
                 {

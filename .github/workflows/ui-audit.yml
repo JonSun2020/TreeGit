@@ -1,0 +1,36 @@
+name: TreeGit resize and operation UI audit
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  resize:
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Build one isolated integration application
+        shell: pwsh
+        run: |
+          dotnet build src/SourceGit.csproj -c Debug -p:EnableIntegrationTests=true -v:q
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Path src/bin/Debug/net10.0/data -Force | Out-Null
+      - name: Audit splitter extremes, view transitions and restored selection
+        shell: pwsh
+        run: python tests/layout_audit.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/layout-audit-results"
+      - name: Audit settings and operation windows at several zoom levels
+        if: always()
+        shell: pwsh
+        run: python tests/dialog_audit.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/dialog-audit-results"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TreeGit-resize-audit
+          path: |
+            ${{ runner.temp }}/layout-audit-results/*.json
+            ${{ runner.temp }}/layout-audit-results/*.png
+            ${{ runner.temp }}/dialog-audit-results/*.json
+            ${{ runner.temp }}/dialog-audit-results/*.png
