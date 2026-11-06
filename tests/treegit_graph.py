@@ -97,7 +97,7 @@ def wait_branch(name):
 failure=None
 try:
     rpc('initialize',{'protocolVersion':'2025-11-25'})
-    tool('ui_open_repository',{'repo':str(repo)});tool('ui_window',{'width':1440,'height':900,'theme':'Light'})
+    tool('ui_open_repository',{'repo':str(repo)});tool('ui_window',{'width':1440,'height':900,'theme':'Light','state':'maximized'})
     gui_pid=tool('ui_state')['processId']
     allsha=set(run('rev-list','--all').splitlines())
     ancestry=set(run('rev-list','HEAD').splitlines())

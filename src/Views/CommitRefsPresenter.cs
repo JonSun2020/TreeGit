@@ -48,7 +48,8 @@ namespace SourceGit.Views
             var iconBounds = drawGeo.Bounds;
             var translation = Matrix.CreateTranslation(-(Vector)iconBounds.Position);
             var scale = Math.Min(10.0 / iconBounds.Width, 10.0 / iconBounds.Height);
-            var transform = translation * Matrix.CreateScale(scale, scale);
+            var centering = Matrix.CreateTranslation((10.0 - iconBounds.Width * scale) * .5, (10.0 - iconBounds.Height * scale) * .5);
+            var transform = translation * Matrix.CreateScale(scale, scale) * centering;
             if (drawGeo.Transform == null || drawGeo.Transform.Value == Matrix.Identity)
                 drawGeo.Transform = new MatrixTransform(transform);
             else
@@ -283,9 +284,8 @@ namespace SourceGit.Views
                     ? item.Remotes.Count > 0 ? Models.DecoratorType.RemoteBranchHead : Models.DecoratorType.LocalBranchHead
                     : item.Decorator.Type;
                 var icon = CommitRefsIconCache.Instance.GetIcon(iconType);
-                var iconBrush = iconType is Models.DecoratorType.Tag or Models.DecoratorType.RemoteBranchHead ? item.Brush : fg;
                 using (context.PushTransform(Matrix.CreateTranslation(x + 3, y + 3)))
-                    context.DrawGeometry(iconBrush, null, icon);
+                    context.DrawGeometry(item.Brush, null, icon);
 
                 x = itemX + item.Width + 4;
             }
