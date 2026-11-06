@@ -63,3 +63,5 @@ MCP 的完整读写意味着 AI 可以修改甚至删除 Git 数据。应在 AI 
 `ui_stashes`：查看、展开 / 收起、筛选和选择侧栏的贮藏条目。`ui_diff` 的 source=stash 可选择当前贮藏中的变更文件。ui_command 支持 stash_apply_dialog / stash_drop_dialog / stash_branch_dialog，仅打开原有确认窗口，不自动执行操作。
 
 二进制对比读取失败时，可调用 `ui_diff` 的 `retry` 动作在原视图重新读取；随后查询 `state` 等待完成。界面显示简明提示，MCP 状态另提供错误信息用于诊断。
+
+搜索结果导航：`ui_search` 选中结果后传入 `"open": true`，等同双击，退出搜索并自动切换“所有分支 + 显示远程分支”，定位并选中提交。

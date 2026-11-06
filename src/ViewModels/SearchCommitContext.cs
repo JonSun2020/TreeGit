@@ -79,6 +79,12 @@ namespace SourceGit.ViewModels
             _histories = histories;
         }
 
+        public void OpenInHistory(Models.Commit commit)
+        {
+            if (commit != null)
+                _histories.RevealSearchCommit(commit);
+        }
+
         public void ClearFilter()
         {
             Filter = string.Empty;

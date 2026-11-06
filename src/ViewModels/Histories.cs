@@ -25,7 +25,10 @@ namespace SourceGit.ViewModels
             {
                 if (value == _isSearchingCommits) return;
                 if (value)
+                {
+                    _repo.CancelHistoryNavigation();
                     _repo.SelectedViewIndex = 0;
+                }
                 else
                     _searchCommitContext.EndSearch();
 
@@ -43,6 +46,8 @@ namespace SourceGit.ViewModels
         {
             get => _searchCommitContext;
         }
+
+        public void RevealSearchCommit(Models.Commit commit) => _repo.RevealCommitInHistory(commit);
 
         public void ShowSearchCommit(Models.Commit commit)
         {
@@ -162,6 +167,7 @@ namespace SourceGit.ViewModels
             set
             {
                 if (value == ShowRemoteBranches) return;
+                _repo.CancelHistoryNavigation();
                 _repo.UIStates.ShowRemoteBranchesInHistory = value;
                 _repo.UIStates.Save();
                 OnPropertyChanged();
@@ -199,6 +205,7 @@ namespace SourceGit.ViewModels
             set
             {
                 if (value is < 0 or > 1 || value == BranchDisplayMode) return;
+                _repo.CancelHistoryNavigation();
                 _repo.UIStates.ShowOnlyGraphBranch = value != 0;
                 if (value == 0 && GraphHighlighting == Models.CommitGraphHighlighting.CurrentBranchOnly)
                     _repo.UIStates.GraphHighlighting = Models.CommitGraphHighlighting.All;
@@ -215,6 +222,7 @@ namespace SourceGit.ViewModels
             if (branch == null || (BranchDisplayMode != 0 && !branch.IsCurrent))
                 return;
 
+            _repo.CancelHistoryNavigation();
             _repo.NavigateToCommit(branch.Head, IsLoading);
         }
 

@@ -1040,6 +1040,28 @@ namespace SourceGit.ViewModels
             }
         }
 
+        public void CancelHistoryNavigation()
+        {
+            if (!string.IsNullOrEmpty(_historyNavigationCommit) && _navigateToCommitDelayed == _historyNavigationCommit)
+                _navigateToCommitDelayed = string.Empty;
+            _historyNavigationCommit = string.Empty;
+        }
+
+        public void RevealCommitInHistory(Models.Commit commit)
+        {
+            if (commit == null) return;
+            ShowHistoryPage();
+            if (_uiStates.HistoryFilters.Count > 0) ClearHistoryFilters();
+            _uiStates.HistoryShowFlags &= ~(Models.HistoryShowFlags.FirstParentOnly | Models.HistoryShowFlags.SimplifyByDecoration);
+            _histories.BranchDisplayMode = 0;
+            _histories.ShowRemoteBranches = true;
+            _uiStates.Save();
+            _historyNavigationCommit = commit.SHA;
+            _navigateToCommitDelayed = commit.SHA;
+            _histories.IsLoading = true;
+            RefreshCommits();
+        }
+
         public void SetCommitMessage(string message)
         {
             if (_workingCopy is not null)
@@ -1341,6 +1363,7 @@ namespace SourceGit.ViewModels
                     _histories.IsLoading = true;
                     var upstream = _histories.ShowRemoteBranches && CurrentBranch is { IsLocal: true, IsUpstreamGone: false } ? CurrentBranch.Upstream : null;
                     return (Name: _histories.GraphBranchName, OnlyBranch: _histories.BranchDisplayMode != 0, Upstream: upstream,
+                        NavigationCommit: _histories.BranchDisplayMode == 0 ? _historyNavigationCommit : string.Empty,
                         LocalBranches: _branches.FindAll(b => b.IsLocal));
                 });
                 var preferredHead = await new Commands.QueryRevisionByRefName(FullPath, "HEAD").GetResultAsync().ConfigureAwait(false);
@@ -1361,9 +1384,27 @@ namespace SourceGit.ViewModels
                     }
                 }
 
+                if (!string.IsNullOrEmpty(graphView.NavigationCommit))
+                    builder.Append(' ').Append(graphView.NavigationCommit.Quoted());
+
                 var commits = await new Commands.QueryCommits(FullPath, builder.ToString())
                     .GetResultAsync()
                     .ConfigureAwait(false);
+
+                if (!string.IsNullOrEmpty(graphView.NavigationCommit) && !commits.Exists(c => c.SHA == graphView.NavigationCommit))
+                {
+                    // Keep the normal recent-history limit. A much older search hit gets
+                    // a bounded context, without loading every intervening commit.
+                    var context = await new Commands.QueryCommits(FullPath, $"-200 --date-order {graphView.NavigationCommit.Quoted()}", false)
+                        .GetResultAsync().ConfigureAwait(false);
+                    if (context.Count > 0)
+                    {
+                        context[0].IsMerged = await new Commands.IsAncestor(FullPath, graphView.NavigationCommit, "HEAD").GetResultAsync().ConfigureAwait(false);
+                        var known = new HashSet<string>(commits.ConvertAll(c => c.SHA));
+                        foreach (var c in context)
+                            if (known.Add(c.SHA)) commits.Add(c);
+                    }
+                }
 
                 var merged = new HashSet<string>();
                 foreach (var c in commits)
@@ -1402,7 +1443,13 @@ namespace SourceGit.ViewModels
                         _histories.SetGraphCommits(commits, preferredHead);
                         BisectState = _histories.UpdateBisectInfo();
 
-                        if (!string.IsNullOrEmpty(_navigateToCommitDelayed))
+                        if (!string.IsNullOrEmpty(graphView.NavigationCommit) && _historyNavigationCommit == graphView.NavigationCommit &&
+                            !commits.Exists(c => c.SHA == graphView.NavigationCommit))
+                        {
+                            CancelHistoryNavigation();
+                            SendNotification("该提交已不可用，请重新搜索。", true);
+                        }
+                        if (!string.IsNullOrEmpty(_navigateToCommitDelayed) && !_histories.IsSearchingCommits)
                             NavigateToCommit(_navigateToCommitDelayed);
                     }
 
@@ -2118,6 +2165,7 @@ namespace SourceGit.ViewModels
         private List<Models.Submodule> _submodules = [];
         private object _visibleSubmodules = null;
         private string _navigateToCommitDelayed = string.Empty;
+        private string _historyNavigationCommit = string.Empty;
 
         private bool _isAutoFetching = false;
         private Timer _autoFetchTimer = null;

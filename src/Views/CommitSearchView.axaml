@@ -110,7 +110,7 @@
         <Button.Flyout><Flyout><CheckBox IsChecked="{Binding OnlySearchCurrentBranch, Mode=TwoWay}" Content="{DynamicResource Text.Repository.Search.InCurrentBranch}"/></Flyout></Button.Flyout>
       </Button>
     </Grid>
-    <DataGrid x:Name="SearchResults" Grid.Row="1" ItemsSource="{Binding Results}" SelectedItem="{Binding Selected, Mode=TwoWay}" AutoGenerateColumns="False" IsReadOnly="True" CanUserResizeColumns="True" CanUserSortColumns="False" HeadersVisibility="Column" ColumnHeaderHeight="24" RowHeight="21" GridLinesVisibility="None" SelectionMode="Single" BorderThickness="0" Background="{DynamicResource Brush.Contents}" ContextRequested="OnResultsContextRequested">
+    <DataGrid x:Name="SearchResults" Grid.Row="1" ItemsSource="{Binding Results}" SelectedItem="{Binding Selected, Mode=TwoWay}" AutoGenerateColumns="False" IsReadOnly="True" CanUserResizeColumns="True" CanUserSortColumns="False" HeadersVisibility="Column" ColumnHeaderHeight="24" RowHeight="21" GridLinesVisibility="None" SelectionMode="Single" BorderThickness="0" Background="{DynamicResource Brush.Contents}" ContextRequested="OnResultsContextRequested" DoubleTapped="OnResultDoubleTapped" KeyDown="OnResultKeyDown">
       <DataGrid.Styles>
         <Style Selector="DataGridRow"><Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/></Style>
         <Style Selector="DataGridRow:selected"><Setter Property="Foreground" Value="White"/></Style>

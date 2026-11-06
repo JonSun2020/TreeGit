@@ -151,6 +151,7 @@ namespace SourceGit.Automation
                             var r = (ViewModels.Repository)p.Data;
                             var mainWindow = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow;
                             var repositoryView = mainWindow.GetVisualDescendants().OfType<Views.Repository>().FirstOrDefault(v => v.DataContext == r);
+                            var historyList = repositoryView?.GetVisualDescendants().OfType<Views.HistoriesCommitList>().FirstOrDefault();
                             return new
                             {
                                 repo = r.FullPath,
@@ -171,10 +172,14 @@ namespace SourceGit.Automation
                                 stashes = new { count = r.StashesCount, expanded = r.IsStashGroupExpanded, selected = r.StashesPage.SelectedStash?.SHA,
                                     changes = r.StashesPage.Changes?.Select(c => c.Path).ToArray(), diff = r.StashesPage.DiffContext?.Title },
                                 selectedCommits = r.Histories?.SelectedCommits.Select(c => c.SHA).ToArray(),
+                                historySelectedCommits = historyList?.SelectedItems.OfType<Models.Commit>().Select(c => c.SHA).ToArray(),
+                                historyVisible = historyList?.IsEffectivelyVisible,
+                                detailCommit = r.GetSelectedCommitInHistory()?.SHA,
                                 localBranchSelection = repositoryView?.LocalBranchTree.Rows.Where(n => n.IsSelected && n.Backend is Models.Branch).Select(n => ((Models.Branch)n.Backend).FullName).ToArray(),
                                 remoteBranchSelection = repositoryView?.RemoteBranchTree.Rows.Where(n => n.IsSelected && n.Backend is Models.Branch).Select(n => ((Models.Branch)n.Backend).FullName).ToArray(),
                                 graphBranch = r.Histories?.GraphBranchName,
                                 graphMode = r.Histories?.BranchDisplayMode,
+                                graphShowRemotes = r.Histories?.ShowRemoteBranches,
                                 graphLoading = r.Histories?.IsLoading,
                                 graphTotal = r.Histories?.Commits.Count,
                                 graphCommits = r.Histories?.Commits.Take(256).Select((c, index) => new { sha = c.SHA, subject = c.Subject, localHead = c.IsLocalHead, tracking = c.Decorators.Where(d => !string.IsNullOrEmpty(d.TrackStatusDescription)).Select(d => new { branch = d.Name, status = d.TrackStatusDescription }).ToArray(), x = r.Histories.Graph?.Dots[index].Center.X, subjectLeft = c.LeftMargin, refs = c.Decorators.Select(d => d.Name).ToArray() }).ToArray(),
@@ -587,7 +592,9 @@ namespace SourceGit.Automation
                     if (args.TryGetProperty("query", out var query)) { search.Filter = query.GetString() ?? ""; search.StartSearch(); }
                     if (args.TryGetProperty("select", out var selected))
                         search.Selected = search.Results?.FirstOrDefault(c => c.SHA.StartsWith(selected.GetString() ?? "", StringComparison.Ordinal)) ?? throw new ArgumentException("No matching search result.");
-                    return (object)new { active = true, querying = search.IsQuerying };
+                    if (Flag(args, "open"))
+                        search.OpenInHistory(search.Selected ?? throw new ArgumentException("Select an existing search result before opening it in history."));
+                    return (object)new { active = repo.Histories.IsSearchingCommits, querying = search.IsQuerying };
                 });
 
             if (name == "ui_history_columns")

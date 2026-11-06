@@ -13,6 +13,25 @@ namespace SourceGit.Views
             InitializeComponent();
         }
 
+        private void OnResultDoubleTapped(object sender, TappedEventArgs e)
+        {
+            var row = e.Source as DataGridRow ?? (e.Source as Visual)?.FindAncestorOfType<DataGridRow>();
+            if (row?.DataContext is Models.Commit commit && DataContext is ViewModels.SearchCommitContext context)
+            {
+                context.OpenInHistory(commit);
+                e.Handled = true;
+            }
+        }
+
+        private void OnResultKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter && DataContext is ViewModels.SearchCommitContext { Selected: { } commit } context)
+            {
+                context.OpenInHistory(commit);
+                e.Handled = true;
+            }
+        }
+
         private void OnResultsContextRequested(object sender, ContextRequestedEventArgs e)
         {
             if (DataContext is ViewModels.SearchCommitContext { Selected: { } commit })

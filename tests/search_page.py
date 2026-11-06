@@ -10,7 +10,7 @@ import time
 
 exe = Path(sys.argv[1]).resolve()
 out = Path(sys.argv[2]).resolve(); out.mkdir(parents=True, exist_ok=True)
-repo = Path(tempfile.mkdtemp(prefix='TreeGit search '))
+repo = Path(tempfile.mkdtemp(prefix='TreeGit search ')).resolve()
 checks = []
 
 def git(*args):
@@ -23,8 +23,20 @@ git('init', '-b', 'main'); git('config', 'user.name', 'TreeGit QA'); git('config
 git('checkout', '-b', 'feature/search')
 (repo/'calibration.txt').write_text('unique_calibration_value\n'); git('add', '.'); git('commit', '-m', 'Calibrate sensor')
 feature = git('rev-parse', 'HEAD'); git('checkout', 'main')
+initial=git('rev-parse','HEAD')
+git('remote','add','origin','.');git('update-ref','refs/remotes/origin/feature/search',feature);git('branch','-D','feature/search')
+for index in range(6):
+    (repo/'sensor.txt').write_text('sensor revision '+str(index)+'\n');git('add','.');git('commit','-m','Main revision '+str(index))
+main_head=git('rev-parse','HEAD')
+git('checkout','--detach',initial)
+(repo/'orphan.txt').write_text('Unreachable search result\n');git('add','.');git('commit','-m','Detached calibration')
+unreachable=git('rev-parse','HEAD');git('checkout','main')
+(repo/'.git/sourcegit.uistates').write_text(json.dumps({'ShowOnlyGraphBranch':True,'ShowRemoteBranchesInHistory':False,'HistoryShowFlags':6}),'utf-8')
+(exe.parent/'data').mkdir(exist_ok=True)
+(exe.parent/'data/preference.json').write_text(json.dumps({'Locale':'zh_CN','Theme':'Blue','MaxHistoryCommits':2,'EnableAutoFetch':False,'Check4UpdatesOnStartup':False}),'utf-8')
 p = subprocess.Popen([str(exe), '--mcp'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', creationflags=subprocess.CREATE_NO_WINDOW)
 seq = 0
+gui_pid = None
 
 def rpc(method, params={}):
     global seq
@@ -38,7 +50,7 @@ def tool(name, args={}):
     return base64.b64decode(r['content'][0]['data']) if name == 'ui_screenshot' else json.loads(r['content'][0]['text'])
 
 def state():
-    return next(r for r in tool('ui_state')['repositories'] if Path(r['repo']) == repo)
+    return next(r for r in tool('ui_state')['repositories'] if Path(r['repo']).resolve() == repo)
 
 def check(name, ok):
     assert ok, name
@@ -52,43 +64,82 @@ def search(query, method='message', current=False):
         time.sleep(.1)
     raise AssertionError('Search did not finish')
 
-rpc('initialize', {'protocolVersion':'2025-11-25'})
-tool('ui_open_repository', {'repo':str(repo)})
-tool('ui_window', {'width':1440, 'height':900, 'theme':'SourceTree'})
-for _ in range(100):
-    if not state()['graphLoading']: break
-    time.sleep(.1)
-before = state()
-tool('ui_select_view', {'repo':str(repo), 'view':'search'})
-time.sleep(.3); s = state()
-check('search opens in the right page with the branch sidebar retained', s['searchActive'] and s['sidebarVisible'])
-check('search does not change the sidebar width', s['sidebarWidth'] == before['sidebarWidth'])
-check('new search page has no selected commit', s['searchSelected'] is None)
-(out/'search-empty.png').write_bytes(tool('ui_screenshot'))
-for method, query in [('message','Calibrate'), ('author','TreeGit QA'), ('path','calibration.txt'), ('content','unique_calibration_value'), ('sha',feature)]:
-    s = search(query, method)
-    check(method+' search finds the unmerged commit', feature in {c['sha'] for c in s['searchResults'] or []})
-tool('ui_search', {'repo':str(repo), 'select':feature})
-time.sleep(.5); s = state()
-check('selecting an off-graph result shows its commit details', s['searchSelected'] == feature and s['detailView'] == 'CommitDetail')
-(out/'search-result.png').write_bytes(tool('ui_screenshot'))
-check('search selection never checks out a different branch', git('branch', '--show-current') == 'main')
-s = search('Calibrate', current=True)
-check('current-branch search excludes unmerged results', not s['searchResults'])
-s = search('')
-check('clearing the search clears results and selection', not s['searchResults'] and s['searchSelected'] is None and not s['searchQuerying'])
-search('Calibrate')
-tool('ui_select_view', {'repo':str(repo), 'view':'history'}); s = state()
-check('history tab exits search and restores the history page', not s['searchActive'] and s['view'] == 0 and s['sidebarVisible'])
-tool('ui_select_view', {'repo':str(repo), 'view':'search'})
-tool('ui_working_copy', {'repo':str(repo)}); s = state()
-check('file-status tab exits search and shows working-copy overview', not s['searchActive'] and s['workingCopySelected'])
-tool('ui_select_view', {'repo':str(repo), 'view':'search'})
-tool('ui_select_view', {'repo':str(repo), 'view':'working_copy'})
-check('full commit page also exits search', not state()['searchActive'])
-tool('ui_select_view', {'repo':str(repo), 'view':'search'})
-tool('ui_window', {'width':1024, 'height':720})
-(out/'search-narrow.png').write_bytes(tool('ui_screenshot'))
-tool('ui_select_view', {'repo':str(repo), 'view':'history'})
-p.stdin.close(); p.wait(timeout=10)
-(out/'search-results.json').write_text(json.dumps({'passed':len(checks), 'checks':checks, 'repo':str(repo), 'exe':str(exe)}, ensure_ascii=False, indent=2), encoding='utf-8')
+failure=None
+try:
+    rpc('initialize', {'protocolVersion':'2025-11-25'})
+    tool('ui_open_repository', {'repo':str(repo)})
+    gui_pid=tool('ui_state')['processId']
+    tool('ui_window', {'width':1440, 'height':900, 'theme':'Blue','state':'maximized'})
+    for _ in range(100):
+        if not state()['graphLoading'] and state()['branch']=='main' and state()['graphTotal']>0: break
+        time.sleep(.1)
+    before = state()
+    tool('ui_select_view', {'repo':str(repo), 'view':'search'})
+    time.sleep(.3); s = state()
+    check('search opens in the right page with the branch sidebar retained', s['searchActive'] and s['sidebarVisible'])
+    check('search does not change the sidebar width', s['sidebarWidth'] == before['sidebarWidth'])
+    check('new search page has no selected commit', s['searchSelected'] is None)
+    (out/'search-empty.png').write_bytes(tool('ui_screenshot'))
+    for method, query in [('message','Calibrate'), ('author','TreeGit QA'), ('path','calibration.txt'), ('content','unique_calibration_value'), ('sha',feature)]:
+        s = search(query, method)
+        check(method+' search finds the unmerged commit', feature in {c['sha'] for c in s['searchResults'] or []})
+    tool('ui_search', {'repo':str(repo), 'select':feature})
+    time.sleep(.5); s = state()
+    check('selecting an off-graph result shows its commit details', s['searchSelected'] == feature and s['detailView'] == 'CommitDetail')
+    (out/'search-result.png').write_bytes(tool('ui_screenshot'))
+    check('search selection never checks out a different branch', git('branch', '--show-current') == 'main')
+    s = search('Calibrate', current=True)
+    check('current-branch search excludes unmerged results', not s['searchResults'])
+    s = search('')
+    check('clearing the search clears results and selection', not s['searchResults'] and s['searchSelected'] is None and not s['searchQuerying'])
+    search('Calibrate')
+    for label,sha in [('remote-result',feature),('older-result',initial),('unreachable-result',unreachable)]:
+        tool('ui_graph',{'repo':str(repo),'mode':'current','showRemotes':False})
+        for _ in range(100):
+            current=state()
+            if not current['graphLoading'] and current['graphMode']==1 and not current['graphShowRemotes']:break
+            time.sleep(.1)
+        search(sha,'sha')
+        tool('ui_search',{'repo':str(repo),'select':sha})
+        current=state()
+        check(label+' single selection remains on the search page',current['searchActive'] and current['searchSelected']==sha)
+        tool('ui_search',{'repo':str(repo),'open':True})
+        for _ in range(150):
+            current=state()
+            if (not current['graphLoading'] and not current['searchActive'] and current['view']==0 and
+                current['graphMode']==0 and current['graphShowRemotes'] and current['historyVisible'] and
+                current['selectedCommits']==[sha] and current['historySelectedCommits']==[sha] and current['detailCommit']==sha):break
+            time.sleep(.1)
+        else:raise AssertionError(current)
+        check(label+' opens history with all branches and remotes',current['graphMode']==0 and current['graphShowRemotes'] and not current['searchActive'])
+        check(label+' is highlighted in the real history grid and shows matching details',current['historySelectedCommits']==[sha] and current['detailCommit']==sha)
+        check(label+' is included without unlimited history loading',sha in {c['sha'] for c in current['graphCommits']} and current['graphTotal']<=202)
+        check(label+' never checks out or changes HEAD',git('branch','--show-current')=='main' and git('rev-parse','HEAD')==main_head)
+        (out/(label+'-history.png')).write_bytes(tool('ui_screenshot'))
+
+    search('Calibrate')
+    tool('ui_select_view', {'repo':str(repo), 'view':'history'}); s = state()
+    check('history tab exits search and restores the history page', not s['searchActive'] and s['view'] == 0 and s['sidebarVisible'])
+    tool('ui_select_view', {'repo':str(repo), 'view':'search'})
+    tool('ui_working_copy', {'repo':str(repo)}); s = state()
+    check('file-status tab exits search and shows working-copy overview', not s['searchActive'] and s['workingCopySelected'])
+    tool('ui_select_view', {'repo':str(repo), 'view':'search'})
+    tool('ui_select_view', {'repo':str(repo), 'view':'working_copy'})
+    check('full commit page also exits search', not state()['searchActive'])
+    tool('ui_select_view', {'repo':str(repo), 'view':'search'})
+    tool('ui_window', {'width':1024, 'height':720})
+    (out/'search-narrow.png').write_bytes(tool('ui_screenshot'))
+    tool('ui_select_view', {'repo':str(repo), 'view':'history'})
+except BaseException as error:
+    failure=repr(error)
+    raise
+finally:
+    (out/'search-results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'repo':str(repo),'exe':str(exe),'failure':failure},ensure_ascii=False,indent=2),'utf-8')
+    p.stdin.close();p.wait(timeout=15)
+    if gui_pid:
+        code="$p=Get-Process -Id "+str(gui_pid)+" -ErrorAction SilentlyContinue; if($p){if($p.Path -ne '"+str(exe).replace("'","''")+"'){throw 'Wrong QA process'};if(-not $p.CloseMainWindow()){throw 'Owned QA window did not close'};if(-not $p.WaitForExit(15000)){throw 'Owned QA window did not exit'}}"
+        subprocess.run(['powershell','-NoProfile','-Command',code],capture_output=True,check=True)
+    assert repo.name.startswith('TreeGit search ') and not repo.is_symlink() and not repo.is_junction()
+    assert repo.parent==Path(tempfile.gettempdir()).resolve()
+    shutil.rmtree(repo)
+    (exe.parent/'data/preference.json').write_text(json.dumps({'Locale':'zh_CN','Theme':'Blue','MaxHistoryCommits':20000,'EnableAutoFetch':False,'Check4UpdatesOnStartup':False}),'utf-8')
