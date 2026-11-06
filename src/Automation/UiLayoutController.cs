@@ -65,12 +65,12 @@ namespace SourceGit.Automation
                     if (args.TryGetProperty("columns", out var columns))
                     {
                         if (columns.GetArrayLength() != grid.ColumnDefinitions.Count) throw new ArgumentException("Column count changed; inspect the current layout again.");
-                        for (var i = 0; i < columns.GetArrayLength(); i++) grid.ColumnDefinitions[i].Width = GridLength.Parse(columns[i].GetString());
+                        for (var i = 0; i < columns.GetArrayLength(); i++) grid.ColumnDefinitions[i].SetCurrentValue(ColumnDefinition.WidthProperty, GridLength.Parse(columns[i].GetString()));
                     }
                     if (args.TryGetProperty("rows", out var rows))
                     {
                         if (rows.GetArrayLength() != grid.RowDefinitions.Count) throw new ArgumentException("Row count changed; inspect the current layout again.");
-                        for (var i = 0; i < rows.GetArrayLength(); i++) grid.RowDefinitions[i].Height = GridLength.Parse(rows[i].GetString());
+                        for (var i = 0; i < rows.GetArrayLength(); i++) grid.RowDefinitions[i].SetCurrentValue(RowDefinition.HeightProperty, GridLength.Parse(rows[i].GetString()));
                     }
                 }
             }
@@ -108,6 +108,7 @@ namespace SourceGit.Automation
             {
                 window = new { title = window.Title, width = window.Bounds.Width, height = window.Bounds.Height, minWidth = window.MinWidth, minHeight = window.MinHeight,
                     canResize = window.CanResize, state = window.WindowState.ToString(), scaling = window.RenderScaling },
+                preferredSidebarWidth = ViewModels.Preferences.Instance.Layout.RepositorySidebarWidth,
                 splitters = controls.OfType<GridSplitter>().Select((splitter, index) =>
                 {
                     var grid = ParentGrid(splitter);
@@ -129,6 +130,8 @@ namespace SourceGit.Automation
                 }).ToArray(),
                 panes = controls.OfType<UserControl>().Where(v => v.IsEffectivelyVisible && v.Bounds.Width > 0 && v.Bounds.Height > 0)
                     .Select(v => new { type = v.GetType().Name, name = v.Name, bounds = Bounds(v) }).ToArray(),
+                diffs = controls.OfType<Views.DiffView>().Where(v => v.IsEffectivelyVisible && v.DataContext is ViewModels.DiffContext)
+                    .Select(v => new { file = ((ViewModels.DiffContext)v.DataContext).Title, type = ((ViewModels.DiffContext)v.DataContext).Content?.GetType().Name }).ToArray(),
                 scrolls = controls.OfType<ScrollViewer>().Select((s, index) => new { index, name = s.Name, visible = s.IsEffectivelyVisible,
                     bounds = Bounds(s), viewport = new { width = s.Viewport.Width, height = s.Viewport.Height },
                     extent = new { width = s.Extent.Width, height = s.Extent.Height }, offset = new { x = s.Offset.X, y = s.Offset.Y },

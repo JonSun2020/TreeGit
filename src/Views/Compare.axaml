@@ -13,7 +13,7 @@
                     Icon="/App.ico"
                     Title="{DynamicResource Text.Compare}"
                     Width="1100" Height="720" MinWidth="800" MinHeight="520">
-  <Grid RowDefinitions="Auto,64,Auto,*">
+  <Grid RowDefinitions="Auto,*">
     <!-- TitleBar -->
     <Grid Grid.Row="0" Height="28" IsVisible="{Binding !#ThisControl.UseSystemWindowFrame}">
       <!-- Bottom border -->
@@ -35,7 +35,9 @@
 
       <!-- Caption Buttons (Windows/Linux) -->
       <v:CaptionButtons HorizontalAlignment="Right" IsVisible="{OnPlatform True, macOS=False}"/>
-    </Grid>
+    </Grid><ScrollViewer x:Name="CompareViewport" Grid.Row="1" AllowAutoHide="False" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+      <Grid Width="{Binding #CompareViewport.Viewport.Width}" Height="{Binding #CompareViewport.Viewport.Height}" MinWidth="780" MinHeight="480" RowDefinitions="0,64,Auto,*">
+
 
     <!-- Compare Targets -->
     <Border Grid.Row="1">
@@ -385,5 +387,7 @@
         </StackPanel>
       </Grid>
     </Grid>
-  </Grid>
+
+      </Grid>
+    </ScrollViewer></Grid>
 </v:ChromelessWindow>

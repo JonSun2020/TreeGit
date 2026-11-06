@@ -73,11 +73,14 @@ namespace SourceGit.Views
             {
                 if (SetAndRaise(SidebarWidthProperty, ref _sidebarWidth, value))
                 {
-                    var layout = ViewModels.Preferences.Instance.Layout;
-                    if (_isCommitSearchPanelVisible)
-                        layout.RepositorySearchCommitWidth = value.Value;
-                    else if (_isNormalSidebarVisible)
-                        layout.RepositorySidebarWidth = value.Value;
+                    if (!_applyingSidebarConstraint)
+                    {
+                        var layout = ViewModels.Preferences.Instance.Layout;
+                        if (_isCommitSearchPanelVisible)
+                            layout.RepositorySearchCommitWidth = value.Value;
+                        else if (_isNormalSidebarVisible)
+                            layout.RepositorySidebarWidth = value.Value;
+                    }
                 }
             }
         }
@@ -94,8 +97,12 @@ namespace SourceGit.Views
             if (Bounds.Width <= 0) return;
             SetAndRaise(SidebarMaxWidthProperty, ref _sidebarMaxWidth, Math.Max(49, Bounds.Width - 321));
             SidebarMinWidth = _isNormalSidebarVisible || _isCommitSearchPanelVisible ? Math.Min(200, _sidebarMaxWidth) : 49;
-            if (SidebarWidth.Value > _sidebarMaxWidth)
-                SidebarWidth = new GridLength(_sidebarMaxWidth);
+            var layout = ViewModels.Preferences.Instance.Layout;
+            var desired = _isCommitSearchPanelVisible ? layout.RepositorySearchCommitWidth : _isNormalSidebarVisible ? layout.RepositorySidebarWidth : 49;
+            if (!double.IsFinite(desired)) desired = SidebarMinWidth;
+            _applyingSidebarConstraint = true;
+            try { SidebarWidth = new GridLength(Math.Clamp(desired, SidebarMinWidth, _sidebarMaxWidth)); }
+            finally { _applyingSidebarConstraint = false; }
         }
 
         protected override void OnLoaded(RoutedEventArgs e)
@@ -688,6 +695,7 @@ namespace SourceGit.Views
         private bool _isCommitSearchPanelVisible = false;
         private double _sidebarMinWidth = 200;
         private double _sidebarMaxWidth = double.PositiveInfinity;
+        private bool _applyingSidebarConstraint;
         private GridLength _sidebarWidth;
     }
 }

@@ -43,6 +43,8 @@ namespace SourceGit.Views
             oldRevision = (DataContext as Models.BinaryDiff)?.OldRevision, newRevision = (DataContext as Models.BinaryDiff)?.NewRevision,
             summary = _summary.Text, errorDetails = _errorDetails, oldSize = OldSize, newSize = NewSize,
             differentBytes = DifferentBytes, selectedOffset = SelectedOffset, topOffset = TopOffset, bytesPerRow = BytesPerRow,
+            leftPaneWidth = _left.Bounds.Width, rightPaneWidth = _right.Bounds.Width,
+            requiredPaneWidth = (_comparison?.Length > uint.MaxValue ? 102 : 74) + _bytesPerRow * 31 + 10,
             oldHex = _comparison == null ? null : Convert.ToHexString(_comparison.Read(true, TopOffset, 256)),
             newHex = _comparison == null ? null : Convert.ToHexString(_comparison.Read(false, TopOffset, 256)) };
 
@@ -78,6 +80,8 @@ namespace SourceGit.Views
             Content = root;
             _scroll.PropertyChanged += (_, e) => { if (e.Property == RangeBase.ValueProperty) Redraw(); };
             SizeChanged += (_, _) => ResizeRows();
+            _left.SizeChanged += (_, _) => ResizeRows();
+            _right.SizeChanged += (_, _) => ResizeRows();
             PointerWheelChanged += (_, e) => { _scroll.Value = Math.Clamp(_scroll.Value - e.Delta.Y * 3, 0, _scroll.Maximum); e.Handled = true; };
             _address.KeyDown += (_, e) => { if (e.Key == Key.Enter) { Jump(); e.Handled = true; } };
         }
@@ -178,7 +182,15 @@ namespace SourceGit.Views
         private void ResizeRows()
         {
             var top = TopOffset;
-            _bytesPerRow = Bounds.Width >= 1170 ? 16 : Bounds.Width >= 730 ? 8 : 4;
+            var paneWidth = Math.Min(_left.Bounds.Width, _right.Bounds.Width);
+            var addressWidth = _comparison?.Length > uint.MaxValue ? 102 : 74;
+            _bytesPerRow = 1;
+            foreach (var count in new[] { 16, 8, 4, 2, 1 })
+                if (addressWidth + count * 31 + 10 <= paneWidth)
+                {
+                    _bytesPerRow = count;
+                    break;
+                }
             var rows = Math.Max(1, Math.Floor((_left.Bounds.Height - 24) / 20));
             var total = Math.Ceiling((_comparison?.Length ?? 0) / (double)_bytesPerRow);
             _scroll.Maximum = Math.Max(0, total - rows); _scroll.ViewportSize = rows; _scroll.LargeChange = rows;

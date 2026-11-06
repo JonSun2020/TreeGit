@@ -37,6 +37,24 @@ def git(*args):
 git('init', '-b', 'main')
 git('config', 'user.name', 'TreeGit Resize QA')
 git('config', 'user.email', 'resize@example.invalid')
+component_source = root / 'component-source'
+component_source.mkdir()
+def component_git(directory, *args):
+    result = subprocess.run(['git', '-C', str(directory), *args], capture_output=True, text=True, encoding='utf-8', env=env)
+    assert result.returncode == 0, result.stderr
+    return result.stdout.strip()
+component_git(component_source, 'init', '-b', 'main')
+component_git(component_source, 'config', 'user.name', 'Component QA')
+component_git(component_source, 'config', 'user.email', 'component@example.invalid')
+(component_source / 'sensor.txt').write_text('original\n', encoding='utf-8')
+component_git(component_source, 'add', '.')
+component_git(component_source, 'commit', '-m', 'Component baseline')
+component_before = component_git(component_source, 'rev-parse', 'HEAD')
+(component_source / 'sensor.txt').write_text('updated component\n', encoding='utf-8')
+component_git(component_source, 'commit', '-am', 'Update component')
+component_after = component_git(component_source, 'rev-parse', 'HEAD')
+git('-c', 'protocol.file.allow=always', 'submodule', 'add', str(component_source), 'component')
+component_git(repo / 'component', 'checkout', component_before)
 (repo / 'text.txt').write_text('one\ntwo\nthree\n', encoding='utf-8')
 (repo / 'firmware.bin').write_bytes(bytes(range(256)) * 64)
 def make_png(color):
@@ -49,6 +67,7 @@ git('add', '.')
 git('commit', '-m', 'Initial baseline')
 (repo / 'text.txt').write_text('one\nmodified\nthree\nfour\n', encoding='utf-8')
 (repo / 'firmware.bin').write_bytes(bytes(range(255, -1, -1)) * 64)
+component_git(repo / 'component', 'checkout', component_after)
 git('add', '.')
 git('commit', '-m', 'A long subject to verify file and commit details remain readable when the panels become narrow')
 head = git('rev-parse', 'HEAD')
@@ -196,6 +215,32 @@ def sweep(label, selected=None, captures=False, active=False):
         time.sleep(.08)
     inspect(label + '-restored', selected, active=active)
 
+def audit_active_sizes(label):
+    dialog = tool('ui_state')['dialogs'][-1]
+    area = dialog['workArea']
+    maximum = (int(area['width'] / dialog['scaling'] - 32), int(area['height'] / dialog['scaling'] - 64))
+    for zoom in [1, 2, 2.5]:
+        tool('ui_window', {'zoom': zoom})
+        for width, height in [(800, 520), maximum]:
+            tool('ui_layout', {'action': 'resize', 'window': 'active', 'width': width, 'height': height})
+            case = f'{label}-window-{width}-zoom{zoom}'
+            g = inspect(case, capture=True, active=True)
+            w = g['window']
+            fixed = [b for b in g['buttons'] if not b['inScrollArea']]
+            check(case + ': fixed actions are visible', all(b['bounds']['x'] >= -.5 and b['bounds']['y'] >= -.5 and b['bounds']['x'] + b['bounds']['width'] <= w['width'] + .5 and b['bounds']['y'] + b['bounds']['height'] <= w['height'] + .5 for b in fixed))
+            def overlaps(a, b):
+                a, b = a['bounds'], b['bounds']
+                return min(a['x'] + a['width'], b['x'] + b['width']) - max(a['x'], b['x']) > 1 and min(a['y'] + a['height'], b['y'] + b['height']) - max(a['y'], b['y']) > 1
+            check(case + ': fixed actions do not overlap', not any(overlaps(a, b) for i, a in enumerate(fixed) for b in fixed[i+1:]))
+            for scroll in g['scrolls']:
+                if not scroll['visible'] or not (scroll['name'] or '').endswith('Viewport'): continue
+                tool('ui_layout', {'action': 'scroll', 'window': 'active', 'scroller': scroll['index'], 'dx': 5000, 'dy': 5000})
+                time.sleep(.08)
+                reached = next(s for s in tool('ui_layout', {'window': 'active'})['scrolls'] if s['index'] == scroll['index'])
+                check(case + ': whole content is reachable', reached['offset']['x'] + reached['viewport']['width'] >= reached['extent']['width'] - 1 and reached['offset']['y'] + reached['viewport']['height'] >= reached['extent']['height'] - 1)
+                tool('ui_layout', {'action': 'scroll', 'window': 'active', 'scroller': scroll['index'], 'dx': 0, 'dy': 0})
+    tool('ui_window', {'zoom': 1})
+
 try:
     rpc('initialize', {'protocolVersion': '2025-11-25'})
     repo_tool('ui_open_repository')
@@ -220,10 +265,19 @@ try:
     sweep('compare-commits', '日志 / 历史', True)
     repo_tool('ui_select_commit', revision=head)
     wait_for(lambda: state()['detailView'] == 'CommitDetail')
+    repo_tool('ui_diff', action='select', source='history', file='component')
+    wait_for(lambda: any(d['type'] == 'SubmoduleDiff' for d in tool('ui_layout')['diffs']))
+    repo_tool('ui_command', command='submodule_compare')
+    wait_for(lambda: tool('ui_state')['dialogs'])
+    time.sleep(.3)
+    sweep('submodule-compare', captures=True, active=True)
+    audit_active_sizes('submodule-compare')
+    tool('ui_command', {'command': 'close_dialog'})
     repo_tool('ui_command', command='interactive_rebase', base=initial)
     wait_for(lambda: tool('ui_state')['dialogs'])
     time.sleep(.4)
     sweep('interactive-rebase', captures=True, active=True)
+    audit_active_sizes('interactive-rebase')
     tool('ui_command', {'command': 'close_dialog'})
     for command, args in [('file_history', {'file': 'text.txt'}), ('directory_history', {'file': '.'}),
                           ('compare_branches', {'base': 'feature/long-component-name/resize-review', 'to': 'main'}), ('git_logs', {})]:
@@ -231,6 +285,7 @@ try:
         wait_for(lambda: tool('ui_state')['dialogs'])
         time.sleep(.5)
         sweep(command, captures=True, active=True)
+        audit_active_sizes(command)
         tool('ui_command', {'command': 'close_dialog'})
     repo_tool('ui_search', method='message', query='long subject')
     wait_for(lambda: not state()['searchQuerying'] and state()['searchResults'])
@@ -274,9 +329,14 @@ try:
     sweep('binary-diff', '文件状态', True)
     repo_tool('ui_diff', action='window')
     inspect('binary-window', capture=True, active=True)
-    for width, height in [(640, 420), (1100, 700)]:
-        tool('ui_layout', {'action': 'resize', 'window': 'active', 'width': width, 'height': height})
-        inspect(f'binary-window-{width}', capture=True, active=True)
+    for zoom in [1, 2]:
+        tool('ui_window', {'zoom': zoom})
+        for width, height in [(640, 420), (1100, 700)]:
+            tool('ui_layout', {'action': 'resize', 'window': 'active', 'width': width, 'height': height})
+            inspect(f'binary-window-{width}-zoom{zoom}', capture=True, active=True)
+            comparison = repo_tool('ui_diff')
+            check(f'binary {width} zoom{zoom}: full hex and ASCII cells fit both panes', comparison['requiredPaneWidth'] <= min(comparison['leftPaneWidth'], comparison['rightPaneWidth']) + .5, comparison)
+    tool('ui_window', {'zoom': 1})
     tool('ui_command', {'command': 'close_dialog'})
     repo_tool('ui_diff', action='select', source='unstaged', file='image.png')
     wait_for(lambda: any(p['type'] == 'ImageDiffView' for p in tool('ui_layout')['panes']))
@@ -286,7 +346,7 @@ try:
     wait_for(lambda: repo_tool('ui_stashes').get('changes'))
     repo_tool('ui_diff', action='select', source='stash', file='text.txt')
     sweep('stash', captures=True)
-    for theme, zoom in [('Light', .75), ('Dark', 1), ('Blue', 1.25), ('Light', 1.5), ('Dark', 2)]:
+    for theme, zoom in [('Light', .75), ('Dark', 1), ('Blue', 1.25), ('Light', 1.5), ('Dark', 2), ('Blue', 2.5)]:
         tool('ui_window', {'theme': theme, 'zoom': zoom, 'state': 'maximized'})
         repo_tool('ui_working_copy')
         sweep(f'zoom-{theme}-{zoom}', '文件状态', True)
@@ -306,6 +366,17 @@ try:
     tool('ui_window', {'theme': 'Blue', 'zoom': 1, 'state': 'normal', 'width': 1024, 'height': 640})
     inspect('minimum-normal-window', '文件状态', capture=True)
     tool('ui_window', {'state': 'maximized'})
+    sidebar = next(s for s in tool('ui_layout')['splitters'] if s['owner'] == 'Repository' and s['visible'])
+    tool('ui_layout', {'action': 'drag', 'splitter': sidebar['index'], 'dx': 100})
+    time.sleep(.1)
+    preferred_sidebar = tool('ui_layout')['preferredSidebarWidth']
+    tool('ui_window', {'zoom': 2.5})
+    time.sleep(.1)
+    tool('ui_window', {'zoom': 1})
+    restored_layout = inspect('sidebar-zoom-roundtrip', '文件状态', capture=True)
+    restored_sidebar = next(s for s in restored_layout['splitters'] if s['owner'] == 'Repository' and s['visible'])
+    check('zoom roundtrip preserves the user sidebar width', abs(restored_layout['preferredSidebarWidth'] - preferred_sidebar) < 1.1 and abs(restored_sidebar['actualColumns'][0] - preferred_sidebar) < 1.1)
+    tool('ui_layout', {'action': 'restore', 'splitter': sidebar['index'], 'columns': sidebar['columns'], 'rows': sidebar['rows']})
     repo_tool('ui_select_view', view='history')
     repo_tool('ui_select_commit', revision=head)
     check('resizing never switches branch', git('branch', '--show-current') == 'main')

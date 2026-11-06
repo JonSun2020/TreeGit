@@ -385,7 +385,7 @@ namespace SourceGit.Automation
                     if (args.TryGetProperty("zoom", out var z))
                     {
                         var zoom = z.GetDouble();
-                        if (!double.IsFinite(zoom) || zoom < 0.75 || zoom > 2) throw new ArgumentException("Zoom is out of range.");
+                        if (!double.IsFinite(zoom) || zoom < 0.75 || zoom > 2.5) throw new ArgumentException("Zoom is out of range.");
                         ViewModels.Preferences.Instance.Zoom = zoom;
                     }
                     if (width.HasValue && (width < 1024 || width > 3840) || height.HasValue && (height < 640 || height > 2160))
@@ -696,6 +696,12 @@ namespace SourceGit.Automation
                             if (baseCommit == toCommit) throw new ArgumentException("Choose two different commits.");
                             repo.ShowHistoryPage();
                             repo.Histories.SelectedCommits = [toCommit, baseCommit];
+                            break;
+                        case "submodule_compare":
+                            var submoduleDiff = owner.GetVisualDescendants().OfType<Views.DiffView>()
+                                .Where(v => v.IsEffectivelyVisible).Select(v => (v.DataContext as ViewModels.DiffContext)?.Content)
+                                .OfType<Models.SubmoduleDiff>().FirstOrDefault() ?? throw new InvalidOperationException("Select a loaded submodule change first.");
+                            Views.ControlExtensions.ShowWindow(owner, new ViewModels.SubmoduleRevisionCompare(submoduleDiff));
                             break;
                         case "interactive_rebase":
                             var rebaseOn = repo.Histories.Commits.Find(c => c.SHA == Text(args, "base")) ?? throw new ArgumentException("Base commit is not loaded in history.");

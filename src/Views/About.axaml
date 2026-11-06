@@ -8,7 +8,7 @@
                     x:Name="ThisControl"
                     Icon="/App.ico"
                     Title="{DynamicResource Text.About}"
-                    Width="680" Height="440"
+                    Width="680" Height="340"
                     CanResize="False"
                     WindowStartupLocation="CenterOwner">
   <Grid RowDefinitions="Auto,*">

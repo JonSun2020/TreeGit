@@ -11,7 +11,7 @@ namespace SourceGit.Views
         {
             CloseOnESC = true;
             InitializeComponent();
-            RepositoryDialogLayout.FitFixedWindow(this, 680, 440);
+            RepositoryDialogLayout.FitFixedWindow(this, 680, 340);
 
             var assembly = Assembly.GetExecutingAssembly();
             var meta = assembly.GetCustomAttributes<AssemblyMetadataAttribute>();

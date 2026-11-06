@@ -40,14 +40,16 @@
     <!-- Info -->
     <Grid Grid.Row="1" ColumnDefinitions="Auto,*" Background="{DynamicResource Brush.Window}">
       <Path Grid.Column="0" Width="14" Height="14" Margin="8,0,6,0" Data="{StaticResource Icons.Folder.Open}"/>
-      <TextBlock Grid.Column="1" Text="{Binding Title, Mode=OneWay}"/>
+      <TextBlock Grid.Column="1" Text="{Binding Title, Mode=OneWay}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Title}"/>
     </Grid>
 
     <!-- Line -->
     <Rectangle Grid.Row="2" Height="0.8" HorizontalAlignment="Stretch" VerticalAlignment="Top" Fill="{DynamicResource Brush.Border0}"/>
 
     <!-- Body -->
-    <v:SplitViewGrid Grid.Row="3">
+    <ScrollViewer x:Name="DirHistoriesViewport" Grid.Row="3" AllowAutoHide="False" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+      <Grid Width="{Binding #DirHistoriesViewport.Viewport.Width}" Height="{Binding #DirHistoriesViewport.Viewport.Height}" MinWidth="780" MinHeight="400">
+<v:SplitViewGrid>
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="300" MinWidth="300" MaxWidth="600"/>
         <ColumnDefinition Width="4"/>
@@ -137,5 +139,7 @@
         </ContentControl>
       </Border>
     </v:SplitViewGrid>
+      </Grid>
+    </ScrollViewer>
   </Grid>
 </v:ChromelessWindow>

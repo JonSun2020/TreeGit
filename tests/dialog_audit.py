@@ -100,7 +100,7 @@ try:
         state=capture('tag-theme-'+theme.lower())
         colors=state['layoutProbe']['taggedRefs']
         check('live tag follows graph lane for '+theme,bool(colors) and all(c['color'] is not None and c['color']==c['graphColor'] for c in colors))
-    for zoom in ([float(os.environ['TREEGIT_AUDIT_ZOOM'])] if 'TREEGIT_AUDIT_ZOOM' in os.environ else [1,1.5,2]):
+    for zoom in ([float(os.environ['TREEGIT_AUDIT_ZOOM'])] if 'TREEGIT_AUDIT_ZOOM' in os.environ else [1,1.5,2,2.5]):
         print('Opening small window at zoom '+str(zoom),flush=True)
         tool('ui_window',{'width':1024,'height':720,'zoom':zoom})
         for page in ['general','appearance','git','signing','integration']:
