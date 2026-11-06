@@ -44,7 +44,7 @@ namespace SourceGit.Views
             summary = _summary.Text, errorDetails = _errorDetails, oldSize = OldSize, newSize = NewSize,
             differentBytes = DifferentBytes, selectedOffset = SelectedOffset, topOffset = TopOffset, bytesPerRow = BytesPerRow,
             leftPaneWidth = _left.Bounds.Width, rightPaneWidth = _right.Bounds.Width,
-            requiredPaneWidth = (_comparison?.Length > uint.MaxValue ? 102 : 74) + _bytesPerRow * 31 + 10,
+            requiredPaneWidth = (_comparison?.Length > uint.MaxValue ? 102 : 74) + _bytesPerRow * 23 + 10 + Math.Max(_bytesPerRow * 8, 36),
             oldHex = _comparison == null ? null : Convert.ToHexString(_comparison.Read(true, TopOffset, 256)),
             newHex = _comparison == null ? null : Convert.ToHexString(_comparison.Read(false, TopOffset, 256)) };
 
@@ -186,7 +186,7 @@ namespace SourceGit.Views
             var addressWidth = _comparison?.Length > uint.MaxValue ? 102 : 74;
             _bytesPerRow = 1;
             foreach (var count in new[] { 16, 8, 4, 2, 1 })
-                if (addressWidth + count * 31 + 10 <= paneWidth)
+                if (addressWidth + count * 23 + 10 + Math.Max(count * 8, 36) <= paneWidth)
                 {
                     _bytesPerRow = count;
                     break;
