@@ -509,7 +509,7 @@
                 </Border>
               </Border>
             </Grid>
-          <StackPanel Grid.Row="1" Orientation="Horizontal" Background="{DynamicResource Brush.ToolBar}"><Button Classes="treegit_bottom_tab" Width="132" Content="文件状态" Click="OnShowWorkingCopyOverview"/><Button Classes="treegit_bottom_tab" Width="146" Content="日志 / 历史" Click="OnShowHistory"/><Button Classes="treegit_bottom_tab" Width="104" Content="搜索" Click="OnShowSearch" Classes.active="{Binding Histories.IsSearchingCommits}"/></StackPanel></Grid></Grid>
+          <StackPanel Grid.Row="1" Orientation="Horizontal" Background="{DynamicResource Brush.ToolBar}"><Button Classes="treegit_bottom_tab" Content="文件状态" Click="OnShowWorkingCopyOverview" Classes.active="{Binding IsFileStatusTabSelected}"/><Button Classes="treegit_bottom_tab" Content="日志 / 历史" Click="OnShowHistory" Classes.active="{Binding IsHistoryTabSelected}"/><Button Classes="treegit_bottom_tab" Content="搜索" Click="OnShowSearch" Classes.active="{Binding IsSearchTabSelected}"/></StackPanel></Grid></Grid>
         </Grid>
       </Border>
     </Border>

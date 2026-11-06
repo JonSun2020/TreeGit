@@ -80,6 +80,8 @@ def open_history(label,sha,local=None,remote=None):
         time.sleep(.1)
     search(sha,'sha');tool('ui_search',{'repo':str(repo),'select':sha})
     current=state()
+    expected_branch=local.removeprefix('refs/heads/') if local else remote.removeprefix('refs/remotes/') if remote else '无分支'
+    check(label+' branch column matches the branch chosen for navigation',next(c for c in current['searchResults'] if c['sha']==sha)['branch']==expected_branch)
     check(label+' single selection remains on the search page',current['searchActive'] and current['searchSelected']==sha)
     tool('ui_search',{'repo':str(repo),'open':True})
     for _ in range(150):
@@ -120,6 +122,11 @@ try:
     for method, query in [('message','Calibrate'), ('author','TreeGit QA'), ('path','calibration.txt'), ('content','unique_calibration_value'), ('sha',feature)]:
         s = search(query, method)
         check(method+' search finds the unmerged commit', feature in {c['sha'] for c in s['searchResults'] or []})
+    rows={c['sha']:c['branch'] for c in search('TreeGit QA','author')['searchResults']}
+    check('batched branch labels identify a remote-only result',rows[feature]=='origin/feature/search')
+    check('batched branch labels identify older local-only commits',rows[git('rev-parse','main~2')]=='main')
+    check('batched branch labels identify the checked-out local branch',rows[main_head]=='main')
+    search(feature,'sha')
     tool('ui_search', {'repo':str(repo), 'select':feature})
     time.sleep(.5); s = state()
     check('selecting an off-graph result shows its commit details', s['searchSelected'] == feature and s['detailView'] == 'CommitDetail')
@@ -174,6 +181,7 @@ try:
     tool('ui_select_view', {'repo':str(repo), 'view':'search'})
     tool('ui_working_copy', {'repo':str(repo)}); s = state()
     check('file-status tab exits search and shows working-copy overview', not s['searchActive'] and s['workingCopySelected'])
+    (out/'file-status-tab.png').write_bytes(tool('ui_screenshot'))
     tool('ui_select_view', {'repo':str(repo), 'view':'search'})
     tool('ui_select_view', {'repo':str(repo), 'view':'working_copy'})
     check('full commit page also exits search', not state()['searchActive'])

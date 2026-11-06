@@ -90,6 +90,7 @@ namespace SourceGit.ViewModels
                     OnPropertyChanged(nameof(IsDashboardVisible));
                     OnPropertyChanged(nameof(IsWorkingCopyVisible));
                     OnPropertyChanged(nameof(IsStashesVisible));
+                    NotifyNavigationTabsChanged();
                     if (value == 2)
                     {
                         IsStashGroupExpanded = true;
@@ -100,6 +101,17 @@ namespace SourceGit.ViewModels
                         _stashesPage.SelectedStash = null;
                 }
             }
+        }
+
+        public bool IsFileStatusTabSelected => SelectedViewIndex == 1 || (SelectedViewIndex == 0 && _histories is { IsSearchingCommits: false, IsWorkingCopySelected: true });
+        public bool IsHistoryTabSelected => SelectedViewIndex == 0 && _histories is { IsSearchingCommits: false, IsWorkingCopySelected: false };
+        public bool IsSearchTabSelected => SelectedViewIndex == 0 && _histories is { IsSearchingCommits: true };
+
+        public void NotifyNavigationTabsChanged()
+        {
+            OnPropertyChanged(nameof(IsFileStatusTabSelected));
+            OnPropertyChanged(nameof(IsHistoryTabSelected));
+            OnPropertyChanged(nameof(IsSearchTabSelected));
         }
 
         public void ShowHistoryPage()
@@ -1052,30 +1064,7 @@ namespace SourceGit.ViewModels
 
         public event Action<Models.Branch> HistoryBranchSelectionRequested;
 
-        private Models.Branch FindHistoryBranch(string sha, HashSet<string> containing)
-        {
-            var exactRemotes = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var branch in _branches)
-                if (!branch.IsLocal && branch.Head == sha) exactRemotes.Add(branch.FullName);
-
-            Models.Branch Pick(List<Models.Branch> candidates)
-            {
-                int Rank(Models.Branch branch) => (branch.Head == sha ? 4 : 0) +
-                    (!string.IsNullOrEmpty(branch.Upstream) && exactRemotes.Contains(branch.Upstream) ? 2 : 0) + (branch.IsCurrent ? 1 : 0);
-                candidates.Sort((a, b) =>
-                {
-                    var order = Rank(b).CompareTo(Rank(a));
-                    return order != 0 ? order : StringComparer.Ordinal.Compare(a.FullName, b.FullName);
-                });
-                return candidates.Count > 0 ? candidates[0] : null;
-            }
-
-            var tracked = _branches.FindAll(b => b.IsLocal && !b.IsDetachedHead && !string.IsNullOrEmpty(b.Upstream) &&
-                (containing.Contains(b.FullName) || containing.Contains(b.Upstream)));
-            var remotes = _branches.FindAll(b => !b.IsLocal && containing.Contains(b.FullName));
-            var locals = _branches.FindAll(b => b.IsLocal && !b.IsDetachedHead && containing.Contains(b.FullName));
-            return Pick(tracked) ?? Pick(remotes) ?? Pick(locals);
-        }
+        private Models.Branch FindHistoryBranch(string sha, HashSet<string> containing) => Models.BranchSelection.Choose(_branches, sha, containing);
 
         public void RevealCommitInHistory(Models.Commit commit)
         {

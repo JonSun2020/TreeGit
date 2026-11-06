@@ -1549,15 +1549,22 @@
     </Setter>
   </Style>
   <Style Selector="Button.treegit_bottom_tab">
-    <Setter Property="Height" Value="26"/><Setter Property="Padding" Value="8,0"/>
+    <Setter Property="Width" Value="104"/><Setter Property="Height" Value="26"/><Setter Property="MinHeight" Value="26"/><Setter Property="Padding" Value="0"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/><Setter Property="VerticalContentAlignment" Value="Center"/>
     <Setter Property="CornerRadius" Value="0"/><Setter Property="BorderThickness" Value="1"/>
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border2}"/>
-    <Setter Property="Background" Value="{DynamicResource Brush.SubPanel}"/>
+    <Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/>
+    <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.TabInactive}"/>
+    <Setter Property="Template"><ControlTemplate><Grid>
+      <Border x:Name="TabBorder" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"/>
+      <ContentPresenter x:Name="PART_ContentPresenter" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Background="Transparent" Padding="0"/>
+    </Grid></ControlTemplate></Setter>
   </Style>
   <Style Selector="Button.treegit_bottom_tab.active">
     <Setter Property="Background" Value="{DynamicResource Brush.Contents}"/>
     <Setter Property="BorderThickness" Value="1,0,1,1"/>
     <Setter Property="FontWeight" Value="Bold"/>
   </Style>
+  <Style Selector="Button.treegit_bottom_tab.active /template/ Border#TabBorder"><Setter Property="Margin" Value="0,-1,0,0"/></Style>
 </Styles>
 

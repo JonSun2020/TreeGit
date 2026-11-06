@@ -163,6 +163,11 @@ namespace SourceGit.ViewModels
                     }
                 }
 
+                if (token.IsCancellationRequested) return;
+                var branchNames = await new Commands.QuerySearchBranchNames(_repo) { CancellationToken = token }.GetResultAsync(result).ConfigureAwait(false);
+                foreach (var commit in result)
+                    if (branchNames.TryGetValue(commit.SHA, out var name)) commit.SearchBranchName = name;
+
                 Dispatcher.UIThread.Post(() =>
                 {
                     if (token.IsCancellationRequested)

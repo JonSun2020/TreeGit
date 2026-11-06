@@ -21,6 +21,12 @@ namespace SourceGit.Models
         public User Committer { get; set; } = User.Invalid;
         public ulong CommitterTime { get; set; } = 0;
         public string Subject { get; set; } = string.Empty;
+        public string SearchBranchName
+        {
+            get => _searchBranchName;
+            set => SetProperty(ref _searchBranchName, value);
+        }
+        private string _searchBranchName = "—";
         public List<string> Parents { get; set; } = new();
         public List<Decorator> Decorators { get; set; } = new();
 

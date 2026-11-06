@@ -33,6 +33,7 @@ namespace SourceGit.ViewModels
                     _searchCommitContext.EndSearch();
 
                 SetProperty(ref _isSearchingCommits, value);
+                _repo.NotifyNavigationTabsChanged();
                 if (value)
                 {
                     IsCollapseDetails = false;
@@ -184,7 +185,10 @@ namespace SourceGit.ViewModels
         public bool IsWorkingCopySelected
         {
             get => _isWorkingCopySelected;
-            private set => SetProperty(ref _isWorkingCopySelected, value);
+            private set
+            {
+                if (SetProperty(ref _isWorkingCopySelected, value)) _repo.NotifyNavigationTabsChanged();
+            }
         }
 
         public void ShowWorkingCopyOverview()
