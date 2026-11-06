@@ -4,16 +4,20 @@ import json
 import os
 from pathlib import Path
 import queue
+import shutil
+import stat
 import subprocess
 import sys
 import tempfile
 import threading
 import time
 
+sys.stdout.reconfigure(encoding='utf-8')
+
 exe = Path(sys.argv[1]).resolve()
 out = Path(sys.argv[2]).resolve()
 out.mkdir(parents=True, exist_ok=True)
-root = Path(tempfile.mkdtemp(prefix='TreeGit dialog audit '))
+root = Path(tempfile.mkdtemp(prefix='TreeGit dialog audit ')).resolve()
 repo = root/'repo'
 remote = root/'remote.git'
 env = os.environ.copy()
@@ -88,6 +92,7 @@ try:
         deadline=time.monotonic()+15
         while time.monotonic()<deadline and not has_lost():time.sleep(.1)
         check('reflog recovery entry reveals the lost commit, call '+str(attempt+1),has_lost())
+        capture('reflog-recovery-'+str(attempt+1))
     tool('git_run',{'repo':str(repo),'arguments':['branch','recovered',lost]})
     check('a recovered branch keeps the lost commit reachable',git('rev-parse','recovered')==lost)
     for theme in ['Blue','Light','Dark','Default','Blue']:
@@ -126,4 +131,13 @@ finally:
     p.stdin.close()
     try:p.wait(timeout=10)
     except subprocess.TimeoutExpired:p.kill()
-    if pid:subprocess.run(['taskkill','/PID',str(pid)],capture_output=True)
+    if pid:
+        code="$p=Get-Process -Id "+str(pid)+" -ErrorAction SilentlyContinue; if($p){if($p.Path -ne '"+str(exe).replace("'","''")+"'){throw 'Wrong QA process'};if(-not $p.CloseMainWindow()){throw 'Owned QA window did not close'};if(-not $p.WaitForExit(15000)){throw 'Owned QA window did not exit'}}"
+        subprocess.run(['powershell','-NoProfile','-Command',code],capture_output=True,check=True)
+    assert root.name.startswith('TreeGit dialog audit ') and repo.parent==root and not root.is_symlink() and not root.is_junction()
+    def readonly(fn,path,_):
+        owned=Path(path)
+        assert owned.resolve().is_relative_to(root) and not owned.is_symlink() and not owned.is_junction()
+        owned.chmod(owned.stat().st_mode | stat.S_IWRITE)
+        fn(path)
+    shutil.rmtree(root,onerror=readonly)

@@ -20,6 +20,8 @@ namespace SourceGit.Automation
             if (window == null) throw new InvalidOperationException("The TreeGit window is not ready.");
             if (args.TryGetProperty("twoColumnHistory", out var orientation))
                 ViewModels.Preferences.Instance.UseTwoColumnsLayoutInHistories = orientation.GetBoolean();
+            if (args.TryGetProperty("twoColumnDiff", out var diffOrientation))
+                ViewModels.Preferences.Instance.UseSideBySideDiff = diffOrientation.GetBoolean();
             var splitters = window.GetVisualDescendants().OfType<GridSplitter>().ToArray();
             var action = args.TryGetProperty("action", out var operation) ? operation.GetString() : "list";
             if (action == "resize")

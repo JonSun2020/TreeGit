@@ -303,6 +303,11 @@ namespace SourceGit.Automation
                         App.OpenAboutCommand.Execute(null);
                         return (object)new { opened = uiCommand };
                     }
+                    if (uiCommand == "ssh_keys")
+                    {
+                        App.OpenSSHKeyHelperCommand.Execute(null);
+                        return (object)new { opened = uiCommand };
+                    }
                     if (uiCommand == "check_updates")
                     {
                         App.CheckForUpdateCommand.Execute(null);
@@ -660,6 +665,29 @@ namespace SourceGit.Automation
                             break;
                         case "credentials":
                             _ = new Views.RepositoryCredentials(repo).ShowDialog(owner);
+                            break;
+                        case "file_history":
+                            Views.ControlExtensions.ShowWindow(owner, new ViewModels.FileHistories(repo.FullPath, Text(args, "file")));
+                            break;
+                        case "directory_history":
+                            Views.ControlExtensions.ShowWindow(owner, new ViewModels.DirHistories(repo, Text(args, "file")));
+                            break;
+                        case "compare_branches":
+                            var based = repo.Branches.Find(b => b.FullName == Text(args, "base") || b.FriendlyName == Text(args, "base"))
+                                ?? throw new ArgumentException("Base branch does not exist.");
+                            var to = repo.Branches.Find(b => b.FullName == Text(args, "to") || b.FriendlyName == Text(args, "to"))
+                                ?? throw new ArgumentException("Target branch does not exist.");
+                            Views.ControlExtensions.ShowWindow(owner, new ViewModels.Compare(repo, based, to));
+                            break;
+                        case "commit_info":
+                        case "commit_changes":
+                        case "commit_files":
+                            if (repo.Histories.DetailContext is not ViewModels.CommitDetail commitDetail)
+                                throw new InvalidOperationException("Select a commit first.");
+                            commitDetail.ActiveTabIndex = command == "commit_info" ? 0 : command == "commit_changes" ? 1 : 2;
+                            break;
+                        case "git_logs":
+                            _ = Views.ControlExtensions.ShowDialogAsync(owner, new ViewModels.ViewLogs(repo));
                             break;
                         case "create_branch":
                             repo.CreateNewBranch();

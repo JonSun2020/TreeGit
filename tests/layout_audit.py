@@ -18,6 +18,8 @@ import threading
 import time
 import zlib
 
+sys.stdout.reconfigure(encoding='utf-8')
+
 exe = Path(sys.argv[1]).resolve()
 out = Path(sys.argv[2]).resolve()
 out.mkdir(parents=True, exist_ok=True)
@@ -51,7 +53,7 @@ git('add', '.')
 git('commit', '-m', 'A long subject to verify file and commit details remain readable when the panels become narrow')
 head = git('rev-parse', 'HEAD')
 git('tag', 'v1.0-with-a-long-label-for-layout-review')
-git('branch', 'feature/long-component-name/resize-review')
+git('branch', 'feature/long-component-name/resize-review', 'HEAD~1')
 git('init', '--bare', str(root / 'origin.git'))
 git('remote', 'add', 'origin', str(root / 'origin.git'))
 git('push', '-u', 'origin', 'main')
@@ -139,28 +141,37 @@ def inspect(label, selected=None, capture=False, active=False):
                 check(label + ': centered ' + tab['text'], dx < 1.1 and dy < 1.1, {'dx': dx, 'dy': dy})
     probe = status.get('layoutProbe', {})
     check(label + ': staging actions remain in their panels', not probe.get('stageButtonsOutsidePanel'), probe.get('stageButtonsOutsidePanel'))
+    if active and status['dialogs']:
+        d = status['dialogs'][-1]
+        a = d['workArea']
+        check(label + ': dialog fits screen', d['x'] >= a['x'] - 1 and d['y'] >= a['y'] - 1 and d['x'] + d['width'] * d['scaling'] <= a['x'] + a['width'] + 1 and d['y'] + d['height'] * d['scaling'] <= a['y'] + a['height'] + 1, d)
     if capture:
         screenshot(label, active)
     return geometry
 
-def sweep(label, selected=None, captures=False):
-    original = inspect(label, selected, capture=captures)
+def sweep(label, selected=None, captures=False, active=False):
+    scope = {'window': 'active' if active else 'main'}
+    original = inspect(label, selected, capture=captures, active=active)
     visible = [s for s in original['splitters'] if s['visible'] and s['enabled']]
     check(label + ': has draggable panels', bool(visible))
     for s in visible:
         direction = 'x' if s['bounds']['width'] < s['bounds']['height'] else 'y'
+        changed = False
         for sign in [-1, 1]:
-            tool('ui_layout', {'action': 'restore', 'splitter': s['index'], 'columns': s['columns'], 'rows': s['rows']})
+            tool('ui_layout', {**scope, 'action': 'restore', 'splitter': s['index'], 'columns': s['columns'], 'rows': s['rows']})
             time.sleep(.08)
-            tool('ui_layout', {'action': 'drag', 'splitter': s['index'], 'dx': sign * 5000 if direction == 'x' else 0, 'dy': sign * 5000 if direction == 'y' else 0})
+            tool('ui_layout', {**scope, 'action': 'drag', 'splitter': s['index'], 'dx': sign * 5000 if direction == 'x' else 0, 'dy': sign * 5000 if direction == 'y' else 0})
             case = f"{label}-split{s['index']}-{sign}"
-            g = inspect(case, selected, capture=captures)
+            g = inspect(case, selected, capture=captures, active=active)
             moved = next(x for x in g['splitters'] if x['index'] == s['index'])
             lengths, mins = (moved['actualColumns'], moved['minColumns']) if direction == 'x' else (moved['actualRows'], moved['minRows'])
+            old_lengths = s['actualColumns'] if direction == 'x' else s['actualRows']
+            changed |= any(abs(a - b) > 1 for a, b in zip(lengths, old_lengths))
             check(case + ': respects pane minimums', all(a >= m - 1 for a, m in zip(lengths, mins)), {'actual': lengths, 'minimums': mins})
-        tool('ui_layout', {'action': 'restore', 'splitter': s['index'], 'columns': s['columns'], 'rows': s['rows']})
+        check(label + ': splitter ' + str(s['index']) + ' actually moves', changed)
+        tool('ui_layout', {**scope, 'action': 'restore', 'splitter': s['index'], 'columns': s['columns'], 'rows': s['rows']})
         time.sleep(.08)
-    inspect(label + '-restored', selected)
+    inspect(label + '-restored', selected, active=active)
 
 try:
     rpc('initialize', {'protocolVersion': '2025-11-25'})
@@ -171,10 +182,21 @@ try:
     repo_tool('ui_select_commit', revision=head)
     wait_for(lambda: state()['detailCommit'] == head)
     repo_tool('ui_diff', action='select', source='history', file='text.txt')
+    tool('ui_layout', {'twoColumnDiff': True})
     sweep('history-text', '日志 / 历史', True)
     tool('ui_layout', {'twoColumnHistory': True})
     sweep('history-horizontal', '日志 / 历史', True)
     tool('ui_layout', {'twoColumnHistory': False})
+    repo_tool('ui_command', command='commit_files')
+    sweep('revision-files', '日志 / 历史', True)
+    repo_tool('ui_command', command='commit_changes')
+    for command, args in [('file_history', {'file': 'text.txt'}), ('directory_history', {'file': '.'}),
+                          ('compare_branches', {'base': 'feature/long-component-name/resize-review', 'to': 'main'}), ('git_logs', {})]:
+        repo_tool('ui_command', command=command, **args)
+        wait_for(lambda: tool('ui_state')['dialogs'])
+        time.sleep(.5)
+        sweep(command, captures=True, active=True)
+        tool('ui_command', {'command': 'close_dialog'})
     repo_tool('ui_search', method='message', query='long subject')
     wait_for(lambda: not state()['searchQuerying'] and state()['searchResults'])
     repo_tool('ui_search', select=head)
