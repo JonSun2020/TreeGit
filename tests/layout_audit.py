@@ -4,6 +4,8 @@ Runs on a CI desktop, never attaches to a user's installed TreeGit or repositori
 Stores compact geometry and a few representative/failing renders, not duplicate app copies.
 """
 import base64
+import ctypes
+from ctypes import wintypes
 import json
 import os
 from pathlib import Path
@@ -108,6 +110,7 @@ seq = 0
 pid = None
 checks = []
 records = []
+pointer_records = []
 
 def stop_session():
     p.stdin.close()
@@ -155,6 +158,39 @@ def check(label, ok, detail=None):
 def click_ready(name):
     wait_for(lambda: any(b['name'] == name and b['enabled'] for b in tool('ui_layout')['buttons']))
     tool('ui_layout', {'action': 'test_click', 'button': name})
+
+def native_drag(window, point, dx=0, dy=0):
+    if os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('RUNNER_OS') != 'Windows':
+        pointer_records.append({'name': 'physical-pointer-unavailable', 'reason': 'Restricted to an isolated GitHub Windows desktop'})
+        return False
+    api = ctypes.WinDLL('user32', use_last_error=True)
+    api.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+    api.GetForegroundWindow.restype = wintypes.HWND
+    api.SetForegroundWindow.argtypes = [wintypes.HWND]
+    api.SetCursorPos.argtypes = [ctypes.c_int, ctypes.c_int]
+    api.mouse_event.argtypes = [wintypes.DWORD, wintypes.DWORD, wintypes.DWORD, wintypes.DWORD, ctypes.c_size_t]
+    handle = window['nativeHandle']
+    owner_pid = wintypes.DWORD()
+    api.GetWindowThreadProcessId(handle, ctypes.byref(owner_pid))
+    assert owner_pid.value == pid, 'Pointer test refused a window from another process'
+    api.SetForegroundWindow(handle)
+    time.sleep(.15)
+    if api.GetForegroundWindow() != handle:
+        pointer_records.append({'name': 'physical-pointer-unavailable', 'reason': 'CI desktop cannot activate its own test window'})
+        return False
+    x, y = point['x'], point['y']
+    assert api.SetCursorPos(x, y)
+    time.sleep(.08)
+    api.mouse_event(2, 0, 0, 0, 0)
+    try:
+        for step in range(1, 6):
+            assert api.SetCursorPos(round(x + dx * step / 5), round(y + dy * step / 5))
+            time.sleep(.06)
+    finally:
+        api.mouse_event(4, 0, 0, 0, 0)
+    time.sleep(.2)
+    pointer_records.append({'name': 'physical-pointer-drag', 'owner': owner_pid.value, 'x': x, 'y': y, 'dx': dx, 'dy': dy})
+    return True
 
 def screenshot(label, active=False):
     (out / (label + '.png')).write_bytes(tool('ui_screenshot', {'window': 'active' if active else 'main'}))
@@ -227,7 +263,9 @@ def audit_active_sizes(label):
             g = inspect(case, capture=True, active=True)
             w = g['window']
             fixed = [b for b in g['buttons'] if not b['inScrollArea']]
-            check(case + ': fixed actions are visible', all(b['bounds']['x'] >= -.5 and b['bounds']['y'] >= -.5 and b['bounds']['x'] + b['bounds']['width'] <= w['width'] + .5 and b['bounds']['y'] + b['bounds']['height'] <= w['height'] + .5 for b in fixed))
+            # A scaled one-pixel border can round just outside the client rect.
+            tolerance = 1.5
+            check(case + ': fixed actions are visible', all(b['bounds']['x'] >= -tolerance and b['bounds']['y'] >= -tolerance and b['bounds']['x'] + b['bounds']['width'] <= w['width'] + tolerance and b['bounds']['y'] + b['bounds']['height'] <= w['height'] + tolerance for b in fixed))
             def overlaps(a, b):
                 a, b = a['bounds'], b['bounds']
                 return min(a['x'] + a['width'], b['x'] + b['width']) - max(a['x'], b['x']) > 1 and min(a['y'] + a['height'], b['y'] + b['height']) - max(a['y'], b['y']) > 1
@@ -249,6 +287,19 @@ try:
     tool('ui_window', {'state': 'maximized', 'theme': 'Blue', 'zoom': 1})
     repo_tool('ui_select_commit', revision=head)
     wait_for(lambda: state()['detailCommit'] == head)
+    initial_layout = tool('ui_layout')
+    sidebar = next(s for s in initial_layout['splitters'] if s['owner'] == 'Repository' and s['visible'])
+    if native_drag(initial_layout['window'], sidebar['screen'], dx=50):
+        moved = next(s for s in tool('ui_layout')['splitters'] if s['index'] == sidebar['index'])
+        check('real mouse drag resizes the sidebar', abs(moved['actualColumns'][0] - sidebar['actualColumns'][0]) > 10)
+        tool('ui_layout', {'action': 'restore', 'splitter': sidebar['index'], 'columns': sidebar['columns'], 'rows': sidebar['rows']})
+    initial_layout = tool('ui_layout')
+    graph_header = next(h for h in initial_layout['columnHeaders'] if h['text'] == '图谱')
+    if native_drag(initial_layout['window'], graph_header['screen'], dx=40):
+        resized_columns = repo_tool('ui_history_columns')
+        check('real mouse column drag is saved through the normal header handler', resized_columns['graph'] > graph_header['bounds']['localWidth'] + 10, resized_columns)
+        repo_tool('ui_history_columns', reset=True)
+
     repo_tool('ui_diff', action='select', source='history', file='text.txt')
     tool('ui_layout', {'twoColumnDiff': True})
     sweep('history-text', '日志 / 历史', True)
@@ -265,6 +316,7 @@ try:
     sweep('compare-commits', '日志 / 历史', True)
     repo_tool('ui_select_commit', revision=head)
     wait_for(lambda: state()['detailView'] == 'CommitDetail')
+    wait_for(lambda: 'component' in (state().get('detailChanges') or []))
     repo_tool('ui_diff', action='select', source='history', file='component')
     wait_for(lambda: any(d['type'] == 'SubmoduleDiff' for d in tool('ui_layout')['diffs']))
     repo_tool('ui_command', command='submodule_compare')
@@ -405,7 +457,7 @@ except Exception as error:
     try: screenshot('failure')
     except Exception: pass
 finally:
-    (out / 'layout-audit-results.json').write_text(json.dumps({'checks': checks, 'failures': [c for c in checks if not c['ok']], 'records': records, 'stderr': errors[-15:]}, ensure_ascii=False, indent=2), encoding='utf-8')
+    (out / 'layout-audit-results.json').write_text(json.dumps({'checks': checks, 'failures': [c for c in checks if not c['ok']], 'records': records, 'pointer': pointer_records, 'stderr': errors[-15:]}, ensure_ascii=False, indent=2), encoding='utf-8')
     stop_session()
     def readonly(fn, path, _):
         owned = Path(path)

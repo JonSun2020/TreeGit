@@ -172,6 +172,8 @@ namespace SourceGit.Automation
                                 searchSelected = r.Histories?.SearchCommitContext.Selected?.SHA,
                                 searchResults = r.Histories?.SearchCommitContext.Results?.Select(c => new { sha = c.SHA, subject = c.Subject, branch = c.SearchBranchName }).ToArray(),
                                 detailView = r.Histories?.DetailContext?.GetType().Name,
+                                detailChanges = r.Histories?.DetailContext is ViewModels.CommitDetail detail ? detail.Changes?.Take(256).Select(c => c.Path).ToArray()
+                                    : r.Histories?.DetailContext is ViewModels.RevisionCompare comparison ? comparison.VisibleChanges?.Take(256).Select(c => c.Path).ToArray() : null,
                                 stashes = new { count = r.StashesCount, expanded = r.IsStashGroupExpanded, selected = r.StashesPage.SelectedStash?.SHA,
                                     changes = r.StashesPage.Changes?.Select(c => c.Path).ToArray(), diff = r.StashesPage.DiffContext?.Title },
                                 selectedCommits = r.Histories?.SelectedCommits.Select(c => c.SHA).ToArray(),

@@ -28,7 +28,11 @@ namespace SourceGit.Views
             Focusable = true;
             Native.OS.SetupForWindow(this);
             PositionChanged += (_, _) => UpdateEdgeSnapInsets();
-            Resized += (_, _) => UpdateEdgeSnapInsets();
+            Resized += (_, _) =>
+            {
+                UpdateEdgeSnapInsets();
+                ScheduleSecondaryWindowPosition();
+            };
         }
 
         public void BeginMoveWindow(object _, PointerPressedEventArgs e)
@@ -64,9 +68,23 @@ namespace SourceGit.Views
             MinHeight = Math.Min(MinHeight, height);
             if (Bounds.Width > width) Width = width;
             if (Bounds.Height > height) Height = height;
+            ScheduleSecondaryWindowPosition();
+        }
+
+        private bool _secondaryPositionPending;
+
+        private void ScheduleSecondaryWindowPosition()
+        {
+            if (!CanResize || this is Launcher || _secondaryPositionPending) return;
+            _secondaryPositionPending = true;
             Dispatcher.UIThread.Post(() =>
             {
+                _secondaryPositionPending = false;
                 if (!IsVisible || WindowState != WindowState.Normal) return;
+                var screen = Screens.ScreenFromWindow(this) ?? Screens.Primary;
+                if (screen == null) return;
+                var area = screen.WorkingArea;
+                var scale = screen.Scaling;
                 Position = new PixelPoint(
                     (int)Math.Clamp(Position.X, area.X, Math.Max(area.X, area.Right - Bounds.Width * scale)),
                     (int)Math.Clamp(Position.Y, area.Y, Math.Max(area.Y, area.Bottom - Bounds.Height * scale)));

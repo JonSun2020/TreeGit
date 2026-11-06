@@ -104,21 +104,39 @@ namespace SourceGit.Automation
                 return new { x = start?.X, y = start?.Y, width = end?.X - start?.X, height = end?.Y - start?.Y,
                     localWidth = control.Bounds.Width, localHeight = control.Bounds.Height };
             }
+#if INTEGRATION_TESTS
+            object ScreenPoint(Control control, bool grip = false)
+            {
+                var point = control.PointToScreen(new Point(grip ? Math.Max(1, control.Bounds.Width - 2) : control.Bounds.Width / 2, control.Bounds.Height / 2));
+                return new { x = point.X, y = point.Y };
+            }
+#endif
             return new
             {
                 window = new { title = window.Title, width = window.Bounds.Width, height = window.Bounds.Height, minWidth = window.MinWidth, minHeight = window.MinHeight,
+#if INTEGRATION_TESTS
+                    nativeHandle = window.TryGetPlatformHandle()?.Handle.ToInt64(),
+#endif
                     canResize = window.CanResize, state = window.WindowState.ToString(), scaling = window.RenderScaling },
                 preferredSidebarWidth = ViewModels.Preferences.Instance.Layout.RepositorySidebarWidth,
                 splitters = controls.OfType<GridSplitter>().Select((splitter, index) =>
                 {
                     var grid = ParentGrid(splitter);
                     return new { index, name = splitter.Name, owner = splitter.GetVisualAncestors().OfType<UserControl>().FirstOrDefault()?.GetType().Name,
+#if INTEGRATION_TESTS
+                        screen = ScreenPoint(splitter),
+#endif
                         column = Grid.GetColumn(splitter), row = Grid.GetRow(splitter),
                         visible = splitter.IsEffectivelyVisible && splitter.Bounds.Width > 0 && splitter.Bounds.Height > 0, enabled = splitter.IsEnabled, bounds = Bounds(splitter),
                         columns = grid?.ColumnDefinitions.Select(d => d.Width.ToString()).ToArray(), rows = grid?.RowDefinitions.Select(d => d.Height.ToString()).ToArray(),
                         actualColumns = grid?.ColumnDefinitions.Select(d => d.ActualWidth).ToArray(), actualRows = grid?.RowDefinitions.Select(d => d.ActualHeight).ToArray(),
                         minColumns = grid?.ColumnDefinitions.Select(d => d.MinWidth).ToArray(), minRows = grid?.RowDefinitions.Select(d => d.MinHeight).ToArray() };
                 }).ToArray(),
+#if INTEGRATION_TESTS
+                columnHeaders = controls.OfType<DataGridColumnHeader>().Where(h => h.IsEffectivelyVisible && h.Bounds.Width > 0)
+                    .Select(h => new { text = string.Join("", h.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text)),
+                        bounds = Bounds(h), screen = ScreenPoint(h, true) }).ToArray(),
+#endif
                 buttons = controls.OfType<Button>().Where(b => b.IsEffectivelyVisible && b.Bounds.Width > 0 && b.Bounds.Height > 0).Select(b =>
                 {
                     var border = b.FindAncestorOfType<Border>();
