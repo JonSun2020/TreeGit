@@ -1339,27 +1339,16 @@ namespace SourceGit.ViewModels
                 var graphView = await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     _histories.IsLoading = true;
-                    var reference = _histories.GraphBranchRef;
-                    var branch = reference == "HEAD" ? CurrentBranch : _branches.Find(b => b.FullName == reference);
-                    var upstream = _histories.ShowRemoteBranches && branch is { IsLocal: true, IsUpstreamGone: false } ? branch.Upstream : null;
-                    return (Reference: reference, Name: _histories.GraphBranchName, OnlyBranch: _histories.BranchDisplayMode != 0, Upstream: upstream,
-                        FallbackUpstream: _histories.ShowRemoteBranches && CurrentBranch is { IsUpstreamGone: false } ? CurrentBranch.Upstream : null,
+                    var upstream = _histories.ShowRemoteBranches && CurrentBranch is { IsLocal: true, IsUpstreamGone: false } ? CurrentBranch.Upstream : null;
+                    return (Name: _histories.GraphBranchName, OnlyBranch: _histories.BranchDisplayMode != 0, Upstream: upstream,
                         LocalBranches: _branches.FindAll(b => b.IsLocal));
                 });
-                var preferredHead = await new Commands.QueryRevisionByRefName(FullPath, graphView.Reference).GetResultAsync().ConfigureAwait(false);
-                var resetMissingBranch = false;
-                if (string.IsNullOrEmpty(preferredHead) && graphView.Reference != "HEAD")
-                {
-                    resetMissingBranch = true;
-                    graphView.Reference = "HEAD";
-                    graphView.Upstream = graphView.FallbackUpstream;
-                    preferredHead = await new Commands.QueryRevisionByRefName(FullPath, "HEAD").GetResultAsync().ConfigureAwait(false);
-                }
+                var preferredHead = await new Commands.QueryRevisionByRefName(FullPath, "HEAD").GetResultAsync().ConfigureAwait(false);
 
                 var builder = new StringBuilder();
                 builder
                     .Append('-').Append(Preferences.Instance.MaxHistoryCommits).Append(' ')
-                    .Append(_uiStates.BuildHistoryParams(GitDir, graphView.Reference, graphView.OnlyBranch));
+                    .Append(_uiStates.BuildHistoryParams(GitDir, onlyGraphBranch: graphView.OnlyBranch));
 
                 string upstreamName = null;
                 if (graphView.OnlyBranch && !string.IsNullOrEmpty(graphView.Upstream))
@@ -1397,8 +1386,7 @@ namespace SourceGit.ViewModels
 
                 if (graphView.OnlyBranch)
                 {
-                    if (graphView.Reference == "HEAD")
-                        graphView.Name = commits.Find(c => c.SHA == preferredHead)?.Decorators.Find(d => d.Type == Models.DecoratorType.CurrentBranchHead)?.Name ?? graphView.Name;
+                    graphView.Name = commits.Find(c => c.SHA == preferredHead)?.Decorators.Find(d => d.Type == Models.DecoratorType.CurrentBranchHead)?.Name ?? graphView.Name;
                     foreach (var commit in commits)
                         commit.Decorators.RemoveAll(d => (d.Type is Models.DecoratorType.LocalBranchHead or Models.DecoratorType.RemoteBranchHead or Models.DecoratorType.CurrentBranchHead) && d.Name != graphView.Name && d.Name != upstreamName);
                 }
@@ -1411,7 +1399,7 @@ namespace SourceGit.ViewModels
                     if (_histories != null)
                     {
                         _histories.IsLoading = false;
-                        _histories.SetGraphCommits(commits, preferredHead, resetMissingBranch);
+                        _histories.SetGraphCommits(commits, preferredHead);
                         BisectState = _histories.UpdateBisectInfo();
 
                         if (!string.IsNullOrEmpty(_navigateToCommitDelayed))

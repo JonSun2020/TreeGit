@@ -165,6 +165,7 @@ namespace SourceGit.ViewModels
                 _repo.UIStates.ShowRemoteBranchesInHistory = value;
                 _repo.UIStates.Save();
                 OnPropertyChanged();
+                IsLoading = true;
                 _repo.RefreshCommits();
             }
         }
@@ -191,8 +192,7 @@ namespace SourceGit.ViewModels
 
         private bool _isWorkingCopySelected;
 
-        public string GraphBranchRef => string.IsNullOrEmpty(_repo.UIStates.GraphBranchRef) ? "HEAD" : _repo.UIStates.GraphBranchRef;
-        public string GraphBranchName => GraphBranchRef == "HEAD" ? CurrentBranch?.Name ?? "HEAD" : GraphBranchRef.Replace("refs/heads/", "").Replace("refs/remotes/", "");
+        public string GraphBranchName => CurrentBranch?.Name ?? "HEAD";
         public int BranchDisplayMode
         {
             get => _repo.UIStates.ShowOnlyGraphBranch || GraphHighlighting == Models.CommitGraphHighlighting.CurrentBranchOnly ? 1 : 0;
@@ -209,23 +209,17 @@ namespace SourceGit.ViewModels
             }
         }
 
-        public void FocusGraphBranch(Models.Branch branch)
+        public void NavigateToBranch(Models.Branch branch)
         {
-            var reference = branch?.FullName ?? string.Empty;
-            if (_repo.UIStates.GraphBranchRef == reference) return;
-            _repo.UIStates.GraphBranchRef = reference;
-            OnPropertyChanged(nameof(GraphBranchName));
-            IsLoading = true;
-            _repo.RefreshCommits();
+            branch ??= CurrentBranch;
+            if (branch == null || (BranchDisplayMode != 0 && !branch.IsCurrent))
+                return;
+
+            _repo.NavigateToCommit(branch.Head, IsLoading);
         }
 
-        public void SetGraphCommits(List<Models.Commit> commits, string preferredHead, bool resetMissingBranch = false)
+        public void SetGraphCommits(List<Models.Commit> commits, string preferredHead)
         {
-            if (resetMissingBranch)
-            {
-                _repo.UIStates.GraphBranchRef = string.Empty;
-                OnPropertyChanged(nameof(GraphBranchName));
-            }
             _preferredGraphHead = preferredHead;
             Commits = commits;
             OnPropertyChanged(nameof(GraphWidth));

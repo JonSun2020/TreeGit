@@ -60,7 +60,6 @@ namespace SourceGit.Models
             set;
         } = CommitGraphHighlighting.All;
 
-        public string GraphBranchRef { get; set; } = string.Empty;
         public bool ShowOnlyGraphBranch { get; set; } = false;
         public bool ShowRemoteBranchesInHistory { get; set; } = true;
 

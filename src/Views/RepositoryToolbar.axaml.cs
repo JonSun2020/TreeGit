@@ -628,7 +628,6 @@ namespace SourceGit.Views
         {
             if (DataContext is ViewModels.Repository { CurrentBranch: { } head } repo)
             {
-                repo.Histories.FocusGraphBranch(head);
                 var repoView = TopLevel.GetTopLevel(this)?.FindDescendantOfType<Repository>();
                 repoView?.LocalBranchTree?.Select(head);
 

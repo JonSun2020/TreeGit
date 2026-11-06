@@ -325,7 +325,7 @@ namespace SourceGit.Views
                 return;
 
             var treePath = new List<ViewModels.BranchTreeNode>();
-            FindTreePath(treePath, _nodes, branch.Name, 0);
+            FindTreePath(treePath, _nodes, branch.FullName);
 
             if (treePath.Count == 0)
                 return;
@@ -448,8 +448,7 @@ namespace SourceGit.Views
             if (node.Backend is not Models.Branch branch)
                 return;
 
-            repo.Histories.FocusGraphBranch(branch);
-            repo.NavigateToCommit(branch.Head);
+            repo.Histories.NavigateToBranch(branch);
         }
 
         private void OnNodesSelectionChanged(object _, SelectionChangedEventArgs e)
@@ -478,7 +477,7 @@ namespace SourceGit.Views
                 return;
 
             if (selected.Count == 1 && selected[0] is ViewModels.BranchTreeNode { Backend: Models.Branch branch })
-                repo.Histories.FocusGraphBranch(branch);
+                repo.Histories.NavigateToBranch(branch);
 
             ViewModels.BranchTreeNode prev = null;
             foreach (var row in Rows)
@@ -687,21 +686,18 @@ namespace SourceGit.Views
                 CollectBranchesInNode(outs, sub);
         }
 
-        private void FindTreePath(List<ViewModels.BranchTreeNode> outPath, List<ViewModels.BranchTreeNode> collection, string path, int start)
+        private bool FindTreePath(List<ViewModels.BranchTreeNode> outPath, List<ViewModels.BranchTreeNode> collection, string fullName)
         {
-            if (start >= path.Length - 1)
-                return;
-
-            var sepIdx = path.IndexOf('/', start);
-            var name = sepIdx < 0 ? path.Substring(start) : path.Substring(start, sepIdx - start);
             foreach (var node in collection)
             {
-                if (node.Name.Equals(name, StringComparison.Ordinal))
-                {
-                    outPath.Add(node);
-                    FindTreePath(outPath, node.Children, path, sepIdx + 1);
-                }
+                outPath.Add(node);
+                if (node.Backend is Models.Branch branch && branch.FullName.Equals(fullName, StringComparison.Ordinal))
+                    return true;
+                if (FindTreePath(outPath, node.Children, fullName))
+                    return true;
+                outPath.RemoveAt(outPath.Count - 1);
             }
+            return false;
         }
 
         private ContextMenu CreateContextMenuForLocalBranch(ViewModels.Repository repo, Models.Branch branch)

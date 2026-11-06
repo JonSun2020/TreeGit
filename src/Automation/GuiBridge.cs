@@ -170,6 +170,9 @@ namespace SourceGit.Automation
                                 detailView = r.Histories?.DetailContext?.GetType().Name,
                                 stashes = new { count = r.StashesCount, expanded = r.IsStashGroupExpanded, selected = r.StashesPage.SelectedStash?.SHA,
                                     changes = r.StashesPage.Changes?.Select(c => c.Path).ToArray(), diff = r.StashesPage.DiffContext?.Title },
+                                selectedCommits = r.Histories?.SelectedCommits.Select(c => c.SHA).ToArray(),
+                                localBranchSelection = repositoryView?.LocalBranchTree.Rows.Where(n => n.IsSelected && n.Backend is Models.Branch).Select(n => ((Models.Branch)n.Backend).FullName).ToArray(),
+                                remoteBranchSelection = repositoryView?.RemoteBranchTree.Rows.Where(n => n.IsSelected && n.Backend is Models.Branch).Select(n => ((Models.Branch)n.Backend).FullName).ToArray(),
                                 graphBranch = r.Histories?.GraphBranchName,
                                 graphMode = r.Histories?.BranchDisplayMode,
                                 graphLoading = r.Histories?.IsLoading,
@@ -603,20 +606,24 @@ namespace SourceGit.Automation
             if (name == "ui_graph")
                 return await Dispatcher.UIThread.InvokeAsync(() =>
                 {
+                    Models.Branch branch = null;
                     if (args.TryGetProperty("branch", out var branchValue))
                     {
                         var reference = branchValue.GetString();
-                        if (reference == "HEAD") repo.Histories.FocusGraphBranch(null);
-                        else
-                        {
-                            var branch = repo.Branches.Find(b => b.FullName == reference || b.FriendlyName == reference);
-                            if (branch == null) throw new ArgumentException("Branch has not been loaded or does not exist.");
-                            repo.Histories.FocusGraphBranch(branch);
-                        }
+                        branch = reference == "HEAD" ? repo.CurrentBranch : repo.Branches.Find(b => b.FullName == reference || b.FriendlyName == reference);
+                        if (branch == null) throw new ArgumentException("Branch has not been loaded or does not exist.");
                     }
                     if (args.TryGetProperty("showRemotes", out var showRemotes)) repo.Histories.ShowRemoteBranches = showRemotes.GetBoolean();
                     if (args.TryGetProperty("mode", out var mode))
                         repo.Histories.BranchDisplayMode = mode.GetString() switch { "all" => 0, "current" or "only" or "merged" => 1, _ => throw new ArgumentException("Invalid graph mode.") };
+                    if (branch != null)
+                    {
+                        var owner = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow;
+                        var repositoryView = owner.GetVisualDescendants().OfType<Views.Repository>().FirstOrDefault(v => v.DataContext == repo);
+                        var tree = branch.IsLocal ? repositoryView?.LocalBranchTree : repositoryView?.RemoteBranchTree;
+                        tree?.Select(branch);
+                        repo.Histories.NavigateToBranch(branch);
+                    }
                     return (object)new { branch = repo.Histories.GraphBranchName, mode = repo.Histories.BranchDisplayMode, loading = repo.Histories.IsLoading };
                 });
 
