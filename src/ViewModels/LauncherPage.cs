@@ -17,8 +17,14 @@ namespace SourceGit.ViewModels
         public object Data
         {
             get => _data;
-            set => SetProperty(ref _data, value);
+            set
+            {
+                if (SetProperty(ref _data, value))
+                    OnPropertyChanged(nameof(LoadedRepository));
+            }
         }
+
+        public Repository LoadedRepository => _data as Repository;
 
         public Models.DirtyState DirtyState
         {

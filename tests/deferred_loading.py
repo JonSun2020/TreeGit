@@ -48,15 +48,22 @@ for i in range(8):
     if not (folder/'sample.txt').exists():
         (folder/'sample.txt').write_text('repository '+str(i)+'\n','utf-8');run('add','.');run('commit','-m','Initial commit')
     paths.append(str(folder).replace('\\','/'))
-def prefs(saved,active):
-    config.write_text(json.dumps({'Locale':'zh_CN','Theme':'Light','GitInstallPath':r'C:\Program Files\Git\cmd\git.exe','Workspaces':[{'Name':'Startup QA','IsActive':True,'RestoreOnStartup':True,'Repositories':saved,'ActiveIdx':active}]}),'utf-8')
-prefs(paths,6)
+saved_names={path:'已保存的仓库 '+str(index)+' 中文' for index,path in enumerate(paths)}
+def prefs(saved,active,aliases=False):
+    nodes=[{'Id':path,'Name':saved_names[path],'IsRepository':True} for path in saved if path in saved_names] if aliases else []
+    config.write_text(json.dumps({'Locale':'zh_CN','Theme':'Light','GitInstallPath':r'C:\Program Files\Git\cmd\git.exe','RepositoryNodes':nodes,'Workspaces':[{'Name':'Startup QA','IsActive':True,'RestoreOnStartup':True,'Repositories':saved,'ActiveIdx':active}]}),'utf-8')
+prefs(paths,6,aliases=True)
 c=Client()
 try:
     tabs=c.tool('ui_tabs',{'action':'list'})['tabs']
     check('all saved repository tabs appear before full initialization',len(tabs)==8 and len({t['repo'] for t in tabs})==8)
     check('the saved selected repository is loaded first',tabs[6]['selected'] and tabs[6]['loaded'])
     check('hidden repository initialization is deferred',any(not t['loaded'] for t in tabs if not t['selected']))
+    check('saved repository names are correct before hidden tabs load',all(t['title']==saved_names[t['repo']] for t in tabs))
+    rendered=c.tool('ui_state')['tabs']
+    (out/'pending-tab-content.json').write_text(json.dumps(rendered,ensure_ascii=False,indent=2),'utf-8')
+    check('first-frame headers contain only saved titles, without loading-object fallback text',len(rendered)==len(tabs) and all(row['text']==[saved_names[tab['repo']]] for row,tab in zip(rendered,tabs)))
+    (out/'pending-tabs.png').write_bytes(c.tool('ui_screenshot'))
     moved=c.tool('ui_tabs',{'action':'move','index':2,'targetIndex':0})['tabs']
     expected=[paths[2],paths[0],paths[1],*paths[3:7]]
     check('moving a pending tab retains all saved tabs',len(moved)==8 and moved[0]['repo']==paths[2])

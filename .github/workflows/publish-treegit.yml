@@ -1,0 +1,35 @@
+name: Publish verified TreeGit release
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        required: true
+        type: string
+      source:
+        required: true
+        type: string
+      run_id:
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  publish:
+    if: github.repository == 'JonSun2020/TreeGit'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.source }}
+          persist-credentials: false
+      - name: Publish the exact verified portable artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TREEGIT_VERSION: ${{ inputs.version }}
+          TREEGIT_SOURCE: ${{ inputs.source }}
+          TREEGIT_RUN_ID: ${{ inputs.run_id }}
+        run: python3 build/publish-treegit.py
