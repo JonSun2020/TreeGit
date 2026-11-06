@@ -43,7 +43,7 @@ namespace SourceGit.Automation
             }
 #if INTEGRATION_TESTS
             else if (action == "test_click")
-                UiLayoutProbe.ClickButton(window, args.GetProperty("button").GetString());
+                UiLayoutProbe.ClickButton(window, args.GetProperty("button").GetString(), args.TryGetProperty("tempDirectory", out var blockedTemp) ? blockedTemp.GetString() : null);
 #endif
             else if (action is "drag" or "restore")
             {

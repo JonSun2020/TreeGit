@@ -387,6 +387,7 @@ namespace SourceGit.ViewModels
             if (IsStaging || IsUnstaging) return false;
             var filter = _filter;
             var includeUntracked = IncludeUntracked;
+            var originalSelection = _selectedUnstaged;
             IsStaging = true;
             using var lockWatcher = _repo.LockWatcher();
             CommandLog log = null;
@@ -402,7 +403,6 @@ namespace SourceGit.ViewModels
                 }
                 var canStage = await GetCanStageChangesAsync(changes);
                 if (canStage.Count == 0) return changes.Count == 0;
-                _selectedUnstaged = new(next != null ? new List<Models.Change> { next } : null);
                 log = _repo.CreateLog("Stage");
                 pathSpecFile = Path.GetTempFileName();
                 await using (var writer = new StreamWriter(pathSpecFile))
@@ -410,7 +410,15 @@ namespace SourceGit.ViewModels
                     foreach (var c in canStage) await writer.WriteLineAsync(c.Path);
                 }
                 var success = await new Commands.Add(_repo.FullPath, pathSpecFile).Use(log).ExecAsync();
+                if (success && canStage.Count == changes.Count && ReferenceEquals(_selectedUnstaged, originalSelection))
+                    _selectedUnstaged = new(next != null ? new List<Models.Change> { next } : null);
                 return success && canStage.Count == changes.Count;
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Native.OS.LogException(ex);
+                _repo.SendNotification("暂存未完成，请确认磁盘空间和文件访问权限后重试。", true);
+                return false;
             }
             finally
             {
@@ -432,6 +440,7 @@ namespace SourceGit.ViewModels
             var filter = _filter;
             var includeUntracked = IncludeUntracked;
             var useAmend = _useAmend;
+            var originalSelection = _selectedStaged;
             IsUnstaging = true;
             using var lockWatcher = _repo.LockWatcher();
             CommandLog log = null;
@@ -447,12 +456,12 @@ namespace SourceGit.ViewModels
                     changes = GetVisibleChanges(staged, filter);
                 }
                 if (changes.Count == 0) return;
-                _selectedStaged = new(next != null ? new List<Models.Change> { next } : null);
                 log = _repo.CreateLog("Unstage");
+                bool success;
                 if (useAmend)
                 {
                     log.AppendLine("$ git update-index --index-info ");
-                    await new Commands.UpdateIndexInfo(_repo.FullPath, changes).ExecAsync();
+                    success = await new Commands.UpdateIndexInfo(_repo.FullPath, changes).ExecAsync();
                 }
                 else
                 {
@@ -465,8 +474,15 @@ namespace SourceGit.ViewModels
                             if (c.Index == Models.ChangeState.Renamed) await writer.WriteLineAsync(c.OriginalPath);
                         }
                     }
-                    await new Commands.Reset(_repo.FullPath, pathSpecFile).Use(log).ExecAsync();
+                    success = await new Commands.Reset(_repo.FullPath, pathSpecFile).Use(log).ExecAsync();
                 }
+                if (success && ReferenceEquals(_selectedStaged, originalSelection))
+                    _selectedStaged = new(next != null ? new List<Models.Change> { next } : null);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Native.OS.LogException(ex);
+                _repo.SendNotification("取消暂存未完成，请确认磁盘空间和文件访问权限后重试。", true);
             }
             finally
             {

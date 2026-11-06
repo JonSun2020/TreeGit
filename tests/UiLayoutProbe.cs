@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
@@ -11,13 +12,32 @@ namespace SourceGit.Automation
 {
     internal static class UiLayoutProbe
     {
-        public static void ClickButton(Window window, string name)
+        public static void ClickButton(Window window, string name, string tempDirectory = null)
         {
             var button = window.GetVisualDescendants().OfType<Button>()
                 .Single(b => b.Name == name && b.IsEffectivelyVisible);
             if (!button.IsEnabled) throw new InvalidOperationException("The selected button is disabled.");
             button.BringIntoView();
-            button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            if (tempDirectory == null)
+            {
+                button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                return;
+            }
+            if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") != "true" || !Path.IsPathFullyQualified(tempDirectory) || !File.Exists(tempDirectory))
+                throw new InvalidOperationException("Temporary-directory fault injection is restricted to a CI fixture file.");
+            var originalTemp = Environment.GetEnvironmentVariable("TEMP");
+            var originalTmp = Environment.GetEnvironmentVariable("TMP");
+            try
+            {
+                Environment.SetEnvironmentVariable("TEMP", tempDirectory);
+                Environment.SetEnvironmentVariable("TMP", tempDirectory);
+                button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            }
+            finally
+            {
+                Environment.SetEnvironmentVariable("TEMP", originalTemp);
+                Environment.SetEnvironmentVariable("TMP", originalTmp);
+            }
         }
 
         public static object Inspect(Window window)

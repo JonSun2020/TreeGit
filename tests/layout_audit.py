@@ -31,8 +31,9 @@ repo.mkdir()
 env = os.environ.copy()
 env.update(GIT_CONFIG_GLOBAL=str(root / 'global.gitconfig'), GIT_CONFIG_NOSYSTEM='1')
 
+# Status/diff polling must never write Git's index while a GUI operation owns it.
 def git(*args):
-    result = subprocess.run(['git', '-C', str(repo), *args], capture_output=True, text=True, encoding='utf-8', env=env)
+    result = subprocess.run(['git', '--no-optional-locks', '-C', str(repo), *args], capture_output=True, text=True, encoding='utf-8', env=env)
     assert result.returncode == 0, result.stderr
     return result.stdout.strip()
 
@@ -155,9 +156,9 @@ def check(label, ok, detail=None):
     checks.append({'name': label, 'ok': bool(ok), 'detail': detail})
     print(('PASS ' if ok else 'FAIL ') + label, flush=True)
 
-def click_ready(name):
+def click_ready(name, **args):
     wait_for(lambda: any(b['name'] == name and b['enabled'] for b in tool('ui_layout')['buttons']))
-    tool('ui_layout', {'action': 'test_click', 'button': name})
+    tool('ui_layout', {'action': 'test_click', 'button': name, **args})
 
 def native_drag(window, point, dx=0, dy=0):
     if os.environ.get('GITHUB_ACTIONS') != 'true' or os.environ.get('RUNNER_OS') != 'Windows':
@@ -272,10 +273,13 @@ def audit_active_sizes(label):
             check(case + ': fixed actions do not overlap', not any(overlaps(a, b) for i, a in enumerate(fixed) for b in fixed[i+1:]))
             for scroll in g['scrolls']:
                 if not scroll['visible'] or not (scroll['name'] or '').endswith('Viewport'): continue
-                tool('ui_layout', {'action': 'scroll', 'window': 'active', 'scroller': scroll['index'], 'dx': 5000, 'dy': 5000})
-                time.sleep(.08)
-                reached = next(s for s in tool('ui_layout', {'window': 'active'})['scrolls'] if s['index'] == scroll['index'])
-                check(case + ': whole content is reachable', reached['offset']['x'] + reached['viewport']['width'] >= reached['extent']['width'] - 1 and reached['offset']['y'] + reached['viewport']['height'] >= reached['extent']['height'] - 1)
+                reached = None
+                for _ in range(20):
+                    tool('ui_layout', {'action': 'scroll', 'window': 'active', 'scroller': scroll['index'], 'dx': 5000, 'dy': 5000})
+                    time.sleep(.1)
+                    reached = next(s for s in tool('ui_layout', {'window': 'active'})['scrolls'] if s['index'] == scroll['index'])
+                    if reached['offset']['x'] + reached['viewport']['width'] >= reached['extent']['width'] - 1 and reached['offset']['y'] + reached['viewport']['height'] >= reached['extent']['height'] - 1: break
+                check(case + ': whole content is reachable', reached['offset']['x'] + reached['viewport']['width'] >= reached['extent']['width'] - 1 and reached['offset']['y'] + reached['viewport']['height'] >= reached['extent']['height'] - 1, reached)
                 tool('ui_layout', {'action': 'scroll', 'window': 'active', 'scroller': scroll['index'], 'dx': 0, 'dy': 0})
     tool('ui_window', {'zoom': 1})
 
@@ -373,6 +377,26 @@ try:
     click_ready('UnstageAllChanges')
     wait_for(lambda: git('diff', '--cached', '--name-only') == '')
     check('unstage all preserves all working files', (folder / 'a very long untracked filename with spaces and unicode 中文.txt').exists() and (repo / 'firmware.bin').stat().st_size == 16384)
+    blocked_temp = root / 'unavailable-temp-directory'
+    blocked_temp.write_text('A fixture file deliberately cannot be used as a directory.', encoding='utf-8')
+    wait_for(lambda: 'text.txt' in state()['workingCopyState']['unstaged'])
+    repo_tool('ui_diff', action='select', source='unstaged', file='text.txt')
+    click_ready('StageSelectedChanges', tempDirectory=str(blocked_temp))
+    wait_for(lambda: state()['workingCopyState']['canChangeIndex'])
+    check('failed stage keeps index and selected file intact', git('diff', '--cached', '--name-only') == '' and state()['workingCopyState']['selectedUnstaged'] == ['text.txt'])
+    check('failed stage explains the recoverable problem', tool('ui_state')['activePage']['notifications'] > 0)
+    repo_tool('ui_command', command='clear_notifications')
+    click_ready('StageSelectedChanges')
+    wait_for(lambda: git('diff', '--cached', '--name-only') == 'text.txt')
+    wait_for(lambda: 'text.txt' in state()['workingCopyState']['staged'])
+    repo_tool('ui_diff', action='select', source='staged', file='text.txt')
+    click_ready('UnstageSelectedChanges', tempDirectory=str(blocked_temp))
+    wait_for(lambda: state()['workingCopyState']['canChangeIndex'])
+    check('failed unstage keeps index and selected file intact', git('diff', '--cached', '--name-only') == 'text.txt' and state()['workingCopyState']['selectedStaged'] == ['text.txt'])
+    repo_tool('ui_command', command='clear_notifications')
+    click_ready('UnstageSelectedChanges')
+    wait_for(lambda: git('diff', '--cached', '--name-only') == '')
+    check('temporary write errors recover without restarting TreeGit', p.poll() is None and (repo / 'text.txt').read_text() == 'staged change\nunstaged change\n')
     git('update-index', '--cacheinfo', '100644,' + staged_blob + ',text.txt')
     repo_tool('ui_refresh')
     time.sleep(.5)
