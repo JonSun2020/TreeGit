@@ -29,6 +29,7 @@ TreeGit 是一个 **MCP 服务端**。AI 客户端通过 stdio 连接，再由�
 | `ui_tabs` | 列出标签及加载状态、打开仓库下拉列表、选择、移动或关闭标签 |
 | `ui_graph` | 显示当前分支/所有分支及对应远端；所有分支模式可跳到分支头，图谱主线始终跟随当前检出分支 |
 | `ui_history_columns` | 读取、调整、重置图谱、描述、日期、作者、提交等列宽；按仓库保存 |
+| `ui_layout` | 读取本软件窗口的分栏和滚动区域，拖动分隔条、恢复分栏尺寸、滚动或调整窗口大小 |
 | `ui_refresh` / `ui_window` | 刷新、调整窗口尺寸、主题和侧栏 |
 | `ui_fonts` | 列出本机可选字体、设置界面或代码 / Diff 字体、恢复默认 |
 | `ui_update` | 检查更新、查询进度、下载、取消，以及准备好后的重启更新 |
@@ -65,3 +66,9 @@ MCP 的完整读写意味着 AI 可以修改甚至删除 Git 数据。应在 AI 
 二进制对比读取失败时，可调用 `ui_diff` 的 `retry` 动作在原视图重新读取；随后查询 `state` 等待完成。界面显示简明提示，MCP 状态另提供错误信息用于诊断。
 
 搜索结果导航：`ui_search` 选中结果后传入 `"open": true`，等同双击，退出搜索并自动切换“所有分支 + 显示远程分支”，定位并选中提交。
+
+`ui_layout` 先使用 `action=list` 取得当前窗口的分隔条和滚动区域索引，再使用 `drag`、`restore`、`resize` 或 `scroll`。`window` 可选 `main` 或 `active`；`drag` 使用 `splitter`、`dx` / `dy`，`scroll` 使用 `scroller`、`dx` / `dy`。索引随页面改变，切页后应重新查询。`twoColumnHistory` 和 `twoColumnDiff` 切换历史、文本差异的左右布局。这些操作只作用于本 TreeGit 进程的窗口，不修改 Git 数据。
+
+`ui_window` 的 `zoom` 支持 0.75 至 2.5。`ui_working_copy` 的可选 `filter` 按文件路径筛选；空字符串清除。`ui_state` 返回搜索结果的 `branch`、工作区操作状态和当前提交的已加载变更文件，读取异步视图前可据此确认内容就绪。
+
+`ui_command` 还可打开 SSH 密钥管理（`ssh_keys`）、文件 / 目录历史（`file_history` / `directory_history`，指定相对路径 `file`）、分支 / 提交比较（`compare_branches` / `compare_commits`，指定 `base` 和 `to`）、子模块版本比较（`submodule_compare`，先选中可比较的子模块变更），以及命令日志（`git_logs`）。`interactive_rebase` 仅打开配置页面，`commit_info` / `commit_changes` / `commit_files` 切换当前提交详情页。这些命令不自动提交 Git 操作。
