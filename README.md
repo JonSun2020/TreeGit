@@ -20,15 +20,15 @@
 - 保留 SourceGit 的克隆、推拉、分支、标签、合并、变基、交互式变基、贮藏、冲突处理、补丁、文件历史、Blame、子模块、Worktree、GitFlow、LFS、Bisect和命令日志等功能。高级操作位于“操作 → 高级操作”、偏好设置及对应的上下文菜单。
 - 使用 TreeGit 自有图标，帮助/关于注明上游来源及 MCP 支持。
 
-当前正式版为 **2026.23.17（Windows x64）**。后续继续跟随 SourceGit 上游更新，维护独立的界面、便携构建与 MCP 控制。
+当前正式版为 **2026.23.18（Windows x64）**。后续继续跟随 SourceGit 上游更新，维护独立的界面、便携构建与 MCP 控制。
 
-本版修正单击分支导致历史范围和图谱主线改变的问题；筛选和最左侧主线始终跟随实际检出的分支，并处理旧版保存的筛选目标。分支单击导航与真正检出分开，MCP 遵循相同规则。具体改动见[发行说明](docs/RELEASE-2026.23.17.md)，验证记录见[验收记录](docs/VALIDATION-2026.23.17.md)，Git 功能入口见[功能对照](docs/FUNCTIONALITY.md)。
+本版调整“描述”列名称框：框头采用与边框和图谱线一致的实色底，节点、标签和远程图标为居中的白色线描，内部不填充；当前分支名称区域沿用统一浅底，不再额外加深，保留原有加粗规则和框外小圆圈。具体改动见[发行说明](docs/RELEASE-2026.23.18.md)，验证记录见[验收记录](docs/VALIDATION-2026.23.18.md)，Git 功能入口见[功能对照](docs/FUNCTIONALITY.md)。
 
 二进制变更提供旧版本 / 新版本左右对比，显示十六进制、ASCII、偏移与差异高亮，支持前后差异跳转及独立窗口。按相同偏移比较，插入 / 删除后的字节不自动重新对齐；图片和 LFS 保留原有专用视图。“使用外部合并程序查看”目前仍显示“暂未支持”。
 
 ## 下载安装
 
-从 [最新正式版](https://github.com/JonSun2020/TreeGit/releases/latest) 下载 [TreeGit-2026.23.17-Windows-x64.zip](https://github.com/JonSun2020/TreeGit/releases/download/treegit-v2026.23.17/TreeGit-2026.23.17-Windows-x64.zip)，完整解压后运行 `TreeGit/TreeGit.exe`。标准包含 Git，约 70 MB。校验值见同页的 `SHA256SUMS.txt`。2026.23.10 及更早版本需先手动升级一次，此后可使用“帮助 → 检查更新”。开发构建仍可从 **Actions → TreeGit Windows portable** 下载。
+从 [最新正式版](https://github.com/JonSun2020/TreeGit/releases/latest) 下载 [TreeGit-2026.23.18-Windows-x64.zip](https://github.com/JonSun2020/TreeGit/releases/download/treegit-v2026.23.18/TreeGit-2026.23.18-Windows-x64.zip)，完整解压后运行 `TreeGit/TreeGit.exe`。标准包含 Git，约 70 MB。校验值见同页的 `SHA256SUMS.txt`。2026.23.10 及更早版本需先手动升级一次，此后可使用“帮助 → 检查更新”。开发构建仍可从 **Actions → TreeGit Windows portable** 下载。
 
 - 自带裁剪和压缩后的 .NET 运行时，无需安装 .NET。
 - 自动优先使用电脑上已有且可用的 Git；没有安装、路径失效或版本不兼容时，自动使用随包的便携 Git，无需另行安装或联网下载。
