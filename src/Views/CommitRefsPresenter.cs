@@ -22,10 +22,10 @@ namespace SourceGit.Views
 
         public CommitRefsIconCache()
         {
-            _head = LoadIcon("Icons.Head");
-            _branch = LoadIcon("Icons.Branch");
-            _remote = LoadIcon("Icons.Remote");
-            _tag = LoadIcon("Icons.Tag");
+            _head = LoadIcon(Geometry.Parse("M1 5L4 8L9 2"));
+            _branch = LoadIcon(Geometry.Parse("M2.5 2.8V7.2 M2.5 6.2C2.5 4.7 7.5 5.3 7.5 3.8 M3.8 1.5A1.3 1.3 0 1 1 1.2 1.5A1.3 1.3 0 1 1 3.8 1.5Z M3.8 8.5A1.3 1.3 0 1 1 1.2 8.5A1.3 1.3 0 1 1 3.8 8.5Z M8.8 2.5A1.3 1.3 0 1 1 6.2 2.5A1.3 1.3 0 1 1 8.8 2.5Z"));
+            _remote = LoadIcon(((StreamGeometry)App.Current.FindResource("Icons.Remote")).Clone());
+            _tag = LoadIcon(((StreamGeometry)App.Current.FindResource("Icons.Tag")).Clone());
         }
 
         public Geometry GetIcon(Models.DecoratorType type)
@@ -41,10 +41,8 @@ namespace SourceGit.Views
             };
         }
 
-        private Geometry LoadIcon(string resourceKey)
+        private Geometry LoadIcon(Geometry drawGeo)
         {
-            var geo = App.Current.FindResource(resourceKey) as StreamGeometry;
-            var drawGeo = geo!.Clone();
             var iconBounds = drawGeo.Bounds;
             var translation = Matrix.CreateTranslation(-(Vector)iconBounds.Position);
             var scale = Math.Min(10.0 / iconBounds.Width, 10.0 / iconBounds.Height);
@@ -190,6 +188,7 @@ namespace SourceGit.Views
             var x = 1.5;
             var y = 0.5;
             var remoteIcon = CommitRefsIconCache.Instance.GetIcon(Models.DecoratorType.RemoteBranchHead);
+            var iconPen = new Pen(Brushes.White, 1, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round);
             var hasSingleRemote = HasSingleRemote;
 
             context.FillRectangle(Brushes.Transparent, Bounds);
@@ -244,7 +243,7 @@ namespace SourceGit.Views
                     {
                         context.DrawLine(new Pen(item.Brush), new Point(rx, y), new Point(rx, y + 16));
                         using (context.PushTransform(Matrix.CreateTranslation(rx + 4, y + 3)))
-                            context.DrawGeometry(item.Brush, null, remoteIcon);
+                            context.DrawGeometry(null, new Pen(item.Brush, 1, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round), remoteIcon);
                     }
                     else
                     {
@@ -252,7 +251,7 @@ namespace SourceGit.Views
                         {
                             context.DrawLine(new Pen(item.Brush), new Point(rx, y), new Point(rx, y + 16));
                             using (context.PushTransform(Matrix.CreateTranslation(rx + 4, y + 3)))
-                                context.DrawGeometry(item.Brush, null, remoteIcon);
+                                context.DrawGeometry(null, new Pen(item.Brush, 1, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round), remoteIcon);
                             context.DrawText(remote, new Point(rx + 16, y + 8.0 - remote.Height * 0.5));
                             rx += remote.WidthIncludingTrailingWhitespace + 22;
                         }
@@ -273,7 +272,7 @@ namespace SourceGit.Views
                     : item.Decorator.Type;
                 var icon = CommitRefsIconCache.Instance.GetIcon(iconType);
                 using (context.PushTransform(Matrix.CreateTranslation(x + 3, y + 3)))
-                    context.DrawGeometry(Brushes.White, null, icon);
+                    context.DrawGeometry(null, iconPen, icon);
 
                 x = itemX + item.Width + 4;
             }
