@@ -37,7 +37,7 @@ def child(parent, message): return git('commit-tree', tree, '-p', parent, '-m', 
 local = child(base, 'Other local'); remote = child(base, 'Remote change')
 git('branch', 'other', local)
 git('remote', 'add', 'origin', '.')
-for name in ('new', 'renamed', 'ahead', 'diverged', 'behind', 'associate', 'collision', 'dirty', 'unrelated'):
+for name in ('new', 'renamed', 'ahead', 'diverged', 'behind', 'associate', 'collision', 'dirty', 'unrelated', '中文"branch'):
     git('update-ref', 'refs/remotes/origin/'+name, remote)
 git('branch', 'ahead', child(remote, 'Unpushed local'))
 git('branch', '--set-upstream-to=origin/ahead', 'ahead')
@@ -48,7 +48,7 @@ git('branch', 'associate', local)
 git('branch', 'collision', base); git('branch', '--set-upstream-to=origin/unrelated', 'collision')
 ahead = git('rev-parse', 'ahead'); diverged = git('rev-parse', 'diverged')
 (repo/'file.txt').write_text('stashed\n', encoding='utf-8'); git('stash', 'push', '-m', 'Sidebar fixture')
-(repo/'.git/sourcegit.uistates').write_text(json.dumps({'ShowOnlyGraphBranch':True,'ShowRemoteBranchesInHistory':False,'IsLocalBranchesExpandedInSideBar':True,'IsRemotesExpandedInSideBar':True}), encoding='utf-8')
+(repo/'.git/sourcegit.uistates').write_text(json.dumps({'ShowOnlyGraphBranch':True,'ShowRemoteBranchesInHistory':False,'IsLocalBranchesExpandedInSideBar':True,'IsRemotesExpandedInSideBar':True,'ExpandedBranchNodesInSideBar':['refs/remotes/origin']}), encoding='utf-8')
 preferences = exe.parent/'data/preference.json'; preferences.parent.mkdir(exist_ok=True)
 preferences.write_text(json.dumps({'Locale':'zh_CN','Theme':'Blue','MaxHistoryCommits':200,'EnableAutoFetch':False,'Check4UpdatesOnStartup':False,'UseStashAndReapplyByDefault':True}), encoding='utf-8')
 p = subprocess.Popen([str(exe), '--mcp'], env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -179,6 +179,8 @@ try:
     wait_for(lambda: page()['remoteCheckout']['name']=='custom-local')
     confirm('custom-local')
     check('renamed local checkout explicitly tracks the selected remote',git('rev-parse','--symbolic-full-name','@{upstream}')=='refs/remotes/origin/renamed')
+    branch_click('refs/remotes/origin/中文"branch','search',True); confirm('中文"branch')
+    check('Unicode and quoted branch names checkout and track correctly',git('rev-parse','--symbolic-full-name','@{upstream}')=='refs/remotes/origin/中文"branch')
     for name,expected in (('ahead',ahead),('diverged',diverged)):
         branch_click('refs/remotes/origin/'+name,'search',True)
         check(name+' reuses the existing branch and offers no unsafe update',page()['remoteCheckout']['name']==name and not page()['remoteCheckout']['canUpdateRemote'])
@@ -195,6 +197,7 @@ try:
     cancel()
     check('cancelled conflicting remote checkout keeps the original branch',git('branch','--show-current')=='associate' and git('rev-parse','collision')==base)
     (repo/'file.txt').write_text('pending user work\n',encoding='utf-8'); refresh()
+    wait_for(lambda: state()['changes']>0)
     stash_before=git('rev-parse','refs/stash')
     branch_click('refs/remotes/origin/dirty','working_copy',True)
     check('dirty remote checkout shows change handling options',page()['remoteCheckout']['hasLocalChanges'])
@@ -205,7 +208,9 @@ try:
     check('stash-and-reapply leaves no staging changes',git('diff','--cached','--name-only')=='')
 except BaseException as error:
     failure=repr(error)
-    try: shot('failure')
+    try:
+        shot('failure')
+        (out/'failure-state.json').write_text(json.dumps(tool('ui_state'),ensure_ascii=False,indent=2),encoding='utf-8')
     except BaseException: pass
     raise
 finally:

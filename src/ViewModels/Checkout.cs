@@ -68,7 +68,7 @@ namespace SourceGit.ViewModels
             {
                 succ = await new Commands.Checkout(_repo.FullPath)
                     .Use(log)
-                    .BranchAsync(branchName, false);
+                    .BranchAsync(branchName.Quoted(), false);
             }
             else if (DealWithLocalChanges == Models.DealWithLocalChanges.StashAndReapply)
             {
@@ -90,13 +90,13 @@ namespace SourceGit.ViewModels
 
                 succ = await new Commands.Checkout(_repo.FullPath)
                     .Use(log)
-                    .BranchAsync(branchName, false);
+                    .BranchAsync(branchName.Quoted(), false);
             }
             else
             {
                 succ = await new Commands.Checkout(_repo.FullPath)
                     .Use(log)
-                    .BranchAsync(branchName, true);
+                    .BranchAsync(branchName.Quoted(), true);
             }
 
             if (succ)
