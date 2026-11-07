@@ -226,10 +226,10 @@ try:
     popup=tool('ui_search',{'repo':str(repo),'showBranches':True})['branchPopup']
     check('popup lists every containing branch in local/remote groups',popup['total']==row['branchCount'] and len(popup['rows'])==row['branchCount'] and len([r for r in popup['rows'] if r['group']])==2)
     check('opening coverage stays on the search result',state()['searchActive'] and state()['searchSelected']==feature)
-    (out/'containing-branches-popup.png').write_bytes(tool('ui_screenshot'))
+    (out/'containing-branches-popup.png').write_bytes(tool('ui_screenshot',{'window':'active'}))
     filtered=tool('ui_search',{'repo':str(repo),'branchFilter':'DERIVED/CHILD'})['branchPopup']
     check('popup filtering is case-insensitive and keeps only matching branches',len(filtered['rows'])==1 and filtered['rows'][0]['reference']=='refs/heads/derived/child')
-    (out/'containing-branches-filtered.png').write_bytes(tool('ui_screenshot'))
+    (out/'containing-branches-filtered.png').write_bytes(tool('ui_screenshot',{'window':'active'}))
     empty=tool('ui_search',{'repo':str(repo),'branchFilter':'no-such-branch'})['branchPopup']
     check('empty popup filter leaves the total and no results',not empty['rows'] and empty['total']==row['branchCount'])
     tool('ui_search',{'repo':str(repo),'branchFilter':''})
@@ -256,7 +256,7 @@ try:
         else:raise AssertionError(popup)
         check('coverage popup fits the screen at zoom'+str(zoom),bounds['x']>=bounds['screenX'] and bounds['y']>=bounds['screenY'] and bounds['right']<=bounds['screenRight'] and bounds['bottom']<=bounds['screenBottom'])
         time.sleep(.3)
-        (out/('containing-branches-zoom'+str(zoom)+'.png')).write_bytes(tool('ui_screenshot'))
+        (out/('containing-branches-zoom'+str(zoom)+'.png')).write_bytes(tool('ui_screenshot',{'window':'active'}))
         tool('ui_search',{'repo':str(repo),'branch':'refs/remotes/origin/feature/search','open':True})
         for _ in range(150):
             current=state()

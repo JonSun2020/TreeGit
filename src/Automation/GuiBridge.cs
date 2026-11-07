@@ -209,6 +209,8 @@ namespace SourceGit.Automation
                     if (args.TryGetProperty("window", out target) && target.GetString() == "active" &&
                         lifetime.MainWindow.GetVisualDescendants().OfType<Views.LauncherTabBar>().FirstOrDefault()?.TabListMenu is { IsOpen: true } tabMenu)
                         surface = tabMenu;
+                    if (args.TryGetProperty("window", out target) && target.GetString() == "active")
+                        surface = lifetime.MainWindow.GetVisualDescendants().OfType<Views.CommitSearchView>().Select(v => v.ContainingBranchesSurface).FirstOrDefault(v => v != null) ?? surface;
                     var width = Math.Max(1, (int)Math.Ceiling(surface.Bounds.Width));
                     var height = Math.Max(1, (int)Math.Ceiling(surface.Bounds.Height));
                     using var image = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96));

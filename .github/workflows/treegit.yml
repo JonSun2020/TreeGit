@@ -6,12 +6,18 @@ on:
   pull_request:
     branches: [master]
   workflow_dispatch:
+    inputs:
+      preview:
+        description: Build and verify the search preview only; not eligible for release
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
   cancellation:
+    if: ${{ !inputs.preview }}
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v6
@@ -147,6 +153,7 @@ jobs:
         run: |
           ./package-treegit.ps1 -Source "$env:RUNNER_TEMP/TreeGit" -Destination .
       - name: Verify Git discovery and bundled runtime
+        if: ${{ !inputs.preview }}
         shell: pwsh
         run: |
           dotnet build tests/GitDiscoveryProbe.csproj -c Release -o "$env:RUNNER_TEMP/discovery-probe" -v:q
@@ -154,6 +161,7 @@ jobs:
           & "$env:RUNNER_TEMP/discovery-probe/GitDiscoveryProbe.exe" "$env:RUNNER_TEMP/discovery-results" "$env:RUNNER_TEMP/TreeGit/git/cmd/git.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify update validation and recovery
+        if: ${{ !inputs.preview }}
         shell: pwsh
         run: |
           dotnet build tests/UpdaterProbe.csproj -c Release -o "$env:RUNNER_TEMP/updater-probe" -v:q
@@ -162,10 +170,18 @@ jobs:
           & "$env:RUNNER_TEMP/updater-probe/UpdaterProbe.exe" "$env:RUNNER_TEMP/updater-results" $archive
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify MCP protocol and portable packaging
+        env:
+          TREEGIT_PREVIEW: ${{ inputs.preview }}
         shell: pwsh
         run: |
           python tests/mcp_protocol.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/treegit-protocol.json"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ($env:TREEGIT_PREVIEW -eq 'true') {
+            python tests/treegit_graph.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/reference-graph-results"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            python tests/search_page.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/search-page-results"
+            exit $LASTEXITCODE
+          }
           python tests/binary_diff.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/binary-diff-results"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/binary_refresh.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/binary-refresh-results"
@@ -224,6 +240,7 @@ jobs:
             TreeGit-*-Windows-x64.zip
             SHA256SUMS.txt
   updater-ui:
+    if: ${{ !inputs.preview }}
     needs: portable
     runs-on: windows-latest
     steps:

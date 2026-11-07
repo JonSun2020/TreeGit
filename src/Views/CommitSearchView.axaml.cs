@@ -23,6 +23,8 @@ namespace SourceGit.Views
                 rows = context.Rows.Select(r => new { reference = r.Branch.FullName, name = r.Branch.FriendlyName, local = r.Branch.IsLocal, current = r.Branch.IsCurrent, group = r.Group }).ToArray() }
             : null;
 
+        public Control ContainingBranchesSurface => _branchFlyout?.IsOpen == true ? _branchPopup : null;
+
         private object PopupBounds()
         {
             if (_branchPopup.GetVisualRoot() == null || _branchPopup.Bounds.Height < 1) return null;
