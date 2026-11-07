@@ -23,10 +23,19 @@ namespace SourceGit.Views
                 background = _branchPopup.Background?.ToString(),
                 foreground = _branchPopup.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name == "CoverageTitle")?.Foreground?.ToString(),
                 branchForeground = _branchPopup.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name == "BranchName")?.Foreground?.ToString(),
+                firstTarget = FirstBranchTarget(),
                 rows = context.Rows.Select(r => new { reference = r.Branch.FullName, name = r.Branch.FriendlyName, local = r.Branch.IsLocal, current = r.Branch.IsCurrent, group = r.Group }).ToArray() }
             : null;
 
         public Control ContainingBranchesSurface => _branchFlyout?.IsOpen == true ? _branchPopup : null;
+
+        private object FirstBranchTarget()
+        {
+            var button = _branchPopup.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.DataContext is ViewModels.SearchBranchRow && b.Bounds.Width > 0 && b.Bounds.Height > 0);
+            if (button == null || button.GetVisualRoot() == null) return null;
+            var point = button.PointToScreen(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2));
+            return new { x = point.X, y = point.Y, enabled = button.IsEffectivelyEnabled, reference = ((ViewModels.SearchBranchRow)button.DataContext).Branch.FullName };
+        }
 
         private object PopupBounds()
         {

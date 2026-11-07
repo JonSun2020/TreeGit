@@ -1,5 +1,6 @@
 """Search-page navigation, all original search methods, and off-graph details."""
 import base64
+import os
 import json
 from pathlib import Path
 import shutil
@@ -247,7 +248,25 @@ try:
     empty=tool('ui_search',{'repo':str(repo),'branchFilter':'no-such-branch'})['branchPopup']
     check('empty popup filter leaves the total and no results',not empty['rows'] and empty['total']==row['branchCount'])
     tool('ui_search',{'repo':str(repo),'branchFilter':''})
-    tool('ui_search',{'repo':str(repo),'branch':'refs/heads/derived/child','open':True})
+    # Exercise the real popup button with native mouse input only in our CI desktop.
+    if os.environ.get('GITHUB_ACTIONS')=='true' and os.environ.get('RUNNER_OS')=='Windows':
+        import ctypes
+        from ctypes import wintypes
+        user32=ctypes.windll.user32
+        user32.WindowFromPoint.argtypes=[wintypes.POINT];user32.WindowFromPoint.restype=wintypes.HWND
+        user32.GetWindowThreadProcessId.argtypes=[wintypes.HWND,ctypes.POINTER(wintypes.DWORD)]
+        popup=tool('ui_search',{'repo':str(repo)})['branchPopup']
+        target=popup['firstTarget']
+        assert target['enabled'] and target['reference']=='refs/heads/derived/child',target
+        point=wintypes.POINT(target['x'],target['y'])
+        handle=user32.WindowFromPoint(point);owner=wintypes.DWORD()
+        user32.GetWindowThreadProcessId(handle,ctypes.byref(owner))
+        assert owner.value==gui_pid,('Refusing native click outside the owned CI GUI',owner.value,gui_pid)
+        assert user32.SetCursorPos(point.x,point.y)
+        user32.mouse_event(2,0,0,0,0);time.sleep(.06);user32.mouse_event(4,0,0,0,0)
+        check('real mouse clicked the enabled containing-branch button',True)
+    else:
+        tool('ui_search',{'repo':str(repo),'branch':'refs/heads/derived/child','open':True})
     for _ in range(150):
         current=state()
         if not current['graphLoading'] and not current['searchActive'] and current['historySelectedCommits']==[feature] and current['localBranchSelection']==['refs/heads/derived/child']:break

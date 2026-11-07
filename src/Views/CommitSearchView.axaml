@@ -139,7 +139,7 @@
       </DataGrid.Columns>
     </DataGrid>
     <!-- Keep popup content outside the DataGridRow logical tree and its selected-row styles. -->
-    <Border x:Name="BranchPopupAnchor" Grid.Row="1" ZIndex="-1" HorizontalAlignment="Left" VerticalAlignment="Top" IsHitTestVisible="False"/>
+    <Border x:Name="BranchPopupAnchor" Grid.Row="1" ZIndex="-1" HorizontalAlignment="Left" VerticalAlignment="Top"/>
     <v:LoadingIcon Grid.Row="1" Width="32" Height="32" HorizontalAlignment="Center" VerticalAlignment="Center" IsVisible="{Binding IsQuerying}"/>
   </Grid>
 </UserControl>
