@@ -117,7 +117,7 @@
   <x:String x:Key="Text.ChangeSubmoduleUrl" xml:space="preserve">修改子模块远程地址</x:String>
   <x:String x:Key="Text.ChangeSubmoduleUrl.Submodule" xml:space="preserve">子模块 ：</x:String>
   <x:String x:Key="Text.ChangeSubmoduleUrl.URL" xml:space="preserve">远程地址 ：</x:String>
-  <x:String x:Key="Text.Checkout" xml:space="preserve">检出(checkout)分支</x:String>
+  <x:String x:Key="Text.Checkout" xml:space="preserve">切换本地分支</x:String>
   <x:String x:Key="Text.Checkout.LocalChanges" xml:space="preserve">未提交更改 ：</x:String>
   <x:String x:Key="Text.Checkout.Target" xml:space="preserve">目标分支 ：</x:String>
   <x:String x:Key="Text.Checkout.WarnLostCommits" xml:space="preserve">您当前游离的HEAD包含未被任何分支及标签引用的提交！是否继续？</x:String>
