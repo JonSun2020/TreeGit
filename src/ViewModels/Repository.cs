@@ -1060,13 +1060,24 @@ namespace SourceGit.ViewModels
             if (!string.IsNullOrEmpty(_historyNavigationCommit) && _navigateToCommitDelayed == _historyNavigationCommit)
                 _navigateToCommitDelayed = string.Empty;
             _historyNavigationCommit = string.Empty;
+            _historyNavigationBranch = string.Empty;
         }
 
         public event Action<Models.Branch> HistoryBranchSelectionRequested;
 
-        private Models.Branch FindHistoryBranch(string sha, HashSet<string> containing) => Models.BranchSelection.Choose(_branches, sha, containing);
+        private Models.Branch FindHistoryBranch(string sha, HashSet<string> containing)
+        {
+            if (!string.IsNullOrEmpty(_historyNavigationBranch))
+            {
+                var preferred = _branches.Find(b => b.FullName == _historyNavigationBranch && containing.Contains(b.FullName));
+                if (preferred != null) return preferred;
+                _historyNavigationBranch = string.Empty;
+                SendNotification("该分支已变化，已定位原提交；请重新搜索分支列表。", true);
+            }
+            return Models.BranchSelection.Choose(_branches, sha, containing);
+        }
 
-        public void RevealCommitInHistory(Models.Commit commit)
+        public void RevealCommitInHistory(Models.Commit commit, string branch = null)
         {
             if (commit == null) return;
             Filter = string.Empty;
@@ -1077,6 +1088,7 @@ namespace SourceGit.ViewModels
             _histories.ShowRemoteBranches = true;
             _uiStates.Save();
             _historyNavigationCommit = commit.SHA;
+            _historyNavigationBranch = branch ?? string.Empty;
             _navigateToCommitDelayed = commit.SHA;
             _histories.IsLoading = true;
             RefreshCommits();
@@ -2194,6 +2206,7 @@ namespace SourceGit.ViewModels
         private object _visibleSubmodules = null;
         private string _navigateToCommitDelayed = string.Empty;
         private string _historyNavigationCommit = string.Empty;
+        private string _historyNavigationBranch = string.Empty;
 
         private bool _isAutoFetching = false;
         private Timer _autoFetchTimer = null;

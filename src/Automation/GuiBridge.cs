@@ -171,7 +171,8 @@ namespace SourceGit.Automation
                                 searchActive = r.Histories?.IsSearchingCommits,
                                 searchQuerying = r.Histories?.SearchCommitContext.IsQuerying,
                                 searchSelected = r.Histories?.SearchCommitContext.Selected?.SHA,
-                                searchResults = r.Histories?.SearchCommitContext.Results?.Select(c => new { sha = c.SHA, subject = c.Subject, branch = c.SearchBranchName }).ToArray(),
+                                searchResults = r.Histories?.SearchCommitContext.Results?.Select(c => new { sha = c.SHA, subject = c.Subject, branch = c.SearchBranchName,
+                                    branchCount = c.SearchBranches?.Count, branches = c.SearchBranches?.Branches.Select(b => b.FullName).ToArray() }).ToArray(),
                                 detailView = r.Histories?.DetailContext?.GetType().Name,
                                 detailChanges = r.Histories?.DetailContext is ViewModels.CommitDetail detail ? detail.Changes?.Take(256).Select(c => c.Path).ToArray()
                                     : r.Histories?.DetailContext is ViewModels.RevisionCompare comparison ? comparison.VisibleChanges?.Take(256).Select(c => c.Path).ToArray() : null,
@@ -617,9 +618,22 @@ namespace SourceGit.Automation
                     if (args.TryGetProperty("query", out var query)) { search.Filter = query.GetString() ?? ""; search.StartSearch(); }
                     if (args.TryGetProperty("select", out var selected))
                         search.Selected = search.Results?.FirstOrDefault(c => c.SHA.StartsWith(selected.GetString() ?? "", StringComparison.Ordinal)) ?? throw new ArgumentException("No matching search result.");
+                    var owner = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow;
+                    var view = owner.GetVisualDescendants().OfType<Views.CommitSearchView>().FirstOrDefault(v => v.DataContext == search && v.IsVisible);
+                    if (Flag(args, "showBranches"))
+                        (view ?? throw new InvalidOperationException("Search view is not ready.")).ShowContainingBranches(search.Selected ?? throw new ArgumentException("Select a search result first."));
+                    if (args.TryGetProperty("branchFilter", out var branchFilter))
+                        (view ?? throw new InvalidOperationException("Search view is not ready.")).FilterContainingBranches(branchFilter.GetString() ?? "");
+                    if (args.TryGetProperty("branch", out var branch) && !Flag(args, "open"))
+                        throw new ArgumentException("branch requires open=true.");
                     if (Flag(args, "open"))
-                        search.OpenInHistory(search.Selected ?? throw new ArgumentException("Select an existing search result before opening it in history."));
-                    return (object)new { active = repo.Histories.IsSearchingCommits, querying = search.IsQuerying };
+                    {
+                        var commit = search.Selected ?? throw new ArgumentException("Select an existing search result before opening it in history.");
+                        var reference = args.TryGetProperty("branch", out var preferred) ? preferred.GetString() : null;
+                        view?.CloseContainingBranches();
+                        search.OpenInHistory(commit, reference);
+                    }
+                    return (object)new { active = repo.Histories.IsSearchingCommits, querying = search.IsQuerying, branchPopup = view?.ContainingBranchesState };
                 });
 
             if (name == "ui_history_columns")

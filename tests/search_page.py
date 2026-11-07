@@ -72,6 +72,21 @@ def wait_refs(expected,absent=()):
         time.sleep(.1)
     raise AssertionError(current)
 
+def verify_coverage(label,sha,current):
+    expected=[]
+    for line in git('for-each-ref','--contains='+sha,'--format=%(refname)%09%(symref)','refs/heads','refs/remotes').splitlines():
+        parts=line.split('\t')
+        if len(parts)==1 or not parts[1]: expected.append(parts[0])
+    row=next(c for c in current['searchResults'] if c['sha']==sha)
+    check(label+' exact containing refs match Git',set(row['branches'])==set(expected))
+    check(label+' branch count matches refs without aliases',row['branchCount']==len(expected))
+    local=sorted(r for r in expected if r.startswith('refs/heads/'))
+    remote=sorted(r for r in expected if r.startswith('refs/remotes/'))
+    preferred='refs/heads/main' if 'refs/heads/main' in local else (local+remote+[None])[0]
+    name=preferred.removeprefix('refs/heads/').removeprefix('refs/remotes/') if preferred else '无分支'
+    check(label+' primary name is an actually containing branch, with current first',row['branch']==name)
+    return row
+
 def open_history(label,sha,local=None,remote=None):
     tool('ui_graph',{'repo':str(repo),'mode':'current','showRemotes':False})
     for _ in range(100):
@@ -80,8 +95,7 @@ def open_history(label,sha,local=None,remote=None):
         time.sleep(.1)
     search(sha,'sha');tool('ui_search',{'repo':str(repo),'select':sha})
     current=state()
-    expected_branch=local.removeprefix('refs/heads/') if local else remote.removeprefix('refs/remotes/') if remote else '无分支'
-    check(label+' branch column matches the branch chosen for navigation',next(c for c in current['searchResults'] if c['sha']==sha)['branch']==expected_branch)
+    verify_coverage(label,sha,current)
     check(label+' single selection remains on the search page',current['searchActive'] and current['searchSelected']==sha)
     tool('ui_search',{'repo':str(repo),'open':True})
     for _ in range(150):
@@ -189,6 +203,68 @@ try:
     tool('ui_window', {'width':1024, 'height':720})
     (out/'search-narrow.png').write_bytes(tool('ui_screenshot'))
     tool('ui_select_view', {'repo':str(repo), 'view':'history'})
+
+    # Derivation, merge propagation, unchanged historical containment after revert,
+    # and remote-only membership all use real Git ancestry rather than branch names.
+    child=git('commit-tree',git('rev-parse',feature+'^{tree}'),'-p',feature,'-m','Derived calibration')
+    merged=git('commit-tree',git('rev-parse',main_head+'^{tree}'),'-p',main_head,'-p',feature,'-m','Merged calibration')
+    reverted=git('commit-tree',git('rev-parse',initial+'^{tree}'),'-p',feature,'-m','Revert calibration with unrelated changes')
+    fixtures={'derived/child':child,'derived/grandchild':child,'merge/receiver':merged,'revert/receiver':reverted,'before/calibration':initial,'unrelated/main':main_head}
+    for name,tip in fixtures.items():git('update-ref','refs/heads/'+name,tip)
+    for index in range(45):git('update-ref','refs/remotes/origin/derived/long-name-'+str(index).zfill(2),child)
+    git('symbolic-ref','refs/remotes/origin/HEAD','refs/remotes/origin/feature/search')
+    tool('ui_refresh',{'repo':str(repo)})
+    wait_refs({'refs/heads/derived/child':child,'refs/heads/merge/receiver':merged})
+    s=search(feature,'sha');row=verify_coverage('derived coverage',feature,s)
+    check('derived descendants and merge recipients contain the original',all('refs/heads/'+name in row['branches'] for name in ('derived/child','derived/grandchild','merge/receiver')))
+    check('revert never removes original ancestry from coverage','refs/heads/revert/receiver' in row['branches'])
+    check('branches forked before the change are excluded','refs/heads/before/calibration' not in row['branches'] and 'refs/heads/unrelated/main' not in row['branches'])
+    check('symbolic remote HEAD is excluded','refs/remotes/origin/HEAD' not in row['branches'])
+    bulk=search('TreeGit QA','author')
+    for commit in bulk['searchResults']:verify_coverage('bulk '+commit['sha'][:8],commit['sha'],bulk)
+    tool('ui_search',{'repo':str(repo),'select':feature})
+    popup=tool('ui_search',{'repo':str(repo),'showBranches':True})['branchPopup']
+    check('popup lists every containing branch in local/remote groups',popup['total']==row['branchCount'] and len(popup['rows'])==row['branchCount'] and len([r for r in popup['rows'] if r['group']])==2)
+    check('opening coverage stays on the search result',state()['searchActive'] and state()['searchSelected']==feature)
+    (out/'containing-branches-popup.png').write_bytes(tool('ui_screenshot'))
+    filtered=tool('ui_search',{'repo':str(repo),'branchFilter':'DERIVED/CHILD'})['branchPopup']
+    check('popup filtering is case-insensitive and keeps only matching branches',len(filtered['rows'])==1 and filtered['rows'][0]['reference']=='refs/heads/derived/child')
+    (out/'containing-branches-filtered.png').write_bytes(tool('ui_screenshot'))
+    empty=tool('ui_search',{'repo':str(repo),'branchFilter':'no-such-branch'})['branchPopup']
+    check('empty popup filter leaves the total and no results',not empty['rows'] and empty['total']==row['branchCount'])
+    tool('ui_search',{'repo':str(repo),'branchFilter':''})
+    tool('ui_search',{'repo':str(repo),'branch':'refs/heads/derived/child','open':True})
+    for _ in range(150):
+        current=state()
+        if not current['graphLoading'] and not current['searchActive'] and current['historySelectedCommits']==[feature] and current['localBranchSelection']==['refs/heads/derived/child']:break
+        time.sleep(.1)
+    else:raise AssertionError(current)
+    check('choosing a containing branch reveals the original commit, not its newer tip',current['detailCommit']==feature and feature!=child)
+    check('choosing a containing branch expands its folder and never checks out',current['localBranchTreeVisible'] and git('branch','--show-current')=='main' and git('rev-parse','HEAD')==main_head)
+    (out/'containing-branch-navigation.png').write_bytes(tool('ui_screenshot'))
+    tool('ui_refresh',{'repo':str(repo)});time.sleep(1)
+    check('background refresh keeps the explicitly chosen containing branch',state()['localBranchSelection']==['refs/heads/derived/child'])
+    for zoom in (1,2,2.5):
+        tool('ui_window',{'zoom':zoom,'width':1024,'height':720,'state':'normal'})
+        search(feature,'sha')
+        tool('ui_search',{'repo':str(repo),'select':feature,'showBranches':True})
+        for _ in range(50):
+            popup=tool('ui_search',{'repo':str(repo)})['branchPopup']
+            bounds=popup and popup['bounds']
+            if bounds and bounds['right']>bounds['x'] and bounds['bottom']>bounds['y']:break
+            time.sleep(.1)
+        else:raise AssertionError(popup)
+        check('coverage popup fits the screen at zoom'+str(zoom),bounds['x']>=bounds['screenX'] and bounds['y']>=bounds['screenY'] and bounds['right']<=bounds['screenRight'] and bounds['bottom']<=bounds['screenBottom'])
+        time.sleep(.3)
+        (out/('containing-branches-zoom'+str(zoom)+'.png')).write_bytes(tool('ui_screenshot'))
+        tool('ui_search',{'repo':str(repo),'branch':'refs/remotes/origin/feature/search','open':True})
+        for _ in range(150):
+            current=state()
+            if not current['graphLoading'] and not current['searchActive'] and current['remoteBranchSelection']==['refs/remotes/origin/feature/search'] and current['historySelectedCommits']==[feature]:break
+            time.sleep(.1)
+        else:raise AssertionError(current)
+        check('remote containing branch navigation at zoom'+str(zoom),current['remoteBranchTreeVisible'] and git('branch','--show-current')=='main')
+    tool('ui_window',{'zoom':1})
 except BaseException as error:
     failure=repr(error)
     raise

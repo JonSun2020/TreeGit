@@ -48,7 +48,7 @@ namespace SourceGit.ViewModels
             get => _searchCommitContext;
         }
 
-        public void RevealSearchCommit(Models.Commit commit) => _repo.RevealCommitInHistory(commit);
+        public void RevealSearchCommit(Models.Commit commit, string branch = null) => _repo.RevealCommitInHistory(commit, branch);
 
         public void ShowSearchCommit(Models.Commit commit)
         {

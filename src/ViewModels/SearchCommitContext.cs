@@ -79,10 +79,12 @@ namespace SourceGit.ViewModels
             _histories = histories;
         }
 
-        public void OpenInHistory(Models.Commit commit)
+        public void OpenInHistory(Models.Commit commit, string branch = null)
         {
+            if (branch != null && commit?.SearchBranches?.Branches.Exists(b => b.FullName == branch) != true)
+                throw new ArgumentException("请选择确实包含该提交的分支。");
             if (commit != null)
-                _histories.RevealSearchCommit(commit);
+                _histories.RevealSearchCommit(commit, branch);
         }
 
         public void ClearFilter()
@@ -166,7 +168,7 @@ namespace SourceGit.ViewModels
                 if (token.IsCancellationRequested) return;
                 var branchNames = await new Commands.QuerySearchBranchNames(_repo) { CancellationToken = token }.GetResultAsync(result).ConfigureAwait(false);
                 foreach (var commit in result)
-                    if (branchNames.TryGetValue(commit.SHA, out var name)) commit.SearchBranchName = name;
+                    if (branchNames.TryGetValue(commit.SHA, out var coverage)) commit.SearchBranches = coverage;
 
                 Dispatcher.UIThread.Post(() =>
                 {

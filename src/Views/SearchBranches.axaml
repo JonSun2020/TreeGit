@@ -1,0 +1,31 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SourceGit.ViewModels"
+             x:Class="SourceGit.Views.SearchBranches"
+             x:DataType="vm:SearchBranches">
+  <Grid RowDefinitions="Auto,Auto,*,Auto" MinHeight="140" MaxHeight="420">
+    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Margin="0,0,0,8"/>
+    <TextBox x:Name="BranchFilter" Grid.Row="1" Text="{Binding Filter, Mode=TwoWay}" Watermark="筛选分支" Height="28" MinHeight="28" VerticalContentAlignment="Center"/>
+    <ListBox x:Name="BranchList" Grid.Row="2" ItemsSource="{Binding Rows}" Background="Transparent" BorderThickness="0" Margin="0,6" KeyDown="OnBranchKeyDown" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+      <ListBox.Styles>
+        <Style Selector="ListBoxItem"><Setter Property="Padding" Value="0"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/></Style>
+        <Style Selector="Button.branch_choice"><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="6,0"/><Setter Property="MinHeight" Value="28"/></Style>
+      </ListBox.Styles>
+      <ListBox.ItemTemplate>
+        <DataTemplate DataType="vm:SearchBranchRow">
+          <StackPanel>
+            <TextBlock Text="{Binding Group}" IsVisible="{Binding HasGroup}" Foreground="{DynamicResource Brush.FG2}" Margin="4,8,4,4"/>
+            <Button Classes="branch_choice" Click="OnBranchClicked" ToolTip.Tip="{Binding Branch.FriendlyName}">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="{Binding Branch.FriendlyName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Grid.Column="1" Text="当前检出" IsVisible="{Binding Branch.IsCurrent}" FontSize="11" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource Brush.FG2}"/>
+              </Grid>
+            </Button>
+          </StackPanel>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+    <TextBlock Grid.Row="2" Text="{Binding EmptyText}" IsVisible="{Binding IsEmpty}" Margin="4,18" Foreground="{DynamicResource Brush.FG2}"/>
+    <TextBlock Grid.Row="3" Text="远程分支以最近一次获取为准。" FontSize="11" Foreground="{DynamicResource Brush.FG2}" Margin="0,4,0,0"/>
+  </Grid>
+</UserControl>

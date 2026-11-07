@@ -120,8 +120,17 @@
         <Style Selector="DataGridColumnHeader"><Setter Property="HorizontalContentAlignment" Value="Center"/></Style>
       </DataGrid.Styles>
       <DataGrid.Columns>
-        <DataGridTemplateColumn Header="分支" Width="180" MinWidth="100">
-          <DataGridTemplateColumn.CellTemplate><DataTemplate DataType="m:Commit"><TextBlock Text="{Binding SearchBranchName}" ToolTip.Tip="{Binding SearchBranchName}" TextTrimming="CharacterEllipsis" Margin="4,0" VerticalAlignment="Center"/></DataTemplate></DataGridTemplateColumn.CellTemplate>
+        <DataGridTemplateColumn Header="包含分支" Width="180" MinWidth="100">
+          <DataGridTemplateColumn.CellTemplate>
+            <DataTemplate DataType="m:Commit">
+              <Button x:Name="SearchBranchButton" Classes="icon_button" Height="21" MinHeight="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="4,0" Click="OnContainingBranchesClicked" DoubleTapped="OnBranchCellDoubleTapped" ToolTip.Tip="{Binding SearchBranchDescription}" Foreground="{Binding $parent[DataGridRow].Foreground}">
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBlock Text="{Binding SearchBranchName}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Column="1" Text="{Binding SearchMoreBranches}" IsVisible="{Binding SearchHasMoreBranches}" FontWeight="SemiBold" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                </Grid>
+              </Button>
+            </DataTemplate>
+          </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
         <DataGridTextColumn Header="描述" Binding="{Binding Subject}" Width="*" MinWidth="160"/>
         <DataGridTemplateColumn Header="日期" Width="160" MinWidth="100"><DataGridTemplateColumn.CellTemplate><DataTemplate DataType="m:Commit"><v:CommitTimeTextBlock Margin="4,0" Timestamp="{Binding CommitterTime}" ShowAsDateTime="True" DateTimeFormat="{Binding Source={x:Static vm:Preferences.Instance}, Path=DateTimeFormat}" Use24Hours="{Binding Source={x:Static vm:Preferences.Instance}, Path=Use24Hours}"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>

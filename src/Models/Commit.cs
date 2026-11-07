@@ -21,12 +21,25 @@ namespace SourceGit.Models
         public User Committer { get; set; } = User.Invalid;
         public ulong CommitterTime { get; set; } = 0;
         public string Subject { get; set; } = string.Empty;
-        public string SearchBranchName
+        public SearchBranchCoverage SearchBranches
         {
-            get => _searchBranchName;
-            set => SetProperty(ref _searchBranchName, value);
+            get => _searchBranches;
+            set
+            {
+                if (SetProperty(ref _searchBranches, value))
+                {
+                    OnPropertyChanged(nameof(SearchBranchName));
+                    OnPropertyChanged(nameof(SearchMoreBranches));
+                    OnPropertyChanged(nameof(SearchHasMoreBranches));
+                    OnPropertyChanged(nameof(SearchBranchDescription));
+                }
+            }
         }
-        private string _searchBranchName = "—";
+        public string SearchBranchName => SearchBranches?.PrimaryName ?? "—";
+        public string SearchMoreBranches => SearchBranches?.MoreLabel ?? string.Empty;
+        public bool SearchHasMoreBranches => SearchBranches?.Count > 1;
+        public string SearchBranchDescription => SearchBranches?.Description ?? "分支信息暂不可用，请重新搜索";
+        private SearchBranchCoverage _searchBranches;
         public List<string> Parents { get; set; } = new();
         public List<Decorator> Decorators { get; set; } = new();
 
