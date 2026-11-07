@@ -273,7 +273,8 @@ try:
             popup=tool('ui_search',{'repo':str(repo)})['branchPopup']
             if not popup['firstTarget']['hovered']:break
             time.sleep(.1)
-        check('branch names have no normal background',str(popup['firstTarget']['background']).lower().startswith('#00'))
+        background=str(popup['firstTarget']['background']).lower()
+        check('branch names have no normal background: '+background,background=='transparent' or background.startswith('#00'))
         before_hover=out/'containing-branches-before-hover.png'
         after_hover=out/'containing-branches-first-row-hover.png'
         before_hover.write_bytes(tool('ui_screenshot',{'window':'active'}))

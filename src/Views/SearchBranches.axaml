@@ -37,7 +37,7 @@
             </ControlTemplate>
           </Setter>
         </Style>
-        <Style Selector="Button.branch_choice:pointerover, ListBoxItem:selected Button.branch_choice">
+        <Style Selector="Button.branch_choice:pointerover, ListBoxItem:focus-visible Button.branch_choice">
           <Setter Property="Background" Value="{DynamicResource Brush.SubPanel}"/>
         </Style>
       </ListBox.Styles>
