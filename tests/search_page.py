@@ -211,7 +211,7 @@ try:
     reverted=git('commit-tree',git('rev-parse',initial+'^{tree}'),'-p',feature,'-m','Revert calibration with unrelated changes')
     fixtures={'derived/child':child,'derived/grandchild':child,'merge/receiver':merged,'revert/receiver':reverted,'before/calibration':initial,'unrelated/main':main_head}
     for name,tip in fixtures.items():git('update-ref','refs/heads/'+name,tip)
-    for index in range(45):git('update-ref','refs/remotes/origin/derived/long-name-'+str(index).zfill(2),child)
+    for index in range(70):git('update-ref','refs/remotes/origin/derived/long-name-'+str(index).zfill(2),child)
     git('symbolic-ref','refs/remotes/origin/HEAD','refs/remotes/origin/feature/search')
     tool('ui_refresh',{'repo':str(repo)})
     wait_refs({'refs/heads/derived/child':child,'refs/heads/merge/receiver':merged})
@@ -227,6 +227,18 @@ try:
     check('popup lists every containing branch in local/remote groups',popup['total']==row['branchCount'] and len(popup['rows'])==row['branchCount'] and len([r for r in popup['rows'] if r['group']])==2)
     check('opening coverage stays on the search result',state()['searchActive'] and state()['searchSelected']==feature)
     (out/'containing-branches-popup.png').write_bytes(tool('ui_screenshot',{'window':'active'}))
+    for theme in ('Blue','Light','Dark'):
+        tool('ui_window',{'theme':theme})
+        colors=tool('ui_search',{'repo':str(repo)})['branchPopup']
+        def luminance(color):
+            value=str(color).lstrip('#')[-6:]
+            rgb=[int(value[i:i+2],16)/255 for i in (0,2,4)]
+            linear=[v/12.92 if v<=.04045 else ((v+.055)/1.055)**2.4 for v in rgb]
+            return sum(v*w for v,w in zip(linear,(.2126,.7152,.0722)))
+        foreground=luminance(colors['foreground']);background=luminance(colors['background'])
+        check('popup text has readable contrast in '+theme,(max(foreground,background)+.05)/(min(foreground,background)+.05)>=4.5)
+        (out/('containing-branches-'+theme+'.png')).write_bytes(tool('ui_screenshot',{'window':'active'}))
+    tool('ui_window',{'theme':'Blue'})
     filtered=tool('ui_search',{'repo':str(repo),'branchFilter':'DERIVED/CHILD'})['branchPopup']
     check('popup filtering is case-insensitive and keeps only matching branches',len(filtered['rows'])==1 and filtered['rows'][0]['reference']=='refs/heads/derived/child')
     (out/'containing-branches-filtered.png').write_bytes(tool('ui_screenshot',{'window':'active'}))

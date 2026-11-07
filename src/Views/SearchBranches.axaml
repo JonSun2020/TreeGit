@@ -2,9 +2,10 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:SourceGit.ViewModels"
              x:Class="SourceGit.Views.SearchBranches"
-             x:DataType="vm:SearchBranches">
+             x:DataType="vm:SearchBranches"
+             Background="{DynamicResource Brush.Popup}" Foreground="{DynamicResource Brush.FG1}">
   <Grid RowDefinitions="Auto,Auto,*,Auto" MinHeight="140" MaxHeight="420">
-    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" Margin="0,0,0,8"/>
+    <TextBlock x:Name="CoverageTitle" Text="{Binding Title}" Foreground="{DynamicResource Brush.FG1}" FontWeight="SemiBold" Margin="0,0,0,8"/>
     <TextBox x:Name="BranchFilter" Grid.Row="1" Text="{Binding Filter, Mode=TwoWay}" Watermark="筛选分支" Height="28" MinHeight="28" VerticalContentAlignment="Center"/>
     <ListBox x:Name="BranchList" Grid.Row="2" ItemsSource="{Binding Rows}" Background="Transparent" BorderThickness="0" Margin="0,6" KeyDown="OnBranchKeyDown" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
       <ListBox.Styles>
@@ -17,7 +18,7 @@
             <TextBlock Text="{Binding Group}" IsVisible="{Binding HasGroup}" Foreground="{DynamicResource Brush.FG2}" Margin="4,8,4,4"/>
             <Button Classes="branch_choice" Click="OnBranchClicked" ToolTip.Tip="{Binding Branch.FriendlyName}">
               <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="{Binding Branch.FriendlyName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Text="{Binding Branch.FriendlyName}" Foreground="{DynamicResource Brush.FG1}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                 <TextBlock Grid.Column="1" Text="当前检出" IsVisible="{Binding Branch.IsCurrent}" FontSize="11" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource Brush.FG2}"/>
               </Grid>
             </Button>

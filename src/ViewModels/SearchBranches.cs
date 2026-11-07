@@ -18,7 +18,7 @@ namespace SourceGit.ViewModels
         public string Filter
         {
             get => _filter;
-            set { if (SetProperty(ref _filter, value)) UpdateRows(); }
+            set { if (SetProperty(ref _filter, value ?? string.Empty)) UpdateRows(); }
         }
         public List<SearchBranchRow> Rows { get => _rows; private set => SetProperty(ref _rows, value); }
         public bool IsEmpty => Rows.Count == 0;

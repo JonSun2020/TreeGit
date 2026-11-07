@@ -20,6 +20,8 @@ namespace SourceGit.Views
         public object ContainingBranchesState => _branchFlyout?.IsOpen == true && _branchPopup?.DataContext is ViewModels.SearchBranches context
             ? new { sha = context.Commit.SHA, filter = context.Filter, total = context.Commit.SearchBranches.Count,
                 bounds = PopupBounds(),
+                background = _branchPopup.Background?.ToString(),
+                foreground = _branchPopup.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name == "CoverageTitle")?.Foreground?.ToString(),
                 rows = context.Rows.Select(r => new { reference = r.Branch.FullName, name = r.Branch.FriendlyName, local = r.Branch.IsLocal, current = r.Branch.IsCurrent, group = r.Group }).ToArray() }
             : null;
 
