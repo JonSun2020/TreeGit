@@ -67,6 +67,12 @@ MCP 的完整读写意味着 AI 可以修改甚至删除 Git 数据。应在 AI 
 
 搜索结果导航：`ui_search` 选中结果后传入 `"open": true`，等同双击，退出搜索并自动切换“所有分支 + 显示远程分支”，定位并选中提交。
 
+搜索结果的“包含分支”统计全部已知本地分支和远程跟踪分支，不受图谱显示范围限制；远程信息以最近一次获取为准。本地与对应远程分别统计。`ui_state.searchResults` 中的 `branch` 是摘要名称，`branchCount` 是数量，`branches` 是完整引用数组。它们表示历史包含关系，不表示提交创建时的分支，也不自动判定改动当前是否生效。
+
+先用 `ui_search` 的 `select` 选中结果，再传 `"showBranches": true` 打开分组列表；`branchFilter` 筛选该列表，空字符串清除筛选。返回的 `branchPopup` 包含当前筛选、总数、分组和分支行；`ui_screenshot` 的 `window=active` 可读取此展开面板。
+
+传入 `"open": true, "branch": "refs/heads/example"` 可定位原提交并选中指定的包含分支；远程使用 `refs/remotes/origin/example`。指定引用必须确实包含该结果提交，否则拒绝请求。此操作不检出分支；若分支在搜索后发生变化，仍保留原提交定位，并提示重新搜索。
+
 `ui_layout` 先使用 `action=list` 取得当前窗口的分隔条和滚动区域索引，再使用 `drag`、`restore`、`resize` 或 `scroll`。`window` 可选 `main` 或 `active`；`drag` 使用 `splitter`、`dx` / `dy`，`scroll` 使用 `scroller`、`dx` / `dy`。索引随页面改变，切页后应重新查询。`twoColumnHistory` 和 `twoColumnDiff` 切换历史、文本差异的左右布局。这些操作只作用于本 TreeGit 进程的窗口，不修改 Git 数据。
 
 `ui_window` 的 `zoom` 支持 0.75 至 2.5。`ui_working_copy` 的可选 `filter` 按文件路径筛选；空字符串清除。`ui_state` 返回搜索结果的 `branch`、工作区操作状态和当前提交的已加载变更文件，读取异步视图前可据此确认内容就绪。
