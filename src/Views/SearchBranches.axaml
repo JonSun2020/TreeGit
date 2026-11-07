@@ -8,15 +8,44 @@
     <TextBlock x:Name="CoverageTitle" Text="{Binding Title}" Foreground="{DynamicResource Brush.FG1}" FontWeight="SemiBold" Margin="0,0,0,8"/>
     <TextBox x:Name="BranchFilter" Grid.Row="1" Text="{Binding Filter, Mode=TwoWay}" Watermark="筛选分支" Height="28" MinHeight="28" VerticalContentAlignment="Center"/>
     <ListBox x:Name="BranchList" Grid.Row="2" ItemsSource="{Binding Rows}" Background="Transparent" BorderThickness="0" Margin="0,6" KeyDown="OnBranchKeyDown" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+      <ListBox.ItemContainerTheme>
+        <ControlTheme TargetType="ListBoxItem" x:DataType="vm:SearchBranchRow">
+          <Setter Property="Padding" Value="0"/>
+          <Setter Property="MinHeight" Value="0"/>
+          <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+          <Setter Property="IsEnabled" Value="{Binding IsBranch}"/>
+          <Setter Property="FocusAdorner" Value="{x:Null}"/>
+          <Setter Property="Template">
+            <ControlTemplate>
+              <ContentPresenter Name="BranchItemPresenter" Background="Transparent" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalContentAlignment="Stretch"/>
+            </ControlTemplate>
+          </Setter>
+        </ControlTheme>
+      </ListBox.ItemContainerTheme>
       <ListBox.Styles>
-        <Style Selector="ListBoxItem"><Setter Property="Padding" Value="0"/><Setter Property="HorizontalContentAlignment" Value="Stretch"/></Style>
-        <Style Selector="Button.branch_choice"><Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="Padding" Value="6,0"/><Setter Property="MinHeight" Value="28"/></Style>
+        <Style Selector="Button.branch_choice">
+          <Setter Property="HorizontalAlignment" Value="Stretch"/>
+          <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+          <Setter Property="Padding" Value="6,0"/>
+          <Setter Property="MinHeight" Value="28"/>
+          <Setter Property="Background" Value="Transparent"/>
+          <Setter Property="Template">
+            <ControlTemplate>
+              <Border Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                <ContentPresenter Name="PART_ContentPresenter" Background="Transparent" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Center"/>
+              </Border>
+            </ControlTemplate>
+          </Setter>
+        </Style>
+        <Style Selector="Button.branch_choice:pointerover, ListBoxItem:selected Button.branch_choice">
+          <Setter Property="Background" Value="{DynamicResource Brush.SubPanel}"/>
+        </Style>
       </ListBox.Styles>
       <ListBox.ItemTemplate>
         <DataTemplate DataType="vm:SearchBranchRow">
           <StackPanel>
-            <TextBlock Text="{Binding Group}" IsVisible="{Binding HasGroup}" Foreground="{DynamicResource Brush.FG2}" Margin="4,8,4,4"/>
-            <Button Classes="branch_choice" Click="OnBranchClicked" ToolTip.Tip="{Binding Branch.FriendlyName}">
+            <TextBlock x:Name="BranchGroupLabel" Text="{Binding Group}" IsVisible="{Binding HasGroup}" Foreground="{DynamicResource Brush.FG2}" Margin="4,8,4,4"/>
+            <Button Classes="branch_choice" IsVisible="{Binding IsBranch}" Click="OnBranchClicked" ToolTip.Tip="{Binding Branch.FriendlyName}">
               <Grid ColumnDefinitions="*,Auto">
                 <TextBlock x:Name="BranchName" Text="{Binding Branch.FriendlyName}" Foreground="{DynamicResource Brush.FG1}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                 <TextBlock Grid.Column="1" Text="当前检出" IsVisible="{Binding Branch.IsCurrent}" FontSize="11" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource Brush.FG2}"/>

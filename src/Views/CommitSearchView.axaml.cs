@@ -22,19 +22,29 @@ namespace SourceGit.Views
                 bounds = PopupBounds(),
                 background = _branchPopup.Background?.ToString(),
                 foreground = _branchPopup.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name == "CoverageTitle")?.Foreground?.ToString(),
-                branchForeground = _branchPopup.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name == "BranchName")?.Foreground?.ToString(),
+                branchForeground = _branchPopup.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name == "BranchName" && t.DataContext is ViewModels.SearchBranchRow { Branch: not null })?.Foreground?.ToString(),
                 firstTarget = FirstBranchTarget(),
-                rows = context.Rows.Select(r => new { reference = r.Branch.FullName, name = r.Branch.FriendlyName, local = r.Branch.IsLocal, current = r.Branch.IsCurrent, group = r.Group }).ToArray() }
+                firstGroupRegion = FirstGroupRegion(),
+                groups = context.Rows.Where(r => r.HasGroup).Select(r => r.Group).ToArray(),
+                rows = context.Rows.Where(r => r.IsBranch).Select(r => new { reference = r.Branch.FullName, name = r.Branch.FriendlyName, local = r.Branch.IsLocal, current = r.Branch.IsCurrent, group = r.Branch.IsLocal ? "本地" : "远程" }).ToArray() }
             : null;
 
         public Control ContainingBranchesSurface => _branchFlyout?.IsOpen == true ? _branchPopup : null;
 
         private object FirstBranchTarget()
         {
-            var button = _branchPopup.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.DataContext is ViewModels.SearchBranchRow && b.Bounds.Width > 0 && b.Bounds.Height > 0);
+            var button = _branchPopup.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.DataContext is ViewModels.SearchBranchRow { Branch: not null } && b.Bounds.Width > 0 && b.Bounds.Height > 0);
             if (button == null || button.GetVisualRoot() == null) return null;
             var point = button.PointToScreen(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2));
-            return new { x = point.X, y = point.Y, enabled = button.IsEffectivelyEnabled, reference = ((ViewModels.SearchBranchRow)button.DataContext).Branch.FullName };
+            return new { x = point.X, y = point.Y, enabled = button.IsEffectivelyEnabled, hovered = button.IsPointerOver, background = button.Background?.ToString(), reference = ((ViewModels.SearchBranchRow)button.DataContext).Branch.FullName };
+        }
+
+        private object FirstGroupRegion()
+        {
+            var label = _branchPopup.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name == "BranchGroupLabel" && t.IsVisible && t.Bounds.Height > 0);
+            var origin = label?.TranslatePoint(default, _branchPopup);
+            if (origin == null) return null;
+            return new { x = 0, y = Math.Max(0, (int)Math.Floor(origin.Value.Y) - 2), width = (int)Math.Floor(_branchPopup.Bounds.Width), height = (int)Math.Ceiling(label.Bounds.Height) + 4 };
         }
 
         private object PopupBounds()

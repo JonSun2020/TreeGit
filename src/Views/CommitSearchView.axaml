@@ -124,9 +124,10 @@
           <DataGridTemplateColumn.CellTemplate>
             <DataTemplate DataType="m:Commit">
               <Button x:Name="SearchBranchButton" Classes="icon_button" Height="21" MinHeight="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" Padding="4,0" Click="OnContainingBranchesClicked" DoubleTapped="OnBranchCellDoubleTapped" ToolTip.Tip="{Binding SearchBranchDescription}" Foreground="{Binding $parent[DataGridRow].Foreground}">
-                <Grid ColumnDefinitions="*,Auto">
+                <Grid ColumnDefinitions="*,Auto,Auto">
                   <TextBlock Text="{Binding SearchBranchName}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
                   <TextBlock Grid.Column="1" Text="{Binding SearchMoreBranches}" IsVisible="{Binding SearchHasMoreBranches}" FontWeight="SemiBold" Margin="5,0,0,0" VerticalAlignment="Center"/>
+                  <Path x:Name="SearchBranchDropdownArrow" Grid.Column="2" Width="8" Height="4" Stretch="Fill" Data="M 0,0 L 4,4 L 8,0 Z" Fill="{Binding $parent[Button].Foreground}" IsVisible="{Binding SearchHasMoreBranches}" Margin="5,0,0,0" VerticalAlignment="Center"/>
                 </Grid>
               </Button>
             </DataTemplate>

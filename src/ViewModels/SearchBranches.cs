@@ -9,6 +9,7 @@ namespace SourceGit.ViewModels
         public Models.Branch Branch { get; set; }
         public string Group { get; set; }
         public bool HasGroup => !string.IsNullOrEmpty(Group);
+        public bool IsBranch => Branch != null;
     }
 
     public class SearchBranches : ObservableObject
@@ -31,7 +32,10 @@ namespace SourceGit.ViewModels
             UpdateRows();
         }
 
-        public void Choose(Models.Branch branch) => BranchChosen?.Invoke(branch);
+        public void Choose(Models.Branch branch)
+        {
+            if (branch != null) BranchChosen?.Invoke(branch);
+        }
 
         private void UpdateRows()
         {
@@ -40,8 +44,10 @@ namespace SourceGit.ViewModels
             foreach (var local in new[] { true, false })
             {
                 var group = matches.FindAll(b => b.IsLocal == local);
+                if (group.Count == 0) continue;
+                rows.Add(new SearchBranchRow { Group = $"{(local ? "本地" : "远程")}（{group.Count}）" });
                 for (var i = 0; i < group.Count; i++)
-                    rows.Add(new SearchBranchRow { Branch = group[i], Group = i == 0 ? $"{(local ? "本地" : "远程")}（{group.Count}）" : null });
+                    rows.Add(new SearchBranchRow { Branch = group[i] });
             }
             Rows = rows;
             OnPropertyChanged(nameof(IsEmpty));

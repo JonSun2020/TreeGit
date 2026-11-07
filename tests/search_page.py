@@ -224,8 +224,9 @@ try:
     bulk=search('TreeGit QA','author')
     for commit in bulk['searchResults']:verify_coverage('bulk '+commit['sha'][:8],commit['sha'],bulk)
     tool('ui_search',{'repo':str(repo),'select':feature})
+    (out/'containing-branches-search-row.png').write_bytes(tool('ui_screenshot'))
     popup=tool('ui_search',{'repo':str(repo),'showBranches':True})['branchPopup']
-    check('popup lists every containing branch in local/remote groups',popup['total']==row['branchCount'] and len(popup['rows'])==row['branchCount'] and len([r for r in popup['rows'] if r['group']])==2)
+    check('popup lists every containing branch in local/remote groups',popup['total']==row['branchCount'] and len(popup['rows'])==row['branchCount'] and len(popup['groups'])==2)
     check('opening coverage stays on the search result',state()['searchActive'] and state()['searchSelected']==feature)
     (out/'containing-branches-popup.png').write_bytes(tool('ui_screenshot',{'window':'active'}))
     for theme in ('Blue','Light','Dark'):
@@ -255,9 +256,38 @@ try:
         user32=ctypes.windll.user32
         user32.WindowFromPoint.argtypes=[wintypes.POINT];user32.WindowFromPoint.restype=wintypes.HWND
         user32.GetWindowThreadProcessId.argtypes=[wintypes.HWND,ctypes.POINTER(wintypes.DWORD)]
-        popup=tool('ui_search',{'repo':str(repo)})['branchPopup']
-        target=popup['firstTarget']
-        assert target['enabled'] and target['reference']=='refs/heads/derived/child',target
+        def owned_move(x,y):
+            point=wintypes.POINT(x,y)
+            handle=user32.WindowFromPoint(point);owner=wintypes.DWORD()
+            user32.GetWindowThreadProcessId(handle,ctypes.byref(owner))
+            assert owner.value==gui_pid,('Refusing pointer input outside the owned CI GUI',owner.value,gui_pid)
+            assert user32.SetCursorPos(point.x,point.y)
+        for _ in range(50):
+            popup=tool('ui_search',{'repo':str(repo)})['branchPopup']
+            target=popup and popup['firstTarget']
+            if target and target['reference']=='refs/heads/derived/child' and popup['firstGroupRegion']:break
+            time.sleep(.1)
+        else:raise AssertionError(popup)
+        owned_move(popup['bounds']['x']+12,popup['bounds']['y']+12)
+        for _ in range(50):
+            popup=tool('ui_search',{'repo':str(repo)})['branchPopup']
+            if not popup['firstTarget']['hovered']:break
+            time.sleep(.1)
+        check('branch names have no normal background',str(popup['firstTarget']['background']).lower().startswith('#00'))
+        before_hover=out/'containing-branches-before-hover.png'
+        after_hover=out/'containing-branches-first-row-hover.png'
+        before_hover.write_bytes(tool('ui_screenshot',{'window':'active'}))
+        target=popup['firstTarget'];region=popup['firstGroupRegion']
+        assert target['enabled'],target
+        owned_move(target['x'],target['y'])
+        for _ in range(50):
+            hovered=tool('ui_search',{'repo':str(repo)})['branchPopup']
+            if hovered['firstTarget']['hovered']:break
+            time.sleep(.1)
+        else:raise AssertionError('Native pointer did not reach first branch')
+        after_hover.write_bytes(tool('ui_screenshot',{'window':'active'}))
+        comparison=subprocess.run(['powershell','-NoProfile','-File',str(Path(__file__).with_name('compare_hover_region.ps1').resolve()),str(before_hover),str(after_hover),str(region['x']),str(region['y']),str(region['width']),str(region['height'])],capture_output=True,text=True)
+        check('group header pixels stay unchanged when its first branch is hovered',comparison.returncode==0)
         point=wintypes.POINT(target['x'],target['y'])
         handle=user32.WindowFromPoint(point);owner=wintypes.DWORD()
         user32.GetWindowThreadProcessId(handle,ctypes.byref(owner))
