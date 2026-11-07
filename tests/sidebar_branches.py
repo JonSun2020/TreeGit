@@ -206,6 +206,15 @@ try:
     branch_click('refs/remotes/origin/dirty','search',True); confirm('dirty')
     check('stash-and-reapply preserves working changes and the prior stash',(repo/'file.txt').read_text(encoding='utf-8')=='pending user work\n' and git('rev-parse','refs/stash')==stash_before)
     check('stash-and-reapply leaves no staging changes',git('diff','--cached','--name-only')=='')
+    original_repo = repo
+    repo = root/'unborn'; repo.mkdir()
+    git('init','-b','main');git('remote','add','origin',str(original_repo));git('fetch','--no-tags','origin','main')
+    (repo/'.git/sourcegit.uistates').write_text(json.dumps({'ShowRemoteBranchesInHistory':True,'IsRemotesExpandedInSideBar':True,'ExpandedBranchNodesInSideBar':['refs/remotes/origin']}),encoding='utf-8')
+    tool('ui_open_repository',{'repo':str(repo)})
+    wait_for(lambda: not state()['graphLoading'] and state()['loadedBranches'])
+    check('unborn repository has no local branch yet',state()['branch'] is None)
+    branch_click('refs/remotes/origin/main','history',True);confirm('main')
+    check('remote checkout initializes an unborn local repository safely',git('rev-parse','HEAD')==base and git('rev-parse','--symbolic-full-name','@{upstream}')=='refs/remotes/origin/main')
 except BaseException as error:
     failure=repr(error)
     try:

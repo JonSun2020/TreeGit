@@ -143,7 +143,7 @@ namespace SourceGit.ViewModels
                 var current = after.Find(b => b.IsCurrent && b.IsLocal && b.Name == name);
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    if (current != null) _repo.RefreshAfterCreateBranch(current, true);
+                    if (current != null && _repo.CurrentBranch != null) _repo.RefreshAfterCreateBranch(current, true);
                     else { _repo.RefreshBranches(); _repo.MarkWorkingCopyDirtyManually(); }
                 });
                 log.Complete();
