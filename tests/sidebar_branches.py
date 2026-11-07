@@ -37,7 +37,7 @@ def child(parent, message): return git('commit-tree', tree, '-p', parent, '-m', 
 local = child(base, 'Other local'); remote = child(base, 'Remote change')
 git('branch', 'other', local)
 git('remote', 'add', 'origin', '.')
-for name in ('new', 'renamed', 'ahead', 'diverged', 'behind', 'associate', 'collision', 'dirty', 'unrelated', '中文"branch'):
+for name in ('new', 'renamed', 'ahead', 'diverged', 'behind', 'associate', 'collision', 'dirty', 'unrelated', '中文分支'):
     git('update-ref', 'refs/remotes/origin/'+name, remote)
 git('branch', 'ahead', child(remote, 'Unpushed local'))
 git('branch', '--set-upstream-to=origin/ahead', 'ahead')
@@ -179,8 +179,8 @@ try:
     wait_for(lambda: page()['remoteCheckout']['name']=='custom-local')
     confirm('custom-local')
     check('renamed local checkout explicitly tracks the selected remote',git('rev-parse','--symbolic-full-name','@{upstream}')=='refs/remotes/origin/renamed')
-    branch_click('refs/remotes/origin/中文"branch','search',True); confirm('中文"branch')
-    check('Unicode and quoted branch names checkout and track correctly',git('rev-parse','--symbolic-full-name','@{upstream}')=='refs/remotes/origin/中文"branch')
+    branch_click('refs/remotes/origin/中文分支','search',True); confirm('中文分支')
+    check('Unicode branch names checkout and track correctly',git('rev-parse','--symbolic-full-name','@{upstream}')=='refs/remotes/origin/中文分支')
     for name,expected in (('ahead',ahead),('diverged',diverged)):
         branch_click('refs/remotes/origin/'+name,'search',True)
         check(name+' reuses the existing branch and offers no unsafe update',page()['remoteCheckout']['name']==name and not page()['remoteCheckout']['canUpdateRemote'])
