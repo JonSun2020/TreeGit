@@ -82,7 +82,7 @@
             <v:BranchTreeNodeToggleButton Grid.Column="0" Classes="tree_expander" Focusable="False" HorizontalAlignment="Center" IsChecked="{Binding IsExpanded, Mode=OneWay}" IsVisible="{Binding !IsBranch}"/>
 
             <!-- Content Area (allows double-clicking) -->
-            <Grid Grid.Column="1" Height="24" Background="Transparent" ColumnDefinitions="18,*,Auto,Auto,Auto" DoubleTapped="OnDoubleTappedBranchNode">
+            <Grid x:Name="BranchNodeContent" Grid.Column="1" Height="24" Background="Transparent" ColumnDefinitions="18,*,Auto,Auto,Auto" Tapped="OnTappedBranchNode" DoubleTapped="OnDoubleTappedBranchNode">
 
               <!-- Icon -->
               <v:BranchTreeNodeIcon Grid.Column="0" Width="18" Height="18" VerticalAlignment="Center" IsExpanded="{Binding IsExpanded}"/>

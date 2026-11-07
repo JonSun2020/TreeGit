@@ -176,6 +176,8 @@ jobs:
         run: |
           python tests/mcp_protocol.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/treegit-protocol.json"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/sidebar_branches.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/sidebar-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if ($env:TREEGIT_PREVIEW -eq 'true') {
             python tests/treegit_graph.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/reference-graph-results"
             if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
@@ -215,6 +217,8 @@ jobs:
         with:
           name: TreeGit-ui-regressions
           path: |
+            ${{ runner.temp }}/sidebar-results/*.json
+            ${{ runner.temp }}/sidebar-results/*.png
             ${{ runner.temp }}/search-page-results/*.json
             ${{ runner.temp }}/search-page-results/*.png
             ${{ runner.temp }}/reference-graph-results/*.json

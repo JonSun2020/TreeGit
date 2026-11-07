@@ -1628,6 +1628,13 @@ namespace SourceGit.ViewModels
                 ShowPopup(new CreateBranch(this, _currentBranch));
         }
 
+        public void ShowBranchCheckoutOptions(Models.Branch branch)
+        {
+            if (branch.IsLocal && branch.IsCurrent) return;
+            if (IsBare || !CanCreatePopup()) return;
+            ShowPopup(branch.IsLocal ? new Checkout(this, branch) : new CheckoutRemoteBranch(this, branch));
+        }
+
         public async Task CheckoutBranchAsync(Models.Branch branch)
         {
             if (branch.IsLocal)
@@ -1655,23 +1662,7 @@ namespace SourceGit.ViewModels
             }
             else
             {
-                foreach (var b in _branches)
-                {
-                    if (b.IsLocal &&
-                        !string.IsNullOrEmpty(b.Upstream) &&
-                        b.Upstream.Equals(branch.FullName, StringComparison.Ordinal) &&
-                        b.Ahead.Count == 0)
-                    {
-                        if (b.Behind.Count > 0)
-                            ShowPopup(new CheckoutAndFastForward(this, b, branch));
-                        else if (!b.IsCurrent)
-                            await CheckoutBranchAsync(b);
-
-                        return;
-                    }
-                }
-
-                ShowPopup(new CreateBranch(this, branch));
+                ShowPopup(new CheckoutRemoteBranch(this, branch));
             }
         }
 

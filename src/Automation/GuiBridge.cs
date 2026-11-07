@@ -133,7 +133,9 @@ namespace SourceGit.Automation
                                 closeVisible = close?.IsEffectivelyVisible == true && a.HasValue && b.HasValue && a.Value.X >= 0 && b.Value.X <= item.Bounds.Width + 1 };
                         }).ToArray(),
                         readOnlyFlag = "--read-only",
-                        activePage = new { kind = launcher.ActivePage.Data.GetType().Name, pendingDialog = launcher.ActivePage.Popup?.GetType().Name, notifications = launcher.ActivePage.Notifications.Count },
+                        activePage = new { kind = launcher.ActivePage.Data.GetType().Name, pendingDialog = launcher.ActivePage.Popup?.GetType().Name, notifications = launcher.ActivePage.Notifications.Count,
+                            remoteCheckout = launcher.ActivePage.Popup is ViewModels.CheckoutRemoteBranch checkout ? new { name = checkout.Name, hint = checkout.Hint, hasLocalChanges = checkout.HasLocalChanges,
+                                canUpdateRemote = checkout.CanUpdateRemote, updateRemote = checkout.UpdateRemote, hasErrors = checkout.HasErrors } : null },
                         dialogs = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).Windows
                             .Where(w => w != ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow && w.IsVisible)
                             .Select(w =>
@@ -185,6 +187,8 @@ namespace SourceGit.Automation
                                 loadedBranches = r.Branches.Select(b => new { reference = b.FullName, head = b.Head, upstream = b.Upstream }).ToArray(),
                                 localBranchTreeVisible = repositoryView?.LocalBranchTree.IsEffectivelyVisible,
                                 remoteBranchTreeVisible = repositoryView?.RemoteBranchTree.IsEffectivelyVisible,
+                                localBranchTargets = repositoryView?.LocalBranchTree.GetVisibleBranchTargets(),
+                                remoteBranchTargets = repositoryView?.RemoteBranchTree.GetVisibleBranchTargets(),
                                 localBranchSelection = repositoryView?.LocalBranchTree.Rows.Where(n => n.IsSelected && n.Backend is Models.Branch).Select(n => ((Models.Branch)n.Backend).FullName).ToArray(),
                                 remoteBranchSelection = repositoryView?.RemoteBranchTree.Rows.Where(n => n.IsSelected && n.Backend is Models.Branch).Select(n => ((Models.Branch)n.Backend).FullName).ToArray(),
                                 graphBranch = r.Histories?.GraphBranchName,
