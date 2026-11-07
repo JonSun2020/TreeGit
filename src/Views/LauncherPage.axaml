@@ -77,8 +77,8 @@
                       <!-- Options -->
                       <StackPanel Grid.Row="1" Margin="8,4,8,8" Height="32" Orientation="Horizontal" HorizontalAlignment="Right" IsVisible="{Binding InProgress, Converter={x:Static BoolConverters.Not}}">
                         <Button Width="0" Height="0" Click="OnPopupSureByHotKey" HotKey="Enter" Focusable="False"/>
-                        <Button Classes="flat primary" Width="100" Height="28" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="{DynamicResource Text.Sure}" Click="OnPopupSure" ToolTip.Tip="Enter"/>
-                        <Button Classes="flat" Width="100" Height="28" Margin="8,0,0,0" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="{DynamicResource Text.Cancel}" Click="OnPopupCancel" ToolTip.Tip="ESC"/>
+                        <Button x:Name="ConfirmPopup" Classes="flat primary" Width="100" Height="28" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="{DynamicResource Text.Sure}" Click="OnPopupSure" ToolTip.Tip="Enter"/>
+                        <Button x:Name="CancelPopup" Classes="flat" Width="100" Height="28" Margin="8,0,0,0" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="{DynamicResource Text.Cancel}" Click="OnPopupCancel" ToolTip.Tip="ESC"/>
                       </StackPanel>
 
                       <!-- Running -->

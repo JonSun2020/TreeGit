@@ -1,4 +1,4 @@
-<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+﻿<ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <ResourceDictionary.MergedDictionaries>
     <ResourceInclude Source="avares://SourceGit/Resources/Locales/en_US.axaml"/>
   </ResourceDictionary.MergedDictionaries>
@@ -1197,4 +1197,21 @@
   <x:String x:Key="Text.SSHKeyHelper.Generator.PassphraseRequired">请输入私钥口令。</x:String>
   <x:String x:Key="Text.SSHKeyHelper.Generator.PassphraseFormat">口令只允许字母、数字及 _ + - = @ # $ % ! &amp;。</x:String>
   <x:String x:Key="Text.SSHKeyHelper.Generator.PassphraseMismatch">两次输入的口令不一致。</x:String>
+
+  <x:String x:Key="Text.Checkout.Confirm">是否切換到以下分支？</x:String>
+  <x:String x:Key="Text.Checkout.OtherWorktree">此分支已在其他工作樹中簽出，繼續後將開啟對應工作樹。</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Title">簽出遠端分支</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Source">遠端分支：</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Local">本機分支：</x:String>
+  <x:String x:Key="Text.CheckoutRemote.First">將此遠端分支簽出到本機，並追蹤它的更新。</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Existing">使用已有的本機分支，保留本機提交。</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Associate">使用已有的本機分支，並追蹤此遠端分支；本機提交會保留。</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Current">目前已在追蹤此遠端分支的本機分支上。</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Ahead">本機分支有尚未推送的提交，簽出時會保留。</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Diverged">本機和遠端各有新提交。簽出會保留本機提交，之後可透過合併或重定基底同步。</x:String>
+  <x:String x:Key="Text.CheckoutRemote.FastForward">更新到最新遠端提交（僅快轉）</x:String>
+  <x:String x:Key="Text.CheckoutRemote.InvalidName">請輸入有效的本機分支名稱。</x:String>
+  <x:String x:Key="Text.CheckoutRemote.NameInUse">此本機分支名稱與其他分支衝突，或已追蹤其他遠端分支，請換一個名稱。</x:String>
+  <x:String x:Key="Text.CheckoutRemote.RemoteGone">此遠端分支已不存在，請重新整理後再次選擇。</x:String>
+  <x:String x:Key="Text.CheckoutRemote.StashKept">你的修改已儲存在「貯藏」中，可在方便時從那裡還原。</x:String>
 </ResourceDictionary>

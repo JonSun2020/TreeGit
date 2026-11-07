@@ -1,0 +1,19 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SourceGit.ViewModels"
+             xmlns:v="using:SourceGit.Views"
+             x:Class="SourceGit.Views.CheckoutRemoteBranch" x:DataType="vm:CheckoutRemoteBranch">
+  <StackPanel Margin="8,0" Spacing="10">
+    <TextBlock Text="{DynamicResource Text.CheckoutRemote.Title}" FontSize="18" Classes="bold"/>
+    <Grid ColumnDefinitions="Auto,*" RowDefinitions="32,32,Auto,Auto,Auto">
+      <TextBlock Text="{DynamicResource Text.CheckoutRemote.Source}" Margin="0,0,12,0" VerticalAlignment="Center"/>
+      <TextBlock Grid.Column="1" Text="{Binding RemoteBranch.FriendlyName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding RemoteBranch.FriendlyName}"/>
+      <TextBlock Grid.Row="1" Text="{DynamicResource Text.CheckoutRemote.Local}" Margin="0,0,12,0" VerticalAlignment="Center"/>
+      <v:BranchOrTagNameTextBox Grid.Row="1" Grid.Column="1" Text="{Binding Name, Mode=TwoWay}" Height="26" Watermark="{DynamicResource Text.CheckoutRemote.Local}"/>
+      <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Text="{Binding Hint}" TextWrapping="Wrap" Foreground="{DynamicResource Brush.FG2}" Margin="0,8"/>
+      <CheckBox Grid.Row="3" Grid.ColumnSpan="2" Content="{DynamicResource Text.CheckoutRemote.FastForward}" IsVisible="{Binding CanUpdateRemote}" IsChecked="{Binding UpdateRemote, Mode=TwoWay}"/>
+      <TextBlock Grid.Row="4" Text="{DynamicResource Text.Checkout.LocalChanges}" IsVisible="{Binding HasLocalChanges}" Margin="0,8,12,0" VerticalAlignment="Center"/>
+      <v:DealWithLocalChangesMethod Grid.Row="4" Grid.Column="1" Method="{Binding DealWithLocalChanges, Mode=TwoWay}" IsVisible="{Binding HasLocalChanges}" Margin="0,8,0,0"/>
+    </Grid>
+  </StackPanel>
+</UserControl>

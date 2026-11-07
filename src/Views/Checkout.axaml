@@ -19,7 +19,9 @@
                  Text="{DynamicResource Text.Checkout}"/>
     </StackPanel>
 
-    <Grid Margin="0,16,0,0" RowDefinitions="32,Auto" ColumnDefinitions="140,*">
+    <TextBlock Text="{DynamicResource Text.Checkout.Confirm}" Margin="0,12,0,0" TextWrapping="Wrap"/>
+    <TextBlock Text="{DynamicResource Text.Checkout.OtherWorktree}" IsVisible="{Binding HasOtherWorktree}" Margin="0,6,0,0" Foreground="{DynamicResource Brush.FG2}" TextWrapping="Wrap"/>
+    <Grid Margin="0,12,0,0" RowDefinitions="32,Auto" ColumnDefinitions="140,*">
       <TextBlock Grid.Row="0" Grid.Column="0"
                  HorizontalAlignment="Right" VerticalAlignment="Center"
                  Margin="0,0,8,0"

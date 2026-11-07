@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+﻿<?xml version='1.0' encoding='utf-8'?>
 <ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <ResourceDictionary.MergedDictionaries>
     <ResourceInclude Source="avares://SourceGit/Resources/Locales/en_US.axaml"/>
@@ -117,7 +117,7 @@
   <x:String x:Key="Text.ChangeSubmoduleUrl" xml:space="preserve">修改子模块远程地址</x:String>
   <x:String x:Key="Text.ChangeSubmoduleUrl.Submodule" xml:space="preserve">子模块 ：</x:String>
   <x:String x:Key="Text.ChangeSubmoduleUrl.URL" xml:space="preserve">远程地址 ：</x:String>
-  <x:String x:Key="Text.Checkout" xml:space="preserve">检出(checkout)分支</x:String>
+  <x:String x:Key="Text.Checkout" xml:space="preserve">切换本地分支</x:String>
   <x:String x:Key="Text.Checkout.LocalChanges" xml:space="preserve">未提交更改 ：</x:String>
   <x:String x:Key="Text.Checkout.Target" xml:space="preserve">目标分支 ：</x:String>
   <x:String x:Key="Text.Checkout.WarnLostCommits" xml:space="preserve">您当前游离的HEAD包含未被任何分支及标签引用的提交！是否继续？</x:String>
@@ -1201,4 +1201,21 @@
   <x:String x:Key="Text.SSHKeyHelper.Generator.PassphraseRequired">请输入私钥口令。</x:String>
   <x:String x:Key="Text.SSHKeyHelper.Generator.PassphraseFormat">口令只允许字母、数字及 _ + - = @ # $ % ! &amp;。</x:String>
   <x:String x:Key="Text.SSHKeyHelper.Generator.PassphraseMismatch">两次输入的口令不一致。</x:String>
+
+  <x:String x:Key="Text.Checkout.Confirm">是否切换到以下分支？</x:String>
+  <x:String x:Key="Text.Checkout.OtherWorktree">此分支已在其他工作树中检出，继续后将打开对应工作树。</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Title">检出远程分支</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Source">远程分支：</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Local">本地分支：</x:String>
+  <x:String x:Key="Text.CheckoutRemote.First">将此远程分支检出到本地，并跟踪它的更新。</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Existing">使用已有的本地分支，保留本地提交。</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Associate">使用已有的本地分支，并跟踪此远程分支；本地提交会保留。</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Current">当前已在跟踪此远程分支的本地分支上。</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Ahead">本地分支有尚未推送的提交，检出时会保留。</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Diverged">本地和远程各有新提交。检出会保留本地提交，之后可通过合并或变基同步。</x:String>
+  <x:String x:Key="Text.CheckoutRemote.FastForward">更新到最新远程提交（仅快进）</x:String>
+  <x:String x:Key="Text.CheckoutRemote.InvalidName">请输入有效的本地分支名。</x:String>
+  <x:String x:Key="Text.CheckoutRemote.NameInUse">此本地分支名与其他分支冲突，或已跟踪其他远程分支，请换一个名称。</x:String>
+  <x:String x:Key="Text.CheckoutRemote.RemoteGone">此远程分支已不存在，请刷新后重新选择。</x:String>
+  <x:String x:Key="Text.CheckoutRemote.StashKept">你的修改已保存在“贮藏”中，可在方便时从那里恢复。</x:String>
 </ResourceDictionary>

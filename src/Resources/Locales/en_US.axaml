@@ -1,4 +1,4 @@
-<?xml version='1.0' encoding='utf-8'?>
+﻿<?xml version='1.0' encoding='utf-8'?>
 <ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <x:String x:Key="Text.About" xml:space="preserve">About</x:String>
   <x:String x:Key="Text.About.Menu" xml:space="preserve">About TreeGit</x:String>
@@ -1197,4 +1197,21 @@
   <x:String x:Key="Text.SSHKeyHelper.Generator.PassphraseRequired">Enter a passphrase.</x:String>
   <x:String x:Key="Text.SSHKeyHelper.Generator.PassphraseFormat">Use letters, numbers, or _ + - = @ # $ % ! &amp;.</x:String>
   <x:String x:Key="Text.SSHKeyHelper.Generator.PassphraseMismatch">The passphrases do not match.</x:String>
+
+  <x:String x:Key="Text.Checkout.Confirm">Switch to the following branch?</x:String>
+  <x:String x:Key="Text.Checkout.OtherWorktree">This branch is checked out in another worktree. Continue to open that worktree.</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Title">Checkout Remote Branch</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Source">Remote branch:</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Local">Local branch:</x:String>
+  <x:String x:Key="Text.CheckoutRemote.First">Check out this remote branch locally and track its updates.</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Existing">Use the existing local branch and keep its commits.</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Associate">Use the existing local branch and track this remote branch. Local commits will be kept.</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Current">You are already on the local branch tracking this remote branch.</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Ahead">The local branch has unpushed commits. They will be kept.</x:String>
+  <x:String x:Key="Text.CheckoutRemote.Diverged">The local and remote branches both have new commits. Local commits will be kept; merge or rebase after checkout to synchronize.</x:String>
+  <x:String x:Key="Text.CheckoutRemote.FastForward">Update to the latest remote commit (fast-forward only)</x:String>
+  <x:String x:Key="Text.CheckoutRemote.InvalidName">Enter a valid local branch name.</x:String>
+  <x:String x:Key="Text.CheckoutRemote.NameInUse">This local branch name conflicts with another branch or tracks a different remote branch. Choose another name.</x:String>
+  <x:String x:Key="Text.CheckoutRemote.RemoteGone">This remote branch is no longer available. Refresh and select another branch.</x:String>
+  <x:String x:Key="Text.CheckoutRemote.StashKept">Your changes are saved in Stashes. Apply them there when you are ready.</x:String>
 </ResourceDictionary>

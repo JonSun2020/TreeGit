@@ -1,5 +1,7 @@
 ﻿using System.Threading.Tasks;
 
+using Avalonia.Threading;
+
 namespace SourceGit.ViewModels
 {
     public class Checkout : Popup
@@ -11,8 +13,10 @@ namespace SourceGit.ViewModels
 
         public bool HasLocalChanges
         {
-            get => _repo.LocalChangesCount > 0;
+            get => !_branch.HasWorktree && _repo.LocalChangesCount > 0;
         }
+
+        public bool HasOtherWorktree => _branch.HasWorktree;
 
         public Models.DealWithLocalChanges DealWithLocalChanges
         {
@@ -32,6 +36,12 @@ namespace SourceGit.ViewModels
 
         public override async Task<bool> Sure()
         {
+            var worktree = _repo.Worktrees.Find(w => w.IsAttachedTo(_branch));
+            if (worktree != null)
+            {
+                await Dispatcher.UIThread.InvokeAsync(() => _repo.OpenWorktree(worktree));
+                return true;
+            }
             using var lockWatcher = _repo.LockWatcher();
             var branchName = BranchName;
             ProgressDescription = $"Checkout '{branchName}' ...";
@@ -58,7 +68,7 @@ namespace SourceGit.ViewModels
             {
                 succ = await new Commands.Checkout(_repo.FullPath)
                     .Use(log)
-                    .BranchAsync(branchName, false);
+                    .BranchAsync(branchName.Quoted(), false);
             }
             else if (DealWithLocalChanges == Models.DealWithLocalChanges.StashAndReapply)
             {
@@ -80,13 +90,13 @@ namespace SourceGit.ViewModels
 
                 succ = await new Commands.Checkout(_repo.FullPath)
                     .Use(log)
-                    .BranchAsync(branchName, false);
+                    .BranchAsync(branchName.Quoted(), false);
             }
             else
             {
                 succ = await new Commands.Checkout(_repo.FullPath)
                     .Use(log)
-                    .BranchAsync(branchName, true);
+                    .BranchAsync(branchName.Quoted(), true);
             }
 
             if (succ)

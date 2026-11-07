@@ -24,6 +24,12 @@ namespace SourceGit.Commands
             return await ExecAsync().ConfigureAwait(false);
         }
 
+        public async Task<bool> FastForwardAsync(string remote)
+        {
+            Args = $"merge --ff-only {remote.Quoted()}";
+            return await ExecAsync().ConfigureAwait(false);
+        }
+
         public async Task<bool> BranchAsync(string branch, string basedOn, bool force, bool allowOverwrite)
         {
             var builder = new StringBuilder();

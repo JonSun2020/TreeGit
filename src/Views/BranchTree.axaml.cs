@@ -648,23 +648,51 @@ namespace SourceGit.Views
             }
         }
 
-        private async void OnDoubleTappedBranchNode(object sender, TappedEventArgs _)
+        private void OnTappedBranchNode(object sender, TappedEventArgs e)
+        {
+            if (sender is Grid { DataContext: ViewModels.BranchTreeNode { Backend: Models.Branch branch } } &&
+                DataContext is ViewModels.Repository { Settings: not null } repo)
+            {
+                repo.ShowHistoryPage();
+                repo.Histories.NavigateToBranch(branch);
+                e.Handled = true;
+            }
+        }
+
+        private void OnDoubleTappedBranchNode(object sender, TappedEventArgs e)
         {
             if (sender is Grid { DataContext: ViewModels.BranchTreeNode node })
             {
                 if (node.Backend is Models.Branch branch)
                 {
-                    if (branch.IsCurrent)
-                        return;
-
                     if (DataContext is ViewModels.Repository { Settings: not null } repo)
-                        await repo.CheckoutBranchAsync(branch);
+                    {
+                        repo.ShowHistoryPage();
+                        e.Handled = true;
+                        if (!branch.IsCurrent) repo.ShowBranchCheckoutOptions(branch);
+                    }
                 }
                 else
                 {
                     ToggleNodeIsExpanded(node);
                 }
             }
+        }
+
+        public object[] GetVisibleBranchTargets()
+        {
+            var targets = new List<object>();
+            foreach (var visual in BranchesPresenter.GetVisualDescendants())
+            {
+                if (visual is not Grid { Name: "BranchNodeContent", DataContext: ViewModels.BranchTreeNode { Backend: Models.Branch branch } } row || row.Bounds.Width < 4 || row.Bounds.Height < 4)
+                    continue;
+                var center = new Point(Math.Min(28, row.Bounds.Width / 2), row.Bounds.Height / 2);
+                var position = row.TranslatePoint(center, BranchesPresenter);
+                if (position == null || !new Rect(BranchesPresenter.Bounds.Size).Contains(position.Value)) continue;
+                var screen = row.PointToScreen(center);
+                targets.Add(new { reference = branch.FullName, x = screen.X, y = screen.Y, current = branch.IsCurrent });
+            }
+            return targets.ToArray();
         }
 
         private void MakeRows(List<ViewModels.BranchTreeNode> rows, List<ViewModels.BranchTreeNode> nodes, int depth)

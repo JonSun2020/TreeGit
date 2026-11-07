@@ -35,9 +35,9 @@ namespace SourceGit.Commands
         public async Task<bool> SetUpstreamAsync(Models.Branch tracking)
         {
             if (tracking == null)
-                Args = $"branch {_name} --unset-upstream";
+                Args = $"branch {_name.Quoted()} --unset-upstream";
             else
-                Args = $"branch {_name} -u {tracking.FriendlyName}";
+                Args = $"branch {_name.Quoted()} --set-upstream-to={tracking.FullName.Quoted()}";
 
             return await ExecAsync().ConfigureAwait(false);
         }
