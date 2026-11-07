@@ -37,7 +37,7 @@ def child(parent, message): return git('commit-tree', tree, '-p', parent, '-m', 
 local = child(base, 'Other local'); remote = child(base, 'Remote change')
 git('branch', 'other', local)
 git('remote', 'add', 'origin', '.')
-for name in ('new', 'renamed', 'ahead', 'diverged', 'behind', 'associate', 'collision', 'dirty'):
+for name in ('new', 'renamed', 'ahead', 'diverged', 'behind', 'associate', 'collision', 'dirty', 'unrelated'):
     git('update-ref', 'refs/remotes/origin/'+name, remote)
 git('branch', 'ahead', child(remote, 'Unpushed local'))
 git('branch', '--set-upstream-to=origin/ahead', 'ahead')
@@ -45,10 +45,10 @@ git('branch', 'diverged', child(base, 'Diverged local'))
 git('branch', '--set-upstream-to=origin/diverged', 'diverged')
 git('branch', 'behind', base); git('branch', '--set-upstream-to=origin/behind', 'behind')
 git('branch', 'associate', local)
-git('branch', 'collision', base); git('branch', '--set-upstream-to=origin/new', 'collision')
+git('branch', 'collision', base); git('branch', '--set-upstream-to=origin/unrelated', 'collision')
 ahead = git('rev-parse', 'ahead'); diverged = git('rev-parse', 'diverged')
 (repo/'file.txt').write_text('stashed\n', encoding='utf-8'); git('stash', 'push', '-m', 'Sidebar fixture')
-(repo/'.git/sourcegit.uistates').write_text(json.dumps({'ShowOnlyGraphBranch':True,'ShowRemoteBranchesInHistory':False}), encoding='utf-8')
+(repo/'.git/sourcegit.uistates').write_text(json.dumps({'ShowOnlyGraphBranch':True,'ShowRemoteBranchesInHistory':False,'IsLocalBranchesExpandedInSideBar':True,'IsRemotesExpandedInSideBar':True}), encoding='utf-8')
 preferences = exe.parent/'data/preference.json'; preferences.parent.mkdir(exist_ok=True)
 preferences.write_text(json.dumps({'Locale':'zh_CN','Theme':'Blue','MaxHistoryCommits':200,'EnableAutoFetch':False,'Check4UpdatesOnStartup':False,'UseStashAndReapplyByDefault':True}), encoding='utf-8')
 p = subprocess.Popen([str(exe), '--mcp'], env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -81,6 +81,7 @@ def shot(name): (out/(name+'.png')).write_bytes(tool('ui_screenshot'))
 api = ctypes.WinDLL('user32', use_last_error=True)
 api.WindowFromPoint.argtypes = [wintypes.POINT]; api.WindowFromPoint.restype = wintypes.HWND
 api.GetForegroundWindow.restype = wintypes.HWND
+api.SetForegroundWindow.argtypes = [wintypes.HWND]
 api.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
 api.GetAncestor.argtypes = [wintypes.HWND, wintypes.UINT]; api.GetAncestor.restype = wintypes.HWND
 api.ClientToScreen.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.POINT)]
