@@ -22,6 +22,7 @@ namespace SourceGit.Views
                 bounds = PopupBounds(),
                 background = _branchPopup.Background?.ToString(),
                 foreground = _branchPopup.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name == "CoverageTitle")?.Foreground?.ToString(),
+                branchForeground = _branchPopup.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name == "BranchName")?.Foreground?.ToString(),
                 rows = context.Rows.Select(r => new { reference = r.Branch.FullName, name = r.Branch.FriendlyName, local = r.Branch.IsLocal, current = r.Branch.IsCurrent, group = r.Group }).ToArray() }
             : null;
 
@@ -82,7 +83,12 @@ namespace SourceGit.Views
                 flyout.Hide();
                 if (search.Results?.Contains(commit) == true) search.OpenInHistory(commit, branch.FullName);
             };
-            flyout.ShowAt(button);
+            var origin = button.TranslatePoint(default, SearchResults) ?? default;
+            BranchPopupAnchor.Margin = new Thickness(origin.X, origin.Y, 0, 0);
+            BranchPopupAnchor.Width = button.Bounds.Width;
+            BranchPopupAnchor.Height = button.Bounds.Height;
+            BranchPopupAnchor.UpdateLayout();
+            flyout.ShowAt(BranchPopupAnchor);
         }
 
         private void OnContainingBranchesClicked(object sender, RoutedEventArgs e)

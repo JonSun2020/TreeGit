@@ -237,6 +237,8 @@ try:
             return sum(v*w for v,w in zip(linear,(.2126,.7152,.0722)))
         foreground=luminance(colors['foreground']);background=luminance(colors['background'])
         check('popup text has readable contrast in '+theme,(max(foreground,background)+.05)/(min(foreground,background)+.05)>=4.5)
+        foreground=luminance(colors['branchForeground'])
+        check('popup branch names have readable contrast in '+theme,(max(foreground,background)+.05)/(min(foreground,background)+.05)>=4.5)
         (out/('containing-branches-'+theme+'.png')).write_bytes(tool('ui_screenshot',{'window':'active'}))
     tool('ui_window',{'theme':'Blue'})
     filtered=tool('ui_search',{'repo':str(repo),'branchFilter':'DERIVED/CHILD'})['branchPopup']

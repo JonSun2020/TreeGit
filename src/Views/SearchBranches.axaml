@@ -18,7 +18,7 @@
             <TextBlock Text="{Binding Group}" IsVisible="{Binding HasGroup}" Foreground="{DynamicResource Brush.FG2}" Margin="4,8,4,4"/>
             <Button Classes="branch_choice" Click="OnBranchClicked" ToolTip.Tip="{Binding Branch.FriendlyName}">
               <Grid ColumnDefinitions="*,Auto">
-                <TextBlock Text="{Binding Branch.FriendlyName}" Foreground="{DynamicResource Brush.FG1}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                <TextBlock x:Name="BranchName" Text="{Binding Branch.FriendlyName}" Foreground="{DynamicResource Brush.FG1}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                 <TextBlock Grid.Column="1" Text="当前检出" IsVisible="{Binding Branch.IsCurrent}" FontSize="11" Margin="10,0,0,0" VerticalAlignment="Center" Foreground="{DynamicResource Brush.FG2}"/>
               </Grid>
             </Button>
