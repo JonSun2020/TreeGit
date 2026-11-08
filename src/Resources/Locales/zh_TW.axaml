@@ -1229,4 +1229,7 @@
   <x:String x:Key="Text.MergeConflictEditor.StageFailed">合併結果已儲存，但未能標記為已解決，請重試。</x:String>
   <x:String x:Key="Text.MergeConflictEditor.Unencodable">部分字元無法以目前編碼儲存，請選擇 UTF-8 或調整文字。</x:String>
   <x:String x:Key="Text.MergeConflictEditor.SaveFailed">無法儲存合併結果，請檢查檔案存取權限和磁碟空間後重試。</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.LeftThenRight">先左後右</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.RightThenLeft">先右後左</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.Restore">復原</x:String>
 </ResourceDictionary>

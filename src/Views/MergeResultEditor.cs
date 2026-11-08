@@ -6,6 +6,8 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 
 using AvaloniaEdit;
+using AvaloniaEdit.Document;
+using AvaloniaEdit.Editing;
 
 namespace SourceGit.Views
 {
@@ -15,14 +17,18 @@ namespace SourceGit.Views
         public string FileName { get => GetValue(FileNameProperty); set => SetValue(FileNameProperty, value); }
         protected override Type StyleKeyOverride => typeof(TextEditor);
 
-        public MergeResultEditor()
+        public MergeResultEditor() : base(new TextArea(), new TextDocument())
         {
             IsReadOnly = false;
-            ShowLineNumbers = true;
+            ShowLineNumbers = false;
             Options.EnableHyperlinks = false;
             Options.EnableEmailHyperlinks = false;
             Options.AllowScrollBelowDocument = false;
-            TextArea.TextView.Margin = new Thickness(4, 0);
+            TextArea.TextView.Margin = new Thickness(0);
+            TextArea.LeftMargins.Add(new MergeConflictNumberMargin(this, false));
+            TextArea.LeftMargins.Add(new MergeConflictSeparator(this, false));
+            TextArea.TextView.BackgroundRenderers.Add(new MergeResultBackground(this));
+            AddHandler(PointerPressedEvent, OnResultPointerPressed, RoutingStrategies.Tunnel, true);
         }
 
         protected override void OnLoaded(RoutedEventArgs e)
@@ -48,10 +54,17 @@ namespace SourceGit.Views
             else if (change.Property.Name == nameof(ActualThemeVariant)) Models.TextMateHelper.SetThemeByApp(_textMate);
         }
 
-        protected override void OnPointerPressed(PointerPressedEventArgs e)
+        private void OnResultPointerPressed(object sender, PointerPressedEventArgs e)
         {
-            if (DataContext is ViewModels.MergeConflictEditor vm) vm.SelectedChunk = null;
-            base.OnPointerPressed(e);
+            if (DataContext is not ViewModels.MergeConflictEditor vm) return;
+            vm.SelectedChunk = null;
+            var point = e.GetPosition(this);
+            var position = GetPositionFromPoint(point);
+            if (position.HasValue)
+            {
+                var index = vm.RegionForOffset(Document.GetOffset(position.Value.Location));
+                if (index >= 0) vm.ActiveConflictIndex = index;
+            }
         }
 
         private void OnContextRequested(object sender, ContextRequestedEventArgs e)

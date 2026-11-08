@@ -1229,4 +1229,7 @@
   <x:String x:Key="Text.MergeConflictEditor.StageFailed">The merge result was saved, but could not be marked as resolved. Please try again.</x:String>
   <x:String x:Key="Text.MergeConflictEditor.Unencodable">Some characters cannot be saved with this encoding. Choose UTF-8 or adjust the text.</x:String>
   <x:String x:Key="Text.MergeConflictEditor.SaveFailed">The merge result could not be saved. Check file access and available disk space, then try again.</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.LeftThenRight">Left then right</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.RightThenLeft">Right then left</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.Restore">Restore</x:String>
 </ResourceDictionary>

@@ -764,4 +764,7 @@
   <x:String x:Key="Text.SSHKeyHelper.Generator.PassphraseRequired">Enter a passphrase.</x:String>
   <x:String x:Key="Text.SSHKeyHelper.Generator.PassphraseFormat">Use letters, numbers, or _ + - = @ # $ % ! &amp;.</x:String>
   <x:String x:Key="Text.SSHKeyHelper.Generator.PassphraseMismatch">The passphrases do not match.</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.LeftThenRight">Left then right</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.RightThenLeft">Right then left</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.Restore">Restore</x:String>
 </ResourceDictionary>

@@ -93,6 +93,23 @@ def click_result():
     api.SetForegroundWindow(hwnd);assert api.SetCursorPos(point.x,point.y)
     api.mouse_event(2,0,0,0,0);api.mouse_event(4,0,0,0,0);time.sleep(.2)
 
+def pointer(x,y,click=False):
+    point=wintypes.POINT(round(x),round(y));hwnd=api.WindowFromPoint(point)
+    assert owner(hwnd)==pid,'Refusing pointer input outside the owned CI GUI'
+    api.SetForegroundWindow(hwnd);assert api.SetCursorPos(point.x,point.y)
+    if click:api.mouse_event(2,0,0,0,0);api.mouse_event(4,0,0,0,0)
+    time.sleep(.25)
+def layout():return tool('ui_layout',{'window':'active'})
+def button(name):return next(b for b in layout()['buttons'] if b['name']==name)
+def screen(bounds,xf=.5,yf=.5):
+    window=next(d for d in reversed(tool('ui_state')['dialogs']) if d['type'] in ('MergeConflictEditor','Confirm'))
+    return window['x']+(bounds['x']+bounds['width']*xf)*window['scaling'],window['y']+(bounds['y']+bounds['height']*yf)*window['scaling']
+def press(name):pointer(*screen(button(name)['bounds']),click=True)
+def source_block(index,click=False):
+    target=dialog()['merge']['regions'][index]['sourceTarget']
+    assert target is not None,'Block is outside the current viewport'
+    pointer(target['x'],target['y'],click)
+
 try:
     rpc('initialize',{'protocolVersion':'2025-11-25'});tool('ui_open_repository',{'repo':str(repo)})
     pid=tool('ui_state')['processId'];tool('ui_window',{'state':'maximized','theme':'Blue'})
@@ -100,8 +117,26 @@ try:
     original=path.read_bytes();text=open_editor()
     check('actual merge markers load without BOM characters or synthetic padding',text==original.decode('utf-8-sig') and action('read')['unsolved']==2)
     check('the displayed result is enabled and editable',dialog()['merge']['editable'])
+    check('initial conflict position is one of a fixed total',dialog()['merge']['position']=='1/2')
+    controls=layout();nav=button('PreviousConflict')['bounds']
+    scrolls=[s for s in controls['scrolls'] if s['visible']]
+    check('navigation aligns with the THEIRS column',abs(nav['x']-scrolls[1]['bounds']['x'])<=2)
+    check('there are no bottom undo or redo buttons',not any(b['text'] in ('撤销','重做') for b in controls['buttons']))
+    source_block(0)
+    check('all three choices are directly visible on hover',all(any(b['text']==name for b in layout()['buttons']) for name in ('仅应用','先左后右','先右后左')))
     shot('editable-result')
     action('resolve',region=0,choice='ours')
+    check('resolving a block changes remaining count but not the total',dialog()['merge']['unsolved']==1 and dialog()['merge']['position']=='1/2')
+    source_block(0)
+    check('a resolved block exposes Restore on hover',button('RestoreLocalConflict')['text']=='复原')
+    press('RestoreLocalConflict')
+    check('Restore brings back exactly the original block',action('read')['text']==text and dialog()['merge']['unsolved']==2)
+    press('UndoMergeResult')
+    check('toolbar undo reverses Restore',dialog()['merge']['unsolved']==1)
+    press('NextConflict');check('Next selects the second original block',dialog()['merge']['position']=='2/2')
+    press('PreviousConflict');check('Previous includes the already resolved block',dialog()['merge']['position']=='1/2')
+    source_block(1,click=True)
+    check('clicking reference data selects that block',dialog()['merge']['position']=='2/2')
     current=action('read')['text'];action('replace',offset=0,length=0,text='// manual common edit\r\n')
     action('resolve',region=1,choice='theirs')
     resolved=action('read')['text']
@@ -112,6 +147,13 @@ try:
     key(0x5A,ctrl=True);time.sleep(.2);check('real keyboard Undo restores the result',action('read')['text']==expected)
     key(0x59,ctrl=True);time.sleep(.2);check('real keyboard Redo restores the edit',action('read')['text']==expected+'x')
     shot('manual-mixed-result')
+    check('all-resolved navigation remains enabled and preserves the total',button('NextConflict')['enabled'] and dialog()['merge']['totalConflicts']==2)
+    tool('ui_command',{'command':'close_dialog'})
+    wait_for(lambda:any(d['type']=='Confirm' for d in tool('ui_state')['dialogs']))
+    check('unsaved close presents OK and Cancel',button('BtnYes')['text']=='确定' and button('BtnNo')['text']=='取消')
+    shot('unsaved-close')
+    press('BtnNo');wait_for(lambda:not any(d['type']=='Confirm' for d in tool('ui_state')['dialogs']))
+    check('Cancel keeps unsaved text and the editor open',dialog() is not None and action('read')['text']==expected+'x')
     check('explicit save succeeds',action('save')['saved'])
     wait_for(lambda: dialog() is None)
     wanted=b'\xef\xbb\xbf'+(expected+'x').encode('utf-8')
@@ -119,7 +161,10 @@ try:
     check('save stages the actual merged bytes and clears unmerged entries',not git('ls-files','-u','--',file).stdout and git('show',':'+file).stdout==wanted.decode('utf-8').replace('\r\n','\n'))
     check('saving never commits or ends the pending merge',git('rev-parse','HEAD').stdout.strip()==head and (repo/'.git/MERGE_HEAD').exists())
 
-    conflict();original=path.read_bytes();open_editor();action('replace',text='cancelled edit\n');clean_close()
+    conflict();original=path.read_bytes();open_editor();action('replace',text='cancelled edit\n')
+    tool('ui_command',{'command':'close_dialog'});wait_for(lambda:any(d['type']=='Confirm' for d in tool('ui_state')['dialogs']))
+    press('BtnYes');wait_for(lambda:dialog() is None)
+    check('OK discards only unsaved changes without writing or staging',path.read_bytes()==original and len(git('ls-files','-u','--',file).stdout.splitlines())==3)
     check('closing an unchanged restored buffer does not write or stage',path.read_bytes()==original and len(git('ls-files','-u','--',file).stdout.splitlines())==3)
     open_editor();action('replace',text='my edited result\n');external=b'external modification\n';path.write_bytes(external)
     check('an external file change is rejected',not action('save')['saved'])

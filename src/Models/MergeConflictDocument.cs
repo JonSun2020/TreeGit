@@ -58,6 +58,25 @@ namespace SourceGit.Models
 
         public int GetResultOffset(int index) => _regions[index].Start.Offset;
         public bool CanResolve(int index) => index >= 0 && index < _regions.Count && _regions[index].Mapped && _regions[index].Start.Offset <= _regions[index].End.Offset;
+        public int RegionForOffset(int offset)
+        {
+            for (var i = 0; i < _regions.Count; i++)
+            {
+                var r = _regions[i];
+                if (CanResolve(i) && offset >= r.Start.Offset &&
+                    (offset < r.End.Offset || r.Start.Offset == r.End.Offset && offset == r.Start.Offset)) return i;
+            }
+            return -1;
+        }
+
+        public bool ContainsResultLine(int index, int line)
+        {
+            if (!CanResolve(index)) return false;
+            var r = _regions[index];
+            var first = Document.GetLineByOffset(r.Start.Offset).LineNumber;
+            var last = Document.GetLineByOffset(Math.Max(r.Start.Offset, r.End.Offset - 1)).LineNumber;
+            return line >= first && line <= last;
+        }
         public int SourceLineForOffset(int offset)
         {
             foreach (var region in _regions)

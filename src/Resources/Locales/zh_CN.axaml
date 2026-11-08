@@ -1233,4 +1233,7 @@
   <x:String x:Key="Text.MergeConflictEditor.StageFailed">合并结果已保存，但未能标记为已解决，请重试。</x:String>
   <x:String x:Key="Text.MergeConflictEditor.Unencodable">部分字符无法用当前编码保存，请选择 UTF-8 或调整文字。</x:String>
   <x:String x:Key="Text.MergeConflictEditor.SaveFailed">合并结果未能保存，请检查文件访问权限和磁盘空间后重试。</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.LeftThenRight">先左后右</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.RightThenLeft">先右后左</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.Restore">复原</x:String>
 </ResourceDictionary>

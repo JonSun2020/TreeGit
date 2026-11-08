@@ -23,6 +23,18 @@ namespace SourceGit.Automation
         private static readonly SemaphoreSlim _operations = new(1, 1);
         private static CancellationTokenSource _lifetime;
 
+        private static object MergeLineTarget(AvaloniaEdit.TextEditor editor, int line)
+        {
+            var view = editor?.TextArea.TextView;
+            if (view is not { VisualLinesValid: true }) return null;
+            var visual = view.GetVisualLine(line);
+            if (visual == null) return null;
+            var y = visual.VisualTop - view.VerticalOffset + visual.Height * 0.5;
+            if (y < 0 || y >= view.Bounds.Height) return null;
+            var point = view.PointToScreen(new Point(Math.Min(80, view.Bounds.Width * 0.3), y));
+            return new { x = point.X, y = point.Y };
+        }
+
         public static bool TryBeginUpdate() => _operations.Wait(0);
         public static void EndUpdate() => _operations.Release();
 
@@ -143,6 +155,7 @@ namespace SourceGit.Automation
                                 var area = w.Screens.ScreenFromWindow(w)?.WorkingArea;
                                 var merge = w.DataContext as ViewModels.MergeConflictEditor;
                                 var resultEditor = w.GetVisualDescendants().OfType<Views.MergeResultEditor>().FirstOrDefault();
+                                var comparisonEditor = w.GetVisualDescendants().OfType<Views.MergeConflictTextPresenter>().FirstOrDefault(p => p.PanelType == Models.ConflictPanelType.Ours);
                                 var resultPoint = resultEditor?.PointToScreen(new Point(resultEditor.Bounds.Width / 2, resultEditor.Bounds.Height / 2));
                                 var confirm = w.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "ConfirmRepositorySettings");
                                 var top = confirm?.TranslatePoint(new Point(0, 0), w);
@@ -150,6 +163,11 @@ namespace SourceGit.Automation
                                 return new { title = w.Title, type = w.GetType().Name, topmost = w.Topmost, message = w is Views.Alert ? w.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name == "Message")?.Text : null, width = w.Bounds.Width, height = w.Bounds.Height, x = w.Position.X, y = w.Position.Y, scaling = w.RenderScaling,
                                     workArea = new { x = area?.X, y = area?.Y, width = area?.Width, height = area?.Height },
                                     merge = merge == null ? null : new { file = merge.FilePath, repo = merge.RepositoryPath, unsolved = merge.UnsolvedCount, modified = merge.HasChanges, saving = merge.IsSaving, canSave = merge.CanSave, error = merge.Error, encoding = merge.SelectedEncoding?.Name,
+                                        totalConflicts = merge.TotalConflictCount, activeConflict = merge.ActiveConflictIndex, position = merge.ConflictPosition,
+                                        regions = merge.ConflictRegions.Select((r, i) => new { index = i, resolved = r.IsResolved, canResolve = merge.CanResolve(i),
+                                            sourceLine = r.StartLineInOriginal + 1, resultOffset = merge.ResultOffset(i),
+                                            sourceTarget = MergeLineTarget(comparisonEditor, r.StartLineInOriginal + 1),
+                                            resultTarget = resultEditor?.Document == null ? null : MergeLineTarget(resultEditor, resultEditor.Document.GetLineByOffset(merge.ResultOffset(i)).LineNumber) }).ToArray(),
                                         editable = resultEditor is { IsReadOnly: false, IsEffectivelyEnabled: true },
                                         resultTarget = resultPoint.HasValue ? new { x = resultPoint.Value.X, y = resultPoint.Value.Y } : null },
                                     confirmVisible = top.HasValue && bottom.HasValue && top.Value.Y >= 0 && bottom.Value.Y <= w.Bounds.Height && bottom.Value.X <= w.Bounds.Width };

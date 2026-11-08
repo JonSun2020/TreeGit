@@ -31,6 +31,22 @@ namespace SourceGit.ViewModels
         public IReadOnlyList<int> UnresolvedOffsets => _buffer?.UnresolvedOffsets() ?? [];
         public bool CanResolve(int index) => !IsSaving && _buffer?.CanResolve(index) == true;
         public int SourceLineForOffset(int offset) => _buffer?.SourceLineForOffset(offset) ?? 0;
+        public int TotalConflictCount => ConflictRegions.Count;
+        public string ConflictPosition => $"{(_activeConflictIndex >= 0 ? _activeConflictIndex + 1 : 0)}/{TotalConflictCount}";
+        public int ActiveConflictIndex
+        {
+            get => _activeConflictIndex;
+            set
+            {
+                if (value >= 0 && value < TotalConflictCount && SetProperty(ref _activeConflictIndex, value))
+                    OnPropertyChanged(nameof(ConflictPosition));
+            }
+        }
+        public int ResultOffset(int index) => _buffer?.GetResultOffset(index) ?? 0;
+        public int RegionForOffset(int offset) => _buffer?.RegionForOffset(offset) ?? -1;
+        public bool IsActiveSourceLine(int line) => _activeConflictIndex >= 0 && _activeConflictIndex < ConflictRegions.Count &&
+            line - 1 >= ConflictRegions[_activeConflictIndex].StartLineInOriginal && line - 1 <= ConflictRegions[_activeConflictIndex].EndLineInOriginal;
+        public bool IsActiveResultLine(int line) => _buffer?.ContainsResultLine(_activeConflictIndex, line) == true;
 
         public string Error { get => _error; private set => SetProperty(ref _error, value); }
         public bool IsSaving { get => _isSaving; private set { if (SetProperty(ref _isSaving, value)) NotifyState(); } }
@@ -105,10 +121,15 @@ namespace SourceGit.ViewModels
         public void Resolve(object param)
         {
             if (!IsSaving && _selectedChunk != null && param is Models.ConflictResolution resolution)
-                _buffer?.Resolve(_selectedChunk.ConflictIndex, resolution);
+                ResolveRegion(_selectedChunk.ConflictIndex, resolution);
         }
 
-        public bool ResolveRegion(int index, Models.ConflictResolution resolution) => !IsSaving && _buffer?.Resolve(index, resolution) == true;
+        public bool ResolveRegion(int index, Models.ConflictResolution resolution)
+        {
+            if (!CanResolve(index)) return false;
+            ActiveConflictIndex = index;
+            return _buffer.Resolve(index, resolution);
+        }
 
         public void ClearErrorMessage() => Error = string.Empty;
 
@@ -195,9 +216,10 @@ namespace SourceGit.ViewModels
             _inputCodec = _outputCodec = codec;
             _buffer = buffer;
             _buffer.Changed += OnDocumentChanged;
+            _activeConflictIndex = buffer.Regions.Count > 0 ? Math.Clamp(_activeConflictIndex, 0, buffer.Regions.Count - 1) : -1;
             _convertedEncoding = false;
             _selectedEncoding = EncodingChoices.First(e => e.CodePage == codec.CodePage);
-            foreach (var property in new[] { nameof(ResultDocument), nameof(OursLines), nameof(TheirsLines), nameof(ConflictRegions), nameof(MaxLineNumber), nameof(HasComparison), nameof(SelectedEncoding) }) OnPropertyChanged(property);
+            foreach (var property in new[] { nameof(ResultDocument), nameof(OursLines), nameof(TheirsLines), nameof(ConflictRegions), nameof(MaxLineNumber), nameof(HasComparison), nameof(SelectedEncoding), nameof(TotalConflictCount), nameof(ActiveConflictIndex), nameof(ConflictPosition) }) OnPropertyChanged(property);
             NotifyState();
         }
 
@@ -223,5 +245,6 @@ namespace SourceGit.ViewModels
         private bool _isSaving, _convertedEncoding;
         private Vector _scrollOffset;
         private Models.ConflictSelectedChunk _selectedChunk;
+        private int _activeConflictIndex = -1;
     }
 }

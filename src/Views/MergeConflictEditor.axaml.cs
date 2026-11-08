@@ -24,85 +24,6 @@ namespace SourceGit.Views
 {
     public class MergeConflictTextPresenter : TextEditor
     {
-        public class LineNumberMargin : AbstractMargin
-        {
-            public LineNumberMargin(MergeConflictTextPresenter presenter)
-            {
-                _presenter = presenter;
-                Margin = new Thickness(8, 0);
-                ClipToBounds = true;
-            }
-
-            public override void Render(DrawingContext context)
-            {
-                var lines = _presenter.Lines;
-                if (lines == null)
-                    return;
-
-                var view = TextView;
-                if (view is not { VisualLinesValid: true })
-                    return;
-
-                var typeface = view.CreateTypeface();
-                foreach (var line in view.VisualLines)
-                {
-                    if (line.IsDisposed || line.FirstDocumentLine == null || line.FirstDocumentLine.IsDeleted)
-                        continue;
-
-                    var index = line.FirstDocumentLine.LineNumber;
-                    if (index > lines.Count)
-                        break;
-
-                    var lineNumber = lines[index - 1].LineNumber;
-                    if (string.IsNullOrEmpty(lineNumber))
-                        continue;
-
-                    var y = line.GetTextLineVisualYPosition(line.TextLines[0], VisualYPosition.LineMiddle) - view.VerticalOffset;
-                    var txt = new FormattedText(
-                        lineNumber,
-                        CultureInfo.CurrentCulture,
-                        FlowDirection.LeftToRight,
-                        typeface,
-                        _presenter.FontSize,
-                        _presenter.Foreground);
-                    context.DrawText(txt, new Point(Bounds.Width - txt.Width, y - (txt.Height * 0.5)));
-                }
-            }
-
-            protected override Size MeasureOverride(Size availableSize)
-            {
-                var maxLine = _presenter.MaxLineNumber;
-                if (maxLine == 0)
-                    return new Size(32, 0);
-
-                var typeface = TextView.CreateTypeface();
-                var test = new FormattedText(
-                    $"{maxLine}",
-                    CultureInfo.CurrentCulture,
-                    FlowDirection.LeftToRight,
-                    typeface,
-                    _presenter.FontSize,
-                    Brushes.White);
-                return new Size(test.Width, 0);
-            }
-
-            private readonly MergeConflictTextPresenter _presenter;
-        }
-
-        public class VerticalSeparatorMargin : AbstractMargin
-        {
-            public override void Render(DrawingContext context)
-            {
-                var pen = new Pen(Brushes.DarkGray);
-                context.DrawLine(pen, new Point(0.5, 0), new Point(0.5, Bounds.Height));
-            }
-
-            protected override Size MeasureOverride(Size availableSize)
-            {
-                return new Size(1, 0);
-            }
-        }
-
         public class ConflictMarkerTransformer : DocumentColorizingTransformer
         {
             public ConflictMarkerTransformer(MergeConflictTextPresenter presenter)
@@ -161,12 +82,16 @@ namespace SourceGit.Views
 
                     var lineIndex = index - 1;
                     var info = lines[lineIndex];
-                    if (info.Type == Models.ConflictLineType.Common)
-                        continue;
-
                     var startY = line.GetTextLineVisualYPosition(line.TextLines[0], VisualYPosition.LineTop) - textView.VerticalOffset;
                     var endY = line.GetTextLineVisualYPosition(line.TextLines[^1], VisualYPosition.LineBottom) - textView.VerticalOffset;
                     var rect = new Rect(0, startY, width, endY - startY);
+
+                    if (vm.IsActiveSourceLine(index))
+                    {
+                        drawingContext.DrawRectangle(MergeConflictHighlight.Background, null, rect);
+                        continue;
+                    }
+                    if (info.Type == Models.ConflictLineType.Common) continue;
 
                     var alignedTop = PixelSnapHelpers.PixelAlign(startY, pixelHeight);
                     var alignedBottom = PixelSnapHelpers.PixelAlign(endY, pixelHeight);
@@ -302,10 +227,11 @@ namespace SourceGit.Views
             Options.EnableEmailHyperlinks = false;
             Options.AllowScrollBelowDocument = false;
 
-            TextArea.TextView.Margin = new Thickness(4, 0);
-            TextArea.LeftMargins.Add(new LineNumberMargin(this));
-            TextArea.LeftMargins.Add(new VerticalSeparatorMargin());
+            TextArea.TextView.Margin = new Thickness(0);
+            TextArea.LeftMargins.Add(new MergeConflictNumberMargin(this, true));
+            TextArea.LeftMargins.Add(new MergeConflictSeparator(this, true));
             TextArea.TextView.BackgroundRenderers.Add(new LineBackgroundRenderer(this));
+            AddHandler(PointerPressedEvent, OnComparisonPointerPressed, RoutingStrategies.Tunnel, true);
         }
 
         protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
@@ -493,6 +419,13 @@ namespace SourceGit.Views
             }
         }
 
+        private void OnComparisonPointerPressed(object sender, PointerPressedEventArgs e)
+        {
+            if (DataContext is not ViewModels.MergeConflictEditor vm || !TextArea.TextView.VisualLinesValid) return;
+            UpdateSelectedChunkPosition(vm, e.GetPosition(TextArea.TextView).Y + TextArea.TextView.VerticalOffset);
+            if (vm.SelectedChunk != null) vm.ActiveConflictIndex = vm.SelectedChunk.ConflictIndex;
+        }
+
         private void UpdateSelectedChunkPosition(ViewModels.MergeConflictEditor vm, double y)
         {
             var lines = Lines;
@@ -527,7 +460,7 @@ namespace SourceGit.Views
                 var r = vm.ConflictRegions[i];
                 if (r.StartLineInOriginal <= lineIdx && r.EndLineInOriginal >= lineIdx)
                 {
-                    if (!vm.CanResolve(i) || r.IsResolved && panel != Models.ConflictPanelType.Result)
+                    if (!vm.CanResolve(i))
                     {
                         vm.SelectedChunk = null;
                         return;
@@ -707,7 +640,7 @@ namespace SourceGit.Views
             e.Cancel = true;
 
             var confirm = new Confirm();
-            confirm.SetData(App.Text("MergeConflictEditor.UnsavedChanges"), Models.ConfirmButtonType.YesNo);
+            confirm.SetData(App.Text("MergeConflictEditor.UnsavedChanges"), Models.ConfirmButtonType.OkCancel);
 
             var result = await confirm.ShowDialog<bool>(this);
             _confirmingClose = false;
@@ -743,10 +676,13 @@ namespace SourceGit.Views
 
         private void OnEditorStateChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
-            if (e.PropertyName == nameof(ViewModels.MergeConflictEditor.UnsolvedCount))
+            if (e.PropertyName is nameof(ViewModels.MergeConflictEditor.UnsolvedCount) or nameof(ViewModels.MergeConflictEditor.ActiveConflictIndex))
             {
-                OursPresenter.TextArea.TextView.Redraw();
-                TheirsPresenter.TextArea.TextView.Redraw();
+                foreach (var presenter in new TextEditor[] { OursPresenter, TheirsPresenter, ResultPresenter })
+                {
+                    presenter.TextArea.TextView.Redraw();
+                    foreach (var margin in presenter.TextArea.LeftMargins) margin.InvalidateVisual();
+                }
             }
         }
 
@@ -755,29 +691,20 @@ namespace SourceGit.Views
 
         private void GotoConflict(bool next, RoutedEventArgs e)
         {
-            if (DataContext is ViewModels.MergeConflictEditor vm && vm.UnresolvedOffsets.Count > 0)
+            if (DataContext is ViewModels.MergeConflictEditor vm && vm.TotalConflictCount > 0)
             {
-                var offsets = vm.UnresolvedOffsets;
-                var target = next ? offsets[0] : offsets[^1];
-                if (next)
-                {
-                    foreach (var offset in offsets) if (offset > ResultPresenter.CaretOffset) { target = offset; break; }
-                }
-                else
-                {
-                    for (var i = offsets.Count - 1; i >= 0; i--) if (offsets[i] < ResultPresenter.CaretOffset) { target = offsets[i]; break; }
-                }
+                vm.ActiveConflictIndex = (vm.ActiveConflictIndex + (next ? 1 : vm.TotalConflictCount - 1)) % vm.TotalConflictCount;
+                var index = vm.ActiveConflictIndex;
+                var target = vm.ResultOffset(index);
                 ResultPresenter.CaretOffset = target;
                 ResultPresenter.ScrollToLine(vm.ResultDocument.GetLineByOffset(target).LineNumber);
-                var sourceLine = vm.SourceLineForOffset(target);
-                if (sourceLine > 0) OursPresenter.ScrollToLine(sourceLine);
-                ResultPresenter.Focus();
+                OursPresenter.ScrollToLine(vm.ConflictRegions[index].StartLineInOriginal + 1);
+                ResultPresenter.TextArea.Focus();
             }
             e.Handled = true;
         }
 
         private void OnUndoResult(object sender, RoutedEventArgs e) => ResultPresenter.Undo();
-        private void OnRedoResult(object sender, RoutedEventArgs e) => ResultPresenter.Redo();
 
         private async void OnSaveAndStage(object sender, RoutedEventArgs e)
         {

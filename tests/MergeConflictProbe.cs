@@ -62,6 +62,22 @@ try
     {
         var source = "head\n" + Block("one", "two") + "between\n" + Block("three", "four") + "tail\n";
         var model = new MergeConflictDocument(source);
+        model.Resolve(0, ConflictResolution.UseOurs);
+        model.Document.Insert(0, "manual\n");
+        model.Resolve(1, ConflictResolution.UseTheirs);
+        Check("the original block list remains fixed after all conflicts are resolved", model.Regions.Count == 2 && model.UnsolvedCount == 0);
+        Check("resolved blocks retain distinct result locations", model.RegionForOffset(model.GetResultOffset(0)) == 0 && model.RegionForOffset(model.GetResultOffset(1)) == 1);
+        var line = model.Document.GetLineByOffset(model.GetResultOffset(1)).LineNumber;
+        Check("active result highlighting stops at the last block line", model.ContainsResultLine(1, line) && !model.ContainsResultLine(1, line + 1) && !model.ContainsResultLine(-1, line));
+        Check("restore reinstates just one conflict and preserves manual edits and the other choice", model.Resolve(0, ConflictResolution.None) &&
+            model.Document.Text == "manual\nhead\n" + Block("one", "two") + "between\nfour\ntail\n" && model.UnsolvedCount == 1 && model.Regions.Count == 2);
+        model.Document.UndoStack.Undo();
+        Check("restore itself can be undone", model.UnsolvedCount == 0 && model.Regions.Count == 2);
+    }
+
+    {
+        var source = "head\n" + Block("one", "two") + "between\n" + Block("three", "four") + "tail\n";
+        var model = new MergeConflictDocument(source);
         model.Document.Text = "manual replacement without markers\n";
         Check("whole-result editing resolves markers", model.UnsolvedCount == 0 && model.HasChanges);
         Check("old block buttons cannot overwrite a whole-file manual edit", !model.Resolve(0, ConflictResolution.UseOurs) && model.Document.Text == "manual replacement without markers\n");
