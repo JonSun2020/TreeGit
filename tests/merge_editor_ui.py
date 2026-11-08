@@ -286,6 +286,41 @@ try:
     check('external text and the edited in-memory result both survive',path.read_bytes()==external and action('read')['text']=='my edited result\n' and dialog()['merge']['error'])
     shot('external-edit-protected');clean_close()
     check('no temporary merge file is left behind',not list(repo.glob('.*.treegit-merge-*')))
+
+    # Rebase deliberately reverses Git's index stages. Keep the visible Local
+    # side tied to the user's replayed commit, for both native backends.
+    def rebase_conflict(backend):
+        if (repo/'.git/MERGE_HEAD').exists():git('merge','--abort')
+        if (repo/'.git/rebase-merge').exists() or (repo/'.git/rebase-apply').exists():git('rebase','--abort')
+        git('checkout','main');git('reset','--hard',head)
+        result=git('rebase','--'+backend,'feature',ok=False)
+        assert result.returncode==1 and git('ls-files','-u','--',file).stdout,result.stderr
+        select_conflicted_file()
+
+    for backend in ('merge','apply'):
+        for name,value in [('UseLocalConflict',1),('UseRemoteConflict',2)]:
+            rebase_conflict(backend)
+            press(name);wait_for(lambda:not git('ls-files','-u','--',file).stdout)
+            check('rebase '+backend+' overview keeps '+name+' tied to the correct contents',path.read_bytes()==b'\xef\xbb\xbf'+base.replace('first = 0','first = '+str(value)).replace('last = 0','last = '+str(value)).replace('\n','\r\n').encode('utf-8'))
+        rebase_conflict(backend);open_editor(use_button=True)
+        comparison=dialog()['merge']
+        check('rebase '+backend+' displays the replayed local commit on the left',comparison['rebase'] and 'int first = 1;' in comparison['localSample'] and 'int first = 2;' not in comparison['localSample'] and 'int first = 2;' in comparison['remoteSample'])
+        for name,wanted in [('UseLeftConflict','int first = 1;'),('UseRightConflict','int first = 2;'),('LeftThenRightConflict','int first = 1;\r\nint first = 2;'),('RightThenLeftConflict','int first = 2;\r\nint first = 1;')]:
+            source_block(0,right=True);choose(name)
+            check('rebase '+backend+' menu '+name+' follows visible panels',wanted in action('read')['text'])
+            action('resolve',region=0,choice='restore')
+        action('resolve',region=0,choice='ours')
+        check('rebase '+backend+' raw MCP ours retains native Git semantics','int first = 2;' in action('read')['text'] and 'int first = 1;' not in action('read')['text'])
+        action('resolve',region=0,choice='restore')
+        for index in range(2):action('resolve',region=index,choice='left')
+        shot('rebase-'+backend+'-resolved')
+        press('SaveMergeResult');wait_for(lambda:dialog() is None)
+        check('rebase '+backend+' save stages the selected local contents',not git('ls-files','-u','--',file).stdout and path.read_bytes()==b'\xef\xbb\xbf'+base.replace('first = 0','first = 1').replace('last = 0','last = 1').replace('\n','\r\n').encode('utf-8'))
+        tool('ui_refresh',{'repo':str(repo)});tool('ui_working_copy',{'repo':str(repo)})
+        wait_for(lambda:any(b['text']=='下一步' and b['enabled'] for b in layout()['buttons']))
+        press_text('下一步')
+        wait_for(lambda:not (repo/'.git/rebase-merge').exists() and not (repo/'.git/rebase-apply').exists())
+        check('rebase '+backend+' can continue through the actual GUI after editing',git('symbolic-ref','--short','HEAD').stdout.strip()=='main' and not git('status','--porcelain').stdout and git('show','HEAD:'+file).stdout==('\ufeff'+base.replace('first = 0','first = 1').replace('last = 0','last = 1')))
 except BaseException as error:
     failure=repr(error)
     try:(out/'failure-state.json').write_text(json.dumps({'state':tool('ui_state'),'layout':layout()},ensure_ascii=False,indent=2),encoding='utf-8')

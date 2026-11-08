@@ -18,9 +18,10 @@ namespace SourceGit.ViewModels
         public object Mine { get; }
         public object Theirs { get; }
         public TextDocument ResultDocument => _buffer?.Document;
-        public List<Models.ConflictLine> OursLines => _comparison?.Local ?? [];
+        public bool IsRebase { get; }
+        public List<Models.ConflictLine> OursLines => (IsRebase ? _comparison?.Remote : _comparison?.Local) ?? [];
         public List<Models.ConflictLine> BaseLines => _comparison?.Base ?? [];
-        public List<Models.ConflictLine> TheirsLines => _comparison?.Remote ?? [];
+        public List<Models.ConflictLine> TheirsLines => (IsRebase ? _comparison?.Local : _comparison?.Remote) ?? [];
         public IReadOnlyList<Models.MergeConflictRange> ComparisonRanges => _comparison?.Ranges ?? [];
         public string BaseHint => _baseHint;
         public string BaseSample => _baseText == null ? string.Empty : _baseText[..Math.Min(4096, _baseText.Length)];
@@ -94,10 +95,11 @@ namespace SourceGit.ViewModels
         {
             _repo = repo;
             _filePath = filePath;
+            IsRebase = InProgressContext.IsRebasing(repo.GitDir);
             (Mine, Theirs) = repo.InProgressContext switch
             {
                 CherryPickInProgress cherryPick => (head, cherryPick.Head),
-                RebaseInProgress rebase => (rebase.Onto, rebase.StoppedAt),
+                RebaseInProgress rebase => (rebase.StoppedAt, head),
                 RevertInProgress revert => (head, revert.Head),
                 MergeInProgress merge => (head, merge.Source),
                 _ => (head, (object)"Stash or Patch"),
@@ -145,6 +147,23 @@ namespace SourceGit.ViewModels
             if (!CanResolve(index)) return false;
             ActiveConflictIndex = index;
             return _buffer.Resolve(index, resolution);
+        }
+
+        // UI left/right are Local/Remote even though Git reverses ours/theirs
+        // while replaying a local commit during rebase. Raw MCP choices retain
+        // their native Git meaning through ResolveRegion.
+        public bool ResolveDisplayedRegion(int index, Models.ConflictResolution resolution)
+        {
+            if (IsRebase)
+                resolution = resolution switch
+                {
+                    Models.ConflictResolution.UseOurs => Models.ConflictResolution.UseTheirs,
+                    Models.ConflictResolution.UseTheirs => Models.ConflictResolution.UseOurs,
+                    Models.ConflictResolution.UseBothMineFirst => Models.ConflictResolution.UseBothTheirsFirst,
+                    Models.ConflictResolution.UseBothTheirsFirst => Models.ConflictResolution.UseBothMineFirst,
+                    _ => resolution,
+                };
+            return ResolveRegion(index, resolution);
         }
 
         public void ClearErrorMessage() => Error = string.Empty;

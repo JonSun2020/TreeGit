@@ -182,7 +182,9 @@ namespace SourceGit.Automation
                                     merge = merge == null ? null : new { file = merge.FilePath, repo = merge.RepositoryPath, unsolved = merge.UnsolvedCount, modified = merge.HasChanges, saving = merge.IsSaving, canSave = merge.CanSave, error = merge.Error, encoding = merge.SelectedEncoding?.Name,
                                         totalConflicts = merge.TotalConflictCount, activeConflict = merge.ActiveConflictIndex, position = merge.ConflictPosition,
                                         contextMenu = MergeContextMenuData(w),
-                                        baseSample = merge.BaseSample, baseHint = merge.BaseHint,
+                                        baseSample = merge.BaseSample, baseHint = merge.BaseHint, rebase = merge.IsRebase,
+                                        localSample = string.Join("\n", merge.OursLines.Take(16).Select(l => l.Content[..Math.Min(l.Content.Length, 128)])),
+                                        remoteSample = string.Join("\n", merge.TheirsLines.Take(16).Select(l => l.Content[..Math.Min(l.Content.Length, 128)])),
                                         regions = merge.ConflictRegions.Select((r, i) => new { index = i, resolved = r.IsResolved, canResolve = merge.CanResolve(i),
                                             sourceLine = merge.ComparisonRanges[i].Start + 1, resultOffset = merge.ResultOffset(i),
                                             sourceTarget = MergeLineTarget(comparisonEditor, merge.ComparisonRanges[i].Start + 1),
@@ -619,9 +621,14 @@ namespace SourceGit.Automation
                         {
                             "ours" => Models.ConflictResolution.UseOurs, "theirs" => Models.ConflictResolution.UseTheirs,
                             "ours_then_theirs" => Models.ConflictResolution.UseBothMineFirst, "theirs_then_ours" => Models.ConflictResolution.UseBothTheirsFirst,
+                            "left" => Models.ConflictResolution.UseOurs, "right" => Models.ConflictResolution.UseTheirs,
+                            "left_then_right" => Models.ConflictResolution.UseBothMineFirst, "right_then_left" => Models.ConflictResolution.UseBothTheirsFirst,
                             "restore" => Models.ConflictResolution.None, _ => throw new ArgumentException("Invalid conflict resolution."),
                         };
-                        if (!model.ResolveRegion(index, choice)) throw new InvalidOperationException("This block has been edited or resolved. Edit the result directly, or undo the last change.");
+                        var selected = Text(args, "choice");
+                        var resolved = selected is "left" or "right" or "left_then_right" or "right_then_left"
+                            ? model.ResolveDisplayedRegion(index, choice) : model.ResolveRegion(index, choice);
+                        if (!resolved) throw new InvalidOperationException("This block has been edited or resolved. Edit the result directly, or undo the last change.");
                     }
                     else if (action == "undo") document.UndoStack.Undo();
                     else if (action == "redo") document.UndoStack.Redo();

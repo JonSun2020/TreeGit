@@ -177,7 +177,11 @@ def merge(revision, mode=None):
 def confirm(): press('ConfirmPopup')
 def completed(): wait_for(lambda: state()['pendingDialog'] is None)
 def error(): return wait_for(lambda: (state()['mergeDialog'] or {}).get('error'))
-def cancel(): command('cancel_popup'); wait_for(lambda: state()['pendingDialog'] is None)
+def cancel():
+    wait_for(lambda: not state()['pendingDialogInProgress'])
+    response = command('cancel_popup')
+    assert response.get('cancelled'), ('Idle popup could not be cancelled', response, state())
+    wait_for(lambda: state()['pendingDialog'] is None)
 def pending(value): wait_for(lambda: state()['hasPendingChanges'] == value and state()['pendingRow']['visible'] == value)
 def reset():
     if state()['pendingDialog']: cancel()

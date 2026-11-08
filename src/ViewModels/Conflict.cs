@@ -42,6 +42,7 @@ namespace SourceGit.ViewModels
             _repo = repo;
             _wc = wc;
             _change = change;
+            _isRebase = InProgressContext.IsRebasing(repo.GitDir);
 
             Task.Run(async () =>
             {
@@ -50,7 +51,7 @@ namespace SourceGit.ViewModels
                 var (mine, theirs) = wc.InProgressContext switch
                 {
                     CherryPickInProgress cherryPick => (_head, cherryPick.Head),
-                    RebaseInProgress rebase => (rebase.Onto, rebase.StoppedAt),
+                    RebaseInProgress rebase => (rebase.StoppedAt, _head),
                     RevertInProgress revert => (_head, revert.Head),
                     MergeInProgress merge => (_head, merge.Source),
                     _ => (_head, (object)"Stash or Patch"),
@@ -90,12 +91,14 @@ namespace SourceGit.ViewModels
 
         public async Task UseTheirsAsync()
         {
-            await _wc.UseTheirsAsync([_change]);
+            if (_isRebase) await _wc.UseMineAsync([_change]);
+            else await _wc.UseTheirsAsync([_change]);
         }
 
         public async Task UseMineAsync()
         {
-            await _wc.UseMineAsync([_change]);
+            if (_isRebase) await _wc.UseTheirsAsync([_change]);
+            else await _wc.UseMineAsync([_change]);
         }
 
         public MergeConflictEditor CreateOpenMergeEditorRequest()
@@ -117,5 +120,6 @@ namespace SourceGit.ViewModels
         private bool _canEditStructuralConflict;
         private object _mine = null;
         private object _theirs = null;
+        private readonly bool _isRebase;
     }
 }

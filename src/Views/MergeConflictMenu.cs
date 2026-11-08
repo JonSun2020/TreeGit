@@ -21,7 +21,7 @@ namespace SourceGit.Views
             void Add(string name, string key, Models.ConflictResolution choice)
             {
                 var item = new MenuItem { Name = name, Header = App.Text("MergeConflictEditor." + key) };
-                item.Click += (_, e) => { model.ResolveRegion(index, choice); e.Handled = true; };
+                item.Click += (_, e) => { model.ResolveDisplayedRegion(index, choice); e.Handled = true; };
                 menu.Items.Add(item);
             }
         }
