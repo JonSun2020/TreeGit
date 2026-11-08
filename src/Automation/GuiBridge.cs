@@ -754,8 +754,8 @@ namespace SourceGit.Automation
                             break;
                         case "merge_conflicts":
                             var mergeFile = Text(args, "file");
-                            if (string.IsNullOrEmpty(new QueryConflictEntries(repo.FullPath, mergeFile).GetResult())) throw new ArgumentException("The selected file is not in conflict.");
-                            var mergeHead = new QuerySingleCommit(repo.FullPath, "HEAD").GetResult();
+                            if (string.IsNullOrEmpty(new Commands.QueryConflictEntries(repo.FullPath, mergeFile).GetResult())) throw new ArgumentException("The selected file is not in conflict.");
+                            var mergeHead = new Commands.QuerySingleCommit(repo.FullPath, "HEAD").GetResult();
                             Views.ControlExtensions.ShowWindow(owner, new ViewModels.MergeConflictEditor(repo, mergeHead, mergeFile));
                             break;
                         case "file_history":
