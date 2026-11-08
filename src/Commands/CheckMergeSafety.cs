@@ -15,11 +15,12 @@ namespace SourceGit.Commands
     {
         public string Obstruction { get; private set; }
 
-        public CheckMergeSafety(string repo, IEnumerable<string> sources)
+        public CheckMergeSafety(string repo, IEnumerable<string> sources, string replayRange = null)
         {
             WorkingDirectory = repo;
             Context = repo;
             _sources = sources;
+            _replayRange = replayRange;
             _untracked = new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
         }
 
@@ -35,6 +36,22 @@ namespace SourceGit.Commands
                 Args = $"ls-tree -rz {source.Quoted()}";
                 if (!await ReadRecordsAsync(CheckIncoming).ConfigureAwait(false)) return false;
             }
+            if (!string.IsNullOrEmpty(_replayRange))
+            {
+                // Rebase can temporarily recreate a path which a later local
+                // commit removes. Protect it even when neither final tree has it.
+                Args = $"-c log.showSignature=false log --format= --no-decorate --no-notes --no-color --no-ext-diff --no-textconv --name-status -z --no-renames {_replayRange.Quoted()} --";
+                var path = false;
+                if (!await ReadRecordsAsync(record =>
+                {
+                    if (path) { path = false; return CheckPath(record); }
+                    var header = record.TrimStart('\r', '\n');
+                    if (header.Length == 0) return true;
+                    foreach (var status in header) if (!"ACDMTUXB".Contains(status)) return false;
+                    path = true;
+                    return true;
+                }).ConfigureAwait(false) || path) return false;
+            }
             return true;
         }
 
@@ -44,6 +61,12 @@ namespace SourceGit.Commands
             if (separator < 6) return false;
             if (record.StartsWith("160000 ", StringComparison.Ordinal)) return true;
             var path = record[(separator + 1)..];
+            return CheckPath(path);
+        }
+
+        private bool CheckPath(string path)
+        {
+            if (string.IsNullOrEmpty(path)) return false;
             var matches = _untracked.Contains(path) || _untracked.Contains(path + "/");
             for (var i = path.IndexOf('/'); !matches && i >= 0; i = path.IndexOf('/', i + 1))
                 matches = _untracked.Contains(path[..i]) || _untracked.Contains(path[..(i + 1)]);
@@ -112,6 +135,7 @@ namespace SourceGit.Commands
         }
 
         private readonly IEnumerable<string> _sources;
+        private readonly string _replayRange;
         private readonly HashSet<string> _untracked;
     }
 }

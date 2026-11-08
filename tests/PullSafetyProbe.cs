@@ -69,10 +69,16 @@ namespace SourceGit.Tests
             await Git(root, "clone " + remote.Quoted() + " " + client.Quoted());
             await Git(root, "clone " + remote.Quoted() + " " + native.Quoted());
             await Configure(client); await Configure(native);
-            var divergent = mode is "merge" or "rebase" or "rewritten-upstream" or "ff-only";
+            var divergent = mode is "merge" or "rebase" or "rewritten-upstream" or "ff-only" or "rebase-history-ignored";
             if (divergent)
             {
                 var local = await Commit(client, "local.txt", "local work\n", "Local edit");
+                if (mode == "rebase-history-ignored")
+                {
+                    await Commit(client, "transient.data", "temporary tracked content\n", "Add transient");
+                    await Git(client, "rm transient.data"); await Git(client, "commit -m RemoveTransient");
+                    local = (await Git(client, "rev-parse HEAD")).output;
+                }
                 await Git(native, "fetch " + client.Quoted() + " main");
                 await Git(native, "reset --hard " + local);
             }
@@ -106,12 +112,17 @@ namespace SourceGit.Tests
                 File.WriteAllText(Path.Combine(client, ".git/info/exclude"), "ignored.data\n");
                 File.WriteAllText(Path.Combine(client, "ignored.data"), "preserve local ignored\n");
             }
+            if (mode == "rebase-history-ignored")
+            {
+                File.WriteAllText(Path.Combine(client, ".git/info/exclude"), "*.data\n");
+                File.WriteAllText(Path.Combine(client, "transient.data"), "preserve ignored local content\n");
+            }
             if (mode == "fetch-hook")
             {
                 hook = Path.Combine(client, ".git/hooks/reference-transaction");
                 File.WriteAllText(hook, "#!/bin/sh\nif test \"$1\" = prepared; then\n echo invoked >> .git/fetch-hook-calls\n echo \"fatal: Authentication failed for 'https://example.invalid/qa'\" >&2\n exit 1\nfi\n", new UTF8Encoding(false));
             }
-            var rebase = mode is "rebase" or "rewritten-upstream";
+            var rebase = mode is "rebase" or "rewritten-upstream" or "rebase-history-ignored";
             using var cancel = new CancellationTokenSource();
             if (mode == "cancelled") cancel.Cancel();
             Native.ProcessLauncher.BeforeStart = (process, attempt) => File.AppendAllText(report + ".trace.log", process.StartInfo.Arguments + "\n");
@@ -123,12 +134,13 @@ namespace SourceGit.Tests
             var after = afterResult.code == 0 ? afterResult.output : null;
             bool success;
             string expected = null;
-            if (mode is "ignored" or "cancelled" or "fetch-hook" or "ff-only")
+            if (mode is "ignored" or "cancelled" or "fetch-hook" or "ff-only" or "rebase-history-ignored")
             {
                 success = !outcome.IsSuccess && before == after && (await Git(client, "ls-files --stage")).output == beforeIndex;
                 if (mode == "ignored") success &= File.ReadAllText(Path.Combine(client, "ignored.data")) == "preserve local ignored\n";
                 if (mode == "fetch-hook") success &= File.ReadAllLines(Path.Combine(client, ".git/fetch-hook-calls")).Length == 1;
                 if (mode == "fetch-hook") success &= Native.RepositoryCredentials.IsAuthenticationFailure("fatal: Authentication failed for 'https://example.invalid/hook.git'");
+                if (mode == "rebase-history-ignored") success &= File.ReadAllText(Path.Combine(client, "transient.data")) == "preserve ignored local content\n" && outcome.UserMessage?.Contains("transient.data", StringComparison.Ordinal) == true;
             }
             else
             {

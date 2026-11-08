@@ -61,7 +61,14 @@ namespace SourceGit.Commands
                     }
                 }
                 if (heads.Count == 0 || rebase && heads.Count != 1) return Failed("Pull.NoMergeHead");
-                var safety = new CheckMergeSafety(repo, heads);
+                var canFastForward = heads.Count == 1 && (currentHead == null || await new IsAncestor(repo, currentHead, heads[0]).GetResultAsync().ConfigureAwait(false));
+                var willReplay = rebase && !ffOnly && !canFastForward && currentHead != null;
+                if (willReplay && fork != null)
+                {
+                    var common = await new Read(repo, $"merge-base --octopus {currentHead.Quoted()} {heads[0].Quoted()} {fork.Quoted()}").GetAsync().ConfigureAwait(false);
+                    if (common.IsSuccess && common.StdOut.Trim() == fork) fork = null;
+                }
+                var safety = new CheckMergeSafety(repo, heads, replayRange: willReplay ? $"{fork ?? heads[0]}..{currentHead}" : null);
                 if (!await safety.GetResultAsync().ConfigureAwait(false))
                 {
                     var message = App.Text(safety.Obstruction == null ? "WorkingCopy.RefreshFailed" : "Merge.LocalFilesBlocked") +
@@ -70,7 +77,6 @@ namespace SourceGit.Commands
                 }
                 if (!await new CheckRestoreSafety(repo, true).GetResultAsync().ConfigureAwait(false)) return Failed("Merge.LocalFilesBlocked");
 
-                var canFastForward = heads.Count == 1 && (currentHead == null || await new IsAncestor(repo, currentHead, heads[0]).GetResultAsync().ConfigureAwait(false));
                 Command integrate;
                 // Native pull initializes an unborn branch directly, regardless
                 // of pull.ff=false; there is no local history to merge yet.
@@ -78,11 +84,6 @@ namespace SourceGit.Commands
                     integrate = new Merge(repo, heads, true, null, mode: "--ff-only");
                 else if (rebase)
                 {
-                    if (fork != null)
-                    {
-                        var common = await new Read(repo, $"merge-base --octopus {currentHead.Quoted()} {heads[0].Quoted()} {fork.Quoted()}").GetAsync().ConfigureAwait(false);
-                        if (common.IsSuccess && common.StdOut.Trim() == fork) fork = null;
-                    }
                     integrate = new Rebase(repo, heads[0], fork ?? heads[0]);
                 }
                 else

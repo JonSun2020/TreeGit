@@ -89,6 +89,26 @@ namespace SourceGit.Tests
                     success = await Commands.Discard.AllAsync(root, true, false, false, null) &&
                         File.ReadAllText(file) == "original\n" && File.ReadAllText(Path.Combine(root, "untracked.txt")) == "preserve\n";
                     break;
+                case "rebase-history-blocked":
+                case "rebase-history-benign":
+                    await Run("checkout -b incoming");
+                    File.WriteAllText(Path.Combine(root, "incoming.txt"), "incoming\n"); await Run("add incoming.txt");
+                    await Run("-c user.name=QA -c user.email=qa@example.invalid commit -m Incoming");
+                    await Run("checkout main");
+                    const string transient = "过渡 [1].data";
+                    File.WriteAllText(Path.Combine(root, transient), "temporary tracked content\n"); await Run("add -- " + transient.Quoted());
+                    await Run("-c user.name=QA -c user.email=qa@example.invalid commit -m AddTransient");
+                    await Run("rm -- " + transient.Quoted()); await Run("-c user.name=QA -c user.email=qa@example.invalid commit -m RemoveTransient");
+                    File.WriteAllText(Path.Combine(root, ".git/info/exclude"), "*.data\n");
+                    var localPath = mode == "rebase-history-blocked" ? transient : "benign.data";
+                    File.WriteAllText(Path.Combine(root, localPath), "preserve ignored local content\n");
+                    var historyHead = await new Commands.QueryRevisionByRefName(root, "HEAD").GetResultAsync();
+                    var historyGuard = new Commands.CheckMergeSafety(root, ["incoming"], replayRange: "incoming..HEAD");
+                    var allowed = await historyGuard.GetResultAsync();
+                    success = allowed == (mode == "rebase-history-benign") && historyGuard.Obstruction == (allowed ? null : transient) &&
+                        File.ReadAllText(Path.Combine(root, localPath)) == "preserve ignored local content\n" &&
+                        await new Commands.QueryRevisionByRefName(root, "HEAD").GetResultAsync() == historyHead;
+                    break;
                 case "unborn":
                     success = await Commands.Discard.AllAsync(root, true, false, false, null);
                     break;

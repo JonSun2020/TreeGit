@@ -96,9 +96,20 @@ namespace SourceGit.ViewModels
                 var head = await new Commands.QueryRevisionByRefName(_repo.FullPath, "HEAD").GetResultAsync();
                 if (head != _expectedHead || (branch.IsSuccess ? branch.StdOut.Trim() : null) != _expectedRef)
                 { ErrorMessage = App.Text("Rebase.DestinationChanged"); return false; }
-                var safety = new Commands.CheckMergeSafety(_repo.FullPath, [_revision]);
-                if (!await safety.GetResultAsync() || !await new Commands.CheckRestoreSafety(_repo.FullPath, true).GetResultAsync())
-                { ErrorMessage = App.Text("Rebase.LocalFilesBlocked"); return false; }
+                var safety = new Commands.CheckMergeSafety(_repo.FullPath, [_revision], replayRange: $"{_revision}..{_expectedHead}");
+                if (!await safety.GetResultAsync())
+                {
+                    ErrorMessage = App.Text(safety.Obstruction == null ? "WorkingCopy.RefreshFailed" : "Rebase.LocalFilesBlocked") +
+                        (safety.Obstruction == null ? string.Empty : "\n" + safety.Obstruction);
+                    return false;
+                }
+                var restore = new Commands.CheckRestoreSafety(_repo.FullPath, true);
+                if (!await restore.GetResultAsync())
+                {
+                    ErrorMessage = App.Text(restore.Obstruction == null ? "WorkingCopy.RefreshFailed" : "Rebase.LocalFilesBlocked") +
+                        (restore.Obstruction == null ? string.Empty : "\n" + restore.Obstruction);
+                    return false;
+                }
                 var command = new Commands.Rebase(_repo.FullPath, _revision, AutoStash, NoVerify) { RaiseError = false };
                 var success = await command.Use(log).ExecAsync();
                 var conflicts = await new Commands.QueryConflictEntries(_repo.FullPath).GetResultAsync();
