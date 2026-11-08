@@ -1,8 +1,10 @@
 """Observe actual binary snapshots during rapid index/worktree/delete transitions."""
 import json,os,queue,subprocess,sys,tempfile,threading,time
 from pathlib import Path
+from qa_cleanup import remove_fixture, new_fixture
+assert os.environ.get('GITHUB_ACTIONS')=='true' and os.environ.get('RUNNER_OS')=='Windows', 'Binary application tests require an owned CI runner'
 exe=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
-root=Path(tempfile.mkdtemp(prefix='TreeGit binary refresh audit '));repo=root/'repo';repo.mkdir();snapshots=root/'snapshots';snapshots.mkdir()
+root=new_fixture(out,'TreeGit binary refresh audit ');repo=root/'repo';repo.mkdir();snapshots=root/'snapshots';snapshots.mkdir()
 env=os.environ.copy();env.update(TEMP=str(snapshots),TMP=str(snapshots),GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'),GIT_CONFIG_NOSYSTEM='1')
 def git(*args):
     r=subprocess.run(['git','-C',str(repo),*args],env=env,capture_output=True,text=True,encoding='utf-8',timeout=20);assert not r.returncode,r.stderr;return r.stdout.strip()
@@ -56,5 +58,9 @@ finally:
     (out/'binary-refresh-results.json').write_text(json.dumps({'passed':len(records),'records':records,'ownedSnapshots':len(owned),'remainingSnapshots':[str(f) for f in owned if f.exists()],'root':str(root)},ensure_ascii=False,indent=2),'utf-8')
     p.stdin.close()
     try:p.wait(timeout=10)
-    except subprocess.TimeoutExpired:p.kill()
-    if pid:subprocess.run(['taskkill','/PID',str(pid),'/F'],capture_output=True)
+    except subprocess.TimeoutExpired:p.kill();p.wait(timeout=10)
+    if pid:
+        literal=str(exe).replace("'","''")
+        script="$p=Get-Process -Id "+str(pid)+" -ErrorAction SilentlyContinue;if($p){if($p.Path -ne '"+literal+"'){throw 'Unexpected process; left unchanged'};$null=$p.CloseMainWindow();if(-not $p.WaitForExit(15000)){$p.Kill();$p.WaitForExit()}}"
+        subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)
+    remove_fixture(root,out,'TreeGit binary refresh audit ')

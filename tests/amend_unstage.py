@@ -1,11 +1,14 @@
 """Use the native Amend view and its unstage method; inspect the real index and worktree."""
 import json,os,queue,shutil,subprocess,sys,tempfile,threading,time
 from pathlib import Path
+from qa_profile import IsolatedProfile
+from qa_cleanup import remove_fixture, new_fixture
 source=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True);records=[]
+profile=IsolatedProfile(source,out)
 for format_name,scenario in [(f,s) for f in ['sha1','sha256'] for s in ['full','root','subset']]:
     case=format_name+'-'+scenario
-    app=out/(case+'-app');shutil.copytree(source.parent,app,ignore=shutil.ignore_patterns('data','log','.treegit-update'));(app/'data').mkdir();(app/'data/preference.json').write_text('{"Locale":"zh_CN","Check4UpdatesOnStartup":false}','utf-8')
-    root=Path(tempfile.mkdtemp(prefix='TreeGit native amend '+format_name+' ')).resolve();repo=root/'repo';repo.mkdir();fixture=root/'fixture.json'
+    app=profile.reset();(app/'data/preference.json').write_text('{"Locale":"zh_CN","Check4UpdatesOnStartup":false}','utf-8')
+    root=new_fixture(out,prefix='TreeGit native amend '+format_name+' ').resolve();repo=root/'repo';repo.mkdir();fixture=root/'fixture.json'
     env=os.environ.copy();env.update(GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'),GIT_CONFIG_NOSYSTEM='1',TREEGIT_TEST_SETTINGS_FIXTURE=str(fixture))
     def git(*args):
         result=subprocess.run(['git','-C',str(repo),*args],stdin=subprocess.DEVNULL,env=env,capture_output=True,text=True,encoding='utf-8',creationflags=subprocess.CREATE_NO_WINDOW);assert result.returncode==0,result.stderr;return result.stdout.strip()
@@ -56,3 +59,7 @@ for format_name,scenario in [(f,s) for f in ['sha1','sha256'] for s in ['full','
         except subprocess.TimeoutExpired:p.kill();p.wait()
         if pid:
             literal=str(exe).replace("'","''");script="$p=Get-Process -Id "+str(pid)+" -ErrorAction SilentlyContinue;if($p){if($p.Path -ne '"+literal+"'){throw 'Wrong owned process'};$null=$p.CloseMainWindow();if(-not $p.WaitForExit(15000)){$p.Kill();$p.WaitForExit();throw 'Owned QA app did not exit normally'}};exit 0";subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)
+
+    remove_fixture(root,out,'TreeGit ')
+
+profile.close()

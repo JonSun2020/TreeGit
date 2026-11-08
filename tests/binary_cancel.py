@@ -1,9 +1,11 @@
 """Cancel actual large binary snapshot reads by changing selection and closing tabs."""
 import json, os, queue, subprocess, sys, tempfile, threading, time
 from pathlib import Path
+from qa_cleanup import remove_fixture, new_fixture
+assert os.environ.get('GITHUB_ACTIONS')=='true' and os.environ.get('RUNNER_OS')=='Windows', 'Large binary tests require an owned CI runner'
 
 exe=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
-root=Path(tempfile.mkdtemp(prefix='TreeGit large binary cancellation ')).resolve();repo=root/'repo';repo.mkdir();snapshots=root/'snapshots';snapshots.mkdir()
+root=new_fixture(out,'TreeGit large binary cancellation ');repo=root/'repo';repo.mkdir();snapshots=root/'snapshots';snapshots.mkdir()
 env=os.environ.copy();env.update(TEMP=str(snapshots),TMP=str(snapshots),GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'),GIT_CONFIG_NOSYSTEM='1')
 def git(*args):
     result=subprocess.run(['git','-C',str(repo),*args],env=env,capture_output=True,text=True,encoding='utf-8',timeout=60,creationflags=subprocess.CREATE_NO_WINDOW)
@@ -68,3 +70,4 @@ finally:
         literal=str(exe).replace("'","''")
         script="$p=Get-Process -Id "+str(pid)+" -ErrorAction SilentlyContinue;if($p){if($p.Path -ne '"+literal+"'){throw 'Wrong owned process'};$null=$p.CloseMainWindow();if(-not $p.WaitForExit(15000)){$p.Kill();$p.WaitForExit();throw 'Owned QA app did not exit normally'}};exit 0"
         subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)
+    remove_fixture(root,out,'TreeGit large binary cancellation ')

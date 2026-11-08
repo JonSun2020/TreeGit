@@ -1,9 +1,11 @@
 """Use a real delayed Git query to click the normal sync buttons before metadata arrives."""
 import json,os,queue,shutil,subprocess,sys,tempfile,threading,time
 from pathlib import Path
+from qa_profile import IsolatedProfile
+from qa_cleanup import remove_fixture, new_fixture
 
 source=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();proxy=Path(sys.argv[3]).resolve();out.mkdir(parents=True,exist_ok=True)
-root=Path(tempfile.mkdtemp(prefix='TreeGit cold sync actions ')).resolve();repo=root/'repo';repo.mkdir();remote=root/'remote.git';remote.mkdir()
+root=new_fixture(out,prefix='TreeGit cold sync actions ').resolve();repo=root/'repo';repo.mkdir();remote=root/'remote.git';remote.mkdir()
 env=os.environ.copy();env.update(GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'),GIT_CONFIG_NOSYSTEM='1',TREEGIT_TEST_REAL_GIT=shutil.which('git'))
 def git(path,*args):
     result=subprocess.run([env['TREEGIT_TEST_REAL_GIT'],'-C',str(path),*args],env=env,capture_output=True,text=True,encoding='utf-8',creationflags=subprocess.CREATE_NO_WINDOW)
@@ -11,8 +13,9 @@ def git(path,*args):
 git(remote,'init','--bare');git(repo,'init','-b','main');git(repo,'config','user.name','Cold sync QA');git(repo,'config','user.email','cold@example.invalid')
 (repo/'file.txt').write_text('base\n');git(repo,'add','.');git(repo,'commit','-m','Initial');git(repo,'remote','add','origin',str(remote));git(repo,'push','-u','origin','main')
 records=[]
+profile=IsolatedProfile(source,out)
 for command,expected in [('fetch_dialog','Fetch'),('pull_dialog','Pull'),('push_dialog','Push')]:
-    app=out/(command+'-app');shutil.copytree(source.parent,app,ignore=shutil.ignore_patterns('data','log','.treegit-update'));(app/'data').mkdir()
+    app=profile.reset()
     (app/'data/preference.json').write_text(json.dumps({'Locale':'zh_CN','Theme':'Blue','GitInstallPath':str(proxy),'Check4UpdatesOnStartup':False}),'utf-8')
     gate=root/command;env['TREEGIT_TEST_BRANCH_GATE']=str(gate);exe=app/source.name;pid=None;record={'command':command}
     before_proxy=time.monotonic()
@@ -56,3 +59,6 @@ for command,expected in [('fetch_dialog','Fetch'),('pull_dialog','Pull'),('push_
             script="$p=Get-Process -Id "+str(pid)+" -ErrorAction SilentlyContinue;if($p){if($p.Path -ne '"+literal+"'){throw 'Wrong owned process'};$null=$p.CloseMainWindow();if(-not $p.WaitForExit(15000)){$p.Kill();$p.WaitForExit();throw 'Owned QA app did not exit normally'}};exit 0"
             subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)
 assert all(record.get('passed') for record in records),records
+
+remove_fixture(root,out,'TreeGit ')
+profile.close()

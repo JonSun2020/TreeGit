@@ -1,8 +1,9 @@
 """The release ZIP must exclude local files and reject integration builds/reused versions."""
 import hashlib, json, msvcrt, subprocess, sys, tempfile, zipfile
 from pathlib import Path
+from qa_cleanup import new_fixture, remove_fixture
 out=Path(sys.argv[1]).resolve();out.mkdir(parents=True,exist_ok=True)
-root=Path(tempfile.mkdtemp(prefix='TreeGit package audit '));source=root/'publish';source.mkdir();(source/'data').mkdir();(source/'git/cmd').mkdir(parents=True)
+root=new_fixture(out,'TreeGit package audit ');source=root/'publish';source.mkdir();(source/'data').mkdir();(source/'git/cmd').mkdir(parents=True)
 files={'TreeGit.exe':b'package-test executable fixture','native.dll':b'package-test native fixture','LICENSE':b'license','THIRD-PARTY-LICENSES.md':b'notices','使用说明.md':b'help','MCP-使用说明.md':b'mcp help','mcp-readonly.json':b'{}','mcp-readwrite.json':b'{}'}
 for name,data in files.items():(source/name).write_bytes(data)
 info={'product':'TreeGit','version':'0.0.1','integrationTests':False,'bundledGit':True};(source/'build-info.json').write_text(json.dumps(info),encoding='utf-8');files['build-info.json']=b''
@@ -43,3 +44,4 @@ check('a read failure leaves no published or partial archive',r.returncode!=0 an
 info['integrationTests']=True;(source/'build-info.json').write_text(json.dumps(info),encoding='utf-8');blocked=root/'blocked';r=pack(blocked)
 check('integration-test builds are rejected before any archive is created',r.returncode!=0 and not list(blocked.glob('*.zip')))
 (out/'packaging-results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'root':str(root)},indent=2),encoding='utf-8')
+remove_fixture(root,out,'TreeGit package audit ')

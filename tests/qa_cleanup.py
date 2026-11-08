@@ -1,7 +1,18 @@
 """Remove a positively identified, owned QA fixture without traversing links."""
 import os
+import atexit
+import tempfile
 from pathlib import Path
 import stat
+
+
+def new_fixture(parent, prefix):
+    parent = Path(parent).resolve()
+    assert prefix.startswith('TreeGit '), 'QA fixture requires an explicit owned prefix'
+    parent.mkdir(parents=True, exist_ok=True)
+    path = Path(tempfile.mkdtemp(prefix=prefix, dir=parent)).resolve()
+    atexit.register(remove_fixture, path, parent, prefix)
+    return path
 
 
 def remove_fixture(path, parent, prefix):

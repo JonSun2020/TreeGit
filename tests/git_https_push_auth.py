@@ -4,6 +4,8 @@ import http.server
 import json
 import os
 from pathlib import Path
+from qa_profile import IsolatedProfile
+from qa_cleanup import remove_fixture, new_fixture
 import queue
 import shutil
 import ssl
@@ -17,13 +19,12 @@ import urllib.parse
 source_exe = Path(sys.argv[1]).resolve()
 out = Path(sys.argv[2]).resolve()
 out.mkdir(parents=True,exist_ok=True)
-app = out/'app'
-shutil.copytree(source_exe.parent,app,ignore=shutil.ignore_patterns('data','log','.treegit-update'))
-(app/'data').mkdir()
+profile = IsolatedProfile(source_exe, out)
+app = profile.reset()
 (app/'data/preference.json').write_text(json.dumps({'Locale':'zh_CN','Check4UpdatesOnStartup':False,
     'GitInstallPath':str(source_exe.parent/'git/cmd/git.exe')}),'utf-8')
 exe = app/source_exe.name
-root = Path(tempfile.mkdtemp(prefix='TreeGit HTTPS real Git push '))
+root = new_fixture(out,prefix='TreeGit HTTPS real Git push ')
 repo = root/'client'
 project = root/'server'
 bare = project/'repo.git'
@@ -212,9 +213,12 @@ finally:
     try:
         p.wait(timeout=15)
     except subprocess.TimeoutExpired:
-        p.kill()
+        p.kill();p.wait(timeout=10)
     if pid:
         literal = str(exe).replace("'","''")
         script = "$p=Get-Process -Id "+str(pid)+" -ErrorAction SilentlyContinue;if($p){if($p.Path -ne '"+literal+"'){throw 'Wrong QA process'};$null=$p.CloseMainWindow();if(-not $p.WaitForExit(15000)){throw 'Owned QA GUI did not close'}};exit 0"
         subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True,timeout=30)
     server.shutdown()
+
+remove_fixture(root,out,'TreeGit ')
+profile.close()

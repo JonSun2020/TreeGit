@@ -1,10 +1,12 @@
 """Open real repositories with damaged app metadata; keep exact original files recoverable."""
 import json,os,queue,shutil,subprocess,sys,tempfile,threading,time
 from pathlib import Path
+from qa_profile import IsolatedProfile
+from qa_cleanup import remove_fixture, new_fixture
 source=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
-app=out/'app';shutil.copytree(source.parent,app,ignore=shutil.ignore_patterns('data','log','.treegit-update'));(app/'data').mkdir()
+profile=IsolatedProfile(source,out);app=profile.reset()
 (app/'data/preference.json').write_text('{"Locale":"zh_CN","Check4UpdatesOnStartup":false}','utf-8');exe=app/source.name
-root=Path(tempfile.mkdtemp(prefix='TreeGit repository config recovery ')).resolve();env=os.environ.copy();env.update(GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'),GIT_CONFIG_NOSYSTEM='1')
+root=new_fixture(out,prefix='TreeGit repository config recovery ').resolve();env=os.environ.copy();env.update(GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'),GIT_CONFIG_NOSYSTEM='1')
 p=subprocess.Popen([str(exe),'--mcp'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',env=env,creationflags=subprocess.CREATE_NO_WINDOW)
 replies=queue.Queue();threading.Thread(target=lambda:[replies.put(s) for s in p.stdout],daemon=True).start();seq=0;pid=None;records=[]
 def tool(name,args=None,allow_error=False):
@@ -40,3 +42,6 @@ finally:
         literal=str(exe).replace("'","''")
         script="$p=Get-Process -Id "+str(pid)+" -ErrorAction SilentlyContinue;if($p){if($p.Path -ne '"+literal+"'){throw 'Wrong owned process'};$null=$p.CloseMainWindow();if(-not $p.WaitForExit(15000)){$p.Kill();$p.WaitForExit();throw 'Owned QA app did not exit normally'}};exit 0"
         subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)
+
+remove_fixture(root,out,'TreeGit ')
+profile.close()

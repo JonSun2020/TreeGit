@@ -34,6 +34,8 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Path src/bin/Debug/net10.0/data -Force | Out-Null
+          python tests/profile_reuse.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/profile-safety-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/command-pipes-results"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/streaming-query-results" --streaming
@@ -129,6 +131,7 @@ jobs:
             ${{ runner.temp }}/pull-safety-results/*.log
             ${{ runner.temp }}/ssh-keygen-results/command-pipes-results.json
             ${{ runner.temp }}/mode-results/repository-mode-results.json
+            ${{ runner.temp }}/profile-safety-results/*.json
             ${{ runner.temp }}/startup-results/ui-startup-results.json
             ${{ runner.temp }}/close-during-commit-results/close-during-commit-results.json
             ${{ runner.temp }}/preferences-schema-results/preferences-schema-results.json

@@ -1,17 +1,18 @@
 """Metadata read failures must not offer to initialize an existing repository."""
 import json, os, queue, shutil, subprocess, sys, tempfile, threading, time
 from pathlib import Path
+from qa_profile import IsolatedProfile
+from qa_cleanup import remove_fixture, new_fixture
 
 source=Path(sys.argv[1]).resolve(); out=Path(sys.argv[2]).resolve()
 proxy=Path(sys.argv[3]).resolve(); out.mkdir(parents=True,exist_ok=True)
 records=[]
 cases=['mcp-root-always'] if '--mcp-root-only' in sys.argv[4:] else ['config','silent-once','silent-always','mcp-once','mcp-always','mcp-root-once','mcp-root-always','nonrepo']
+profile=IsolatedProfile(source,out)
 for case in cases:
-    app=out/(case+'-app')
-    shutil.copytree(source.parent,app,ignore=shutil.ignore_patterns('data','log','.treegit-update'))
-    (app/'data').mkdir()
+    app=profile.reset()
     (app/'data/preference.json').write_text(json.dumps({'Locale':'zh_CN','GitInstallPath':str(proxy),'Check4UpdatesOnStartup':False}),'utf-8')
-    root=Path(tempfile.mkdtemp(prefix='TreeGit repository read '+case+' ')).resolve()
+    root=new_fixture(out,prefix='TreeGit repository read '+case+' ').resolve()
     repo=root/'repo'; repo.mkdir(); marker=root/'metadata-probe'
     env={**os.environ,'GIT_CONFIG_GLOBAL':str(root/'global.gitconfig'),'GIT_CONFIG_NOSYSTEM':'1',
          'TREEGIT_TEST_REAL_GIT':shutil.which('git'),'TREEGIT_TEST_PROBE_MARKER':str(marker),
@@ -89,3 +90,7 @@ for case in cases:
                 "if($_.Path -ne $target){throw 'Unexpected owned app'};$null=$_.CloseMainWindow();"
                 "if(-not $_.WaitForExit(15000)){$_.Kill();$_.WaitForExit();throw 'Owned GUI did not exit'}};exit 0")
         subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)
+
+    remove_fixture(root,out,'TreeGit ')
+
+profile.close()

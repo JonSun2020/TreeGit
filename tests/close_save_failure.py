@@ -2,6 +2,8 @@
 import ctypes,json,os,queue,shutil,subprocess,sys,tempfile,threading,time
 from ctypes import wintypes
 from pathlib import Path
+from qa_profile import IsolatedProfile
+from qa_cleanup import remove_fixture, new_fixture
 kernel=ctypes.WinDLL('kernel32',use_last_error=True)
 kernel.OpenProcess.argtypes=[wintypes.DWORD,wintypes.BOOL,wintypes.DWORD];kernel.OpenProcess.restype=wintypes.HANDLE
 kernel.QueryFullProcessImageNameW.argtypes=[wintypes.HANDLE,wintypes.DWORD,wintypes.LPWSTR,ctypes.POINTER(wintypes.DWORD)]
@@ -20,10 +22,11 @@ def hold_owned_gui(pid,exe):
         kernel.CloseHandle(handle);raise AssertionError('Unexpected GUI executable')
     return handle
 source=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True);records=[]
+profile=IsolatedProfile(source,out)
 for target,choice in ([('preferences','exit')] if '--exit-only' in sys.argv[3:] else [('preferences','cancel'),('draft','cancel'),('preferences','exit')]):
-    name=target+'-'+choice;app=out/(name+'-app');shutil.copytree(source.parent,app,ignore=shutil.ignore_patterns('data','log','.treegit-update'));(app/'data').mkdir()
+    name=target+'-'+choice;app=profile.reset()
     (app/'data/preference.json').write_text('{"Locale":"zh_CN","Theme":"Blue","Check4UpdatesOnStartup":false}','utf-8')
-    root=Path(tempfile.mkdtemp(prefix='TreeGit close save failure ')).resolve();repo=root/'repo';repo.mkdir();fixture=root/'fixture.json'
+    root=new_fixture(out,prefix='TreeGit close save failure ').resolve();repo=root/'repo';repo.mkdir();fixture=root/'fixture.json'
     env=os.environ.copy();env.update(GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'),GIT_CONFIG_NOSYSTEM='1',TREEGIT_TEST_SETTINGS_FIXTURE=str(fixture))
     def git(*args):
         result=subprocess.run(['git','-C',str(repo),*args],env=env,capture_output=True,text=True,encoding='utf-8',creationflags=subprocess.CREATE_NO_WINDOW);assert result.returncode==0,result.stderr
@@ -75,3 +78,7 @@ for target,choice in ([('preferences','exit')] if '--exit-only' in sys.argv[3:] 
             except subprocess.TimeoutExpired:p.kill();p.wait()
         if pid:finish_gui(True)
         if gui_handle:kernel.CloseHandle(gui_handle)
+
+    remove_fixture(root,out,'TreeGit ')
+
+profile.close()
