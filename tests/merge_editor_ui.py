@@ -69,6 +69,8 @@ def open_editor():
     opened_text=action('read')['text']
     return opened_text
 def clean_close():
+    while any(d['type']=='Confirm' for d in tool('ui_state')['dialogs']):
+        tool('ui_command',{'command':'close_dialog'})
     if dialog():
         action('replace',text=opened_text)
         tool('ui_command',{'command':'close_dialog'})
@@ -152,7 +154,7 @@ try:
     check('all-resolved navigation remains enabled and preserves the total',button('NextConflict')['enabled'] and dialog()['merge']['totalConflicts']==2)
     tool('ui_command',{'command':'close_dialog'})
     wait_for(lambda:any(d['type']=='Confirm' for d in tool('ui_state')['dialogs']))
-    check('unsaved close presents OK and Cancel',button('BtnYes')['text']=='确定' and button('BtnNo')['text']=='取消')
+    check('unsaved close presents OK and Cancel',''.join(button('BtnYes')['text'].split())=='确定' and ''.join(button('BtnNo')['text'].split())=='取消')
     shot('unsaved-close')
     press('BtnNo');wait_for(lambda:not any(d['type']=='Confirm' for d in tool('ui_state')['dialogs']))
     check('Cancel keeps unsaved text and the editor open',dialog() is not None and action('read')['text']==expected+'x')
