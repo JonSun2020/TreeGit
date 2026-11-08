@@ -91,10 +91,14 @@ namespace SourceGit.Views
         {
             if (WorkingCopyColumns == null) return;
             WorkingCopyRow.Classes.Set("selected", DataContext is ViewModels.Histories { IsWorkingCopySelected: true });
+            // Column measurement is temporarily incomplete while the selected
+            // details view changes. Do not publish that intermediate geometry.
+            var widths = CommitListContainer.Columns.Select(c => c.IsVisible ? c.ActualWidth : 0).ToArray();
+            for (var i = 0; i < widths.Length; i++)
+                if (CommitListContainer.Columns[i].IsVisible && (!double.IsFinite(widths[i]) || widths[i] < CommitListContainer.Columns[i].MinWidth)) return;
             for (var i = 0; i < ColumnNames.Length; i++)
             {
-                var column = CommitListContainer.Columns[i];
-                WorkingCopyColumns.ColumnDefinitions[i].Width = new GridLength(column.IsVisible ? column.ActualWidth : 0);
+                WorkingCopyColumns.ColumnDefinitions[i].Width = new GridLength(widths[i]);
             }
         }
     }

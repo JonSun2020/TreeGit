@@ -6,6 +6,7 @@
         ///     The minimal version of Git that required by this app.
         /// </summary>
         public static readonly System.Version MINIMAL = new(2, 25, 1);
+        public static readonly System.Version MERGE_AUTOSTASH = new(2, 27, 0);
 
         /// <summary>
         ///     The minimal version of Git that supports the `stash push` command with the `--pathspec-from-file` option.

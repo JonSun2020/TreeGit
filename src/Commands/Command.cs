@@ -44,6 +44,8 @@ namespace SourceGit.Commands
         public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
         public bool RaiseError { get; set; } = true;
         public Models.ICommandLog Log { get; set; } = null;
+        public string FailureMessage { get; private set; } = string.Empty;
+        public int? LastExitCode { get; private set; }
         protected bool IsAuthenticationRetry { get; set; }
         // Local hooks can emit authentication errors too. Only replay a transport
         // operation; never repeat a rejected local mutation automatically.
@@ -55,6 +57,9 @@ namespace SourceGit.Commands
             IsAuthenticationRetry = false;
             while (true)
             {
+                FailureMessage = string.Empty;
+                LastExitCode = null;
+                if (CancellationToken.IsCancellationRequested) { FailureMessage = "Operation cancelled."; return false; }
                 Log?.AppendLine($"$ git {Args}\n");
 
                 var errs = new List<string>();
@@ -70,27 +75,26 @@ namespace SourceGit.Commands
                 {
                     Native.ProcessLauncher.Start(proc);
 
-                    // Not safe, please only use `CancellationToken` in readonly commands.
-                    if (CancellationToken.CanBeCanceled)
-                    {
-                        CancellationToken.Register(() =>
-                        {
-                            lock (capturedLock)
-                            {
-                                if (captured is { Process: { HasExited: false } })
-                                    Native.OS.TerminateProcess(captured.Process);
-                            }
-                        });
-                    }
                 }
                 catch (Exception e)
                 {
+                    FailureMessage = e.Message;
                     if (RaiseError)
                         RaiseException(e.Message);
 
                     Log?.AppendLine(string.Empty);
                     return false;
                 }
+
+                // Only readonly operations may opt in to process cancellation.
+                // Dispose the registration before its Process is disposed.
+                using var registration = CancellationToken.Register(() =>
+                {
+                    lock (capturedLock)
+                    {
+                        if (captured is { Process: { HasExited: false } }) Native.OS.TerminateProcess(captured.Process);
+                    }
+                });
 
                 proc.BeginOutputReadLine();
                 proc.BeginErrorReadLine();
@@ -111,9 +115,16 @@ namespace SourceGit.Commands
 
                 Log?.AppendLine(string.Empty);
 
-                if (!CancellationToken.IsCancellationRequested && proc.ExitCode != 0)
+                if (CancellationToken.IsCancellationRequested)
+                {
+                    FailureMessage = "Operation cancelled.";
+                    return false;
+                }
+                LastExitCode = proc.ExitCode;
+                if (proc.ExitCode != 0)
                 {
                     var errMsg = string.Join("\n", errs).Trim();
+                    FailureMessage = errMsg[..Math.Min(errMsg.Length, 65536)];
                     // Git rejects/erases an invalid HTTP credential before returning this
                     // error. Keep requesting corrected credentials until success or cancellation.
                     if (SupportsAuthenticationRetry && (!RequiresAuthenticationTransportExitCode || proc.ExitCode == 128) &&
@@ -336,7 +347,7 @@ namespace SourceGit.Commands
                     return;
             }
 
-            errs.Add(line);
+            lock (errs) errs.Add(line);
         }
 
         private class CapturedProcess

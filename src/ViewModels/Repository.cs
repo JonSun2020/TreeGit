@@ -297,7 +297,20 @@ namespace SourceGit.ViewModels
         public int LocalChangesCount
         {
             get => _localChangesCount;
-            private set => SetProperty(ref _localChangesCount, value);
+            private set
+            {
+                if (SetProperty(ref _localChangesCount, value)) _histories?.NotifyWorkingCopyChanged();
+            }
+        }
+
+        public bool WorkingCopyStatusKnown => _workingCopyStatusKnown && !_workingCopyStatusError;
+
+        public void NotifyWorkingCopyStatusFailure()
+        {
+            if (_workingCopyStatusError) return;
+            _workingCopyStatusError = true;
+            OnPropertyChanged(nameof(WorkingCopyStatusKnown));
+            NotifyError(App.Text("WorkingCopy.RefreshFailed"));
         }
 
         public int StashesCount
@@ -1569,10 +1582,22 @@ namespace SourceGit.ViewModels
             {
                 // Background status must not contend with foreground index writes,
                 // including during the first refresh of a newly opened repository.
-                var changes = await new Commands.QueryLocalChanges(FullPath, _uiStates.IncludeUntrackedInLocalChanges)
+                var query = new Commands.QueryLocalChanges(FullPath, _uiStates.IncludeUntrackedInLocalChanges);
+                var changes = await query
                     .WithCancellation(token)
                     .GetResultAsync()
                     .ConfigureAwait(false);
+
+                if (!query.Succeeded)
+                {
+                    if (!token.IsCancellationRequested)
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            if (token.IsCancellationRequested) return;
+                            NotifyWorkingCopyStatusFailure();
+                        });
+                    return;
+                }
 
                 changes.Sort((l, r) => Models.NumericSort.Compare(l.Path, r.Path));
 
@@ -1581,6 +1606,9 @@ namespace SourceGit.ViewModels
                     if (token.IsCancellationRequested)
                         return;
 
+                    _workingCopyStatusError = false;
+                    _workingCopyStatusKnown = true;
+                    OnPropertyChanged(nameof(WorkingCopyStatusKnown));
                     _workingCopy.SetData(changes);
                     LocalChangesCount = changes.Count;
                     OnPropertyChanged(nameof(InProgressContext));
@@ -2211,6 +2239,8 @@ namespace SourceGit.ViewModels
         private bool _preparingRemoteAction;
         private CancellationTokenSource _cancellationRefreshTags = null;
         private CancellationTokenSource _cancellationRefreshWorkingCopyChanges = null;
+        private bool _workingCopyStatusKnown;
+        private bool _workingCopyStatusError;
         private CancellationTokenSource _cancellationRefreshCommits = null;
         private CancellationTokenSource _cancellationRefreshStashes = null;
     }

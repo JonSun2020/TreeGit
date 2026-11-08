@@ -181,6 +181,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/merge_editor_ui.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/merge-editor-results"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/history_merge_ui.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/history-merge-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/sidebar_branches.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/sidebar-results"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           if ($env:TREEGIT_PREVIEW -eq 'true') {
@@ -225,6 +227,8 @@ jobs:
             ${{ runner.temp }}/merge-model-results/*.json
             ${{ runner.temp }}/merge-editor-results/*.json
             ${{ runner.temp }}/merge-editor-results/*.png
+            ${{ runner.temp }}/history-merge-results/*.json
+            ${{ runner.temp }}/history-merge-results/*.png
             ${{ runner.temp }}/sidebar-results/*.json
             ${{ runner.temp }}/sidebar-results/*.png
             ${{ runner.temp }}/search-page-results/*.json

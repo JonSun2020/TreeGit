@@ -7,7 +7,7 @@
       <TextBlock FontSize="18" Margin="8,0,0,0" Classes="bold" Text="{DynamicResource Text.Merge}"/>
     </StackPanel>
 
-    <Grid Margin="0,16,0,0" RowDefinitions="32,32,32,Auto,Auto" ColumnDefinitions="130,*">
+    <Grid Margin="0,16,0,0" RowDefinitions="32,32,32,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="130,*">
       <TextBlock Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" Text="{DynamicResource Text.Merge.Source}"/>
       <ContentControl Grid.Row="0" Grid.Column="1" Content="{Binding Source}">
         <ContentControl.DataTemplates>
@@ -54,7 +54,7 @@
 
               <TextBlock Grid.Column="0" Text="{Binding DisplayName}"/>
               <TextBlock Grid.Column="1" Text="{Binding DisplayDescription}" Margin="8,0" FontSize="11" Foreground="{DynamicResource Brush.FG2}"/>
-              <TextBlock Grid.Column="2" Text="{Binding Arg}" HorizontalAlignment="Right" FontSize="11" Foreground="{DynamicResource Brush.FG2}"/>
+
             </Grid>
           </DataTemplate>
         </ComboBox.ItemTemplate>
@@ -71,7 +71,12 @@
 
       <CheckBox Grid.Row="3" Grid.Column="1" Height="32" Content="{DynamicResource Text.Merge.Edit}" IsChecked="{Binding Edit, Mode=TwoWay}" IsVisible="{Binding CanEditMessage, Mode=OneWay}" ToolTip.Tip="--edit"/>
 
-      <Grid Grid.Row="4" Grid.Column="1" Height="32" IsVisible="{Binding TestingState, Converter={x:Static ObjectConverters.NotEqual}, ConverterParameter={x:Static vm:MergeTestingState.Disabled}}">
+      <CheckBox Grid.Row="4" Grid.Column="1" Height="32" IsVisible="{Binding AutoStashAvailable}"
+                Content="{DynamicResource Text.Merge.KeepLocal}" IsChecked="{Binding AutoStash, Mode=TwoWay}"
+                ToolTip.Tip="{DynamicResource Text.Merge.KeepLocalHint}"/>
+      <CheckBox Grid.Row="5" Grid.Column="1" Height="32" IsVisible="{Binding ShowAllowUnrelated}"
+                Content="{DynamicResource Text.Merge.AllowUnrelated}" IsChecked="{Binding AllowUnrelated, Mode=TwoWay}"/>
+      <Grid Grid.Row="6" Grid.Column="1" Height="32" IsVisible="{Binding TestingState, Converter={x:Static ObjectConverters.NotEqual}, ConverterParameter={x:Static vm:MergeTestingState.Disabled}}">
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" IsVisible="{Binding TestingState, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:MergeTestingState.Testing}}">
           <v:LoadingIcon Width="14" Height="14" IsVisible="{Binding TestingState, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:MergeTestingState.Testing}}"/>
 
@@ -96,6 +101,16 @@
           <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" Text="{DynamicResource Text.Merge.Test.UnknownError}"/>
         </StackPanel>
       </Grid>
+      <StackPanel Grid.Row="7" Grid.ColumnSpan="2" Margin="0,8,0,0" Spacing="6">
+        <TextBlock Text="{Binding ErrorMessage}" Foreground="{DynamicResource Brush.FG1}" TextWrapping="Wrap"
+                   IsVisible="{Binding ErrorMessage, Converter={x:Static c:StringConverters.IsNotNullOrEmpty}}"/>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Button x:Name="UseRegularMerge" Classes="flat" Content="{DynamicResource Text.Merge.UseRegular}"
+                  IsVisible="{Binding CanUseRegularMerge}" Command="{Binding UseRegularMerge}"/>
+          <Button x:Name="ConfigureMergeAuthor" Classes="flat" Content="{DynamicResource Text.Repository.Configure}"
+                  IsVisible="{Binding ShowAuthorSettings}" Click="OnConfigureAuthor"/>
+        </StackPanel>
+      </StackPanel>
     </Grid>
   </StackPanel>
 </UserControl>

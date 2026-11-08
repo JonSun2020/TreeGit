@@ -294,6 +294,7 @@ namespace SourceGit.ViewModels
 
                 HasUnsolvedConflicts = _cached.Find(x => x.IsConflicted) != null;
                 UpdateInProgressState();
+                ApplyRequestedConflictSelection();
                 UpdateDetail();
                 return;
             }
@@ -369,6 +370,7 @@ namespace SourceGit.ViewModels
             Staged = staged;
             SelectedUnstaged = new(selectedUnstaged);
             SelectedStaged = new(selectedStaged);
+            ApplyRequestedConflictSelection();
             _isLoadingData = false;
 
             UpdateInProgressState();
@@ -376,6 +378,22 @@ namespace SourceGit.ViewModels
         }
 
         public bool CanChangeIndex => !IsStaging && !IsUnstaging && !IsCommitting;
+
+        public void RequestConflictSelection()
+        {
+            Filter = string.Empty;
+            _selectConflictAfterRefresh = true;
+            ApplyRequestedConflictSelection();
+        }
+
+        private void ApplyRequestedConflictSelection()
+        {
+            if (!_selectConflictAfterRefresh) return;
+            var conflict = VisibleUnstaged?.Find(c => c.IsConflicted);
+            if (conflict == null) return;
+            _selectConflictAfterRefresh = false;
+            SelectedUnstaged = new(new[] { conflict });
+        }
 
         public Task<bool> StageChangesAsync(List<Models.Change> changes, Models.Change next)
             => StageAsync(new List<Models.Change>(changes), next, false);
@@ -398,7 +416,9 @@ namespace SourceGit.ViewModels
                 // repaints the lists. Batch actions must use the current index.
                 if (allVisible)
                 {
-                    var current = await new Commands.QueryLocalChanges(_repo.FullPath, includeUntracked).GetResultAsync();
+                    var query = new Commands.QueryLocalChanges(_repo.FullPath, includeUntracked);
+                    var current = await query.GetResultAsync();
+                    if (!query.Succeeded) { _repo.NotifyWorkingCopyStatusFailure(); return false; }
                     changes = GetVisibleChanges(current.FindAll(c => c.WorkTree != Models.ChangeState.None), filter);
                 }
                 var canStage = await GetCanStageChangesAsync(changes);
@@ -449,7 +469,9 @@ namespace SourceGit.ViewModels
             {
                 if (allVisible)
                 {
-                    var current = await new Commands.QueryLocalChanges(_repo.FullPath, includeUntracked).GetResultAsync();
+                    var query = new Commands.QueryLocalChanges(_repo.FullPath, includeUntracked);
+                    var current = await query.GetResultAsync();
+                    if (!query.Succeeded) { _repo.NotifyWorkingCopyStatusFailure(); return; }
                     var staged = useAmend
                         ? await Task.Run(() => new Commands.QueryStagedChangesWithAmend(_repo.FullPath).GetResult())
                         : current.FindAll(c => c.Index != Models.ChangeState.None);
@@ -1088,6 +1110,7 @@ namespace SourceGit.ViewModels
 
         private bool _hasUnsolvedConflicts = false;
         private InProgressContext _inProgressContext = null;
+        private bool _selectConflictAfterRefresh;
         private string _autoLoadedCommitMessage = null;
         private bool _hasLoadedInitialProgressState = false;
     }

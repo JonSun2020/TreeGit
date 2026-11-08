@@ -1,4 +1,4 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <ResourceDictionary xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <ResourceDictionary.MergedDictionaries>
     <ResourceInclude Source="avares://SourceGit/Resources/Locales/en_US.axaml"/>
@@ -609,9 +609,9 @@
   <x:String x:Key="Text.Merge.Mode" xml:space="preserve">合并方式 ：</x:String>
   <x:String x:Key="Text.Merge.Source" xml:space="preserve">合并目标 ：</x:String>
   <x:String x:Key="Text.Merge.Test" xml:space="preserve">检测合并冲突中...</x:String>
-  <x:String x:Key="Text.Merge.Test.NoConflicts" xml:space="preserve">合并操作不会产生冲突</x:String>
+  <x:String x:Key="Text.Merge.Test.NoConflicts" xml:space="preserve">未发现提交内容冲突</x:String>
   <x:String x:Key="Text.Merge.Test.UnknownError" xml:space="preserve">检测合并冲突时出现未知错误</x:String>
-  <x:String x:Key="Text.Merge.Test.WillCauseConflicts" xml:space="preserve">合并操作将存在冲突文件</x:String>
+  <x:String x:Key="Text.Merge.Test.WillCauseConflicts" xml:space="preserve">提交内容存在冲突，仍可继续并手动解决</x:String>
   <x:String x:Key="Text.MergeConflictEditor.AcceptBoth.MineFirst" xml:space="preserve">先应用 MINE 后 THEIRS</x:String>
   <x:String x:Key="Text.MergeConflictEditor.AcceptBoth.TheirsFirst" xml:space="preserve">先应用 THEIRS 后 MINE</x:String>
   <x:String x:Key="Text.MergeConflictEditor.UseBoth" xml:space="preserve">应用全部</x:String>
@@ -1238,4 +1238,19 @@
   <x:String x:Key="Text.MergeConflictEditor.Restore">复原</x:String>
   <x:String x:Key="Text.MergeConflictEditor.EmptyBase">共同祖先中无此文件</x:String>
   <x:String x:Key="Text.MergeConflictEditor.BaseUnavailable">无法显示共同祖先内容</x:String>
+  <x:String x:Key="Text.WorkingCopy.RefreshFailed">未能刷新文件状态，已保留上次的显示结果，请稍后重试。</x:String>
+  <x:String x:Key="Text.Merge.Progress">正在合并到 {0}…</x:String>
+  <x:String x:Key="Text.Merge.DestinationChanged">当前分支已经改变，请关闭此窗口后重新选择合并目标。</x:String>
+  <x:String x:Key="Text.Merge.FinishCurrent">请先解决并完成当前操作，再合并其他提交。已转到待处理文件。</x:String>
+  <x:String x:Key="Text.Merge.SubmodulesPending">合并已完成，部分子模块尚未更新，可在子模块列表中重试。</x:String>
+  <x:String x:Key="Text.Merge.FastForwardBlocked">当前仅快进模式无法完成这次合并，可改为普通合并并手动处理冲突。</x:String>
+  <x:String x:Key="Text.Merge.Unrelated">两个历史没有共同起点。确认需要合并后，请勾选“允许合并没有共同起点的历史”再继续。</x:String>
+  <x:String x:Key="Text.Merge.IdentityRequired">请在仓库设置中填写提交者姓名和邮箱，再重试合并。</x:String>
+  <x:String x:Key="Text.Merge.LocalFilesBlocked">部分本地文件会被目标版本覆盖。请保留或贮藏本地修改；重名的新文件需先改名或移动。</x:String>
+  <x:String x:Key="Text.Merge.IndexBusy">仓库正被其他 Git 操作使用，请等待该操作结束后重试。</x:String>
+  <x:String x:Key="Text.Merge.Failed">合并未能完成。修改仍保留，可查看本次操作日志后重试。</x:String>
+  <x:String x:Key="Text.Merge.KeepLocal">保留并恢复本地修改</x:String>
+  <x:String x:Key="Text.Merge.KeepLocalHint">先保留未提交的修改，合并后恢复；与新版本重叠时可继续手动解决。</x:String>
+  <x:String x:Key="Text.Merge.AllowUnrelated">确认合并两个独立的历史</x:String>
+  <x:String x:Key="Text.Merge.UseRegular">改为普通合并</x:String>
 </ResourceDictionary>

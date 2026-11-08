@@ -199,6 +199,7 @@ namespace SourceGit.Automation
                             var mainWindow = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow;
                             var repositoryView = mainWindow.GetVisualDescendants().OfType<Views.Repository>().FirstOrDefault(v => v.DataContext == r);
                             var historyList = repositoryView?.GetVisualDescendants().OfType<Views.HistoriesCommitList>().FirstOrDefault();
+                            var pendingRow = repositoryView?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "WorkingCopyRow");
                             return new
                             {
                                 repo = r.FullPath,
@@ -208,8 +209,14 @@ namespace SourceGit.Automation
                                 sidebarWidth = repositoryView?.SidebarWidth.Value,
                                 branch = r.CurrentBranch?.Name,
                                 changes = r.LocalChangesCount,
+                                workingCopyStatusKnown = r.WorkingCopyStatusKnown,
+                                hasPendingChanges = r.Histories?.HasPendingChanges,
+                                pendingRow = pendingRow == null ? null : new { visible = pendingRow.IsEffectivelyVisible,
+                                    x = pendingRow.PointToScreen(default).X, y = pendingRow.PointToScreen(default).Y,
+                                    width = pendingRow.Bounds.Width, height = pendingRow.Bounds.Height },
                                 workingCopyState = r.WorkingCopy == null ? null : new { staging = r.WorkingCopy.IsStaging, unstaging = r.WorkingCopy.IsUnstaging,
                                     committing = r.WorkingCopy.IsCommitting, canChangeIndex = r.WorkingCopy.CanChangeIndex,
+                                    message = r.WorkingCopy.CommitMessage,
                                     staged = r.WorkingCopy.Staged.Take(256).Select(c => c.Path).ToArray(), unstaged = r.WorkingCopy.Unstaged.Take(256).Select(c => c.Path).ToArray(),
                                     selectedStaged = r.WorkingCopy.SelectedStaged?.Changes.Take(256).Select(c => c.Path).ToArray(), selectedUnstaged = r.WorkingCopy.SelectedUnstaged?.Changes.Take(256).Select(c => c.Path).ToArray() },
                                 ahead = r.CurrentBranch?.Ahead.Count ?? 0,
@@ -242,7 +249,12 @@ namespace SourceGit.Automation
                                 graphLoading = r.Histories?.IsLoading,
                                 graphTotal = r.Histories?.Commits.Count,
                                 graphCommits = r.Histories?.Commits.Take(256).Select((c, index) => new { sha = c.SHA, subject = c.Subject, localHead = c.IsLocalHead, tracking = c.Decorators.Where(d => !string.IsNullOrEmpty(d.TrackStatusDescription)).Select(d => new { branch = d.Name, status = d.TrackStatusDescription }).ToArray(), x = r.Histories.Graph?.Dots[index].Center.X, subjectLeft = c.LeftMargin, refs = c.Decorators.Select(d => d.Name).ToArray() }).ToArray(),
-                                pendingDialog = p.Popup?.GetType().Name
+                                pendingDialog = p.Popup?.GetType().Name,
+                                mergeDialog = p.Popup is not ViewModels.Merge merge ? null : new { revision = merge.SourceRevision,
+                                    mode = merge.Mode.Arg, error = merge.ErrorMessage, testing = merge.TestingState.ToString(),
+                                    autoStash = merge.AutoStash, autoStashAvailable = merge.AutoStashAvailable,
+                                    allowUnrelated = merge.AllowUnrelated, showAllowUnrelated = merge.ShowAllowUnrelated,
+                                    showAuthorSettings = merge.ShowAuthorSettings, canUseRegularMerge = merge.CanUseRegularMerge }
                             };
                         }).ToArray(),
                     };
@@ -705,6 +717,7 @@ namespace SourceGit.Automation
                     if (repo.IsBare) throw new ArgumentException("Bare repositories have no working copy.");
                     repo.ShowWorkingCopyOverview();
                     if (args.TryGetProperty("filter", out var filter)) repo.WorkingCopy.Filter = filter.GetString() ?? string.Empty;
+                    if (args.TryGetProperty("message", out var message)) repo.WorkingCopy.CommitMessage = message.GetString() ?? string.Empty;
                     return (object)new { selected = "uncommitted_changes", repo = path, filter = repo.WorkingCopy.Filter };
                 });
 
@@ -784,11 +797,28 @@ namespace SourceGit.Automation
                         page.CancelPopup();
                         return (object)new { cancelled = page.Popup == null };
                     }
+                    if (command == "merge_options")
+                    {
+                        if (page.Popup is not ViewModels.Merge merge || merge.InProgress)
+                            throw new InvalidOperationException("Open an idle merge dialog first.");
+                        if (args.TryGetProperty("mode", out var mode))
+                            merge.Mode = Models.MergeMode.Supported.FirstOrDefault(m => m.Arg == mode.GetString()) ?? throw new ArgumentException("Unknown merge mode.");
+                        if (args.TryGetProperty("autoStash", out var autoStash)) merge.AutoStash = autoStash.GetBoolean();
+                        if (args.TryGetProperty("allowUnrelated", out var unrelated)) merge.AllowUnrelated = unrelated.GetBoolean();
+                        return (object)new { configured = true };
+                    }
                     if (page.Popup != null)
                         throw new InvalidOperationException("Finish or cancel the current repository dialog first.");
                     var owner = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow;
                     switch (command)
                     {
+                        case "merge_dialog":
+                            var revision = Text(args, "revision");
+                            if (!Regex.IsMatch(revision, "\\A(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})\\z"))
+                                throw new ArgumentException("Supply the complete commit hash.");
+                            var mergeSource = new Commands.QuerySingleCommit(repo.FullPath, revision).GetResult() ?? throw new ArgumentException("Commit does not exist.");
+                            repo.ShowPopup(new ViewModels.Merge(repo, mergeSource, repo.CurrentBranch?.Name ?? "HEAD"));
+                            break;
                         case "repository_settings":
                             _ = ((Views.Launcher)owner).OpenRepositorySettingsAsync(repo);
                             break;

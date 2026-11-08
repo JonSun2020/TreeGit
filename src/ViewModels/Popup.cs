@@ -45,7 +45,7 @@ namespace SourceGit.ViewModels
                 ProgressDescription = desc;
         }
 
-        public void Cleanup()
+        public virtual void Cleanup()
         {
             _log?.Unsubscribe(this);
         }

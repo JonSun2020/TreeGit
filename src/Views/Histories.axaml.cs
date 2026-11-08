@@ -716,10 +716,6 @@ namespace SourceGit.Views
             if (rowsPresenter == null)
                 return;
 
-            var pendingHeight = DataContext is ViewModels.Histories { HasWorkingCopy: true } ? 19 : 0;
-            rowsPresenter.Margin = new Thickness(0, pendingHeight, 0, 0);
-            CommitGraph.Margin = new Thickness(0, 24 + pendingHeight, 0, 0);
-
             double rowHeight = dataGrid.RowHeight;
             double startY = 0;
             foreach (var child in rowsPresenter.Children)
@@ -1129,43 +1125,7 @@ namespace SourceGit.Views
                     {
                         if (repo.CanCreatePopup())
                         {
-                            var found = false;
-                            foreach (var d in commit.Decorators)
-                            {
-                                if (d.Type == Models.DecoratorType.LocalBranchHead)
-                                {
-                                    var b = repo.Branches.Find(x => x.IsLocal && x.Name.Equals(d.Name, StringComparison.Ordinal));
-                                    if (b != null)
-                                    {
-                                        found = true;
-                                        repo.ShowPopup(new ViewModels.Merge(repo, b, current.Name, false));
-                                        break;
-                                    }
-                                }
-                                else if (d.Type == Models.DecoratorType.RemoteBranchHead)
-                                {
-                                    var rb = repo.Branches.Find(x => !x.IsLocal && x.FriendlyName.Equals(d.Name, StringComparison.Ordinal));
-                                    if (rb != null)
-                                    {
-                                        found = true;
-                                        repo.ShowPopup(new ViewModels.Merge(repo, rb, current.Name, false));
-                                        break;
-                                    }
-                                }
-                                else if (d.Type == Models.DecoratorType.Tag)
-                                {
-                                    var t = repo.Tags.Find(x => x.Name.Equals(d.Name, StringComparison.Ordinal));
-                                    if (t != null)
-                                    {
-                                        found = true;
-                                        repo.ShowPopup(new ViewModels.Merge(repo, t, current.Name));
-                                        break;
-                                    }
-                                }
-                            }
-
-                            if (!found)
-                                repo.ShowPopup(new ViewModels.Merge(repo, commit, current.Name));
+                            repo.ShowPopup(new ViewModels.Merge(repo, commit, current.Name));
                         }
 
                         e.Handled = true;

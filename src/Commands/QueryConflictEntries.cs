@@ -4,11 +4,11 @@ namespace SourceGit.Commands
 {
     public sealed class QueryConflictEntries : Command
     {
-        public QueryConflictEntries(string repo, string file)
+        public QueryConflictEntries(string repo, string file = null)
         {
             WorkingDirectory = repo;
             Context = repo;
-            Args = $"--literal-pathspecs ls-files --unmerged --stage -- {file.Quoted()}";
+            Args = "--literal-pathspecs ls-files --unmerged --stage" + (file == null ? string.Empty : $" -- {file.Quoted()}");
         }
 
         public string GetResult()

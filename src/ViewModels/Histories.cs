@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
 
+using Avalonia;
 using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Threading;
@@ -161,7 +162,16 @@ namespace SourceGit.ViewModels
         }
 
         public bool HasWorkingCopy => !_repo.IsBare;
-        public int WorkingCopyHeadIndex => HasWorkingCopy ? _commits.FindIndex(c => c.IsCurrentHead) : -1;
+        public bool HasPendingChanges => HasWorkingCopy && _repo.LocalChangesCount > 0;
+        public Thickness PendingRowsMargin => new(0, HasPendingChanges ? 19 : 0, 0, 0);
+        public Thickness CommitGraphMargin => new(0, HasPendingChanges ? 43 : 24, 0, 0);
+        public int WorkingCopyHeadIndex => HasPendingChanges ? _commits.FindIndex(c => c.IsCurrentHead) : -1;
+
+        public void NotifyWorkingCopyChanged()
+        {
+            foreach (var name in new[] { nameof(HasPendingChanges), nameof(PendingRowsMargin), nameof(CommitGraphMargin), nameof(WorkingCopyHeadIndex) })
+                OnPropertyChanged(name);
+        }
         public bool ShowRemoteBranches
         {
             get => _repo.UIStates.ShowRemoteBranchesInHistory;
@@ -198,7 +208,18 @@ namespace SourceGit.ViewModels
         public void ShowWorkingCopyOverview()
         {
             if (!HasWorkingCopy) return;
-            SelectedCommits = [];
+            if (!IsWorkingCopySelected)
+            {
+                // Clear the grid selection without constructing an intermediate
+                // empty details view or changing its size twice in one click.
+                var ignored = _ignoreSelectionChange;
+                _ignoreSelectionChange = true;
+                try { SelectedCommits = []; }
+                finally { _ignoreSelectionChange = ignored; }
+                _searchCommitContext.Selected = null;
+                if (_repo.UIStates.GraphHighlighting >= Models.CommitGraphHighlighting.SelectedCommitsOnly)
+                    GenerateGraph(_commits);
+            }
             IsWorkingCopySelected = true;
             IsCollapseDetails = false;
             DetailContext = _repo.WorkingCopy;

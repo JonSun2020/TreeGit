@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace SourceGit.Commands
 {
@@ -8,19 +9,25 @@ namespace SourceGit.Commands
         public MergeTree(string repo, string source, string dest)
         {
             WorkingDirectory = repo;
-            Args = $"merge-tree --write-tree {source} {dest}";
+            Args = $"merge-tree --write-tree {source.Quoted()} {dest.Quoted()}";
         }
 
         public async Task<int> GetExitCodeAsync()
         {
             using var proc = new Process();
-            proc.StartInfo = CreateGitStartInfo(false);
+            proc.StartInfo = CreateGitStartInfo(true);
 
             var exitCode = -1;
             try
             {
                 Native.ProcessLauncher.Start(proc);
-                await proc.WaitForExitAsync().ConfigureAwait(false);
+                using var registration = CancellationToken.Register(() =>
+                {
+                    if (!proc.HasExited) Native.OS.TerminateProcess(proc);
+                });
+                await Task.WhenAll(proc.StandardOutput.BaseStream.CopyToAsync(Stream.Null, CancellationToken),
+                    proc.StandardError.BaseStream.CopyToAsync(Stream.Null, CancellationToken),
+                    proc.WaitForExitAsync(CancellationToken)).ConfigureAwait(false);
                 exitCode = proc.ExitCode;
             }
             catch

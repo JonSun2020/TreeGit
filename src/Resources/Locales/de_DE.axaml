@@ -1134,4 +1134,19 @@ $1, $2, … Werte der Eingabe-Steuerelemente</x:String>
   <x:String x:Key="Text.MergeConflictEditor.Restore">Restore</x:String>
   <x:String x:Key="Text.MergeConflictEditor.EmptyBase">No file in the common ancestor</x:String>
   <x:String x:Key="Text.MergeConflictEditor.BaseUnavailable">The common ancestor cannot be displayed</x:String>
+  <x:String x:Key="Text.WorkingCopy.RefreshFailed">Could not refresh file status. The last result is preserved; please retry.</x:String>
+  <x:String x:Key="Text.Merge.Progress">Merging into {0}...</x:String>
+  <x:String x:Key="Text.Merge.DestinationChanged">The current branch changed. Reopen the merge dialog to choose the destination.</x:String>
+  <x:String x:Key="Text.Merge.FinishCurrent">Finish the current operation before merging another commit. The pending files are now shown.</x:String>
+  <x:String x:Key="Text.Merge.SubmodulesPending">The merge completed. Some submodules still need an update; retry from the submodule list.</x:String>
+  <x:String x:Key="Text.Merge.FastForwardBlocked">Fast-forward only cannot complete this merge. Use a regular merge and resolve any conflicts.</x:String>
+  <x:String x:Key="Text.Merge.Unrelated">These histories have no common ancestor. Enable the option above only if you intend to combine them.</x:String>
+  <x:String x:Key="Text.Merge.IdentityRequired">Set the author name and email in Repository Settings, then retry the merge.</x:String>
+  <x:String x:Key="Text.Merge.LocalFilesBlocked">Local files would be overwritten. Preserve or stash local edits; rename or move colliding new files first.</x:String>
+  <x:String x:Key="Text.Merge.IndexBusy">Another Git operation is using the repository. Wait for it to finish and retry.</x:String>
+  <x:String x:Key="Text.Merge.Failed">The merge did not complete. Review this operation in the log, then retry.</x:String>
+  <x:String x:Key="Text.Merge.KeepLocal">Preserve and restore local edits</x:String>
+  <x:String x:Key="Text.Merge.KeepLocalHint">Preserve uncommitted edits before merging and restore them afterward. Resolve overlapping edits manually.</x:String>
+  <x:String x:Key="Text.Merge.AllowUnrelated">Combine these independent histories</x:String>
+  <x:String x:Key="Text.Merge.UseRegular">Use a regular merge</x:String>
 </ResourceDictionary>

@@ -5,15 +5,17 @@ namespace SourceGit.Commands
 {
     public class Merge : Command
     {
-        public Merge(string repo, string source, string mode, bool edit)
+        public Merge(string repo, string source, string mode, bool edit, bool autoStash = false, bool allowUnrelated = false)
         {
             WorkingDirectory = repo;
             Context = repo;
 
             var builder = new StringBuilder();
-            builder.Append("merge --progress ");
+            builder.Append("merge --progress --no-overwrite-ignore ");
             builder.Append(edit ? "--edit " : "--no-edit ");
-            builder.Append(source);
+            if (autoStash) builder.Append("--autostash ");
+            if (allowUnrelated) builder.Append("--allow-unrelated-histories ");
+            builder.Append(source.Quoted());
             builder.Append(' ');
             builder.Append(mode);
 
@@ -26,7 +28,7 @@ namespace SourceGit.Commands
             Context = repo;
 
             var builder = new StringBuilder();
-            builder.Append("merge --progress ");
+            builder.Append("merge --progress --no-overwrite-ignore ");
             if (!string.IsNullOrEmpty(strategy))
                 builder.Append("--strategy=").Append(strategy).Append(' ');
             if (!autoCommit)
@@ -34,7 +36,7 @@ namespace SourceGit.Commands
 
             foreach (var t in targets)
             {
-                builder.Append(t);
+                builder.Append(t.Quoted());
                 builder.Append(' ');
             }
 

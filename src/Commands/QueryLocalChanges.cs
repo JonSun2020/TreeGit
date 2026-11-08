@@ -8,6 +8,8 @@ namespace SourceGit.Commands
 {
     public partial class QueryLocalChanges : Command
     {
+        public bool Succeeded { get; private set; }
+        public string Error { get; private set; } = string.Empty;
         [GeneratedRegex(@"^(\s?[\w\?]{1,4})\s+(.+)$")]
         private static partial Regex REG_FORMAT();
 
@@ -29,29 +31,35 @@ namespace SourceGit.Commands
 
         public async Task<List<Models.Change>> GetResultAsync()
         {
+            Succeeded = false;
+            Error = string.Empty;
             var outs = new List<Models.Change>();
+            if (CancellationToken.IsCancellationRequested) return outs;
 
             try
             {
                 using var proc = new Process();
                 var captured = new CapturedProcess() { Process = proc };
                 var capturedLock = new object();
+                var errors = new StringBuilder();
 
                 proc.StartInfo = CreateGitStartInfo(true);
+                proc.ErrorDataReceived += (_, e) =>
+                {
+                    if (e.Data == null) return;
+                    lock (errors)
+                        if (errors.Length < 16384) errors.AppendLine(e.Data[..System.Math.Min(e.Data.Length, 16384 - errors.Length)]);
+                };
                 Native.ProcessLauncher.Start(proc);
                 proc.BeginErrorReadLine();
 
-                if (CancellationToken.CanBeCanceled)
+                using var registration = CancellationToken.Register(() =>
                 {
-                    CancellationToken.Register(() =>
+                    lock (capturedLock)
                     {
-                        lock (capturedLock)
-                        {
-                            if (captured is { Process: { HasExited: false } proc })
-                                Native.OS.TerminateProcess(proc);
-                        }
-                    });
-                }
+                        if (captured is { Process: { HasExited: false } running }) Native.OS.TerminateProcess(running);
+                    }
+                });
 
                 while (await proc.StandardOutput.ReadLineAsync().ConfigureAwait(false) is { } line)
                 {
@@ -182,14 +190,17 @@ namespace SourceGit.Commands
                         outs.Add(change);
                 }
 
+                await proc.WaitForExitAsync(CancellationToken).ConfigureAwait(false);
+                Succeeded = proc.ExitCode == 0 && !CancellationToken.IsCancellationRequested;
+                if (!Succeeded) Error = errors.ToString().Trim();
                 lock (capturedLock)
                 {
                     captured.Process = null;
                 }
             }
-            catch
+            catch (System.Exception ex)
             {
-                // Ignore exceptions.
+                Error = ex.Message;
             }
 
             return outs;
