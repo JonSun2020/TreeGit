@@ -622,8 +622,8 @@
   <x:String x:Key="Text.MergeConflictEditor.Theirs" xml:space="preserve">對方版本 (theirs)</x:String>
   <x:String x:Key="Text.MergeConflictEditor.Title" xml:space="preserve">解決衝突</x:String>
   <x:String x:Key="Text.MergeConflictEditor.UnsavedChanges" xml:space="preserve">捨棄未儲存的變更?</x:String>
-  <x:String x:Key="Text.MergeConflictEditor.UseMine" xml:space="preserve">僅套用我方版本 (ours)</x:String>
-  <x:String x:Key="Text.MergeConflictEditor.UseTheirs" xml:space="preserve">僅套用對方版本 (theirs)</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.UseMine" xml:space="preserve">僅用左邊</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.UseTheirs" xml:space="preserve">僅用右邊</x:String>
   <x:String x:Key="Text.MergeConflictEditor.Undo" xml:space="preserve">復原變更</x:String>
   <x:String x:Key="Text.MergeMultiple" xml:space="preserve">合併 (多個來源)</x:String>
   <x:String x:Key="Text.MergeMultiple.CommitChanges" xml:space="preserve">提交變更</x:String>

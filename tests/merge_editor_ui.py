@@ -107,9 +107,12 @@ def screen(bounds,xf=.5,yf=.5):
     window=next(d for d in reversed(tool('ui_state')['dialogs']) if d['type'] in ('MergeConflictEditor','Confirm'))
     return window['x']+(bounds['x']+bounds['width']*xf)*window['scaling'],window['y']+(bounds['y']+bounds['height']*yf)*window['scaling']
 def press(name):pointer(*screen(button(name)['bounds']),click=True)
-def source_block(index,click=False):
+def source_block(index,click=False,side='left'):
     target=dialog()['merge']['regions'][index]['sourceTarget']
     assert target is not None,'Block is outside the current viewport'
+    if side=='right':
+        window=dialog();right=[s for s in layout()['scrolls'] if s['visible']][1]['bounds']
+        target={**target,'x':window['x']+(right['x']+80)*window['scaling']}
     pointer(target['x'],target['y'],click)
 
 try:
@@ -125,7 +128,10 @@ try:
     check('navigation aligns with the THEIRS column',abs(nav['x']-scrolls[1]['bounds']['x'])<=2)
     check('there are no bottom undo or redo buttons',not any(b['text'] in ('撤销','重做') for b in controls['buttons']))
     source_block(0)
-    check('all three choices are directly visible on hover',all(any(b['text'].startswith(name) for b in layout()['buttons']) for name in ('仅应用','先左后右','先右后左')))
+    check('left choices use the requested labels',all(any(b['text']==name for b in layout()['buttons']) for name in ('仅用左边','先左后右','先右后左')))
+    source_block(0,side='right')
+    check('right choices use the requested labels',all(any(b['text']==name for b in layout()['buttons']) for name in ('仅用右边','先左后右','先右后左')))
+    source_block(0)
     shot('editable-result')
     action('resolve',region=0,choice='ours')
     check('resolving a block changes remaining count but not the total',dialog()['merge']['unsolved']==1 and dialog()['merge']['position']=='1/2')

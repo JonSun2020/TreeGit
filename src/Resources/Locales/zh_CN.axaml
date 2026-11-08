@@ -625,8 +625,8 @@
   <x:String x:Key="Text.MergeConflictEditor.Theirs" xml:space="preserve">THEIRS</x:String>
   <x:String x:Key="Text.MergeConflictEditor.Title" xml:space="preserve">合并冲突</x:String>
   <x:String x:Key="Text.MergeConflictEditor.UnsavedChanges" xml:space="preserve">放弃所有更改?</x:String>
-  <x:String x:Key="Text.MergeConflictEditor.UseMine" xml:space="preserve">仅应用 MINE</x:String>
-  <x:String x:Key="Text.MergeConflictEditor.UseTheirs" xml:space="preserve">仅应用 THEIRS</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.UseMine" xml:space="preserve">仅用左边</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.UseTheirs" xml:space="preserve">仅用右边</x:String>
   <x:String x:Key="Text.MergeConflictEditor.Undo" xml:space="preserve">撤销更改</x:String>
   <x:String x:Key="Text.MergeMultiple" xml:space="preserve">合并（多目标）</x:String>
   <x:String x:Key="Text.MergeMultiple.CommitChanges" xml:space="preserve">提交变化</x:String>
