@@ -310,7 +310,7 @@ namespace SourceGit.ViewModels
             if (_workingCopyStatusError) return;
             _workingCopyStatusError = true;
             OnPropertyChanged(nameof(WorkingCopyStatusKnown));
-            NotifyError(App.Text("WorkingCopy.RefreshFailed"));
+            SendNotification(App.Text("WorkingCopy.RefreshFailed"), true);
         }
 
         public int StashesCount

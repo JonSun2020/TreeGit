@@ -75,7 +75,7 @@ namespace SourceGit.ViewModels
             if (before.Length > 0 || HasPendingOperation())
             {
                 RevealWorkingCopy(true);
-                _repo.NotifyError(App.Text("Merge.FinishCurrent"));
+                _repo.SendNotification(App.Text("Merge.FinishCurrent"), true);
                 return true;
             }
 
@@ -104,7 +104,7 @@ namespace SourceGit.ViewModels
                 catch (Exception ex)
                 {
                     Native.OS.LogException(ex);
-                    _repo.NotifyError(App.Text("Merge.SubmodulesPending"));
+                    _repo.SendNotification(App.Text("Merge.SubmodulesPending"), true);
                 }
                 if (after == null)
                 {
