@@ -20,8 +20,10 @@ namespace SourceGit.ViewModels
         public Models.ConflictFileState State
         {
             get => _state;
-            private set => SetProperty(ref _state, value);
+            private set { if (SetProperty(ref _state, value)) OnPropertyChanged(nameof(CanOpenMergeEditor)); }
         }
+
+        public bool CanOpenMergeEditor => _state is Models.ConflictFileState.UnmergedText or Models.ConflictFileState.Resolved || _canEditStructuralConflict;
 
         public object Theirs
         {
@@ -60,9 +62,26 @@ namespace SourceGit.ViewModels
                         .GetResultAsync()
                         .ConfigureAwait(false);
 
+                var canEditStructural = false;
+                if (state == Models.ConflictFileState.Unknown)
+                {
+                    try
+                    {
+                        var path = Path.Combine(repo.FullPath, change.Path);
+                        if (File.Exists(path) && (File.GetAttributes(path) & FileAttributes.ReparsePoint) == 0 && new FileInfo(path).Length <= Models.MergeConflictTextFile.MaxBytes)
+                        {
+                            Models.MergeConflictTextFile.Read(await File.ReadAllBytesAsync(path).ConfigureAwait(false));
+                            canEditStructural = true;
+                        }
+                    }
+                    catch { /* Keep the existing side-selection flow for non-text conflicts. */ }
+                }
+
                 Dispatcher.UIThread.Post(() =>
                 {
+                    _canEditStructuralConflict = canEditStructural;
                     State = state;
+                    OnPropertyChanged(nameof(CanOpenMergeEditor));
                     Mine = mine;
                     Theirs = theirs;
                 });
@@ -81,7 +100,7 @@ namespace SourceGit.ViewModels
 
         public MergeConflictEditor CreateOpenMergeEditorRequest()
         {
-            return _state == Models.ConflictFileState.UnmergedText ? new MergeConflictEditor(_repo, _head, _change.Path) : null;
+            return CanOpenMergeEditor ? new MergeConflictEditor(_repo, _head, _change.Path) : null;
         }
 
         public async Task MergeExternalAsync()
@@ -95,6 +114,7 @@ namespace SourceGit.ViewModels
         private Models.Change _change = null;
         private Models.Commit _head = null;
         private Models.ConflictFileState _state = Models.ConflictFileState.Unknown;
+        private bool _canEditStructuralConflict;
         private object _mine = null;
         private object _theirs = null;
     }

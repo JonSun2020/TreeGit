@@ -141,11 +141,13 @@ namespace SourceGit.Automation
                             .Select(w =>
                             {
                                 var area = w.Screens.ScreenFromWindow(w)?.WorkingArea;
+                                var merge = w.DataContext as ViewModels.MergeConflictEditor;
                                 var confirm = w.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "ConfirmRepositorySettings");
                                 var top = confirm?.TranslatePoint(new Point(0, 0), w);
                                 var bottom = confirm?.TranslatePoint(new Point(confirm.Bounds.Width, confirm.Bounds.Height), w);
                                 return new { title = w.Title, type = w.GetType().Name, topmost = w.Topmost, message = w is Views.Alert ? w.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name == "Message")?.Text : null, width = w.Bounds.Width, height = w.Bounds.Height, x = w.Position.X, y = w.Position.Y, scaling = w.RenderScaling,
                                     workArea = new { x = area?.X, y = area?.Y, width = area?.Width, height = area?.Height },
+                                    merge = merge == null ? null : new { file = merge.FilePath, repo = merge.RepositoryPath, unsolved = merge.UnsolvedCount, modified = merge.HasChanges, saving = merge.IsSaving, canSave = merge.CanSave, error = merge.Error, encoding = merge.SelectedEncoding?.Name },
                                     confirmVisible = top.HasValue && bottom.HasValue && top.Value.Y >= 0 && bottom.Value.Y <= w.Bounds.Height && bottom.Value.X <= w.Bounds.Width };
                             }).ToArray(),
                         repositories = launcher.Pages.Where(p => p.Data is ViewModels.Repository).Select(p =>
@@ -517,6 +519,56 @@ namespace SourceGit.Automation
                 return found;
             });
 
+            if (name == "ui_merge_result")
+            {
+                var file = Text(args, "file").Replace('\\', '/');
+                var action = Text(args, "action");
+                var editor = await Dispatcher.UIThread.InvokeAsync(() =>
+                    ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).Windows.OfType<Views.MergeConflictEditor>()
+                        .LastOrDefault(w => w.IsVisible && w.DataContext is ViewModels.MergeConflictEditor model && model.RepositoryPath == repo.FullPath && model.FilePath.Replace('\\', '/') == file)
+                    ?? throw new InvalidOperationException("Open the selected file in the conflict editor first."));
+                if (action == "save")
+                {
+                    var task = await Dispatcher.UIThread.InvokeAsync<System.Threading.Tasks.Task<bool>>(() => editor.SaveAndCloseAsync());
+                    return new { saved = await task };
+                }
+                return await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    var model = (ViewModels.MergeConflictEditor)editor.DataContext;
+                    var document = model.ResultDocument ?? throw new InvalidOperationException(model.Error);
+                    if (model.IsSaving) throw new InvalidOperationException("Wait for the current save to finish.");
+                    var offset = args.TryGetProperty("offset", out var o) ? o.GetInt32() : 0;
+                    if (offset < 0 || offset > document.TextLength) throw new ArgumentException("Character offset is out of range.");
+                    if (action == "replace")
+                    {
+                        if (!args.TryGetProperty("text", out var t) || t.ValueKind != JsonValueKind.String) throw new ArgumentException("Replacement text is required.");
+                        var text = t.GetString() ?? string.Empty;
+                        var length = args.TryGetProperty("length", out var l) ? l.GetInt32() : document.TextLength - offset;
+                        if (length < 0 || length > document.TextLength - offset || (long)document.TextLength - length + text.Length > Models.MergeConflictTextFile.MaxBytes) throw new ArgumentException("The replacement is out of range or too large.");
+                        document.Replace(offset, length, text);
+                    }
+                    else if (action == "resolve")
+                    {
+                        var index = args.TryGetProperty("region", out var indexValue) ? indexValue.GetInt32() : -1;
+                        var choice = Text(args, "choice") switch
+                        {
+                            "ours" => Models.ConflictResolution.UseOurs, "theirs" => Models.ConflictResolution.UseTheirs,
+                            "ours_then_theirs" => Models.ConflictResolution.UseBothMineFirst, "theirs_then_ours" => Models.ConflictResolution.UseBothTheirsFirst,
+                            "restore" => Models.ConflictResolution.None, _ => throw new ArgumentException("Invalid conflict resolution."),
+                        };
+                        if (!model.ResolveRegion(index, choice)) throw new InvalidOperationException("This block has been edited or resolved. Edit the result directly, or undo the last change.");
+                    }
+                    else if (action == "undo") document.UndoStack.Undo();
+                    else if (action == "redo") document.UndoStack.Redo();
+                    else if (action != "read") throw new ArgumentException("Unknown merge result action.");
+                    if (action != "read") offset = 0;
+                    var count = action == "read" ? Math.Min(args.TryGetProperty("length", out var n) ? n.GetInt32() : 32768, 65536) : 0;
+                    if (count < 0) throw new ArgumentException("Character count is out of range.");
+                    count = Math.Min(count, document.TextLength - offset);
+                    return (object)new { file, unsolved = model.UnsolvedCount, modified = model.HasChanges, canSave = model.CanSave, total = document.TextLength, offset, text = document.GetText(offset, count), error = model.Error };
+                });
+            }
+
             if (name == "ui_stashes")
                 return await Dispatcher.UIThread.InvokeAsync(() =>
                 {
@@ -699,6 +751,12 @@ namespace SourceGit.Automation
                             break;
                         case "credentials":
                             _ = new Views.RepositoryCredentials(repo).ShowDialog(owner);
+                            break;
+                        case "merge_conflicts":
+                            var mergeFile = Text(args, "file");
+                            if (string.IsNullOrEmpty(new QueryConflictEntries(repo.FullPath, mergeFile).GetResult())) throw new ArgumentException("The selected file is not in conflict.");
+                            var mergeHead = new QuerySingleCommit(repo.FullPath, "HEAD").GetResult();
+                            Views.ControlExtensions.ShowWindow(owner, new ViewModels.MergeConflictEditor(repo, mergeHead, mergeFile));
                             break;
                         case "file_history":
                             Views.ControlExtensions.ShowWindow(owner, new ViewModels.FileHistories(repo.FullPath, Text(args, "file")));

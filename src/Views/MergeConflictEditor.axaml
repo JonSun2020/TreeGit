@@ -74,9 +74,9 @@
     </Border>
 
     <!-- Main Content -->
-    <Grid Grid.Row="2" RowDefinitions="*,*" ColumnDefinitions="*,20">
+    <Grid x:Name="ConflictContent" Grid.Row="2" RowDefinitions="*,4,*" ColumnDefinitions="*,20" IsEnabled="{Binding !IsSaving}">
       <!-- Mine and Theirs Panels (Side-by-Side) -->
-      <Grid Grid.Row="0" Grid.Column="0" ColumnDefinitions="*,*" Margin="4,4,4,2">
+      <Grid Grid.Row="0" Grid.Column="0" ColumnDefinitions="*,*" Margin="4,4,4,2" IsVisible="{Binding HasComparison}">
         <!-- Mine (Ours) Panel -->
         <Border Grid.Column="0" Margin="0,0,2,0">
           <Grid RowDefinitions="26,*">
@@ -135,10 +135,16 @@
                       CornerRadius="4"
                       Padding="4,2"
                       BoxShadow="0 2 8 0 #40000000">
-                <Button Classes="flat primary"
+                <StackPanel Orientation="Horizontal" Spacing="4"><Button x:Name="AcceptLocalConflict" Classes="flat primary"
                         Content="{DynamicResource Text.MergeConflictEditor.UseMine}"
                         Command="{Binding Resolve}"
                         CommandParameter="{x:Static m:ConflictResolution.UseOurs}"/>
+                <Button Classes="flat primary" Content="{DynamicResource Text.MergeConflictEditor.UseBoth}">
+                  <Button.Flyout><MenuFlyout>
+                    <MenuItem Header="{DynamicResource Text.MergeConflictEditor.AcceptBoth.MineFirst}" Command="{Binding Resolve}" CommandParameter="{x:Static m:ConflictResolution.UseBothMineFirst}"/>
+                    <MenuItem Header="{DynamicResource Text.MergeConflictEditor.AcceptBoth.TheirsFirst}" Command="{Binding Resolve}" CommandParameter="{x:Static m:ConflictResolution.UseBothTheirsFirst}"/>
+                  </MenuFlyout></Button.Flyout>
+                </Button></StackPanel>
               </Border>
             </Grid>
           </Grid>
@@ -202,99 +208,45 @@
                       CornerRadius="4"
                       Padding="4,2"
                       BoxShadow="0 2 8 0 #40000000">
-                <Button Classes="flat primary"
+                <StackPanel Orientation="Horizontal" Spacing="4"><Button x:Name="AcceptRemoteConflict" Classes="flat primary"
                         Content="{DynamicResource Text.MergeConflictEditor.UseTheirs}"
                         Command="{Binding Resolve}"
                         CommandParameter="{x:Static m:ConflictResolution.UseTheirs}"/>
+                <Button Classes="flat primary" Content="{DynamicResource Text.MergeConflictEditor.UseBoth}">
+                  <Button.Flyout><MenuFlyout>
+                    <MenuItem Header="{DynamicResource Text.MergeConflictEditor.AcceptBoth.MineFirst}" Command="{Binding Resolve}" CommandParameter="{x:Static m:ConflictResolution.UseBothMineFirst}"/>
+                    <MenuItem Header="{DynamicResource Text.MergeConflictEditor.AcceptBoth.TheirsFirst}" Command="{Binding Resolve}" CommandParameter="{x:Static m:ConflictResolution.UseBothTheirsFirst}"/>
+                  </MenuFlyout></Button.Flyout>
+                </Button></StackPanel>
               </Border>
             </Grid>
           </Grid>
         </Border>
       </Grid>
 
-      <!-- Result Panel -->
-      <Border Grid.Row="1" Grid.Column="0" Margin="4,2,4,4">
-        <Grid RowDefinitions="26,*">
+      <GridSplitter Grid.Row="1" Grid.Column="0" Height="4" HorizontalAlignment="Stretch" ResizeDirection="Rows" IsVisible="{Binding HasComparison}"/>
+      <!-- The result is a real editable document, not the aligned comparison rows. -->
+      <Border Grid.Row="2" Grid.Column="0" Margin="4,2,4,4">
+        <Grid RowDefinitions="32,*">
           <Border Grid.Row="0" Padding="8,0" Background="{DynamicResource Brush.Popup}" BorderThickness="1,1,1,0" BorderBrush="{DynamicResource Brush.Border2}">
-            <TextBlock Text="{DynamicResource Text.MergeConflictEditor.Result}" FontWeight="Bold" VerticalAlignment="Center"/>
+            <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+              <TextBlock Text="{DynamicResource Text.MergeConflictEditor.EditableResult}" FontWeight="Bold" VerticalAlignment="Center"/>
+              <Button Grid.Column="1" Classes="flat" Content="{DynamicResource Text.MergeConflictEditor.UndoEdit}" Click="OnUndoResult" IsEnabled="{Binding ResultDocument.UndoStack.CanUndo}"/>
+              <Button Grid.Column="2" Classes="flat" Content="{DynamicResource Text.MergeConflictEditor.RedoEdit}" Click="OnRedoResult" IsEnabled="{Binding ResultDocument.UndoStack.CanRedo}"/>
+              <ComboBox Grid.Column="3" Width="125" Margin="8,0,0,0" ItemsSource="{Binding EncodingChoices}" SelectedItem="{Binding SelectedEncoding, Mode=TwoWay}" IsEnabled="{Binding CanChangeEncoding}" ToolTip.Tip="{DynamicResource Text.MergeConflictEditor.EncodingHint}">
+                <ComboBox.ItemTemplate><DataTemplate x:DataType="m:MergeConflictEncoding"><TextBlock Text="{Binding Name}"/></DataTemplate></ComboBox.ItemTemplate>
+              </ComboBox>
+            </Grid>
           </Border>
-          <Grid Grid.Row="1" Background="{DynamicResource Brush.Contents}">
-            <v:MergeConflictTextPresenter x:Name="ResultPresenter"
-                                          PanelType="Result"
-                                          Lines="{Binding ResultLines, Mode=OneWay}"
-                                          MaxLineNumber="{Binding MaxLineNumber}"
-                                          FileName="{Binding FilePath}"
-                                          SelectedChunk="{Binding SelectedChunk}"
-                                          FontFamily="{DynamicResource Fonts.Monospace}"
-                                          TheirsContentBackground="{DynamicResource Brush.Conflict.TheirsBG}"
-                                          OursContentBackground="{DynamicResource Brush.Conflict.MineBG}"
-                                          BorderThickness="1"
-                                          BorderBrush="{DynamicResource Brush.Border2}"/>
-            <Border x:Name="ResultPopup"
-                    IsVisible="False"
-                    VerticalAlignment="Top"
-                    HorizontalAlignment="Right"
-                    Background="{DynamicResource Brush.ToolBar}"
-                    BorderBrush="{DynamicResource Brush.Border2}"
-                    BorderThickness="1"
-                    CornerRadius="4"
-                    Padding="4,2"
-                    BoxShadow="0 2 8 0 #40000000">
-              <StackPanel Orientation="Horizontal" Spacing="4">
-                <Button Classes="flat primary"
-                        Content="{DynamicResource Text.MergeConflictEditor.UseMine}"
-                        Command="{Binding Resolve}"
-                        CommandParameter="{x:Static m:ConflictResolution.UseOurs}"/>
-                <Button Classes="flat primary"
-                        Content="{DynamicResource Text.MergeConflictEditor.UseTheirs}"
-                        Command="{Binding Resolve}"
-                        CommandParameter="{x:Static m:ConflictResolution.UseTheirs}"/>
-                <Button Classes="flat primary">
-                  <StackPanel Orientation="Horizontal" Spacing="4">
-                    <TextBlock Text="{DynamicResource Text.MergeConflictEditor.UseBoth}" Foreground="White"/>
-                    <Path Width="12" Height="12" Margin="4,4,0,0" Data="{StaticResource Icons.Down}" Fill="White"/>
-                  </StackPanel>
-                  <Button.Flyout>
-                    <MenuFlyout Placement="BottomEdgeAlignedLeft">
-                      <MenuItem Command="{Binding Resolve}" CommandParameter="{x:Static m:ConflictResolution.UseBothMineFirst}">
-                        <MenuItem.Header>
-                          <TextBlock Text="{DynamicResource Text.MergeConflictEditor.AcceptBoth.MineFirst}"/>
-                        </MenuItem.Header>
-                      </MenuItem>
-                      <MenuItem Command="{Binding Resolve}" CommandParameter="{x:Static m:ConflictResolution.UseBothTheirsFirst}">
-                        <MenuItem.Header>
-                          <TextBlock Text="{DynamicResource Text.MergeConflictEditor.AcceptBoth.TheirsFirst}"/>
-                        </MenuItem.Header>
-                      </MenuItem>
-                    </MenuFlyout>
-                  </Button.Flyout>
-                </Button>
-              </StackPanel>
-            </Border>
-            <Border x:Name="ResultUndoPopup"
-                    IsVisible="False"
-                    VerticalAlignment="Top"
-                    HorizontalAlignment="Right"
-                    Background="{DynamicResource Brush.ToolBar}"
-                    BorderBrush="{DynamicResource Brush.Border2}"
-                    BorderThickness="1"
-                    CornerRadius="4"
-                    Padding="4,2"
-                    BoxShadow="0 2 8 0 #40000000">
-              <Button Classes="flat"
-                      Content="{DynamicResource Text.MergeConflictEditor.Undo}"
-                      Command="{Binding Resolve}"
-                      CommandParameter="{x:Static m:ConflictResolution.None}"/>
-            </Border>
-          </Grid>
+          <v:MergeResultEditor x:Name="ResultPresenter" Grid.Row="1" Document="{Binding ResultDocument}" FileName="{Binding FilePath}" FontFamily="{DynamicResource Fonts.Monospace}" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border2}"/>
         </Grid>
       </Border>
 
       <!-- Minimap -->
-      <Border Grid.Row="0" Grid.RowSpan="2" Grid.Column="1"
+      <Border Grid.Row="0" Grid.RowSpan="3" Grid.Column="1"
               Margin="0,4,4,4"
               BorderThickness="1" BorderBrush="{DynamicResource Brush.Border2}">
-        <v:MergeConflictMinimap DisplayRange="{Binding #ResultPresenter.DisplayRange, Mode=OneWay}"
+        <v:MergeConflictMinimap DisplayRange="{Binding #OursPresenter.DisplayRange, Mode=OneWay}"
                                 UnsolvedCount="{Binding UnsolvedCount, Mode=OneWay}"/>
       </Border>
     </Grid>
@@ -326,15 +278,15 @@
 
     <!-- Foot -->
     <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top" Spacing="8">
-      <Button Classes="flat primary"
+      <Button x:Name="SaveMergeResult" Classes="flat primary"
               HorizontalAlignment="Center" VerticalAlignment="Top"
               HotKey="{OnPlatform Ctrl+S, macOS=⌘+S}"
               Click="OnSaveAndStage"
-              IsEnabled="{Binding UnsolvedCount, Converter={x:Static c:IntConverters.IsZero}}">
+              IsEnabled="{Binding CanSave}">
         <TextBlock Text="{DynamicResource Text.MergeConflictEditor.SaveAndStage}"/>
       </Button>
 
-      <Button Classes="flat"
+      <Button x:Name="CancelMergeEditor" Classes="flat" IsEnabled="{Binding !IsSaving}"
               Width="80"
               Content="{DynamicResource Text.Cancel}"
               Click="CloseWindow"

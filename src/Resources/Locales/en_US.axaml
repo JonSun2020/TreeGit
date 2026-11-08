@@ -1106,7 +1106,7 @@
   <x:String x:Key="Text.WorkingCopy.ConfirmCommitWithDetachedHead">You are creating commit on a detached HEAD. Do you want to continue?</x:String>
   <x:String x:Key="Text.WorkingCopy.ConfirmCommitWithFilter">You have staged {0} file(s) but only {1} file(s) displayed ({2} files are filtered out). Do you want to continue?</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts" xml:space="preserve">CONFLICTS DETECTED</x:String>
-  <x:String x:Key="Text.WorkingCopy.Conflicts.Merge" xml:space="preserve">MERGE</x:String>
+  <x:String x:Key="Text.WorkingCopy.Conflicts.Merge" xml:space="preserve">Edit merge result</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.MergeExternal" xml:space="preserve">Merge with External Tool</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.OpenExternalMergeToolAllConflicts" xml:space="preserve">OPEN ALL CONFLICTS IN EXTERNAL MERGETOOL</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.Resolved" xml:space="preserve">FILE CONFLICTS ARE RESOLVED</x:String>
@@ -1214,4 +1214,19 @@
   <x:String x:Key="Text.CheckoutRemote.NameInUse">This local branch name conflicts with another branch or tracks a different remote branch. Choose another name.</x:String>
   <x:String x:Key="Text.CheckoutRemote.RemoteGone">This remote branch is no longer available. Refresh and select another branch.</x:String>
   <x:String x:Key="Text.CheckoutRemote.StashKept">Your changes are saved in Stashes. Apply them there when you are ready.</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.EditableResult">Merge result (editable)</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.UndoEdit">Undo</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.RedoEdit">Redo</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.SelectAll">Select all</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.EncodingHint">Encoding: before editing, reopens the original text; after editing, changes the saved encoding without replacing your text.</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.InvalidEncoding">This encoding cannot read the original file. Your current text has been kept.</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.TooLarge">This file is too large for the built-in conflict editor. Please use an external editor.</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.StateChanged">The conflict state has changed. Reopen the file to review the latest result. Your current text remains in this window.</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.CannotOpen">This file cannot be opened as editable text. Binary files and linked paths are not supported.</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.StillUnresolved">Remove the remaining conflict markers before saving.</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.ReadOnly">This file is read-only. Make it writable before saving.</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.FileChanged">Another program changed this file. It has not been overwritten. Your edited text remains in this window.</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.StageFailed">The merge result was saved, but could not be marked as resolved. Please try again.</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.Unencodable">Some characters cannot be saved with this encoding. Choose UTF-8 or adjust the text.</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.SaveFailed">The merge result could not be saved. Check file access and available disk space, then try again.</x:String>
 </ResourceDictionary>

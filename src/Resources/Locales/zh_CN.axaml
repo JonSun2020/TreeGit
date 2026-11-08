@@ -1110,7 +1110,7 @@
   <x:String x:Key="Text.WorkingCopy.ConfirmCommitWithDetachedHead">您正在向一个游离的 HEAD 提交变更，是否继续提交？</x:String>
   <x:String x:Key="Text.WorkingCopy.ConfirmCommitWithFilter" xml:space="preserve">当前有 {0} 个文件在暂存区中，但仅显示了 {1} 个文件（{2} 个文件被过滤掉了），是否继续提交？</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts" xml:space="preserve">检测到冲突</x:String>
-  <x:String x:Key="Text.WorkingCopy.Conflicts.Merge" xml:space="preserve">解决冲突</x:String>
+  <x:String x:Key="Text.WorkingCopy.Conflicts.Merge" xml:space="preserve">编辑合并结果</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.MergeExternal" xml:space="preserve">使用外部工具解决冲突</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.OpenExternalMergeToolAllConflicts" xml:space="preserve">打开合并工具解决冲突</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.Resolved" xml:space="preserve">文件冲突已解决</x:String>
@@ -1218,4 +1218,19 @@
   <x:String x:Key="Text.CheckoutRemote.NameInUse">此本地分支名与其他分支冲突，或已跟踪其他远程分支，请换一个名称。</x:String>
   <x:String x:Key="Text.CheckoutRemote.RemoteGone">此远程分支已不存在，请刷新后重新选择。</x:String>
   <x:String x:Key="Text.CheckoutRemote.StashKept">你的修改已保存在“贮藏”中，可在方便时从那里恢复。</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.EditableResult">合并结果（可直接编辑）</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.UndoEdit">撤销</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.RedoEdit">重做</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.SelectAll">全选</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.EncodingHint">编码：未编辑时按所选编码重新读取；编辑后更改保存编码，保留当前文字。</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.InvalidEncoding">此编码无法正确读取原文件，当前文字已保留。</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.TooLarge">文件较大，请使用外部编辑器处理冲突。</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.StateChanged">文件的冲突状态已变化，请重新打开以查看最新结果。当前编辑仍保留在窗口中。</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.CannotOpen">无法将此文件作为文本编辑。二进制文件和链接路径不支持直接编辑。</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.StillUnresolved">还有未处理的冲突标记，请清除后再保存。</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.ReadOnly">文件为只读，请解除只读后再保存。</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.FileChanged">文件已被其他程序修改，未覆盖新内容。当前编辑仍保留在窗口中。</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.StageFailed">合并结果已保存，但未能标记为已解决，请重试。</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.Unencodable">部分字符无法用当前编码保存，请选择 UTF-8 或调整文字。</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.SaveFailed">合并结果未能保存，请检查文件访问权限和磁盘空间后重试。</x:String>
 </ResourceDictionary>

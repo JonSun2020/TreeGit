@@ -527,7 +527,7 @@ namespace SourceGit.Views
                 var r = vm.ConflictRegions[i];
                 if (r.StartLineInOriginal <= lineIdx && r.EndLineInOriginal >= lineIdx)
                 {
-                    if (r.IsResolved && panel != Models.ConflictPanelType.Result)
+                    if (!vm.CanResolve(i) || r.IsResolved && panel != Models.ConflictPanelType.Result)
                     {
                         vm.SelectedChunk = null;
                         return;
@@ -699,8 +699,10 @@ namespace SourceGit.Views
             if (DataContext is not ViewModels.MergeConflictEditor vm)
                 return;
 
-            if (_forceClose || vm.UnsolvedCount == vm.ConflictRegions.Count)
-                return;
+            if (vm.IsSaving) { e.Cancel = true; return; }
+            if (_forceClose || !vm.HasChanges) return;
+            if (_confirmingClose) { e.Cancel = true; return; }
+            _confirmingClose = true;
 
             e.Cancel = true;
 
@@ -708,6 +710,7 @@ namespace SourceGit.Views
             confirm.SetData(App.Text("MergeConflictEditor.UnsavedChanges"), Models.ConfirmButtonType.YesNo);
 
             var result = await confirm.ShowDialog<bool>(this);
+            _confirmingClose = false;
             if (result)
             {
                 _forceClose = true;
@@ -717,97 +720,70 @@ namespace SourceGit.Views
 
         protected override void OnClosed(EventArgs e)
         {
+            if (DataContext is ViewModels.MergeConflictEditor vm) vm.PropertyChanged -= OnEditorStateChanged;
             base.OnClosed(e);
             GC.Collect();
         }
 
-        private void OnGotoPrevConflict(object sender, RoutedEventArgs e)
+        protected override void OnLoaded(RoutedEventArgs e)
         {
-            if (IsLoaded && DataContext is ViewModels.MergeConflictEditor vm && vm.UnsolvedCount > 0)
+            base.OnLoaded(e);
+            if (DataContext is ViewModels.MergeConflictEditor vm)
             {
-                var view = OursPresenter.TextArea?.TextView;
-                var lines = vm.OursLines;
-                var minY = double.MaxValue;
-                var minLineIdx = lines.Count;
-                if (view is { VisualLinesValid: true })
+                vm.PropertyChanged += OnEditorStateChanged;
+                if (!vm.HasComparison)
                 {
-                    foreach (var line in view.VisualLines)
-                    {
-                        if (line.IsDisposed || line.FirstDocumentLine == null || line.FirstDocumentLine.IsDeleted)
-                            continue;
-
-                        var index = line.FirstDocumentLine.LineNumber;
-                        if (index > lines.Count)
-                            break;
-
-                        var lineIndex = index - 1;
-                        var startY = line.GetTextLineVisualYPosition(line.TextLines[0], VisualYPosition.LineTop) - view.VerticalOffset;
-                        if (startY < minY)
-                        {
-                            minY = startY;
-                            minLineIdx = lineIndex;
-                        }
-                    }
-
-                    for (var i = vm.ConflictRegions.Count - 1; i >= 0; i--)
-                    {
-                        var r = vm.ConflictRegions[i];
-                        if (r.StartLineInOriginal < minLineIdx && !r.IsResolved)
-                        {
-                            OursPresenter.ScrollToLine(r.StartLineInOriginal + 1);
-                            break;
-                        }
-                    }
+                    ConflictContent.RowDefinitions[0].Height = new GridLength(0);
+                    ConflictContent.RowDefinitions[1].Height = new GridLength(0);
+                    ConflictContent.ColumnDefinitions[1].Width = new GridLength(0);
                 }
             }
+        }
 
+        private void OnEditorStateChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ViewModels.MergeConflictEditor.UnsolvedCount))
+            {
+                OursPresenter.TextArea.TextView.Redraw();
+                TheirsPresenter.TextArea.TextView.Redraw();
+            }
+        }
+
+        private void OnGotoPrevConflict(object sender, RoutedEventArgs e) => GotoConflict(false, e);
+        private void OnGotoNextConflict(object sender, RoutedEventArgs e) => GotoConflict(true, e);
+
+        private void GotoConflict(bool next, RoutedEventArgs e)
+        {
+            if (DataContext is ViewModels.MergeConflictEditor vm && vm.UnresolvedOffsets.Count > 0)
+            {
+                var offsets = vm.UnresolvedOffsets;
+                var target = next ? offsets[0] : offsets[^1];
+                if (next)
+                {
+                    foreach (var offset in offsets) if (offset > ResultPresenter.CaretOffset) { target = offset; break; }
+                }
+                else
+                {
+                    for (var i = offsets.Count - 1; i >= 0; i--) if (offsets[i] < ResultPresenter.CaretOffset) { target = offsets[i]; break; }
+                }
+                ResultPresenter.CaretOffset = target;
+                ResultPresenter.ScrollToLine(vm.ResultDocument.GetLineByOffset(target).LineNumber);
+                var sourceLine = vm.SourceLineForOffset(target);
+                if (sourceLine > 0) OursPresenter.ScrollToLine(sourceLine);
+                ResultPresenter.Focus();
+            }
             e.Handled = true;
         }
 
-        private void OnGotoNextConflict(object sender, RoutedEventArgs e)
-        {
-            if (IsLoaded && DataContext is ViewModels.MergeConflictEditor vm && vm.UnsolvedCount > 0)
-            {
-                var view = OursPresenter.TextArea?.TextView;
-                var lines = vm.OursLines;
-                var maxY = 0.0;
-                var maxLineIdx = 0;
-                if (view is { VisualLinesValid: true })
-                {
-                    foreach (var line in view.VisualLines)
-                    {
-                        if (line.IsDisposed || line.FirstDocumentLine == null || line.FirstDocumentLine.IsDeleted)
-                            continue;
-
-                        var index = line.FirstDocumentLine.LineNumber;
-                        if (index > lines.Count)
-                            break;
-
-                        var lineIndex = index - 1;
-                        var startY = line.GetTextLineVisualYPosition(line.TextLines[0], VisualYPosition.LineTop) - view.VerticalOffset;
-                        if (startY > maxY)
-                        {
-                            maxY = startY;
-                            maxLineIdx = lineIndex;
-                        }
-                    }
-
-                    for (var i = 0; i < vm.ConflictRegions.Count; i++)
-                    {
-                        var r = vm.ConflictRegions[i];
-                        if (r.StartLineInOriginal > maxLineIdx && !r.IsResolved)
-                        {
-                            OursPresenter.ScrollToLine(r.StartLineInOriginal + 1);
-                            break;
-                        }
-                    }
-                }
-            }
-
-            e.Handled = true;
-        }
+        private void OnUndoResult(object sender, RoutedEventArgs e) => ResultPresenter.Undo();
+        private void OnRedoResult(object sender, RoutedEventArgs e) => ResultPresenter.Redo();
 
         private async void OnSaveAndStage(object sender, RoutedEventArgs e)
+        {
+            await SaveAndCloseAsync();
+        }
+
+        public async System.Threading.Tasks.Task<bool> SaveAndCloseAsync()
         {
             if (DataContext is ViewModels.MergeConflictEditor vm)
             {
@@ -817,7 +793,9 @@ namespace SourceGit.Views
                     _forceClose = true;
                     Close();
                 }
+                return success;
             }
+            return false;
         }
 
         private void CloseWindow(object sender, RoutedEventArgs e)
@@ -827,52 +805,18 @@ namespace SourceGit.Views
 
         private void UpdatePopupVisibility()
         {
-            // Hide all popups first
             MinePopup.IsVisible = false;
             TheirsPopup.IsVisible = false;
-            ResultPopup.IsVisible = false;
-            ResultUndoPopup.IsVisible = false;
-
-            if (DataContext is not ViewModels.MergeConflictEditor vm)
-                return;
-
-            var chunk = vm.SelectedChunk;
-            if (chunk == null)
-                return;
-
-            // Get the presenter for bounds checking
-            var presenter = chunk.Panel switch
-            {
-                Models.ConflictPanelType.Ours => OursPresenter,
-                Models.ConflictPanelType.Theirs => TheirsPresenter,
-                Models.ConflictPanelType.Result => ResultPresenter,
-                _ => null
-            };
-
-            // Show the appropriate popup based on panel type and resolved state
-            var popup = chunk.Panel switch
-            {
-                Models.ConflictPanelType.Ours => MinePopup,
-                Models.ConflictPanelType.Theirs => TheirsPopup,
-                Models.ConflictPanelType.Result => chunk.IsResolved ? ResultUndoPopup : ResultPopup,
-                _ => null
-            };
-
-            if (popup != null && presenter != null)
-            {
-                // Position popup - clamp to visible area
-                var top = chunk.Y + (chunk.Height >= 36 ? 8 : 2);
-
-                // Clamp top to ensure popup is visible
-                var popupHeight = popup.Bounds.Height > 0 ? popup.Bounds.Height : 32;
-                var presenterHeight = presenter.Bounds.Height;
-                top = Math.Max(4, Math.Min(top, presenterHeight - popupHeight - 4));
-
-                popup.Margin = new Thickness(0, top, 24, 0);
-                popup.IsVisible = true;
-            }
+            if (DataContext is not ViewModels.MergeConflictEditor vm || vm.SelectedChunk is not { } chunk || !vm.CanResolve(chunk.ConflictIndex)) return;
+            var presenter = chunk.Panel == Models.ConflictPanelType.Ours ? OursPresenter : TheirsPresenter;
+            var popup = chunk.Panel == Models.ConflictPanelType.Ours ? MinePopup : TheirsPopup;
+            var height = popup.Bounds.Height > 0 ? popup.Bounds.Height : 32;
+            var top = Math.Max(4, Math.Min(chunk.Y + (chunk.Height >= 36 ? 8 : 2), presenter.Bounds.Height - height - 4));
+            popup.Margin = new Thickness(0, top, 24, 0);
+            popup.IsVisible = true;
         }
 
+        private bool _confirmingClose;
         private bool _forceClose = false;
         private Models.ConflictSelectedChunk _selectedChunk = null;
     }

@@ -1,4 +1,4 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:m="using:SourceGit.Models" xmlns:v="using:SourceGit.Views" xmlns:vm="using:SourceGit.ViewModels" xmlns:c="using:SourceGit.Converters" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SourceGit.Views.Conflict" x:DataType="vm:Conflict">
   <Border CornerRadius="4" Background="{DynamicResource Brush.Window}" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border2}">
     <Grid VerticalAlignment="Center">
@@ -53,7 +53,7 @@
               <TextBlock Margin="6,0,0,0" Text="{DynamicResource Text.WorkingCopy.Conflicts.UseMine}" VerticalAlignment="Center"/>
             </StackPanel>
           </Button>
-          <SplitButton Height="28" Margin="8,0,0,0" Padding="8,0" Click="OnMerge" IsVisible="{Binding State, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static m:ConflictFileState.UnmergedText}}">
+          <SplitButton Height="28" Margin="8,0,0,0" Padding="8,0" Click="OnMerge" IsVisible="{Binding CanOpenMergeEditor}">
             <SplitButton.Styles>
               <Style Selector="SplitButton">
                 <Setter Property="MinHeight" Value="24"/>
@@ -107,6 +107,7 @@
         <Path Width="64" Height="64" Data="{StaticResource Icons.Check}" Fill="Green"/>
         <TextBlock Margin="0,16,0,8" FontSize="20" FontWeight="Bold" Text="{DynamicResource Text.WorkingCopy.Conflicts.Resolved}" Foreground="{DynamicResource Brush.FG2}" HorizontalAlignment="Center"/>
         <TextBlock Text="{DynamicResource Text.WorkingCopy.CanStageTip}" Foreground="{DynamicResource Brush.FG2}" HorizontalAlignment="Center"/>
+        <Button Classes="flat primary" Margin="0,12,0,0" HorizontalAlignment="Center" Content="{DynamicResource Text.WorkingCopy.Conflicts.Merge}" Click="OnMerge" IsVisible="{Binding CanOpenMergeEditor}"/>
       </StackPanel>
     </Grid>
   </Border>

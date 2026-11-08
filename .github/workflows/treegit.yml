@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       preview:
-        description: Build and verify the search preview only; not eligible for release
+        description: Build and verify a UI preview; not eligible for release
         type: boolean
         default: false
 
@@ -148,6 +148,9 @@ jobs:
       - name: Build portable TreeGit
         shell: pwsh
         run: ./build-treegit.ps1 -Destination "$env:RUNNER_TEMP/TreeGit"
+      - name: Verify editable merge results, undo history and encodings
+        shell: pwsh
+        run: dotnet run --project tests/MergeConflictProbe.csproj -c Release -- "$env:RUNNER_TEMP/merge-model-results"
       - name: Package
         shell: pwsh
         run: |
@@ -217,6 +220,7 @@ jobs:
         with:
           name: TreeGit-ui-regressions
           path: |
+            ${{ runner.temp }}/merge-model-results/*.json
             ${{ runner.temp }}/sidebar-results/*.json
             ${{ runner.temp }}/sidebar-results/*.png
             ${{ runner.temp }}/search-page-results/*.json
