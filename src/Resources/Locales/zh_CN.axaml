@@ -1253,4 +1253,6 @@
   <x:String x:Key="Text.Merge.KeepLocalHint">先保留未提交的修改，合并后恢复；与新版本重叠时可继续手动解决。</x:String>
   <x:String x:Key="Text.Merge.AllowUnrelated">确认合并两个独立的历史</x:String>
   <x:String x:Key="Text.Merge.UseRegular">改为普通合并</x:String>
+  <x:String x:Key="Text.Discard.ProtectedFiles">继续操作会覆盖未跟踪文件或目录链接，请先将相关文件移到安全位置，再丢弃已跟踪修改。</x:String>
+  <x:String x:Key="Text.Discard.Failed">丢弃未完成，请确认磁盘空间和文件访问权限后重试。</x:String>
 </ResourceDictionary>

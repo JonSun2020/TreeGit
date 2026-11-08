@@ -18,6 +18,8 @@ namespace SourceGit.Tests
         {
             Directory.CreateDirectory(root);
             Native.OS.GitExecutable = Native.OS.FindGitExecutable();
+            if (mode.StartsWith("safety-", StringComparison.Ordinal))
+                return await DataSafetyProbe.RunAsync(root, mode[7..], report);
             if (mode.StartsWith("stream-", StringComparison.Ordinal))
                 return await RunStreamAsync(root, mode[7..], report);
             if (mode == "credential-config")

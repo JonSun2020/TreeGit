@@ -304,9 +304,11 @@ namespace SourceGit.ViewModels
         }
 
         public bool WorkingCopyStatusKnown => _workingCopyStatusKnown && !_workingCopyStatusError;
+        public long WorkingCopyRefreshVersion { get; private set; }
 
         public void NotifyWorkingCopyStatusFailure()
         {
+            WorkingCopyRefreshVersion++;
             if (_workingCopyStatusError) return;
             _workingCopyStatusError = true;
             OnPropertyChanged(nameof(WorkingCopyStatusKnown));
@@ -1608,6 +1610,7 @@ namespace SourceGit.ViewModels
 
                     _workingCopyStatusError = false;
                     _workingCopyStatusKnown = true;
+                    WorkingCopyRefreshVersion++;
                     OnPropertyChanged(nameof(WorkingCopyStatusKnown));
                     _workingCopy.SetData(changes);
                     LocalChangesCount = changes.Count;

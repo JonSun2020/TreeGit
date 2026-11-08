@@ -44,6 +44,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/process-launch-results" --launches
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/data-safety-results" --safety
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify authentication changes during an in-flight read
         shell: pwsh
         run: |
@@ -120,6 +122,7 @@ jobs:
             ${{ runner.temp }}/pointer-results/command-pipes-results.json
             ${{ runner.temp }}/index-info-results/command-pipes-results.json
             ${{ runner.temp }}/process-launch-results/command-pipes-results.json
+            ${{ runner.temp }}/data-safety-results/command-pipes-results.json
             ${{ runner.temp }}/ssh-keygen-results/command-pipes-results.json
             ${{ runner.temp }}/mode-results/repository-mode-results.json
             ${{ runner.temp }}/startup-results/ui-startup-results.json

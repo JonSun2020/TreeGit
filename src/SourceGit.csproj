@@ -49,6 +49,7 @@
     <Compile Include="../tests/RepositorySettingsProbe.cs" />
     <Compile Include="../tests/ProcessCancellationProbe.cs" />
     <Compile Include="../tests/CommandPipeProbe.cs" />
+    <Compile Include="../tests/DataSafetyProbe.cs" />
     <Compile Include="../tests/PreferencesLoadProbe.cs" />
   </ItemGroup>
 

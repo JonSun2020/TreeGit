@@ -145,7 +145,13 @@ namespace SourceGit.ViewModels
                 }
                 else
                 {
-                    await Commands.Discard.AllAsync(_repo.FullPath, true, false, false, log);
+                    if (!await Commands.Discard.AllAsync(_repo.FullPath, true, false, false, log))
+                    {
+                        log.Complete();
+                        _repo.MarkWorkingCopyDirtyManually();
+                        _cancellation = null;
+                        return false;
+                    }
                 }
             }
 

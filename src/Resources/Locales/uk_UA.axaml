@@ -784,4 +784,6 @@
   <x:String x:Key="Text.Merge.KeepLocalHint">Preserve uncommitted edits before merging and restore them afterward. Resolve overlapping edits manually.</x:String>
   <x:String x:Key="Text.Merge.AllowUnrelated">Combine these independent histories</x:String>
   <x:String x:Key="Text.Merge.UseRegular">Use a regular merge</x:String>
+  <x:String x:Key="Text.Discard.ProtectedFiles">Untracked files or a linked folder would be overwritten. Move them to a safe location before discarding tracked changes.</x:String>
+  <x:String x:Key="Text.Discard.Failed">Discard failed. Check available disk space and file permissions, then retry.</x:String>
 </ResourceDictionary>

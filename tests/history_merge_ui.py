@@ -83,8 +83,9 @@ def layout(): return tool('ui_layout')
 def shot(name): (out / (name + '.png')).write_bytes(tool('ui_screenshot'))
 def command(name, **args): return tool('ui_command', {'repo': str(repo), 'command': name, **args})
 def refresh():
+    before = state()['workingCopyRefreshVersion']
     tool('ui_refresh', {'repo': str(repo)})
-    wait_for(lambda: state()['workingCopyStatusKnown'] and not state()['graphLoading'])
+    wait_for(lambda: state()['workingCopyRefreshVersion'] > before and state()['workingCopyStatusKnown'] and not state()['graphLoading'])
 
 api = ctypes.WinDLL('user32', use_last_error=True)
 api.WindowFromPoint.argtypes = [wintypes.POINT]; api.WindowFromPoint.restype = wintypes.HWND
@@ -136,6 +137,13 @@ try:
     check('native row click opens working copy without losing history columns', state()['pendingRow']['visible'] and state()['detailView'] == 'WorkingCopy')
     git('add', 'values.txt'); refresh(); pending(True)
     check('staged-only change keeps the row visible', state()['workingCopyState']['staged'] == ['values.txt'])
+    config = repo / '.git/config'; saved_config = config.read_bytes(); before = state()['workingCopyRefreshVersion']
+    config.write_bytes(b'[broken')
+    tool('ui_refresh', {'repo': str(repo)})
+    wait_for(lambda: state()['workingCopyRefreshVersion'] > before and not state()['workingCopyStatusKnown'])
+    check('status failure preserves the previous pending row and staged list', state()['hasPendingChanges'] and state()['pendingRow']['visible'] and state()['workingCopyState']['staged'] == ['values.txt'])
+    config.write_bytes(saved_config); refresh()
+    check('status display recovers after a transient read failure', state()['workingCopyStatusKnown'] and state()['workingCopyState']['staged'] == ['values.txt'])
     reset(); write('new [1].txt', 'untracked\n'); refresh(); pending(True)
     check('untracked file reveals the row', state()['workingCopyState']['unstaged'] == ['new [1].txt'])
     reset(); write('ignored.data', 'ignored only\n'); refresh(); pending(False)

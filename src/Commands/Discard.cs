@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -7,89 +7,65 @@ namespace SourceGit.Commands
 {
     public static class Discard
     {
-        /// <summary>
-        ///     Discard all local changes (unstaged & staged)
-        /// </summary>
-        public static async Task AllAsync(string repo, bool includeModified, bool includeUntracked, bool includeIgnored, Models.ICommandLog log)
+        public static async Task<bool> AllAsync(string repo, bool includeModified, bool includeUntracked, bool includeIgnored, Models.ICommandLog log)
         {
-            if (includeUntracked)
-            {
-                // Untracked paths that contains `.git` file (detached submodule) must be removed manually.
-                var changes = await new QueryLocalChanges(repo).GetResultAsync().ConfigureAwait(false);
-                try
-                {
-                    foreach (var c in changes)
-                    {
-                        if (c.WorkTree == Models.ChangeState.Untracked ||
-                            c.WorkTree == Models.ChangeState.Added ||
-                            c.Index == Models.ChangeState.Added ||
-                            c.Index == Models.ChangeState.Renamed)
-                        {
-                            var fullPath = Path.Combine(repo, c.Path);
-                            if (Directory.Exists(fullPath))
-                                Directory.Delete(fullPath, true);
-                        }
-                    }
-                }
-                catch (Exception e)
-                {
-                    Models.Notification.Send(repo, $"Failed to discard changes. Reason: {e.Message}", true);
-                }
+            // Validate before deleting anything; failure never means clean.
+            var query = new QueryLocalChanges(repo);
+            await query.GetResultAsync().ConfigureAwait(false);
+            if (!query.Succeeded) return Failed(repo, "WorkingCopy.RefreshFailed");
+            if (includeModified && !await new CheckRestoreSafety(repo, true).GetResultAsync().ConfigureAwait(false))
+                return Failed(repo, "Discard.ProtectedFiles");
 
-                if (includeIgnored)
-                    await new Clean(repo, Models.CleanMode.UntrackedAndIgnoredFiles).Use(log).ExecAsync().ConfigureAwait(false);
-                else
-                    await new Clean(repo, Models.CleanMode.OnlyUntrackedFiles).Use(log).ExecAsync().ConfigureAwait(false);
-            }
-            else if (includeIgnored)
+            // Native clean protects nested repositories and handles links itself.
+            // Never bypass those safeguards with recursive Directory.Delete.
+            if (includeUntracked || includeIgnored)
             {
-                await new Clean(repo, Models.CleanMode.OnlyIgnoredFiles).Use(log).ExecAsync().ConfigureAwait(false);
+                var mode = includeUntracked ? includeIgnored ? Models.CleanMode.UntrackedAndIgnoredFiles : Models.CleanMode.OnlyUntrackedFiles : Models.CleanMode.OnlyIgnoredFiles;
+                if (!await new Clean(repo, mode).Use(log).ExecAsync().ConfigureAwait(false)) return false;
             }
-
-            if (includeModified)
-                await new Reset(repo, "", "--hard").Use(log).ExecAsync().ConfigureAwait(false);
+            return !includeModified || await new Reset(repo, "", "--hard").Use(log).ExecAsync().ConfigureAwait(false);
         }
 
-        /// <summary>
-        ///     Discard selected changes (only unstaged).
-        /// </summary>
-        /// <param name="repo"></param>
-        /// <param name="changes"></param>
-        /// <param name="log"></param>
-        public static async Task ChangesAsync(string repo, List<Models.Change> changes, Models.ICommandLog log)
+        public static async Task<bool> ChangesAsync(string repo, List<Models.Change> changes, Models.ICommandLog log)
         {
-            var restores = new List<string>();
+            var restores = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var change in changes)
+                if (change.WorkTree is not (Models.ChangeState.Untracked or Models.ChangeState.Added)) restores.Add(change.Path);
+            if (restores.Count > 0 && !await new CheckRestoreSafety(repo, false, restores).GetResultAsync().ConfigureAwait(false))
+                return Failed(repo, "Discard.ProtectedFiles");
 
+            string pathSpecFile = null;
             try
             {
-                foreach (var c in changes)
+                foreach (var change in changes)
                 {
-                    if (c.WorkTree == Models.ChangeState.Untracked || c.WorkTree == Models.ChangeState.Added)
-                    {
-                        var fullPath = Path.Combine(repo, c.Path);
-                        if (Directory.Exists(fullPath))
-                            Directory.Delete(fullPath, true);
-                        else
-                            File.Delete(fullPath);
-                    }
-                    else
-                    {
-                        restores.Add(c.Path);
-                    }
+                    if ((change.WorkTree is Models.ChangeState.Untracked or Models.ChangeState.Added) &&
+                        !await new Clean(repo, Models.CleanMode.OnlyUntrackedFiles, change.Path).Use(log).ExecAsync().ConfigureAwait(false)) return false;
+                }
+                if (restores.Count == 0) return true;
+                pathSpecFile = Path.GetTempFileName();
+                await File.WriteAllTextAsync(pathSpecFile, string.Join('\0', restores) + '\0').ConfigureAwait(false);
+                return await new Restore(repo, pathSpecFile, true).Use(log).ExecAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                Native.OS.LogException(ex);
+                return Failed(repo, "Discard.Failed");
+            }
+            finally
+            {
+                if (pathSpecFile != null)
+                {
+                    try { File.Delete(pathSpecFile); }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Native.OS.LogException(ex); }
                 }
             }
-            catch (Exception e)
-            {
-                Models.Notification.Send(repo, $"Failed to discard changes. Reason: {e.Message}", true);
-            }
+        }
 
-            if (restores.Count > 0)
-            {
-                var pathSpecFile = Path.GetTempFileName();
-                await File.WriteAllLinesAsync(pathSpecFile, restores).ConfigureAwait(false);
-                await new Restore(repo, pathSpecFile).Use(log).ExecAsync().ConfigureAwait(false);
-                File.Delete(pathSpecFile);
-            }
+        private static bool Failed(string repo, string key)
+        {
+            Models.Notification.Send(repo, App.Text(key), true);
+            return false;
         }
     }
 }

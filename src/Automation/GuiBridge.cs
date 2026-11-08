@@ -210,6 +210,7 @@ namespace SourceGit.Automation
                                 branch = r.CurrentBranch?.Name,
                                 changes = r.LocalChangesCount,
                                 workingCopyStatusKnown = r.WorkingCopyStatusKnown,
+                                workingCopyRefreshVersion = r.WorkingCopyRefreshVersion,
                                 hasPendingChanges = r.Histories?.HasPendingChanges,
                                 pendingRow = pendingRow == null ? null : new { visible = pendingRow.IsEffectivelyVisible,
                                     x = pendingRow.PointToScreen(default).X, y = pendingRow.PointToScreen(default).Y,
