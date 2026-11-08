@@ -163,14 +163,15 @@ def conflict_color(index,column):
     assert pixel!=0xffffffff
     return pixel&255,(pixel>>8)&255,(pixel>>16)&255
 
-def select_conflicted_file():
+def select_conflicted_file(file_path=None,require_editor=True):
+    target=file_path or file
     def state():return next(r for r in tool('ui_state')['repositories'] if Path(r['repo']).resolve()==repo)
     version=state()['workingCopyRefreshVersion']
     tool('ui_refresh',{'repo':str(repo)})
-    wait_for(lambda:state()['workingCopyRefreshVersion']>version and state()['workingCopyStatusKnown'] and file in state()['workingCopyState']['unstaged'])
-    tool('ui_diff',{'repo':str(repo),'action':'select','file':file,'source':'unstaged'})
+    wait_for(lambda:state()['workingCopyRefreshVersion']>version and state()['workingCopyStatusKnown'] and target in state()['workingCopyState']['unstaged'])
+    tool('ui_diff',{'repo':str(repo),'action':'select','file':target,'source':'unstaged'})
     wait_for(lambda:any(b['name']=='UseLocalConflict' and b['enabled'] for b in layout()['buttons']))
-    wait_for(lambda:any(b['text']=='用合并工具编辑' and b['enabled'] for b in layout()['buttons']))
+    if require_editor:wait_for(lambda:any(b['text']=='用合并工具编辑' and b['enabled'] for b in layout()['buttons']))
 
 try:
     rpc('initialize',{'protocolVersion':'2025-11-25'});tool('ui_open_repository',{'repo':str(repo)})
@@ -348,6 +349,46 @@ try:
     path.chmod(stat.S_IREAD|stat.S_IWRITE)
     select_conflicted_file();press('UseLocalConflict');wait_for(lambda:not git('ls-files','-u','--',file).stdout)
     check('delete resolution can be retried after fixing file permissions',not path.exists() and (repo/'.git/MERGE_HEAD').exists())
+    git('merge','--abort')
+
+    # Resolve gitlink conflicts to the chosen index SHA, never to an unrelated
+    # submodule HEAD. Preserve the module's own uncommitted and untracked data.
+    module_source=root/'module-source';module_source.mkdir()
+    def module_git(directory,*args):
+        result=subprocess.run(['git','-C',str(directory),*args],env=env,capture_output=True,text=True,encoding='utf-8')
+        assert result.returncode==0,result.stderr
+        return result.stdout.strip()
+    module_git(module_source,'init','-b','main')
+    module_git(module_source,'config','user.name','Module QA');module_git(module_source,'config','user.email','qa@example.invalid')
+    (module_source/'values.txt').write_text('base\n',encoding='utf8');module_git(module_source,'add','.');module_git(module_source,'commit','-m','Module base')
+    git('checkout','-B','module-base','feature^')
+    git('-c','protocol.file.allow=always','submodule','add',str(module_source),'module');git('commit','-am','Add module')
+    module=repo/'module';module_git(module,'config','user.name','Module QA');module_git(module,'config','user.email','qa@example.invalid')
+    module_base=module_git(module,'rev-parse','HEAD');super_base=git('rev-parse','HEAD').stdout.strip()
+    git('checkout','-b','module-local')
+    (module/'values.txt').write_text('local module\n',encoding='utf8');module_git(module,'commit','-am','Local module');module_local=module_git(module,'rev-parse','HEAD')
+    git('add','module');git('commit','-m','Local gitlink')
+    git('checkout','-b','module-remote',super_base);module_git(module,'checkout','--detach',module_base)
+    (module/'values.txt').write_text('remote module\n',encoding='utf8');module_git(module,'commit','-am','Remote module');module_remote=module_git(module,'rev-parse','HEAD')
+    git('add','module');git('commit','-m','Remote gitlink')
+    module_git(module,'checkout','--detach',module_local);(module/'values.txt').write_text('unrelated open module\n',encoding='utf8')
+    module_git(module,'commit','-am','Unrelated module');unrelated_module=module_git(module,'rev-parse','HEAD')
+    (module/'user-notes.txt').write_text('preserve module notes\n',encoding='utf8')
+    for name,expected in [('UseLocalConflict',module_local),('UseRemoteConflict',module_remote)]:
+        git('checkout','module-local');module_git(module,'checkout','--detach',module_local)
+        result=git('merge','--no-commit','module-remote',ok=False);assert result.returncode==1 and git('ls-files','-u','--','module').stdout,result.stderr
+        module_git(module,'checkout','--detach',unrelated_module)
+        (module/'values.txt').write_text('preserve dirty module\n',encoding='utf8')
+        select_conflicted_file('module',require_editor=False);press(name)
+        wait_for(lambda:not git('ls-files','-u','--','module').stdout)
+        check('submodule '+name+' stages the exact selected side',git('rev-parse',':module').stdout.strip()==expected)
+        check('submodule '+name+' preserves its own worktree and untracked data',module_git(module,'rev-parse','HEAD')==unrelated_module and (module/'values.txt').read_text()=='preserve dirty module\n' and (module/'user-notes.txt').read_text()=='preserve module notes\n')
+        git('merge','--abort');module_git(module,'restore','--','values.txt')
+    git('checkout','-B','module-deleted','module-local');git('rm','--cached','module');git('commit','-m','Local module deletion')
+    result=git('merge','--no-commit','module-remote',ok=False);assert result.returncode==1 and git('ls-files','-u','--','module').stdout,result.stderr
+    select_conflicted_file('module',require_editor=False);press('UseLocalConflict')
+    wait_for(lambda:not git('ls-files','-u','--','module').stdout)
+    check('submodule deletion resolves only the superproject index',not git('ls-files','--stage','--','module').stdout and (module/'values.txt').exists() and (module/'user-notes.txt').read_text()=='preserve module notes\n')
     git('merge','--abort')
 except BaseException as error:
     failure=repr(error)

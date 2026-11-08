@@ -8,7 +8,7 @@ out = Path(sys.argv[2]).resolve(); out.mkdir(parents=True, exist_ok=True)
 root = Path(tempfile.mkdtemp(prefix='command-pipes-', dir=out))
 env = os.environ.copy(); env.update(GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'))
 records = []
-modes = ['stream-'+mode for mode in ['diff','commits','changes','hashes','names','objects','pickable','compare','conflict','save','save-failure','lfs','save-lfs','save-lfs-failure']] if '--streaming' in sys.argv[3:] else ['sync', 'async', 'sync-failure', 'async-failure', 'credential-config']
+modes = ['stream-'+mode for mode in ['diff','commits','changes','count','hashes','names','objects','pickable','compare','conflict','save','save-failure','lfs','save-lfs','save-lfs-failure']] if '--streaming' in sys.argv[3:] else ['sync', 'async', 'sync-failure', 'async-failure', 'credential-config']
 if '--pointers' in sys.argv[3:]:
     modes=['stream-pointer-'+mode for mode in ['valid','added','deleted','invalid-size','overflow','short-oid','extra-text','crlf','zero','version']]
 if '--indexes' in sys.argv[3:]:
@@ -18,7 +18,7 @@ if '--launches' in sys.argv[3:]:
 if '--keygen' in sys.argv[3:]:
     modes=['stream-keygen-'+mode for mode in ['plain','protected','existing','pub-only','private-only','invalid','missing']]
 if '--safety' in sys.argv[3:]:
-    modes=['safety-'+mode for mode in ['status-failure','status-cancelled','bounded-output','quoted-arguments','normal','unborn','obstruction','selected-obstruction','selected-literal','nested-repository','selected-nested-repository','junction','failed-discard','merge-ignored','merge-benign-directory','merge-file-ancestor','merge-nested-repository']]
+    modes=['safety-'+mode for mode in ['status-failure','status-cancelled','status-count','bounded-output','quoted-arguments','normal','unborn','obstruction','selected-obstruction','selected-literal','nested-repository','selected-nested-repository','junction','failed-discard','merge-ignored','merge-benign-directory','merge-file-ancestor','merge-nested-repository']]
 if '--pull-safety' in sys.argv[3:]:
     modes=['pull-safety-'+mode for mode in ['merge','rebase','rewritten-upstream','config-false','config-true','config-only','ignored','cancelled','fetch-hook','ff-only']]
 try:

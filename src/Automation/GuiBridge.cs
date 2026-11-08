@@ -161,6 +161,7 @@ namespace SourceGit.Automation
                         }).ToArray(),
                         readOnlyFlag = "--read-only",
                         activePage = new { kind = launcher.ActivePage.Data.GetType().Name, pendingDialog = launcher.ActivePage.Popup?.GetType().Name, notifications = launcher.ActivePage.Notifications.Count,
+                            popupAttemptVersion = launcher.ActivePage.PopupAttemptVersion,
                             remoteCheckout = launcher.ActivePage.Popup is ViewModels.CheckoutRemoteBranch checkout ? new { name = checkout.Name, hint = checkout.Hint, hasLocalChanges = checkout.HasLocalChanges,
                                 canUpdateRemote = checkout.CanUpdateRemote, updateRemote = checkout.UpdateRemote, hasErrors = checkout.HasErrors } : null },
                         dialogs = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).Windows
@@ -257,6 +258,7 @@ namespace SourceGit.Automation
                                 graphCommits = r.Histories?.Commits.Take(256).Select((c, index) => new { sha = c.SHA, subject = c.Subject, localHead = c.IsLocalHead, tracking = c.Decorators.Where(d => !string.IsNullOrEmpty(d.TrackStatusDescription)).Select(d => new { branch = d.Name, status = d.TrackStatusDescription }).ToArray(), x = r.Histories.Graph?.Dots[index].Center.X, subjectLeft = c.LeftMargin, refs = c.Decorators.Select(d => d.Name).ToArray() }).ToArray(),
                                 pendingDialog = p.Popup?.GetType().Name,
                                 pendingDialogInProgress = p.Popup?.InProgress,
+                                pendingDialogAttemptVersion = p.PopupAttemptVersion,
                                 validationErrors = p.Popup == null ? null :
                                     (((System.ComponentModel.INotifyDataErrorInfo)p.Popup).GetErrors(null) ?? Array.Empty<object>()).Cast<object>()
                                     .Select(e => e is System.ComponentModel.DataAnnotations.ValidationResult validation ? validation.ErrorMessage : e.ToString()).ToArray(),

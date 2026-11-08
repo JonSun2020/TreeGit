@@ -88,10 +88,13 @@ namespace SourceGit.ViewModels
         public bool HasRunningOperation => _popup?.InProgress == true || _data is Repository repo &&
             (repo.IsAutoFetching || repo.WorkingCopy is { IsCommitting: true } or { IsStaging: true } or { IsUnstaging: true } || repo.Logs.Any(log => !log.IsComplete));
 
+        public long PopupAttemptVersion { get; private set; }
+
         public async Task ProcessPopupAsync()
         {
             if (_popup is { InProgress: false } dump)
             {
+                PopupAttemptVersion++;
                 if (!dump.Check())
                     return;
 

@@ -227,6 +227,10 @@ namespace SourceGit.Tests
                 case "diff": success = (await new Commands.Diff(root, new Models.DiffOption(change, true), 4, false, false).ReadAsync()).TextDiff != null; break;
                 case "commits": success = (await new Commands.QueryCommits(root, "-2").GetResultAsync()).Count == 2; break;
                 case "changes": success = (await new Commands.QueryLocalChanges(root).GetResultAsync()).Count > 0; break;
+                case "count":
+                    var counter = new Commands.CountLocalChanges(root, false);
+                    success = await counter.GetResultAsync() == 1 && counter.Succeeded;
+                    break;
                 case "hashes": success = (await new Commands.QueryCurrentBranchCommitHashes(root, 0).GetResultAsync()).Count == 2; break;
                 case "names": success = (await new Commands.QueryRevisionFileNames(root, "HEAD").GetResultAsync()).Count == 2; break;
                 case "objects": success = (await new Commands.QueryRevisionObjects(root, "HEAD", "").GetResultAsync()).Count == 2; break;

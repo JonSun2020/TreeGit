@@ -174,7 +174,10 @@ def merge(revision, mode=None):
     if mode is not None: command('merge_options', mode=mode)
     wait_for(lambda: state()['mergeDialog']['testing'] != 'Testing')
 
-def confirm(): press('ConfirmPopup')
+def confirm():
+    before = state()['pendingDialogAttemptVersion']
+    press('ConfirmPopup')
+    wait_for(lambda: state()['pendingDialogAttemptVersion'] > before)
 def completed(): wait_for(lambda: state()['pendingDialog'] is None)
 def error(): return wait_for(lambda: (state()['mergeDialog'] or {}).get('error'))
 def cancel():

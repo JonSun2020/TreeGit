@@ -47,6 +47,19 @@ namespace SourceGit.Tests
                     var cancelled = new Commands.QueryLocalChanges(root) { CancellationToken = new CancellationToken(true) };
                     var changes = await cancelled.GetResultAsync();
                     success = !cancelled.Succeeded && changes.Count == 0;
+                    var cancelledCount = new Commands.CountLocalChanges(root, true) { CancellationToken = new CancellationToken(true) };
+                    success &= await cancelledCount.GetResultAsync() == 0 && !cancelledCount.Succeeded;
+                    break;
+                case "status-count":
+                    File.WriteAllText(file, "modified\n");
+                    for (var i = 0; i < 100; i++) File.WriteAllText(Path.Combine(root, "untracked [" + i + "].txt"), "local\n");
+                    Directory.CreateDirectory(Path.Combine(root, "ignored"));
+                    File.WriteAllText(Path.Combine(root, "ignored/generated.txt"), "ignored\n");
+                    File.WriteAllText(Path.Combine(root, ".git/info/exclude"), "ignored/\n");
+                    var trackedCount = new Commands.CountLocalChanges(root, false);
+                    var allCount = new Commands.CountLocalChanges(root, true);
+                    success = await trackedCount.GetResultAsync() == 1 && trackedCount.Succeeded &&
+                        await allCount.GetResultAsync() == 101 && allCount.Succeeded;
                     break;
                 case "bounded-output":
                     var output = new Commands.Command { WorkingDirectory = root, RaiseError = false, UseCredentialManager = false,

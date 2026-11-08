@@ -562,6 +562,7 @@ namespace SourceGit.ViewModels
                 var files = new List<string>();
                 var deletions = new List<string>();
                 var moduleDeletions = new List<string>();
+                var moduleVersions = new List<(string Path, string Hash)>();
                 // Inspect the current index before touching any file. An old
                 // selection must never delete a file that was already resolved.
                 foreach (var change in changes)
@@ -573,7 +574,16 @@ namespace SourceGit.ViewModels
                         _repo.SendNotification(App.Text("Conflict.StateChanged"), true);
                         return;
                     }
-                    if (entries.Contains(theirs ? " 3\t" : " 2\t", StringComparison.Ordinal)) files.Add(change.Path);
+                    string chosen = null;
+                    foreach (var entry in entries.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        var end = entry.IndexOf('\t');
+                        if (end > 0 && entry[..end].EndsWith(theirs ? " 3" : " 2", StringComparison.Ordinal))
+                        { chosen = entry[..end]; break; }
+                    }
+                    if (chosen?.StartsWith("160000 ", StringComparison.Ordinal) == true)
+                        moduleVersions.Add((change.Path, chosen.Split(' ', StringSplitOptions.RemoveEmptyEntries)[1]));
+                    else if (chosen != null) files.Add(change.Path);
                     else if (entries.StartsWith("160000 ", StringComparison.Ordinal) || entries.Contains("\n160000 ", StringComparison.Ordinal)) moduleDeletions.Add(change.Path);
                     else deletions.Add(change.Path);
                 }
@@ -598,6 +608,16 @@ namespace SourceGit.ViewModels
                     var remove = new Commands.Command { WorkingDirectory = _repo.FullPath, Context = _repo.FullPath,
                         Args = $"--literal-pathspecs rm --cached --force -- {module.Quoted()}" };
                     if (!await remove.Use(log).ExecAsync()) return;
+                }
+                foreach (var module in moduleVersions)
+                {
+                    // Checkout --ours/--theirs does not move a submodule's
+                    // own HEAD. Adding its directory would then stage whichever
+                    // unrelated version happens to be open, instead of the side
+                    // selected by the user. Resolve the exact gitlink in index.
+                    var select = new Commands.Command { WorkingDirectory = _repo.FullPath, Context = _repo.FullPath,
+                        Args = $"update-index --add --cacheinfo 160000 {module.Hash.Quoted()} {module.Path.Quoted()}" };
+                    if (!await select.Use(log).ExecAsync()) return;
                 }
                 if (files.Count > 0)
                 {
