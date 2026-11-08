@@ -131,6 +131,12 @@ try:
     (repo/'.git/info/exclude').write_text('*.data\n',encoding='utf-8');write('transient.data','preserve intermediate MCP data\n');refresh();before=git('rev-parse','HEAD')
     error=tool('git_action',{'repo':str(repo),'action':'rebase','revision':safe},expect_error=True)
     check('MCP rebase protects a path created and deleted by intermediate commits','transient.data' in error and (repo/'transient.data').read_text()=='preserve intermediate MCP data\n' and git('rev-parse','HEAD')==before)
+    prepare();git('cherry-pick','-n',safe,conflict,ok=False);refresh()
+    sequence=(repo/'.git/sequencer').exists();before=git('ls-files','-u')
+    assert sequence and before,'Expected a real paused no-commit sequence'
+    error=tool('git_action',{'repo':str(repo),'action':'merge','revision':safe},expect_error=True)
+    records.append({'sequencerOnly':not (repo/'.git/CHERRY_PICK_HEAD').exists(),'error':error})
+    check('MCP detects a paused no-commit sequence before another operation','Finish the current TreeGit' in error and git('ls-files','-u')==before and git('rev-parse','HEAD')==main)
     assert not failures,failures
 except BaseException as error:
     failure=repr(error)

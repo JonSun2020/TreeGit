@@ -1096,8 +1096,7 @@ namespace SourceGit.Automation
                         var recovery = action is "stage" or "unstage" or "commit" || action.EndsWith("_abort", StringComparison.Ordinal) || action.EndsWith("_continue", StringComparison.Ordinal);
                         await Dispatcher.UIThread.InvokeAsync(() =>
                         {
-                            var inProgress = new[] { "MERGE_HEAD", "CHERRY_PICK_HEAD", "REVERT_HEAD" }.Any(f => File.Exists(Path.Combine(repo.GitDir, f))) ||
-                                Directory.Exists(Path.Combine(repo.GitDir, "rebase-merge")) || Directory.Exists(Path.Combine(repo.GitDir, "rebase-apply"));
+                            var inProgress = ViewModels.InProgressContext.HasPendingOperation(repo.GitDir);
                             if (App.GetLauncher().ActivePage.Popup != null || (inProgress && !recovery))
                                 throw new InvalidOperationException("Finish the current TreeGit dialog/operation before starting another Git action.");
                         });
