@@ -5,6 +5,7 @@ namespace SourceGit.Commands
 {
     public class CountLocalChanges : Command
     {
+        public bool Succeeded { get; private set; }
         public CountLocalChanges(string repo, bool includeUntracked)
         {
             var option = includeUntracked ? "-uall" : "-uno";
@@ -15,9 +16,11 @@ namespace SourceGit.Commands
 
         public async Task<int> GetResultAsync()
         {
+            Succeeded = false;
             var rs = await ReadToEndAsync().ConfigureAwait(false);
             if (rs.IsSuccess)
             {
+                Succeeded = true;
                 var lines = rs.StdOut.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
                 return lines.Length;
             }

@@ -42,7 +42,7 @@ namespace SourceGit.ViewModels
             _repo = repo; _sourceName = string.IsNullOrEmpty(source.Head) ? source.FriendlyName : source.Head;
             Source = source; Into = into;
             _expectedInto = repo.CurrentBranch is { IsDetachedHead: false } current ? current.FullName : null;
-            _expectedHead = repo.CurrentBranch?.Head;
+            _expectedHead = new Commands.QueryRevisionByRefName(repo.FullPath, "HEAD").GetResult();
             Mode = forceFastForward ? Models.MergeMode.FastForward : AutoSelectMergeMode();
             if (!forceFastForward) Test();
         }
@@ -50,7 +50,7 @@ namespace SourceGit.ViewModels
         {
             _repo = repo; _sourceName = source.SHA; Source = source; Into = into;
             _expectedInto = repo.CurrentBranch is { IsDetachedHead: false } current ? current.FullName : null;
-            _expectedHead = repo.CurrentBranch?.Head;
+            _expectedHead = new Commands.QueryRevisionByRefName(repo.FullPath, "HEAD").GetResult();
             Mode = AutoSelectMergeMode(); Test();
         }
         public Merge(Repository repo, Models.Tag source, string into)
@@ -58,7 +58,7 @@ namespace SourceGit.ViewModels
             _repo = repo; _sourceName = string.IsNullOrEmpty(source.SHA) ? source.Name : source.SHA;
             Source = source; Into = into;
             _expectedInto = repo.CurrentBranch is { IsDetachedHead: false } current ? current.FullName : null;
-            _expectedHead = repo.CurrentBranch?.Head;
+            _expectedHead = new Commands.QueryRevisionByRefName(repo.FullPath, "HEAD").GetResult();
             Mode = AutoSelectMergeMode(); Test();
         }
 
@@ -145,10 +145,7 @@ namespace SourceGit.ViewModels
             _repo.ShowWorkingCopyOverview();
             _repo.MarkWorkingCopyDirtyManually();
         }
-        private bool HasPendingOperation() =>
-            File.Exists(Path.Combine(_repo.GitDir, "MERGE_HEAD")) || File.Exists(Path.Combine(_repo.GitDir, "CHERRY_PICK_HEAD")) ||
-            File.Exists(Path.Combine(_repo.GitDir, "REVERT_HEAD")) || Directory.Exists(Path.Combine(_repo.GitDir, "rebase-merge")) ||
-            Directory.Exists(Path.Combine(_repo.GitDir, "rebase-apply"));
+        private bool HasPendingOperation() => InProgressContext.HasPendingOperation(_repo.GitDir);
 
         private async Task LoadSquashMessageIfEmpty()
         {

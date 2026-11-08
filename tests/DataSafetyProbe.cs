@@ -36,6 +36,9 @@ namespace SourceGit.Tests
                     var broken = new Commands.QueryLocalChanges(root);
                     await broken.GetResultAsync();
                     success = !broken.Succeeded && !string.IsNullOrWhiteSpace(broken.Error);
+                    var countQuery = new Commands.CountLocalChanges(root, false);
+                    await countQuery.GetResultAsync();
+                    success &= !countQuery.Succeeded;
                     break;
                 case "status-cancelled":
                     var cancelled = new Commands.QueryLocalChanges(root) { CancellationToken = new CancellationToken(true) };

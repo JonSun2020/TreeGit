@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
@@ -175,7 +175,15 @@ namespace SourceGit.ViewModels
                 }
                 else if (DealWithLocalChanges == Models.DealWithLocalChanges.StashAndReapply)
                 {
-                    var changes = await new Commands.CountLocalChanges(_repo.FullPath, false).GetResultAsync();
+                    var countQuery = new Commands.CountLocalChanges(_repo.FullPath, false);
+                    var changes = await countQuery.GetResultAsync();
+                    if (!countQuery.Succeeded)
+                    {
+                        log.Complete();
+                        _repo.NotifyWorkingCopyStatusFailure();
+                        _repo.MarkWorkingCopyDirtyManually();
+                        return false;
+                    }
                     if (changes > 0)
                     {
                         succ = await new Commands.Stash(_repo.FullPath)

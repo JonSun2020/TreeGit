@@ -33,6 +33,18 @@ namespace SourceGit.Automation
             }
             else if (action == "scroll")
             {
+                if (args.TryGetProperty("scrollbar", out var barIndex))
+                {
+                    var bars = window.GetVisualDescendants().OfType<ScrollBar>().ToArray();
+                    var selectedBar = barIndex.GetInt32();
+                    if (selectedBar < 0 || selectedBar >= bars.Length) throw new ArgumentException("List the scroll bars first and use an existing index.");
+                    var bar = bars[selectedBar];
+                    if (!bar.IsEffectivelyVisible || !bar.IsEnabled) throw new InvalidOperationException("This scroll bar is hidden or unavailable.");
+                    var value = args.GetProperty("value").GetDouble();
+                    if (!double.IsFinite(value)) throw new ArgumentException("Scroll value must be finite.");
+                    bar.SetCurrentValue(RangeBase.ValueProperty, Math.Clamp(value, bar.Minimum, bar.Maximum));
+                    return Inspect(window);
+                }
                 var scrollers = window.GetVisualDescendants().OfType<ScrollViewer>().ToArray();
                 var index = args.TryGetProperty("scroller", out var selected) ? selected.GetInt32() : -1;
                 if (index < 0 || index >= scrollers.Length) throw new ArgumentException("List the scroll areas first and use an existing index.");
@@ -155,6 +167,10 @@ namespace SourceGit.Automation
                     bounds = Bounds(s), viewport = new { width = s.Viewport.Width, height = s.Viewport.Height },
                     extent = new { width = s.Extent.Width, height = s.Extent.Height }, offset = new { x = s.Offset.X, y = s.Offset.Y },
                     horizontal = s.HorizontalScrollBarVisibility.ToString(), vertical = s.VerticalScrollBarVisibility.ToString() }).ToArray(),
+                scrollBars = controls.OfType<ScrollBar>().Select((b, index) => new { index, name = b.Name,
+                    visible = b.IsEffectivelyVisible && b.Bounds.Width > 0 && b.Bounds.Height > 0, enabled = b.IsEnabled,
+                    orientation = b.Orientation.ToString(), value = b.Value, minimum = b.Minimum, maximum = b.Maximum,
+                    owner = b.GetVisualAncestors().OfType<UserControl>().FirstOrDefault()?.GetType().Name, bounds = Bounds(b) }).ToArray(),
                 bottomTabs = controls.OfType<Button>().Where(b => b.Classes.Contains("treegit_bottom_tab") && b.IsEffectivelyVisible)
                     .Select(b => new { text = b.Content as string, active = b.Classes.Contains("active"), bounds = Bounds(b),
                         content = b.GetVisualDescendants().OfType<TextBlock>().Select(t => Bounds(t)).ToArray() }).ToArray()

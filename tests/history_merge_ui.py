@@ -167,6 +167,13 @@ try:
     tool('ui_select_commit', {'repo': str(repo), 'revision': base})
     click_pending_and_measure()
     check('native row click opens working copy without losing history columns', state()['pendingRow']['visible'] and state()['detailView'] == 'WorkingCopy')
+    tool('ui_history_columns', {'repo': str(repo), 'graph': 120, 'description': 1000, 'date': 200, 'author': 200, 'commit': 160})
+    horizontal = wait_for(lambda: next((b for b in layout()['scrollBars'] if b['visible'] and b['orientation'] == 'Horizontal' and b['owner'] == 'Histories' and b['maximum'] > 100), None))
+    subject_left = state()['pendingRow']['subjectX']; graph_left = state()['pendingRow']['x']
+    tool('ui_layout', {'action': 'scroll', 'scrollbar': horizontal['index'], 'value': 100})
+    wait_for(lambda: abs(state()['pendingRow']['subjectX'] - subject_left + 100) <= 1)
+    check('pending description scrolls with its real history column while graph stays frozen', state()['pendingRow']['x'] == graph_left)
+    tool('ui_history_columns', {'repo': str(repo), 'reset': True})
     git('add', 'values.txt'); refresh(); pending(True)
     check('staged-only change keeps the row visible', state()['workingCopyState']['staged'] == ['values.txt'])
     config = repo / '.git/config'; saved_config = config.read_bytes(); before = state()['workingCopyRefreshVersion']
@@ -213,6 +220,19 @@ try:
     index_before = git('ls-files', '-u').stdout
     merge(safe_sha); confirm(); completed()
     check('second merge cannot replace an unfinished operation', git('ls-files', '-u').stdout == index_before and git('rev-parse', 'HEAD').stdout.strip() == main)
+    reset()
+
+    merge(conflict_sha); git('branch', '-f', 'conflicting', safe_sha); confirm(); completed()
+    check('merge uses the selected immutable commit after its source branch moves', (repo / '.git/MERGE_HEAD').read_text().strip() == conflict_sha and bool(git('ls-files', '-u').stdout))
+    reset(); git('branch', '-f', 'conflicting', conflict_sha)
+
+    tool('ui_working_copy', {'repo': str(repo), 'message': draft})
+    command('merge_multiple_dialog', revisions=[safe_sha, collision_sha]); confirm(); completed()
+    check('multiple-head merge preserves the draft and merges exact selected commits', state()['workingCopyState']['message'] == draft and (repo / 'remote.txt').exists() and (repo / 'future.txt').exists() and len(git('rev-list', '--parents', '-n', '1', 'HEAD').stdout.split()) == 4)
+    reset(); command('clear_notifications')
+    command('merge_multiple_dialog', revisions=[conflict_sha, safe_sha]); confirm()
+    wait_for(lambda: state()['pendingDialog'] is None or not state()['pendingDialogInProgress'] and tool('ui_state')['activePage']['notifications'] > 0)
+    check('complex multiple-head merge never reports a false success', bool(git('ls-files', '-u').stdout) and state()['workingCopySelected'] or state()['pendingDialog'] == 'MergeMultiple' and git('rev-parse', 'HEAD').stdout.strip() == main)
     reset()
 
     local_draft = b'local dirty content\n'; (repo / 'draft.txt').write_bytes(local_draft)
@@ -267,6 +287,9 @@ try:
     merge(safe_sha); git('checkout', 'conflicting'); confirm(); error()
     check('changing destination while a dialog is open cannot merge into another branch', git('rev-parse', 'HEAD').stdout.strip() == conflict_sha and not (repo / 'remote.txt').exists())
     cancel(); git('checkout', 'main'); reset()
+    merge(safe_sha); git('commit', '--allow-empty', '-m', 'External new destination'); external_head = git('rev-parse', 'HEAD').stdout.strip(); confirm(); error()
+    check('moving the same destination branch while a dialog is open is also rejected', git('rev-parse', 'HEAD').stdout.strip() == external_head and not (repo / 'remote.txt').exists())
+    cancel(); reset()
     git('config', '--unset', 'user.name'); git('config', '--unset', 'user.email')
     merge(safe_sha); confirm(); error()
     check('missing author identity offers repository settings instead of a silent failure', state()['mergeDialog']['showAuthorSettings'])

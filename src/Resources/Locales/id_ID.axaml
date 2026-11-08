@@ -1156,4 +1156,5 @@
   <x:String x:Key="Text.Stash.SelectionUnsupported">This Git version cannot stash this many selected paths at once. Update Git and retry.</x:String>
   <x:String x:Key="Text.Stash.Failed">Stash did not finish. Existing stashes were preserved; check file access and available space.</x:String>
   <x:String x:Key="Text.Stash.NoStagedChanges">There are no staged changes to stash.</x:String>
+  <x:String x:Key="Text.Merge.MultipleFailed">The multiple-head merge did not finish. For complex conflicts, merge one branch at a time and resolve its conflicts before continuing.</x:String>
 </ResourceDictionary>

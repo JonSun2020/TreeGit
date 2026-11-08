@@ -253,6 +253,7 @@ namespace SourceGit.Automation
                                 graphTotal = r.Histories?.Commits.Count,
                                 graphCommits = r.Histories?.Commits.Take(256).Select((c, index) => new { sha = c.SHA, subject = c.Subject, localHead = c.IsLocalHead, tracking = c.Decorators.Where(d => !string.IsNullOrEmpty(d.TrackStatusDescription)).Select(d => new { branch = d.Name, status = d.TrackStatusDescription }).ToArray(), x = r.Histories.Graph?.Dots[index].Center.X, subjectLeft = c.LeftMargin, refs = c.Decorators.Select(d => d.Name).ToArray() }).ToArray(),
                                 pendingDialog = p.Popup?.GetType().Name,
+                                pendingDialogInProgress = p.Popup?.InProgress,
                                 mergeDialog = p.Popup is not ViewModels.Merge merge ? null : new { revision = merge.SourceRevision,
                                     mode = merge.Mode.Arg, error = merge.ErrorMessage, testing = merge.TestingState.ToString(),
                                     autoStash = merge.AutoStash, autoStashAvailable = merge.AutoStashAvailable,
@@ -827,6 +828,18 @@ namespace SourceGit.Automation
                     var owner = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow;
                     switch (command)
                     {
+                        case "merge_multiple_dialog":
+                            if (!args.TryGetProperty("revisions", out var revisions) || revisions.ValueKind != JsonValueKind.Array || revisions.GetArrayLength() < 2 || revisions.GetArrayLength() > 32)
+                                throw new ArgumentException("Supply between 2 and 32 complete commit hashes.");
+                            var sources = new List<Models.Commit>();
+                            foreach (var item in revisions.EnumerateArray())
+                            {
+                                var sha = item.GetString() ?? string.Empty;
+                                if (!Regex.IsMatch(sha, "\\A(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})\\z")) throw new ArgumentException("Supply complete commit hashes.");
+                                sources.Add(new Commands.QuerySingleCommit(repo.FullPath, sha).GetResult() ?? throw new ArgumentException("Commit does not exist."));
+                            }
+                            repo.ShowPopup(new ViewModels.MergeMultiple(repo, sources));
+                            break;
                         case "merge_dialog":
                             var revision = Text(args, "revision");
                             if (!Regex.IsMatch(revision, "\\A(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})\\z"))

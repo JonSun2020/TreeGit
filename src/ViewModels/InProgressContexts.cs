@@ -6,6 +6,11 @@ namespace SourceGit.ViewModels
 {
     public abstract class InProgressContext
     {
+        internal static bool HasPendingOperation(string gitDir) =>
+            File.Exists(Path.Combine(gitDir, "MERGE_HEAD")) || File.Exists(Path.Combine(gitDir, "CHERRY_PICK_HEAD")) ||
+            File.Exists(Path.Combine(gitDir, "REVERT_HEAD")) || Directory.Exists(Path.Combine(gitDir, "rebase-merge")) ||
+            Directory.Exists(Path.Combine(gitDir, "rebase-apply")) || Directory.Exists(Path.Combine(gitDir, "sequencer"));
+
         public string Name
         {
             get;

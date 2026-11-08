@@ -105,7 +105,14 @@ namespace SourceGit.ViewModels
                     if (refs.Count == 0 && !await App.AskConfirmAsync(App.Text("Checkout.WarnLostCommits"))) return false;
                 }
                 var original = before.Find(b => b.IsCurrent);
-                if (DealWithLocalChanges == Models.DealWithLocalChanges.StashAndReapply && await new Commands.CountLocalChanges(_repo.FullPath, false).GetResultAsync() > 0)
+                var localChanges = new Commands.CountLocalChanges(_repo.FullPath, false);
+                var localCount = DealWithLocalChanges == Models.DealWithLocalChanges.StashAndReapply ? await localChanges.GetResultAsync() : 0;
+                if (DealWithLocalChanges == Models.DealWithLocalChanges.StashAndReapply && !localChanges.Succeeded)
+                {
+                    _repo.NotifyWorkingCopyStatusFailure();
+                    return false;
+                }
+                if (localCount > 0)
                 {
                     if (!await new Commands.Stash(_repo.FullPath).Use(log).PushAsync("REMOTE_CHECKOUT_AUTO_STASH", false)) return false;
                     stash = await new Commands.QueryRevisionByRefName(_repo.FullPath, "refs/stash").GetResultAsync();

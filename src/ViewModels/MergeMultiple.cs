@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace SourceGit.ViewModels
@@ -28,6 +28,8 @@ namespace SourceGit.ViewModels
             Targets.AddRange(commits);
             AutoCommit = true;
             Strategy = Models.MergeStrategy.ForMultiple[0];
+            _expectedHead = new Commands.QueryRevisionByRefName(repo.FullPath, "HEAD").GetResult();
+            _sources = commits.ConvertAll(c => c.SHA);
         }
 
         public MergeMultiple(Repository repo, List<Models.Branch> branches)
@@ -36,55 +38,55 @@ namespace SourceGit.ViewModels
             Targets.AddRange(branches);
             AutoCommit = true;
             Strategy = Models.MergeStrategy.ForMultiple[0];
+            _expectedHead = new Commands.QueryRevisionByRefName(repo.FullPath, "HEAD").GetResult();
+            _sources = branches.ConvertAll(b => b.Head);
         }
 
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            _repo.ClearCommitMessage();
-            ProgressDescription = "Merge head(s) ...";
+            var current = await new Commands.QueryRevisionByRefName(_repo.FullPath, "HEAD").GetResultAsync();
+            if (current != _expectedHead) { _repo.SendNotification(App.Text("Merge.DestinationChanged"), true); return false; }
+            var before = await new Commands.QueryConflictEntries(_repo.FullPath).GetResultAsync();
+            if (before == null) { _repo.NotifyWorkingCopyStatusFailure(); return false; }
+            if (before.Length > 0 || InProgressContext.HasPendingOperation(_repo.GitDir))
+            {
+                ShowWorkingCopy(true);
+                _repo.SendNotification(App.Text("Merge.FinishCurrent"), true);
+                return true;
+            }
+            ProgressDescription = App.Text("Merge.Progress", _repo.CurrentBranch?.Name ?? "HEAD");
 
             var log = _repo.CreateLog("Merge Multiple Heads");
             Use(log);
 
-            await new Commands.Merge(
-                _repo.FullPath,
-                ConvertTargetToMergeSources(),
-                AutoCommit,
-                Strategy.Arg)
-                .Use(log)
-                .ExecAsync();
-
-            log.Complete();
-            return true;
+            try
+            {
+                var command = new Commands.Merge(_repo.FullPath, _sources, AutoCommit, Strategy.Arg,
+                    Native.OS.GitVersion >= Models.GitVersions.MERGE_AUTOSTASH) { RaiseError = false };
+                var success = await command.Use(log).ExecAsync();
+                var conflicts = await new Commands.QueryConflictEntries(_repo.FullPath).GetResultAsync();
+                if (!string.IsNullOrEmpty(conflicts)) { ShowWorkingCopy(true); return true; }
+                if (!success) { _repo.SendNotification(App.Text("Merge.MultipleFailed"), true); return false; }
+                try { await _repo.AutoUpdateSubmodulesAsync(log); }
+                catch (System.Exception ex) { Native.OS.LogException(ex); _repo.SendNotification(App.Text("Merge.SubmodulesPending"), true); }
+                if (conflicts == null) { _repo.NotifyWorkingCopyStatusFailure(); ShowWorkingCopy(false); }
+                else if (!AutoCommit || InProgressContext.HasPendingOperation(_repo.GitDir)) ShowWorkingCopy(false);
+                else _repo.NavigateToCommit(await new Commands.QueryRevisionByRefName(_repo.FullPath, "HEAD").GetResultAsync(), true);
+                return true;
+            }
+            finally { log.Complete(); _repo.MarkWorkingCopyDirtyManually(); }
         }
 
-        private List<string> ConvertTargetToMergeSources()
+        private void ShowWorkingCopy(bool selectConflict)
         {
-            var ret = new List<string>();
-            foreach (var t in Targets)
-            {
-                if (t is Models.Branch branch)
-                {
-                    ret.Add(branch.FriendlyName);
-                }
-                else if (t is Models.Commit commit)
-                {
-                    var d = commit.Decorators.Find(x => x.Type is
-                        Models.DecoratorType.LocalBranchHead or
-                        Models.DecoratorType.RemoteBranchHead or
-                        Models.DecoratorType.Tag);
-
-                    if (d != null)
-                        ret.Add(d.Name);
-                    else
-                        ret.Add(commit.SHA);
-                }
-            }
-
-            return ret;
+            if (selectConflict) _repo.WorkingCopy.RequestConflictSelection();
+            _repo.ShowWorkingCopyOverview();
+            _repo.MarkWorkingCopyDirtyManually();
         }
 
         private readonly Repository _repo = null;
+        private readonly List<string> _sources;
+        private readonly string _expectedHead;
     }
 }

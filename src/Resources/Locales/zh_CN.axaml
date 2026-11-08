@@ -1260,4 +1260,5 @@
   <x:String x:Key="Text.Stash.SelectionUnsupported">当前 Git 版本无法一次贮藏这么多选定文件，请更新 Git 后重试。</x:String>
   <x:String x:Key="Text.Stash.Failed">贮藏未完成，已有贮藏已保留，请确认文件访问权限及磁盘空间。</x:String>
   <x:String x:Key="Text.Stash.NoStagedChanges">没有可贮藏的已暂存修改。</x:String>
+  <x:String x:Key="Text.Merge.MultipleFailed">多分支合并未完成。如存在复杂冲突，请逐个合并分支，并在解决冲突后继续。</x:String>
 </ResourceDictionary>

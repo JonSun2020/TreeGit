@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Threading;
@@ -122,7 +122,16 @@ namespace SourceGit.ViewModels
             _cancellation = new CancellationTokenSource();
             var token = _cancellation.Token;
 
-            var changes = await new Commands.CountLocalChanges(_repo.FullPath, false).GetResultAsync();
+            var countQuery = new Commands.CountLocalChanges(_repo.FullPath, false);
+            var changes = await countQuery.GetResultAsync();
+            if (!countQuery.Succeeded)
+            {
+                log.Complete();
+                _repo.NotifyWorkingCopyStatusFailure();
+                _repo.MarkWorkingCopyDirtyManually();
+                _cancellation = null;
+                return false;
+            }
             var needPopStash = false;
             if (changes > 0)
             {
