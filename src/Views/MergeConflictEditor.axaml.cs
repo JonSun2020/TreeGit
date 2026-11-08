@@ -391,9 +391,9 @@ namespace SourceGit.Views
             var blockBGs = new SolidColorBrush[] { new(Colors.Red, 0.6), new(Colors.Green, 0.6) };
             for (var i = 0; i < conflicts.Count; i++)
             {
-                var range = vm.ComparisonRanges[i];
-                var topY = range.Start * unitHeight;
-                var bottomY = (range.End + 1) * unitHeight;
+                var conflictRange = vm.ComparisonRanges[i];
+                var topY = conflictRange.Start * unitHeight;
+                var bottomY = (conflictRange.End + 1) * unitHeight;
                 var bg = blockBGs[conflicts[i].IsResolved ? 1 : 0];
                 context.DrawRectangle(bg, null, new Rect(0, topY, Bounds.Width, bottomY - topY));
             }
