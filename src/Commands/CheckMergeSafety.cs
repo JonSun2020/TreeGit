@@ -55,7 +55,7 @@ namespace SourceGit.Commands
             {
                 // Rebase can temporarily recreate a path which a later local
                 // commit removes. Protect it even when neither final tree has it.
-                Args = $"-c log.showSignature=false log --format= --no-decorate --no-notes --no-color --no-ext-diff --no-textconv --name-status -z --no-renames {_replayRange.Quoted()} --";
+                Args = $"-c log.showSignature=false log --no-walk --format= --no-decorate --no-notes --no-color --no-ext-diff --no-textconv --name-status -z --no-renames {_replayRange.Quoted()} --";
                 var path = false;
                 if (!await ReadRecordsAsync(record =>
                 {

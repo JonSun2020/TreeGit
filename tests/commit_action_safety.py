@@ -38,14 +38,18 @@ git('checkout','main');write('values.txt','local\n');main=commit('Local change')
 p=subprocess.Popen([str(exe),'--mcp'],env=env,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',creationflags=subprocess.CREATE_NO_WINDOW)
 messages=queue.Queue();threading.Thread(target=lambda:[messages.put(s) for s in p.stdout],daemon=True).start();seq=0
 
-def tool(name,args=None):
+def tool(name,args=None,expect_error=False):
     global seq
     seq+=1;method='initialize' if name=='initialize' else 'tools/call'
     params={'protocolVersion':'2025-11-25'} if method=='initialize' else {'name':name,'arguments':args or {}}
     p.stdin.write(json.dumps({'jsonrpc':'2.0','id':seq,'method':method,'params':params})+'\n');p.stdin.flush()
-    result=json.loads(messages.get(timeout=60));assert 'error' not in result,result
+    result=json.loads(messages.get(timeout=60))
+    if 'error' in result:
+        assert expect_error,result
+        return result['error']['message']
     if method=='initialize':return result['result']
-    result=result['result'];assert not result.get('isError'),result
+    result=result['result'];assert bool(result.get('isError'))==expect_error,result
+    if expect_error:return result['content'][0]['text']
     return json.loads(result['content'][0]['text'])
 
 def wait(fn):
@@ -111,6 +115,22 @@ try:
         prepare();write('ignored.data','preserve unrelated ignored bytes\n');refresh()
         result=probe(operation,[benign_source if operation=='cherry_pick' else main],draft)
         check(operation+' allows an unrelated ignored path even when present in the source tree',result['succeeded'] and (repo/'ignored.data').read_text()=='preserve unrelated ignored bytes\n' and result['draft']==draft and bool(git('diff','--cached','--name-only')))
+    for operation,revision,name in [('cherry_pick',ignored,'ignored.data'),('cherry_pick',base+'..'+benign_source,'ignored.data'),
+        ('revert',restore,'restored.data'),('rebase',ignored,'ignored.data'),('checkout','ignored','ignored.data')]:
+        prepare();write(name,'preserve MCP local ignored bytes\n');refresh();before=git('write-tree')
+        error=tool('git_action',{'repo':str(repo),'action':operation,'revision':revision},expect_error=True)
+        retained=(repo/name).read_text()=='preserve MCP local ignored bytes\n'
+        records.append({'mcp':operation,'revision':revision,'error':error,'ignoredBytesPreserved':retained})
+        check('MCP '+operation+' protects ignored paths '+revision[:12],name in error and retained and git('rev-parse','HEAD')==main and git('write-tree')==before)
+    for operation,revision in [('cherry_pick',benign_source),('cherry_pick',base+'..'+second),('revert',main),('rebase',safe),('checkout','safe')]:
+        prepare();write('ignored.data','preserve benign MCP data\n');refresh()
+        result=tool('git_action',{'repo':str(repo),'action':operation,'revision':revision})
+        records.append({'mcp':operation,'revision':revision,'result':result})
+        check('MCP '+operation+' allows benign local ignored data '+revision[:12],result['isSuccess'] and (repo/'ignored.data').read_text()=='preserve benign MCP data\n')
+    prepare();write('transient.data','temporary history file\n');commit('Add temporary file');git('rm','transient.data');commit('Remove temporary file')
+    (repo/'.git/info/exclude').write_text('*.data\n',encoding='utf-8');write('transient.data','preserve intermediate MCP data\n');refresh();before=git('rev-parse','HEAD')
+    error=tool('git_action',{'repo':str(repo),'action':'rebase','revision':safe},expect_error=True)
+    check('MCP rebase protects a path created and deleted by intermediate commits','transient.data' in error and (repo/'transient.data').read_text()=='preserve intermediate MCP data\n' and git('rev-parse','HEAD')==before)
     assert not failures,failures
 except BaseException as error:
     failure=repr(error)

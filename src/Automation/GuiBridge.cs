@@ -1116,7 +1116,11 @@ namespace SourceGit.Automation
                                 command = Join("commit", "--file", tempMessage);
                                 break;
                             case "checkout":
-                                command = Join("checkout", Revision(args), "--");
+                                var checkoutRef = Revision(args);
+                                var checkoutCommit = await new Query(path, Join("rev-parse", "--verify", checkoutRef + "^{commit}")).RunAsync().ConfigureAwait(false);
+                                if (!checkoutCommit.IsSuccess) throw new ArgumentException(Redact(checkoutCommit.StdErr));
+                                await RequireSafeLocalFilesAsync(new Commands.CheckMergeSafety(path, [checkoutCommit.StdOut.Trim()])).ConfigureAwait(false);
+                                command = Join("checkout", "--no-overwrite-ignore", checkoutRef, "--");
                                 break;
                             case "create_branch":
                                 command = Join("switch", "-c", Revision(args));
@@ -1153,13 +1157,28 @@ namespace SourceGit.Automation
                                 command = Join("merge", "--no-edit", "--no-overwrite-ignore", "--", mergeSHA);
                                 break;
                             case "rebase":
-                                command = Join("rebase", "--", Revision(args));
+                                var rebaseRevision = Revision(args);
+                                var rebaseCommit = await new Query(path, Join("rev-parse", "--verify", rebaseRevision + "^{commit}")).RunAsync().ConfigureAwait(false);
+                                if (!rebaseCommit.IsSuccess) throw new ArgumentException(Redact(rebaseCommit.StdErr));
+                                var rebaseHead = await new Commands.QueryRevisionByRefName(path, "HEAD").GetResultAsync().ConfigureAwait(false);
+                                var rebaseSHA = rebaseCommit.StdOut.Trim();
+                                await RequireSafeLocalFilesAsync(new Commands.CheckMergeSafety(path, [rebaseSHA],
+                                    replayRange: string.IsNullOrEmpty(rebaseHead) ? null : $"{rebaseSHA}..{rebaseHead}")).ConfigureAwait(false);
+                                var rebaseRestore = new Commands.CheckRestoreSafety(path, true);
+                                if (!await rebaseRestore.GetResultAsync().ConfigureAwait(false))
+                                    throw new InvalidOperationException(App.Text(rebaseRestore.Obstruction == null ? "WorkingCopy.RefreshFailed" : "CommitAction.LocalFilesBlocked") +
+                                        (rebaseRestore.Obstruction == null ? string.Empty : "\n" + rebaseRestore.Obstruction));
+                                command = Join("rebase", "--", rebaseSHA);
                                 break;
                             case "cherry_pick":
-                                command = Join("cherry-pick", "--", Revision(args));
+                                var pickRevision = Revision(args);
+                                await RequireSafeLocalFilesAsync(new Commands.CheckMergeSafety(path, [], replayRange: pickRevision)).ConfigureAwait(false);
+                                command = Join("cherry-pick", "--", pickRevision);
                                 break;
                             case "revert":
-                                command = Join("revert", "--no-edit", "--", Revision(args));
+                                var revertRevision = Revision(args);
+                                await RequireSafeLocalFilesAsync(new Commands.CheckMergeSafety(path, [], replayRange: revertRevision)).ConfigureAwait(false);
+                                command = Join("revert", "--no-edit", "--", revertRevision);
                                 break;
                             case "merge_abort":
                                 command = "merge --abort";
@@ -1238,6 +1257,13 @@ namespace SourceGit.Automation
                 if (tempMessage != null)
                     File.Delete(tempMessage);
             }
+        }
+
+        private static async Task RequireSafeLocalFilesAsync(Commands.CheckMergeSafety safety)
+        {
+            if (!await safety.GetResultAsync().ConfigureAwait(false))
+                throw new InvalidOperationException(App.Text(safety.Obstruction == null ? "WorkingCopy.RefreshFailed" : "CommitAction.LocalFilesBlocked") +
+                    (safety.Obstruction == null ? string.Empty : "\n" + safety.Obstruction));
         }
 
         private static int GitCommandIndex(string[] arguments)

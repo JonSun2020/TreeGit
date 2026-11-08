@@ -87,3 +87,5 @@ MCP 的完整读写意味着 AI 可以修改甚至删除 Git 数据。应在 AI 
 `ui_refresh` 发起后，可等待仓库的 `workingCopyRefreshVersion` 增加且 `workingCopyStatusKnown=true`，再读取文件列表。`pendingDialogAttemptVersion` 在确认操作被界面受理时增加，包括表单验证未通过的情况；先观察该值变化，再等待 `pendingDialogInProgress=false` 或弹框关闭，避免把点击前的空闲状态当成执行结束。
 
 合并、变基、挑选提交和回退提交未完成时，`pendingDialogError` 返回当前弹框的恢复提示。弹框保持打开时先处理该提示，不能仅凭确认动作已受理判断操作成功。
+
+`git_action` 的切换、合并、变基、挑选和回退操作会在执行前检查可能被覆盖的本地未跟踪或忽略文件。挑选、回退按实际补丁检查，仍支持提交范围；无关的忽略文件不会阻止操作。`git_run` 保持直接执行原生 Git 参数的能力。
