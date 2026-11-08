@@ -10,6 +10,10 @@ on:
         description: Run 30 minutes of disposable multi-repository Git and binary-diff cycles
         type: boolean
         default: false
+      large:
+        description: Audit 10k commits and hundreds of local and remote branches
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -28,25 +32,37 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           New-Item -ItemType Directory -Path src/bin/Debug/net10.0/data -Force | Out-Null
       - name: Audit splitter extremes, view transitions and restored selection
+        if: ${{ !inputs.large }}
         shell: pwsh
         run: python tests/layout_audit.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/layout-audit-results"
       - name: Audit settings and operation windows at several zoom levels
-        if: always()
+        if: ${{ always() && !inputs.large }}
         shell: pwsh
         run: python tests/dialog_audit.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/dialog-audit-results"
       - name: Audit a wider real CI desktop and restore its original mode
-        if: ${{ always() && inputs.wide }}
+        if: ${{ always() && inputs.wide && !inputs.large }}
         shell: pwsh
         run: python tests/ci_display_audit.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/display-audit-results"
       - name: Verify sustained operation and resource cleanup
-        if: ${{ success() && inputs.soak }}
+        if: ${{ success() && inputs.soak && !inputs.large }}
         shell: pwsh
         run: python tests/desktop_soak.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/desktop-soak-results" 1800
+      - name: Verify large commit graphs, branch coverage and bounded resources
+        if: ${{ inputs.large }}
+        shell: pwsh
+        run: |
+          git rev-parse HEAD | Set-Content "$env:RUNNER_TEMP/large-audit-source.txt"
+          git rev-parse HEAD:src | Add-Content "$env:RUNNER_TEMP/large-audit-source.txt"
+          python tests/large_repository.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/large-repository-results"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: TreeGit-resize-audit
+          name: ${{ inputs.large && 'TreeGit-large-repository-audit' || 'TreeGit-resize-audit' }}
+          retention-days: 7
           path: |
+            ${{ runner.temp }}/large-audit-source.txt
+            ${{ runner.temp }}/large-repository-results/*.json
+            ${{ runner.temp }}/large-repository-results/*.png
             ${{ runner.temp }}/layout-audit-results/*.json
             ${{ runner.temp }}/layout-audit-results/*.png
             ${{ runner.temp }}/dialog-audit-results/*.json
