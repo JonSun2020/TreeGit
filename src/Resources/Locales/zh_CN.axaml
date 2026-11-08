@@ -1264,4 +1264,16 @@
   <x:String x:Key="Text.Log.Truncated">较早的输出已省略，以下保留最近的操作记录。</x:String>
   <x:String x:Key="Text.Repository.SubmodulesPending">主仓库操作已完成，但部分子模块未能更新，请在子模块列表中继续处理。</x:String>
   <x:String x:Key="Text.Checkout.DestinationChanged">目标分支已变化，请关闭此窗口，刷新后重新操作。</x:String>
+  <x:String x:Key="Text.Pull.StateUnavailable">未能确认获取到的更新，本地内容已保留，请刷新后重试。</x:String>
+  <x:String x:Key="Text.Pull.NoMergeHead">没有找到本次要拉取的分支更新，请刷新并选择远程分支。</x:String>
+  <x:String x:Key="Text.Pull.Cancelled">拉取已取消。</x:String>
+  <x:String x:Key="Text.Pull.Failed">拉取未完成，本地修改已保留，请检查连接或查看操作记录后重试。</x:String>
+  <x:String x:Key="Text.Validation.BranchNameRequired">请输入分支名称。</x:String>
+  <x:String x:Key="Text.Validation.RemoteBranchRequired">请选择要拉取的远程分支。</x:String>
+  <x:String x:Key="Text.Validation.InvalidBranchName">分支名称不符合 Git 命名规则。</x:String>
+  <x:String x:Key="Text.Validation.BranchExists">已存在同名分支，请使用其他名称。</x:String>
+  <x:String x:Key="Text.Validation.BranchUnavailable">未能确认分支设置，请关闭此窗口后重试。</x:String>
+  <x:String x:Key="Text.Repository.TrackingPending">分支已创建，但跟踪关系未能设置。请确认仓库配置可写，再设置跟踪分支。</x:String>
+  <x:String x:Key="Text.Branch.OverrideCheckoutTip">切换到新分支，并替换已有的同名分支。</x:String>
+  <x:String x:Key="Text.Branch.OverrideCreateTip">将已有的同名分支指向所选提交。</x:String>
 </ResourceDictionary>

@@ -5,6 +5,7 @@ namespace SourceGit.Commands
     public class Fetch : Command
     {
         protected override bool SupportsAuthenticationRetry => true;
+        protected override bool RequiresAuthenticationTransportExitCode => true;
 
         public Fetch(string repo, Models.Remote remote, bool noTags, bool force)
         {
@@ -28,7 +29,7 @@ namespace SourceGit.Commands
             Context = repo;
             SSHKey = remote.PrivateSSHKey;
             RaiseError = false;
-            Args = $"fetch --progress --verbose {remote.Name}";
+            Args = $"fetch --progress --verbose {remote.Name.Quoted()}";
         }
 
         public Fetch(string repo, Models.Remote remote, Models.Branch remoteBranch, Models.Branch local)

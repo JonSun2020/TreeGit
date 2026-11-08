@@ -6,7 +6,7 @@ namespace SourceGit.ViewModels
 {
     public class CreateBranch : Popup
     {
-        [Required(ErrorMessage = "Branch name is required!")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.BranchNameRequired))]
         [CustomValidation(typeof(CreateBranch), nameof(ValidateBranchName))]
         public string Name
         {
@@ -115,21 +115,21 @@ namespace SourceGit.ViewModels
             if (ctx.ObjectInstance is CreateBranch creator)
             {
                 if (!Models.RefName.IsValidBranchName(name))
-                    return new ValidationResult("Bad branch name format!");
+                    return new ValidationResult(App.Text("Validation.InvalidBranchName"));
 
                 if (!creator._allowOverwrite)
                 {
                     foreach (var b in creator._repo.Branches)
                     {
                         if (b.FriendlyName.Equals(name, StringComparison.Ordinal))
-                            return new ValidationResult("A branch with same name already exists!");
+                            return new ValidationResult(App.Text("Validation.BranchExists"));
                     }
                 }
 
                 return ValidationResult.Success;
             }
 
-            return new ValidationResult("Missing runtime context to create branch!");
+            return new ValidationResult(App.Text("Validation.BranchUnavailable"));
         }
 
         public override async Task<bool> Sure()
@@ -154,108 +154,90 @@ namespace SourceGit.ViewModels
                 }
             }
 
-            Models.Branch created = new()
+            var succ = false;
+            var protectedChanges = new ProtectedLocalChanges(_repo, log);
+            try
             {
-                Name = _name,
-                FullName = $"refs/heads/{_name}",
-                CommitterDate = _committerDate,
-                Head = _head,
-                IsLocal = true,
-            };
+                Models.Branch created = new()
+                {
+                    Name = _name,
+                    FullName = $"refs/heads/{_name}",
+                    CommitterDate = _committerDate,
+                    Head = _head,
+                    IsLocal = true,
+                };
 
-            bool succ;
-            if (CheckoutAfterCreated && !_repo.IsBare)
-            {
-                var needPopStash = false;
-                if (DealWithLocalChanges == Models.DealWithLocalChanges.DoNothing)
+                if (CheckoutAfterCreated && !_repo.IsBare)
                 {
-                    succ = await new Commands.Checkout(_repo.FullPath)
-                        .Use(log)
-                        .BranchAsync(_name, _baseOnRevision, false, _allowOverwrite);
-                }
-                else if (DealWithLocalChanges == Models.DealWithLocalChanges.StashAndReapply)
-                {
-                    var countQuery = new Commands.CountLocalChanges(_repo.FullPath, false);
-                    var changes = await countQuery.GetResultAsync();
-                    if (!countQuery.Succeeded)
+                    if (DealWithLocalChanges == Models.DealWithLocalChanges.DoNothing)
                     {
-                        log.Complete();
-                        _repo.NotifyWorkingCopyStatusFailure();
-                        _repo.MarkWorkingCopyDirtyManually();
-                        return false;
-                    }
-                    if (changes > 0)
-                    {
-                        succ = await new Commands.Stash(_repo.FullPath)
+                        succ = await new Commands.Checkout(_repo.FullPath)
                             .Use(log)
-                            .PushAsync("CREATE_BRANCH_AUTO_STASH", false);
-                        if (!succ)
-                        {
-                            log.Complete();
-                            _repo.MarkWorkingCopyDirtyManually();
-                            return false;
-                        }
-
-                        needPopStash = true;
+                            .BranchAsync(_name.Quoted(), _baseOnRevision, false, _allowOverwrite);
+                    }
+                    else if (DealWithLocalChanges == Models.DealWithLocalChanges.StashAndReapply)
+                    {
+                        if (!await protectedChanges.SaveAsync("CREATE_BRANCH_AUTO_STASH")) return false;
+                        succ = await new Commands.Checkout(_repo.FullPath).Use(log).BranchAsync(_name.Quoted(), _baseOnRevision, false, _allowOverwrite);
+                    }
+                    else
+                    {
+                        succ = await new Commands.Checkout(_repo.FullPath)
+                            .Use(log)
+                            .BranchAsync(_name.Quoted(), _baseOnRevision, true, _allowOverwrite);
                     }
 
-                    succ = await new Commands.Checkout(_repo.FullPath)
-                        .Use(log)
-                        .BranchAsync(_name, _baseOnRevision, false, _allowOverwrite);
+                    if (succ)
+                    {
+                        try { await _repo.AutoUpdateSubmodulesAsync(log); }
+                        catch (Exception ex) { Native.OS.LogException(ex); _repo.SendNotification(App.Text("Repository.SubmodulesPending"), true); }
+
+                    }
                 }
                 else
                 {
-                    succ = await new Commands.Checkout(_repo.FullPath)
+                    succ = await new Commands.Branch(_repo.FullPath, _name)
                         .Use(log)
-                        .BranchAsync(_name, _baseOnRevision, true, _allowOverwrite);
+                        .CreateAsync(_baseOnRevision, _allowOverwrite);
                 }
 
                 if (succ)
                 {
-                    await _repo.AutoUpdateSubmodulesAsync(log);
-
-                    if (needPopStash)
-                        await new Commands.Stash(_repo.FullPath)
+                    var actualHead = await new Commands.QueryRevisionByRefName(_repo.FullPath, ("refs/heads/" + _name).Quoted()).GetResultAsync();
+                    if (!string.IsNullOrEmpty(actualHead)) created.Head = actualHead;
+                    if (BasedOn is Models.Branch { IsLocal: false } basedOn && _name.Equals(basedOn.Name, StringComparison.Ordinal))
+                    {
+                        var tracking = await new Commands.Branch(_repo.FullPath, _name) { RaiseError = false }
                             .Use(log)
-                            .PopAsync("stash@{0}");
-                }
-            }
-            else
-            {
-                succ = await new Commands.Branch(_repo.FullPath, _name)
-                    .Use(log)
-                    .CreateAsync(_baseOnRevision, _allowOverwrite);
-            }
+                            .SetUpstreamAsync(basedOn);
 
-            if (succ)
-            {
-                if (BasedOn is Models.Branch { IsLocal: false } basedOn && _name.Equals(basedOn.Name, StringComparison.Ordinal))
-                {
-                    await new Commands.Branch(_repo.FullPath, _name)
-                        .Use(log)
-                        .SetUpstreamAsync(basedOn);
+                        created.Upstream = tracking ? basedOn.FullName : string.Empty;
+                        if (!tracking) _repo.SendNotification(App.Text("Repository.TrackingPending"), true);
+                    }
+                    else
+                    {
+                        created.Upstream = string.Empty;
+                    }
 
-                    created.Upstream = basedOn.FullName;
+                    _repo.RefreshAfterCreateBranch(created, CheckoutAfterCreated);
                 }
                 else
                 {
-                    created.Upstream = string.Empty;
+                    _repo.MarkWorkingCopyDirtyManually();
                 }
 
-                _repo.RefreshAfterCreateBranch(created, CheckoutAfterCreated);
+                return succ;
             }
-            else
+            finally
             {
-                _repo.MarkWorkingCopyDirtyManually();
+                try { await protectedChanges.RestoreAsync(succ); }
+                finally { log.Complete(); _repo.RefreshBranches(); _repo.MarkWorkingCopyDirtyManually(); }
             }
-
-            log.Complete();
-            return true;
         }
 
         private void UpdateOverrideTip()
         {
-            OverrideTip = CheckoutAfterCreated ? "-B in `git checkout`" : "-f in `git branch`";
+            OverrideTip = App.Text(CheckoutAfterCreated ? "Branch.OverrideCheckoutTip" : "Branch.OverrideCreateTip");
         }
 
         private readonly Repository _repo = null;

@@ -49,8 +49,12 @@ git('checkout', '-b', 'ignored-collision', base); write('ignored.data', 'incomin
 git('checkout', '-b', 'restore-conflict', base); write('values.txt', 'incoming restore\n'); restore_sha = commit('Incoming restore')
 git('checkout', '--orphan', 'unrelated'); git('rm', '-rf', '.'); write('independent.txt', 'independent\n'); unrelated_sha = commit('Independent history')
 git('checkout', 'main'); write('values.txt', 'local\n'); main = commit('Local head')
-git('branch', 'ff-target', base); git('remote', 'add', 'origin', 'https://example.invalid/qa.git')
+git('branch', 'ff-target', base)
+remote = root / 'remote.git'
+subprocess.run(['git', 'clone', '--bare', str(repo), str(remote)], env=env, capture_output=True, check=True)
+git('remote', 'add', 'origin', str(remote))
 git('update-ref', 'refs/remotes/origin/ff-safe', safe_sha)
+git('update-ref', 'refs/remotes/origin/main', main); git('branch', '--set-upstream-to=origin/main', 'main')
 
 prefs = exe.parent / 'data/preference.json'; prefs.parent.mkdir(exist_ok=True)
 default_prefs = {'Locale': 'zh_CN', 'Theme': 'Blue', 'EnableAutoFetch': False, 'Check4UpdatesOnStartup': False, 'UseStashAndReapplyByDefault': True}
@@ -273,7 +277,8 @@ try:
         if name == 'ignored.data':
             cancel()
             response = rpc('tools/call', {'name': 'git_action', 'arguments': {'repo': str(repo), 'action': 'merge', 'revision': revision}})
-            payload = json.loads(response['content'][0]['text'])
+            try: payload = json.loads(response['content'][0]['text'])
+            except json.JSONDecodeError: payload = {}
             check('MCP merge enforces the same ignored-file protection', (response.get('isError') or payload.get('error')) and (repo / name).read_bytes() == contents and git('rev-parse', 'HEAD').stdout.strip() == main)
         cancel(); reset()
 
@@ -323,6 +328,18 @@ try:
     check('successful branch switch restores staged edits without leaving an auto stash', (repo / 'draft.txt').read_text() == 'preserved on checkout\n' and 'draft.txt' in git('diff', '--cached', '--name-only').stdout.splitlines() and not git('stash', 'list').stdout)
     git('checkout', 'main'); reset()
 
+    write('draft.txt', 'preserved while creating a branch\n'); git('add', 'draft.txt'); refresh()
+    command('create_branch'); command('create_branch_options', branchName='', checkoutAfterCreated=True); confirm()
+    wait_for(lambda: state()['validationErrors'])
+    check('empty branch name shows translated validation without invoking Git', any('请输入分支名称' in e for e in state()['validationErrors']) and all(not e.startswith('Text.') for e in state()['validationErrors']) and git('symbolic-ref', '--short', 'HEAD').stdout.strip() == 'main')
+    command('create_branch_options', branchName='qa-created', checkoutAfterCreated=True); confirm(); completed()
+    check('create and switch branch restores the exact staged working file', git('symbolic-ref', '--short', 'HEAD').stdout.strip() == 'qa-created' and (repo / 'draft.txt').read_text() == 'preserved while creating a branch\n' and 'draft.txt' in git('diff', '--cached', '--name-only').stdout.splitlines() and not git('stash', 'list').stdout)
+    git('checkout', 'main'); reset(); git('branch', '-D', 'qa-created'); refresh()
+    write('draft.txt', 'preserved without switching branches\n'); refresh(); before_create_index = git('ls-files', '--stage').stdout
+    command('create_branch'); command('create_branch_options', branchName='qa-stay', checkoutAfterCreated=False); confirm(); completed()
+    check('creating a branch without switching leaves current branch contents and index unchanged', git('symbolic-ref', '--short', 'HEAD').stdout.strip() == 'main' and git('rev-parse', 'qa-stay').stdout.strip() == main and git('ls-files', '--stage').stdout == before_create_index and (repo / 'draft.txt').read_text() == 'preserved without switching branches\n' and not git('stash', 'list').stdout)
+    reset(); git('branch', '-D', 'qa-stay'); refresh()
+
     write('draft.txt', 'preserved on detached checkout\n'); refresh()
     command('checkout_commit_dialog', revision=base); confirm(); completed()
     check('detached checkout also restores its protected local edits', git('symbolic-ref', '--quiet', 'HEAD', ok=False).returncode == 1 and (repo / 'draft.txt').read_text() == 'preserved on detached checkout\n' and not git('stash', 'list').stdout)
@@ -348,6 +365,31 @@ try:
     check('a hook failure after checkout keeps the local edit recoverable and refreshes the true branch', git('symbolic-ref', '--short', 'HEAD').stdout.strip() == 'safe' and bool(git('stash', 'list').stdout) and state()['workingCopySelected'])
     checkout_hook.unlink(); cancel(); wait_for(lambda: state()['logs']['active'] == 0)
     git('checkout', 'main'); reset()
+
+    incoming_tree = git('rev-parse', collision_sha + '^{tree}').stdout.strip()
+    pulled_head = git('commit-tree', incoming_tree, '-p', main, '-m', 'Incoming pull update').stdout.strip()
+    git('push', 'origin', pulled_head + ':refs/heads/main')
+    write('draft.txt', 'staged pull draft\n'); git('add', 'draft.txt'); write('future.txt', 'preserve pull collision\n')
+    pull_index = git('ls-files', '--stage').stdout; refresh()
+    command('pull_dialog'); confirm()
+    wait_for(lambda: state()['pendingDialog'] == 'Pull' and not state()['pendingDialogInProgress'] and state()['logs']['active'] == 0)
+    check('failed pull restores staged local edits and preserves colliding untracked files', git('rev-parse', 'HEAD').stdout.strip() == main and git('ls-files', '--stage').stdout == pull_index and (repo / 'draft.txt').read_text() == 'staged pull draft\n' and (repo / 'future.txt').read_text() == 'preserve pull collision\n' and not git('stash', 'list').stdout)
+    check('failed pull removes its temporary metadata files', not list((repo / '.git').glob('treegit-pull-*')))
+    cancel(); reset()
+
+    write('draft.txt', 'old pull stash\n'); git('stash', 'push', '-m', 'Older pull stash'); old_pull_stash = git('rev-parse', 'refs/stash').stdout.strip()
+    write('draft.txt', 'pull interrupted draft\n'); git('add', 'draft.txt'); network_index = git('ls-files', '--stage').stdout
+    git('remote', 'set-url', 'origin', str(root / 'unavailable.git')); refresh()
+    command('pull_dialog'); confirm()
+    wait_for(lambda: state()['pendingDialog'] == 'Pull' and not state()['pendingDialogInProgress'] and state()['logs']['active'] == 0)
+    check('unavailable remote restores local bytes and index without touching an older stash', (repo / 'draft.txt').read_text() == 'pull interrupted draft\n' and git('ls-files', '--stage').stdout == network_index and git('rev-parse', 'refs/stash').stdout.strip() == old_pull_stash)
+    cancel(); git('remote', 'set-url', 'origin', str(remote)); reset()
+
+    write('draft.txt', 'preserved on successful pull\n'); git('add', 'draft.txt'); refresh()
+    command('pull_dialog'); confirm(); completed()
+    check('successful pull integrates the fetched update and restores staged work', git('rev-parse', 'HEAD').stdout.strip() == pulled_head and (repo / 'draft.txt').read_text() == 'preserved on successful pull\n' and 'draft.txt' in git('diff', '--cached', '--name-only').stdout.splitlines() and not git('stash', 'list').stdout)
+    check('successful pull leaves no private snapshot or message files', not list((repo / '.git').glob('treegit-pull-*')))
+    reset(); git('push', '--force', 'origin', main + ':refs/heads/main'); git('update-ref', 'refs/remotes/origin/main', main); refresh()
     git('config', '--unset', 'user.name'); git('config', '--unset', 'user.email')
     merge(safe_sha); confirm(); error()
     check('missing author identity offers repository settings instead of a silent failure', state()['mergeDialog']['showAuthorSettings'])

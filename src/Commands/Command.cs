@@ -16,10 +16,11 @@ namespace SourceGit.Commands
             public string StdOut { get; set; } = string.Empty;
             public string StdErr { get; set; } = string.Empty;
             public int? ExitCode { get; set; }
+            public string UserMessage { get; set; }
 
             internal bool IsSilentFailure => !IsSuccess && string.IsNullOrEmpty(StdOut) && string.IsNullOrEmpty(StdErr);
 
-            public static Result Failed(string reason) => new Result() { StdErr = reason };
+            public static Result Failed(string reason, string userMessage = null) => new Result() { StdErr = reason, UserMessage = userMessage };
         }
 
         public enum EditorType
@@ -129,6 +130,7 @@ namespace SourceGit.Commands
                     // Git rejects/erases an invalid HTTP credential before returning this
                     // error. Keep requesting corrected credentials until success or cancellation.
                     if (SupportsAuthenticationRetry && (!RequiresAuthenticationTransportExitCode || proc.ExitCode == 128) &&
+                        !errMsg.Contains("ref updates aborted by hook", StringComparison.OrdinalIgnoreCase) &&
                         OperatingSystem.IsWindows() && Native.RepositoryCredentials.IsAuthenticationFailure(errMsg))
                     {
                         Log?.AppendLine("Authentication was rejected; requesting updated credentials.");

@@ -33,7 +33,7 @@ namespace SourceGit.ViewModels
             private set => SetProperty(ref _remoteBranches, value);
         }
 
-        [Required(ErrorMessage = "Remote branch to pull is required!!!")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.RemoteBranchRequired))]
         public Models.Branch SelectedBranch
         {
             get => _selectedBranch;
@@ -85,7 +85,7 @@ namespace SourceGit.ViewModels
             else
             {
                 Models.Remote autoSelectedRemote = null;
-                if (!string.IsNullOrEmpty(Current.Upstream))
+                if (!string.IsNullOrEmpty(Current?.Upstream))
                 {
                     var remoteNameEndIdx = Current.Upstream.IndexOf('/', 13);
                     if (remoteNameEndIdx > 0)
@@ -115,87 +115,83 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-
-            var log = _repo.CreateLog("Pull");
-            Use(log);
-
-            _cancellation = new CancellationTokenSource();
-            var token = _cancellation.Token;
-
-            var countQuery = new Commands.CountLocalChanges(_repo.FullPath, false);
-            var changes = await countQuery.GetResultAsync();
-            if (!countQuery.Succeeded)
+            if (InProgressContext.HasPendingOperation(_repo.GitDir))
             {
-                log.Complete();
-                _repo.NotifyWorkingCopyStatusFailure();
-                _repo.MarkWorkingCopyDirtyManually();
-                _cancellation = null;
+                _repo.WorkingCopy.RequestConflictSelection();
+                _repo.ShowWorkingCopyOverview();
+                _repo.SendNotification(App.Text("Merge.FinishCurrent"), true);
+                return true;
+            }
+            if (_selectedRemote == null || _selectedBranch == null)
+            {
+                _repo.SendNotification(App.Text("Pull.NoMergeHead"), true);
                 return false;
             }
-            var needPopStash = false;
-            if (changes > 0)
+            var branch = await new Commands.QuerySymbolicHead(_repo.FullPath).GetResultAsync();
+            if (Current is { IsDetachedHead: false } && (!branch.IsSuccess || branch.StdOut.Trim() != Current.FullName))
             {
-                if (DealWithLocalChanges == Models.DealWithLocalChanges.DoNothing)
+                _repo.RefreshBranches();
+                _repo.SendNotification(App.Text("Checkout.DestinationChanged"), true);
+                return false;
+            }
+            var log = _repo.CreateLog("Pull");
+            Use(log);
+            using var cancellation = new CancellationTokenSource();
+            _cancellation = cancellation;
+            CanTerminate = true;
+            var protectedChanges = new ProtectedLocalChanges(_repo, log);
+            var success = false;
+            try
+            {
+                if (DealWithLocalChanges == Models.DealWithLocalChanges.StashAndReapply &&
+                    !await protectedChanges.SaveAsync("PULL_AUTO_STASH")) return false;
+                if (DealWithLocalChanges == Models.DealWithLocalChanges.Discard &&
+                    !await Commands.Discard.AllAsync(_repo.FullPath, true, false, false, log)) return false;
+                if (cancellation.IsCancellationRequested) return false;
+                var target = Current?.Upstream == _selectedBranch.FullName ? null : _selectedBranch;
+                var result = await Commands.SafePull.RunAsync(_repo.FullPath, _repo.GitDir, _selectedRemote, target,
+                    _selectedBranch.FullName, UseRebase, false, cancellation.Token, log,
+                    () => Avalonia.Threading.Dispatcher.UIThread.Post(() => CanTerminate = false));
+                success = result.IsSuccess;
+                var conflicts = await new Commands.QueryConflictEntries(_repo.FullPath).GetResultAsync();
+                if (!string.IsNullOrEmpty(conflicts) || InProgressContext.HasPendingOperation(_repo.GitDir))
                 {
-                    // Do nothing, just let the pull command fail and show the error to user
+                    _repo.WorkingCopy.RequestConflictSelection();
+                    _repo.ShowWorkingCopyOverview();
+                    return true;
                 }
-                else if (DealWithLocalChanges == Models.DealWithLocalChanges.StashAndReapply)
+                if (conflicts == null)
                 {
-                    var succ = await new Commands.Stash(_repo.FullPath).Use(log).PushAsync("PULL_AUTO_STASH", false);
-                    if (!succ)
-                    {
-                        log.Complete();
-                        _repo.MarkWorkingCopyDirtyManually();
-                        _cancellation = null;
-                        return false;
-                    }
-
-                    needPopStash = true;
+                    _repo.NotifyWorkingCopyStatusFailure();
+                    _repo.ShowWorkingCopyOverview();
+                    return success;
                 }
-                else
+                if (!success)
                 {
-                    if (!await Commands.Discard.AllAsync(_repo.FullPath, true, false, false, log))
-                    {
-                        log.Complete();
-                        _repo.MarkWorkingCopyDirtyManually();
-                        _cancellation = null;
-                        return false;
-                    }
+                    if (!cancellation.IsCancellationRequested) _repo.SendNotification(result.UserMessage ?? App.Text("Pull.Failed"), true);
+                    return false;
+                }
+                try { await _repo.AutoUpdateSubmodulesAsync(log); }
+                catch (Exception ex) { Native.OS.LogException(ex); _repo.SendNotification(App.Text("Repository.SubmodulesPending"), true); }
+                if (_repo.SelectedViewIndex == 0)
+                {
+                    var head = await new Commands.QueryRevisionByRefName(_repo.FullPath, "HEAD").GetResultAsync();
+                    _repo.NavigateToCommit(head, true);
+                }
+                return true;
+            }
+            finally
+            {
+                try { await protectedChanges.RestoreAsync(success); }
+                finally
+                {
+                    _cancellation = null;
+                    log.Complete();
+                    _repo.RefreshBranches();
+                    _repo.MarkWorkingCopyDirtyManually();
+                    _repo.MarkStashesDirtyManually();
                 }
             }
-
-            bool rs = false;
-            if (!token.IsCancellationRequested)
-            {
-                var target = _selectedBranch;
-                if (!string.IsNullOrEmpty(Current.Upstream) && target.FullName.Equals(Current.Upstream, StringComparison.Ordinal))
-                    target = null;
-
-                rs = await new Commands.Pull(
-                    _repo.FullPath,
-                    _selectedRemote,
-                    target,
-                    UseRebase).WithCancellation(token).Use(log).ExecAsync();
-
-                if (rs)
-                {
-                    await _repo.AutoUpdateSubmodulesAsync(log);
-
-                    if (needPopStash)
-                        await new Commands.Stash(_repo.FullPath).Use(log).PopAsync("stash@{0}");
-                }
-            }
-
-            log.Complete();
-
-            if (_repo.SelectedViewIndex == 0)
-            {
-                var head = await new Commands.QueryRevisionByRefName(_repo.FullPath, "HEAD").GetResultAsync();
-                _repo.NavigateToCommit(head, true);
-            }
-
-            _cancellation = null;
-            return rs;
         }
 
         public override void Terminate()
@@ -215,11 +211,11 @@ namespace SourceGit.ViewModels
             }
 
             Models.Branch selected = null;
-            if (!string.IsNullOrEmpty(Current.Upstream))
-                selected = branches.Find(x => x.FullName.Equals(Current.Upstream, StringComparison.Ordinal));
+            if (!string.IsNullOrEmpty(Current?.Upstream))
+                selected = branches.Find(x => x.FullName.Equals(Current?.Upstream, StringComparison.Ordinal));
 
             if (selected == null)
-                selected = branches.Find(x => x.Name.Equals(Current.Name, StringComparison.Ordinal));
+                selected = branches.Find(x => x.Name.Equals(Current?.Name, StringComparison.Ordinal));
 
             RemoteBranches = branches;
             SelectedBranch = selected;

@@ -19,6 +19,8 @@ if '--keygen' in sys.argv[3:]:
     modes=['stream-keygen-'+mode for mode in ['plain','protected','existing','pub-only','private-only','invalid','missing']]
 if '--safety' in sys.argv[3:]:
     modes=['safety-'+mode for mode in ['status-failure','status-cancelled','bounded-output','normal','unborn','obstruction','selected-obstruction','selected-literal','nested-repository','selected-nested-repository','junction','failed-discard','merge-ignored','merge-benign-directory','merge-file-ancestor','merge-nested-repository']]
+if '--pull-safety' in sys.argv[3:]:
+    modes=['pull-safety-'+mode for mode in ['merge','rebase','rewritten-upstream','config-false','config-true','config-only','ignored','cancelled','fetch-hook','ff-only']]
 try:
     for mode in modes:
         report = root/(mode+'.json'); started = time.monotonic()

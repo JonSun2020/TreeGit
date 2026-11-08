@@ -22,7 +22,7 @@ namespace SourceGit.Commands
             Args = builder.ToString();
         }
 
-        public Merge(string repo, List<string> targets, bool autoCommit, string strategy, bool autoStash = false)
+        public Merge(string repo, List<string> targets, bool autoCommit, string strategy, bool autoStash = false, string mode = null, string messageFile = null)
         {
             WorkingDirectory = repo;
             Context = repo;
@@ -30,6 +30,8 @@ namespace SourceGit.Commands
             var builder = new StringBuilder();
             builder.Append("merge --progress --no-overwrite-ignore ");
             if (autoStash) builder.Append("--autostash ");
+            if (!string.IsNullOrEmpty(mode)) builder.Append(mode).Append(' ');
+            if (messageFile != null) builder.Append("--no-edit --file=").Append(messageFile.Quoted()).Append(' ');
             if (!string.IsNullOrEmpty(strategy))
                 builder.Append("--strategy=").Append(strategy).Append(' ');
             if (!autoCommit)

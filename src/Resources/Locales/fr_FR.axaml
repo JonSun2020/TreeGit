@@ -1115,4 +1115,16 @@
   <x:String x:Key="Text.Log.Truncated">Earlier output was omitted. The most recent operation details are shown below.</x:String>
   <x:String x:Key="Text.Repository.SubmodulesPending">The main repository operation completed, but some submodules could not be updated. Continue from the submodule list.</x:String>
   <x:String x:Key="Text.Checkout.DestinationChanged">The target branch changed. Close this dialog, refresh, and try again.</x:String>
+  <x:String x:Key="Text.Pull.StateUnavailable">Could not verify the fetched update. Your local content was preserved; refresh and try again.</x:String>
+  <x:String x:Key="Text.Pull.NoMergeHead">No branch update was selected for this pull. Refresh and select a remote branch.</x:String>
+  <x:String x:Key="Text.Pull.Cancelled">Pull cancelled.</x:String>
+  <x:String x:Key="Text.Pull.Failed">Pull did not finish. Your local changes were preserved; check the connection or operation log before retrying.</x:String>
+  <x:String x:Key="Text.Validation.BranchNameRequired">Enter a branch name.</x:String>
+  <x:String x:Key="Text.Validation.RemoteBranchRequired">Select the remote branch to pull.</x:String>
+  <x:String x:Key="Text.Validation.InvalidBranchName">This branch name is not valid.</x:String>
+  <x:String x:Key="Text.Validation.BranchExists">A branch with this name already exists.</x:String>
+  <x:String x:Key="Text.Validation.BranchUnavailable">Could not verify branch settings. Close this dialog and try again.</x:String>
+  <x:String x:Key="Text.Repository.TrackingPending">The branch was created, but tracking could not be configured. Check that repository settings are writable, then set the upstream branch.</x:String>
+  <x:String x:Key="Text.Branch.OverrideCheckoutTip">Switch to the new branch and replace an existing branch with the same name.</x:String>
+  <x:String x:Key="Text.Branch.OverrideCreateTip">Move an existing branch with this name to the selected commit.</x:String>
 </ResourceDictionary>

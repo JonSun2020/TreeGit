@@ -255,6 +255,9 @@ namespace SourceGit.Automation
                                 graphCommits = r.Histories?.Commits.Take(256).Select((c, index) => new { sha = c.SHA, subject = c.Subject, localHead = c.IsLocalHead, tracking = c.Decorators.Where(d => !string.IsNullOrEmpty(d.TrackStatusDescription)).Select(d => new { branch = d.Name, status = d.TrackStatusDescription }).ToArray(), x = r.Histories.Graph?.Dots[index].Center.X, subjectLeft = c.LeftMargin, refs = c.Decorators.Select(d => d.Name).ToArray() }).ToArray(),
                                 pendingDialog = p.Popup?.GetType().Name,
                                 pendingDialogInProgress = p.Popup?.InProgress,
+                                validationErrors = p.Popup == null ? null :
+                                    (((System.ComponentModel.INotifyDataErrorInfo)p.Popup).GetErrors(null) ?? Array.Empty<object>()).Cast<object>()
+                                    .Select(e => e is System.ComponentModel.DataAnnotations.ValidationResult validation ? validation.ErrorMessage : e.ToString()).ToArray(),
                                 mergeDialog = p.Popup is not ViewModels.Merge merge ? null : new { revision = merge.SourceRevision,
                                     mode = merge.Mode.Arg, error = merge.ErrorMessage, testing = merge.TestingState.ToString(),
                                     autoStash = merge.AutoStash, autoStashAvailable = merge.AutoStashAvailable,
@@ -824,6 +827,14 @@ namespace SourceGit.Automation
                             stash.ChangesAfterStashing = stashMode.GetString() switch { "discard" => 0, "keep_index" => 1, "keep_all" => 2, _ => throw new ArgumentException("Unknown stash mode.") };
                         return (object)new { configured = true };
                     }
+                    if (command == "create_branch_options")
+                    {
+                        if (page.Popup is not ViewModels.CreateBranch create || create.InProgress)
+                            throw new InvalidOperationException("Open an idle create-branch dialog first.");
+                        if (args.TryGetProperty("branchName", out var name)) create.Name = name.GetString() ?? string.Empty;
+                        if (args.TryGetProperty("checkoutAfterCreated", out var checkout)) create.CheckoutAfterCreated = checkout.GetBoolean();
+                        return (object)new { configured = true };
+                    }
                     if (page.Popup != null)
                         throw new InvalidOperationException("Finish or cancel the current repository dialog first.");
                     var owner = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow;
@@ -1181,7 +1192,12 @@ namespace SourceGit.Automation
                 }
                 Commands.Command.Result result;
                 try
-                { result = await query.RunAsync(allowAuthenticationRetry, requireAuthenticationTransportExitCode: requireAuthenticationTransportExitCode).ConfigureAwait(false); }
+                {
+                    if (name == "git_action" && activity == "pull")
+                        result = await Commands.SafePull.RunAsync(path, repo.GitDir, selectedRemote, null, repo.CurrentBranch?.Upstream,
+                            false, true, CancellationToken.None, log).ConfigureAwait(false);
+                    else result = await query.RunAsync(allowAuthenticationRetry, requireAuthenticationTransportExitCode: requireAuthenticationTransportExitCode).ConfigureAwait(false);
+                }
                 catch (Exception ex) { result = Commands.Command.Result.Failed(ex.Message); }
                 if (write)
                 {
