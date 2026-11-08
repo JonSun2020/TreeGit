@@ -23,6 +23,21 @@ namespace SourceGit.Automation
         private static readonly SemaphoreSlim _operations = new(1, 1);
         private static CancellationTokenSource _lifetime;
 
+        private static object MergeContextMenuData(Window window)
+        {
+            var menu = window.GetVisualDescendants().OfType<Views.MergeConflictTextPresenter>().Select(p => p.OpenContextMenu)
+                .Append(window.GetVisualDescendants().OfType<Views.MergeResultEditor>().FirstOrDefault()?.OpenContextMenu)
+                .FirstOrDefault(m => m?.IsOpen == true);
+            return menu == null ? null : new
+            {
+                items = menu.Items.OfType<MenuItem>().Where(i => i.IsEffectivelyVisible && i.Bounds.Width > 0).Select(i =>
+                {
+                    var point = i.PointToScreen(new Point(i.Bounds.Width / 2, i.Bounds.Height / 2));
+                    return new { name = i.Name, text = i.Header?.ToString(), enabled = i.IsEnabled, x = point.X, y = point.Y };
+                }).ToArray(),
+            };
+        }
+
         private static object MergeLineTarget(AvaloniaEdit.TextEditor editor, int line)
         {
             var view = editor?.TextArea.TextView;
@@ -164,6 +179,7 @@ namespace SourceGit.Automation
                                     workArea = new { x = area?.X, y = area?.Y, width = area?.Width, height = area?.Height },
                                     merge = merge == null ? null : new { file = merge.FilePath, repo = merge.RepositoryPath, unsolved = merge.UnsolvedCount, modified = merge.HasChanges, saving = merge.IsSaving, canSave = merge.CanSave, error = merge.Error, encoding = merge.SelectedEncoding?.Name,
                                         totalConflicts = merge.TotalConflictCount, activeConflict = merge.ActiveConflictIndex, position = merge.ConflictPosition,
+                                        contextMenu = MergeContextMenuData(w),
                                         regions = merge.ConflictRegions.Select((r, i) => new { index = i, resolved = r.IsResolved, canResolve = merge.CanResolve(i),
                                             sourceLine = r.StartLineInOriginal + 1, resultOffset = merge.ResultOffset(i),
                                             sourceTarget = MergeLineTarget(comparisonEditor, r.StartLineInOriginal + 1),

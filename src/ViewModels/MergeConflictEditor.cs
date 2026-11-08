@@ -44,6 +44,12 @@ namespace SourceGit.ViewModels
         }
         public int ResultOffset(int index) => _buffer?.GetResultOffset(index) ?? 0;
         public int RegionForOffset(int offset) => _buffer?.RegionForOffset(offset) ?? -1;
+        public int RegionForSourceLine(int line)
+        {
+            for (var i = 0; i < ConflictRegions.Count; i++)
+                if (line - 1 >= ConflictRegions[i].StartLineInOriginal && line - 1 <= ConflictRegions[i].EndLineInOriginal) return i;
+            return -1;
+        }
         public bool IsActiveSourceLine(int line) => _activeConflictIndex >= 0 && _activeConflictIndex < ConflictRegions.Count &&
             line - 1 >= ConflictRegions[_activeConflictIndex].StartLineInOriginal && line - 1 <= ConflictRegions[_activeConflictIndex].EndLineInOriginal;
         public bool IsActiveResultLine(int line) => _buffer?.ContainsResultLine(_activeConflictIndex, line) == true;
@@ -51,7 +57,6 @@ namespace SourceGit.ViewModels
         public string Error { get => _error; private set => SetProperty(ref _error, value); }
         public bool IsSaving { get => _isSaving; private set { if (SetProperty(ref _isSaving, value)) NotifyState(); } }
         public Vector ScrollOffset { get => _scrollOffset; set => SetProperty(ref _scrollOffset, value); }
-        public Models.ConflictSelectedChunk SelectedChunk { get => _selectedChunk; set => SetProperty(ref _selectedChunk, value); }
 
         public Models.MergeConflictEncoding SelectedEncoding
         {
@@ -116,12 +121,6 @@ namespace SourceGit.ViewModels
                 return region.IsResolved ? Models.ConflictLineState.ResolvedBlock : Models.ConflictLineState.ConflictBlock;
             }
             return Models.ConflictLineState.Normal;
-        }
-
-        public void Resolve(object param)
-        {
-            if (!IsSaving && _selectedChunk != null && param is Models.ConflictResolution resolution)
-                ResolveRegion(_selectedChunk.ConflictIndex, resolution);
         }
 
         public bool ResolveRegion(int index, Models.ConflictResolution resolution)
@@ -225,7 +224,6 @@ namespace SourceGit.ViewModels
 
         private void OnDocumentChanged(object sender, EventArgs e)
         {
-            SelectedChunk = null;
             NotifyState();
         }
 
@@ -244,7 +242,6 @@ namespace SourceGit.ViewModels
         private string _error = string.Empty;
         private bool _isSaving, _convertedEncoding;
         private Vector _scrollOffset;
-        private Models.ConflictSelectedChunk _selectedChunk;
         private int _activeConflictIndex = -1;
     }
 }

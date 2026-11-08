@@ -117,33 +117,11 @@
                                             Lines="{Binding OursLines, Mode=OneWay}"
                                             MaxLineNumber="{Binding MaxLineNumber}"
                                             FileName="{Binding FilePath}"
-                                            SelectedChunk="{Binding SelectedChunk}"
                                             FontFamily="{DynamicResource Fonts.Monospace}"
                                             TheirsContentBackground="{DynamicResource Brush.Conflict.TheirsBG}"
                                             OursContentBackground="{DynamicResource Brush.Conflict.MineBG}"
                                             BorderThickness="1"
                                             BorderBrush="{DynamicResource Brush.Border2}"/>
-              <Border x:Name="MinePopup"
-                      IsVisible="False"
-                      VerticalAlignment="Top"
-                      HorizontalAlignment="Right"
-                      Background="{DynamicResource Brush.ToolBar}"
-                      BorderBrush="{DynamicResource Brush.Border2}"
-                      BorderThickness="1"
-                      CornerRadius="4"
-                      Padding="4,2"
-                      BoxShadow="0 2 8 0 #40000000">
-                <StackPanel Orientation="Horizontal" Spacing="4">
-                  <Button x:Name="AcceptLocalConflict" Classes="flat primary" IsVisible="{Binding !SelectedChunk.IsResolved}"
-                          Content="{DynamicResource Text.MergeConflictEditor.UseMine}" Command="{Binding Resolve}" CommandParameter="{x:Static m:ConflictResolution.UseOurs}"/>
-                  <Button Classes="flat primary" IsVisible="{Binding !SelectedChunk.IsResolved}"
-                          Content="{DynamicResource Text.MergeConflictEditor.LeftThenRight}" Command="{Binding Resolve}" CommandParameter="{x:Static m:ConflictResolution.UseBothMineFirst}"/>
-                  <Button Classes="flat primary" IsVisible="{Binding !SelectedChunk.IsResolved}"
-                          Content="{DynamicResource Text.MergeConflictEditor.RightThenLeft}" Command="{Binding Resolve}" CommandParameter="{x:Static m:ConflictResolution.UseBothTheirsFirst}"/>
-                  <Button x:Name="RestoreLocalConflict" Classes="flat primary" IsVisible="{Binding SelectedChunk.IsResolved}"
-                          Content="{DynamicResource Text.MergeConflictEditor.Restore}" Command="{Binding Resolve}" CommandParameter="{x:Static m:ConflictResolution.None}"/>
-                </StackPanel>
-              </Border>
             </Grid>
           </Grid>
         </Border>
@@ -190,33 +168,11 @@
                                             Lines="{Binding TheirsLines, Mode=OneWay}"
                                             MaxLineNumber="{Binding MaxLineNumber}"
                                             FileName="{Binding FilePath}"
-                                            SelectedChunk="{Binding SelectedChunk}"
                                             FontFamily="{DynamicResource Fonts.Monospace}"
                                             TheirsContentBackground="{DynamicResource Brush.Conflict.TheirsBG}"
                                             OursContentBackground="{DynamicResource Brush.Conflict.MineBG}"
                                             BorderThickness="1"
                                             BorderBrush="{DynamicResource Brush.Border2}"/>
-              <Border x:Name="TheirsPopup"
-                      IsVisible="False"
-                      VerticalAlignment="Top"
-                      HorizontalAlignment="Right"
-                      Background="{DynamicResource Brush.ToolBar}"
-                      BorderBrush="{DynamicResource Brush.Border2}"
-                      BorderThickness="1"
-                      CornerRadius="4"
-                      Padding="4,2"
-                      BoxShadow="0 2 8 0 #40000000">
-                <StackPanel Orientation="Horizontal" Spacing="4">
-                  <Button x:Name="AcceptRemoteConflict" Classes="flat primary" IsVisible="{Binding !SelectedChunk.IsResolved}"
-                          Content="{DynamicResource Text.MergeConflictEditor.UseTheirs}" Command="{Binding Resolve}" CommandParameter="{x:Static m:ConflictResolution.UseTheirs}"/>
-                  <Button Classes="flat primary" IsVisible="{Binding !SelectedChunk.IsResolved}"
-                          Content="{DynamicResource Text.MergeConflictEditor.LeftThenRight}" Command="{Binding Resolve}" CommandParameter="{x:Static m:ConflictResolution.UseBothMineFirst}"/>
-                  <Button Classes="flat primary" IsVisible="{Binding !SelectedChunk.IsResolved}"
-                          Content="{DynamicResource Text.MergeConflictEditor.RightThenLeft}" Command="{Binding Resolve}" CommandParameter="{x:Static m:ConflictResolution.UseBothTheirsFirst}"/>
-                  <Button x:Name="RestoreRemoteConflict" Classes="flat primary" IsVisible="{Binding SelectedChunk.IsResolved}"
-                          Content="{DynamicResource Text.MergeConflictEditor.Restore}" Command="{Binding Resolve}" CommandParameter="{x:Static m:ConflictResolution.None}"/>
-                </StackPanel>
-              </Border>
             </Grid>
           </Grid>
         </Border>

@@ -174,18 +174,6 @@ namespace SourceGit.Views
             set => SetAndRaise(MaxLineNumberProperty, ref _maxLineNumber, value);
         }
 
-        public static readonly DirectProperty<MergeConflictTextPresenter, Models.ConflictSelectedChunk> SelectedChunkProperty =
-            AvaloniaProperty.RegisterDirect<MergeConflictTextPresenter, Models.ConflictSelectedChunk>(
-                nameof(SelectedChunk),
-                static o => o.SelectedChunk,
-                static (o, v) => o.SelectedChunk = v);
-
-        public Models.ConflictSelectedChunk SelectedChunk
-        {
-            get => _selectedChunk;
-            set => SetAndRaise(SelectedChunkProperty, ref _selectedChunk, value);
-        }
-
         public static readonly DirectProperty<MergeConflictTextPresenter, ViewModels.TextLineRange> DisplayRangeProperty =
             AvaloniaProperty.RegisterDirect<MergeConflictTextPresenter, ViewModels.TextLineRange>(
                 nameof(DisplayRange),
@@ -254,10 +242,7 @@ namespace SourceGit.Views
             if (!string.IsNullOrEmpty(FileName))
                 Models.TextMateHelper.SetGrammarByFileName(_textMate, FileName);
 
-            TextArea.TextView.ContextRequested += OnTextViewContextRequested;
-            TextArea.TextView.PointerEntered += OnTextViewPointerChanged;
-            TextArea.TextView.PointerMoved += OnTextViewPointerChanged;
-            TextArea.TextView.PointerWheelChanged += OnTextViewPointerWheelChanged;
+            AddHandler(ContextRequestedEvent, OnTextViewContextRequested, RoutingStrategies.Bubble, true);
             TextArea.TextView.VisualLinesChanged += OnTextViewVisualLinesChanged;
             TextArea.TextView.LineTransformers.Add(new ConflictMarkerTransformer(this));
 
@@ -266,10 +251,8 @@ namespace SourceGit.Views
 
         protected override void OnUnloaded(RoutedEventArgs e)
         {
-            TextArea.TextView.ContextRequested -= OnTextViewContextRequested;
-            TextArea.TextView.PointerEntered -= OnTextViewPointerChanged;
-            TextArea.TextView.PointerMoved -= OnTextViewPointerChanged;
-            TextArea.TextView.PointerWheelChanged -= OnTextViewPointerWheelChanged;
+            RemoveHandler(ContextRequestedEvent, OnTextViewContextRequested);
+            OpenContextMenu?.Close();
             TextArea.TextView.VisualLinesChanged -= OnTextViewVisualLinesChanged;
 
             if (_textMate != null)
@@ -291,8 +274,6 @@ namespace SourceGit.Views
                 Models.TextMateHelper.SetGrammarByFileName(_textMate, FileName);
             else if (change.Property.Name == nameof(ActualThemeVariant) && change.NewValue != null)
                 Models.TextMateHelper.SetThemeByApp(_textMate);
-            else if (change.Property == SelectedChunkProperty)
-                TextArea.TextView.InvalidateVisual();
         }
 
         private void UpdateContent()
@@ -323,49 +304,31 @@ namespace SourceGit.Views
             Text = builder.ToString();
         }
 
+        public ContextMenu OpenContextMenu { get; private set; }
+
         private void OnTextViewContextRequested(object sender, ContextRequestedEventArgs e)
         {
-            var selected = SelectedText;
-            if (string.IsNullOrEmpty(selected))
-                return;
-
-            var copy = new MenuItem();
-            copy.Header = App.Text("Copy");
-            copy.Icon = this.CreateMenuIcon("Icons.Copy");
-            copy.Click += async (_, ev) =>
-            {
-                await this.CopyTextAsync(selected);
-                ev.Handled = true;
-            };
-
+            if (DataContext is not ViewModels.MergeConflictEditor vm) return;
+            var index = e.TryGetPosition(TextArea.TextView, out var point)
+                ? RegionAtY(point.Y + TextArea.TextView.VerticalOffset)
+                : vm.RegionForSourceLine(TextArea.Caret.Line);
+            if (index >= 0) vm.ActiveConflictIndex = index;
             var menu = new ContextMenu();
-            menu.Items.Add(copy);
-            menu.Open(TextArea.TextView);
-
+            var choices = MergeConflictMenu.AddChoices(menu, vm, index, PanelType);
+            if (!string.IsNullOrEmpty(SelectedText))
+            {
+                if (choices) menu.Items.Add(new Separator());
+                var selected = SelectedText;
+                var copy = new MenuItem { Header = App.Text("Copy"), Icon = this.CreateMenuIcon("Icons.Copy") };
+                copy.Click += async (_, ev) => { await this.CopyTextAsync(selected); ev.Handled = true; };
+                menu.Items.Add(copy);
+            }
             e.Handled = true;
-        }
-
-        private void OnTextViewPointerChanged(object sender, PointerEventArgs e)
-        {
-            if (DataContext is not ViewModels.MergeConflictEditor vm)
-                return;
-
-            if (sender is not TextView { VisualLinesValid: true } view)
-                return;
-
-            UpdateSelectedChunkPosition(vm, e.GetPosition(view).Y + view.VerticalOffset);
-        }
-
-        private void OnTextViewPointerWheelChanged(object sender, PointerWheelEventArgs e)
-        {
-            if (DataContext is not ViewModels.MergeConflictEditor vm)
-                return;
-
-            if (sender is not TextView { VisualLinesValid: true } view)
-                return;
-
-            var y = e.GetPosition(view).Y + view.VerticalOffset;
-            Dispatcher.UIThread.Post(() => UpdateSelectedChunkPosition(vm, y));
+            if (menu.Items.Count == 0) return;
+            OpenContextMenu?.Close();
+            OpenContextMenu = menu;
+            menu.Closed += (_, _) => { if (OpenContextMenu == menu) OpenContextMenu = null; };
+            menu.Open(this);
         }
 
         private void OnTextViewVisualLinesChanged(object sender, EventArgs e)
@@ -414,77 +377,28 @@ namespace SourceGit.Views
             {
                 vm.ScrollOffset = _scrollViewer.Offset;
 
-                if (!TextArea.TextView.IsPointerOver)
-                    vm.SelectedChunk = null;
             }
         }
 
         private void OnComparisonPointerPressed(object sender, PointerPressedEventArgs e)
         {
-            if (DataContext is not ViewModels.MergeConflictEditor vm || !TextArea.TextView.VisualLinesValid) return;
-            UpdateSelectedChunkPosition(vm, e.GetPosition(TextArea.TextView).Y + TextArea.TextView.VerticalOffset);
-            if (vm.SelectedChunk != null) vm.ActiveConflictIndex = vm.SelectedChunk.ConflictIndex;
+            if (DataContext is not ViewModels.MergeConflictEditor vm) return;
+            var index = RegionAtY(e.GetPosition(TextArea.TextView).Y + TextArea.TextView.VerticalOffset);
+            if (index >= 0) vm.ActiveConflictIndex = index;
         }
 
-        private void UpdateSelectedChunkPosition(ViewModels.MergeConflictEditor vm, double y)
+        private int RegionAtY(double y)
         {
-            var lines = Lines;
-            var panel = PanelType;
             var view = TextArea.TextView;
-            var lineIdx = -1;
+            if (!view.VisualLinesValid || DataContext is not ViewModels.MergeConflictEditor vm ||
+                y < view.VerticalOffset || y >= view.VerticalOffset + view.Bounds.Height) return -1;
             foreach (var line in view.VisualLines)
             {
-                if (line.IsDisposed || line.FirstDocumentLine == null || line.FirstDocumentLine.IsDeleted)
-                    continue;
-
-                var index = line.FirstDocumentLine.LineNumber;
-                if (index > lines.Count)
-                    break;
-
-                var endY = line.GetTextLineVisualYPosition(line.TextLines[^1], VisualYPosition.TextBottom);
-                if (endY > y)
-                {
-                    lineIdx = index - 1;
-                    break;
-                }
+                if (line.IsDisposed || line.FirstDocumentLine == null || line.FirstDocumentLine.IsDeleted) continue;
+                if (y >= line.VisualTop && y < line.VisualTop + line.Height)
+                    return vm.RegionForSourceLine(line.FirstDocumentLine.LineNumber);
             }
-
-            if (lineIdx == -1)
-            {
-                vm.SelectedChunk = null;
-                return;
-            }
-
-            for (var i = 0; i < vm.ConflictRegions.Count; i++)
-            {
-                var r = vm.ConflictRegions[i];
-                if (r.StartLineInOriginal <= lineIdx && r.EndLineInOriginal >= lineIdx)
-                {
-                    if (!vm.CanResolve(i))
-                    {
-                        vm.SelectedChunk = null;
-                        return;
-                    }
-
-                    var startLine = r.StartLineInOriginal + 1;
-                    var endLine = r.EndLineInOriginal + 1;
-                    if (startLine > Document.LineCount || endLine > Document.LineCount)
-                    {
-                        vm.SelectedChunk = null;
-                        return;
-                    }
-
-                    var vOffset = view.VerticalOffset;
-                    var startVisualLine = view.GetVisualLine(startLine);
-                    var endVisualLine = view.GetVisualLine(endLine);
-                    var topY = startVisualLine?.GetTextLineVisualYPosition(startVisualLine.TextLines[0], VisualYPosition.LineTop) ?? vOffset;
-                    var bottomY = endVisualLine?.GetTextLineVisualYPosition(endVisualLine.TextLines[^1], VisualYPosition.LineBottom) ?? (view.Bounds.Height + vOffset);
-                    vm.SelectedChunk = new(topY - vOffset, bottomY - topY, i, panel, r.IsResolved);
-                    return;
-                }
-            }
-
-            vm.SelectedChunk = null;
+            return -1;
         }
 
         private string _fileName = string.Empty;
@@ -492,7 +406,6 @@ namespace SourceGit.Views
         private List<Models.ConflictLine> _lines;
         private int _maxLineNumber = 0;
         private ViewModels.TextLineRange _displayRange = null;
-        private Models.ConflictSelectedChunk _selectedChunk = null;
         private TextMate.Installation _textMate;
         private ScrollViewer _scrollViewer;
     }
@@ -599,30 +512,9 @@ namespace SourceGit.Views
 
     public partial class MergeConflictEditor : ChromelessWindow
     {
-        public static readonly DirectProperty<MergeConflictEditor, Models.ConflictSelectedChunk> SelectedChunkProperty =
-            AvaloniaProperty.RegisterDirect<MergeConflictEditor, Models.ConflictSelectedChunk>(
-                nameof(SelectedChunk),
-                static o => o.SelectedChunk,
-                static (o, v) => o.SelectedChunk = v);
-
-        public Models.ConflictSelectedChunk SelectedChunk
-        {
-            get => _selectedChunk;
-            set => SetAndRaise(SelectedChunkProperty, ref _selectedChunk, value);
-        }
-
         public MergeConflictEditor()
         {
             InitializeComponent();
-            Bind(SelectedChunkProperty, new Binding("SelectedChunk", BindingMode.OneWay));
-        }
-
-        protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
-        {
-            base.OnPropertyChanged(change);
-
-            if (change.Property == SelectedChunkProperty)
-                UpdatePopupVisibility();
         }
 
         protected override async void OnClosing(WindowClosingEventArgs e)
@@ -732,21 +624,7 @@ namespace SourceGit.Views
             Close();
         }
 
-        private void UpdatePopupVisibility()
-        {
-            MinePopup.IsVisible = false;
-            TheirsPopup.IsVisible = false;
-            if (DataContext is not ViewModels.MergeConflictEditor vm || vm.SelectedChunk is not { } chunk || !vm.CanResolve(chunk.ConflictIndex)) return;
-            var presenter = chunk.Panel == Models.ConflictPanelType.Ours ? OursPresenter : TheirsPresenter;
-            var popup = chunk.Panel == Models.ConflictPanelType.Ours ? MinePopup : TheirsPopup;
-            var height = popup.Bounds.Height > 0 ? popup.Bounds.Height : 32;
-            var top = Math.Max(4, Math.Min(chunk.Y + (chunk.Height >= 36 ? 8 : 2), presenter.Bounds.Height - height - 4));
-            popup.Margin = new Thickness(0, top, 24, 0);
-            popup.IsVisible = true;
-        }
-
         private bool _confirmingClose;
         private bool _forceClose = false;
-        private Models.ConflictSelectedChunk _selectedChunk = null;
     }
 }

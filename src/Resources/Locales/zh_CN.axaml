@@ -1110,12 +1110,12 @@
   <x:String x:Key="Text.WorkingCopy.ConfirmCommitWithDetachedHead">您正在向一个游离的 HEAD 提交变更，是否继续提交？</x:String>
   <x:String x:Key="Text.WorkingCopy.ConfirmCommitWithFilter" xml:space="preserve">当前有 {0} 个文件在暂存区中，但仅显示了 {1} 个文件（{2} 个文件被过滤掉了），是否继续提交？</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts" xml:space="preserve">检测到冲突</x:String>
-  <x:String x:Key="Text.WorkingCopy.Conflicts.Merge" xml:space="preserve">编辑合并结果</x:String>
+  <x:String x:Key="Text.WorkingCopy.Conflicts.Merge" xml:space="preserve">用合并工具编辑</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.MergeExternal" xml:space="preserve">使用外部工具解决冲突</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.OpenExternalMergeToolAllConflicts" xml:space="preserve">打开合并工具解决冲突</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.Resolved" xml:space="preserve">文件冲突已解决</x:String>
-  <x:String x:Key="Text.WorkingCopy.Conflicts.UseMine" xml:space="preserve">使用 MINE</x:String>
-  <x:String x:Key="Text.WorkingCopy.Conflicts.UseTheirs" xml:space="preserve">使用 THEIRS</x:String>
+  <x:String x:Key="Text.WorkingCopy.Conflicts.UseMine" xml:space="preserve">使用 Local</x:String>
+  <x:String x:Key="Text.WorkingCopy.Conflicts.UseTheirs" xml:space="preserve">使用 Remote</x:String>
   <x:String x:Key="Text.WorkingCopy.DiscardAll" xml:space="preserve">放弃所有更改</x:String>
   <x:String x:Key="Text.WorkingCopy.ExpandSidebar" xml:space="preserve">显示左侧栏</x:String>
   <x:String x:Key="Text.WorkingCopy.FilterChanges" xml:space="preserve">查找变更...</x:String>

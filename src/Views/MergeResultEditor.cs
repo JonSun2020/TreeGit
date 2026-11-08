@@ -15,6 +15,7 @@ namespace SourceGit.Views
     {
         public static readonly StyledProperty<string> FileNameProperty = AvaloniaProperty.Register<MergeResultEditor, string>(nameof(FileName));
         public string FileName { get => GetValue(FileNameProperty); set => SetValue(FileNameProperty, value); }
+        public ContextMenu OpenContextMenu { get; private set; }
         protected override Type StyleKeyOverride => typeof(TextEditor);
 
         public MergeResultEditor() : base(new TextArea(), new TextDocument())
@@ -29,6 +30,7 @@ namespace SourceGit.Views
             TextArea.LeftMargins.Add(new MergeConflictSeparator(this, false));
             TextArea.TextView.BackgroundRenderers.Add(new MergeResultBackground(this));
             AddHandler(PointerPressedEvent, OnResultPointerPressed, RoutingStrategies.Tunnel, true);
+            AddHandler(ContextRequestedEvent, OnContextRequested, RoutingStrategies.Bubble, true);
         }
 
         protected override void OnLoaded(RoutedEventArgs e)
@@ -36,12 +38,11 @@ namespace SourceGit.Views
             base.OnLoaded(e);
             _textMate = Models.TextMateHelper.CreateForEditor(this);
             Models.TextMateHelper.SetGrammarByFileName(_textMate, FileName);
-            TextArea.TextView.ContextRequested += OnContextRequested;
         }
 
         protected override void OnUnloaded(RoutedEventArgs e)
         {
-            TextArea.TextView.ContextRequested -= OnContextRequested;
+            OpenContextMenu?.Close();
             _textMate?.Dispose();
             _textMate = null;
             base.OnUnloaded(e);
@@ -57,7 +58,6 @@ namespace SourceGit.Views
         private void OnResultPointerPressed(object sender, PointerPressedEventArgs e)
         {
             if (DataContext is not ViewModels.MergeConflictEditor vm) return;
-            vm.SelectedChunk = null;
             var point = e.GetPosition(this);
             var position = GetPositionFromPoint(point);
             if (position.HasValue)
@@ -70,6 +70,13 @@ namespace SourceGit.Views
         private void OnContextRequested(object sender, ContextRequestedEventArgs e)
         {
             var menu = new ContextMenu();
+            if (DataContext is ViewModels.MergeConflictEditor vm)
+            {
+                var position = e.TryGetPosition(this, out var point) ? GetPositionFromPoint(point) : TextArea.Caret.Position;
+                var index = position.HasValue ? vm.RegionForOffset(Document.GetOffset(position.Value.Location)) : -1;
+                if (index >= 0) vm.ActiveConflictIndex = index;
+                if (MergeConflictMenu.AddChoices(menu, vm, index, Models.ConflictPanelType.Result)) menu.Items.Add(new Separator());
+            }
             Add("MergeConflictEditor.UndoEdit", () => Undo(), Document?.UndoStack.CanUndo == true);
             Add("MergeConflictEditor.RedoEdit", () => Redo(), Document?.UndoStack.CanRedo == true);
             menu.Items.Add(new Separator());
@@ -77,7 +84,10 @@ namespace SourceGit.Views
             Add("Copy", Copy, !string.IsNullOrEmpty(SelectedText));
             Add("Paste", Paste, true);
             Add("MergeConflictEditor.SelectAll", SelectAll, Document?.TextLength > 0);
-            menu.Open(TextArea.TextView);
+            OpenContextMenu?.Close();
+            OpenContextMenu = menu;
+            menu.Closed += (_, _) => { if (OpenContextMenu == menu) OpenContextMenu = null; };
+            menu.Open(this);
             e.Handled = true;
 
             void Add(string key, Action action, bool enabled)

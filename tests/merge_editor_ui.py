@@ -61,10 +61,11 @@ def wait_for(fn):
     raise AssertionError('Timed out')
 def dialog():return next((d for d in tool('ui_state')['dialogs'] if d['type']=='MergeConflictEditor'),None)
 def action(name,**values):return tool('ui_merge_result',{'repo':str(repo),'file':file,'action':name,**values})
-def open_editor():
+def open_editor(use_button=False):
     global opened_text
     tool('ui_refresh',{'repo':str(repo)});time.sleep(.3)
-    tool('ui_command',{'repo':str(repo),'command':'merge_conflicts','file':file})
+    if use_button:press_text('用合并工具编辑')
+    else:tool('ui_command',{'repo':str(repo),'command':'merge_conflicts','file':file})
     wait_for(lambda: dialog() and dialog()['merge']['editable'])
     opened_text=action('read')['text']
     return opened_text
@@ -95,31 +96,66 @@ def click_result():
     api.SetForegroundWindow(hwnd);assert api.SetCursorPos(point.x,point.y)
     api.mouse_event(2,0,0,0,0);api.mouse_event(4,0,0,0,0);time.sleep(.2)
 
-def pointer(x,y,click=False):
+def pointer(x,y,click=False,right=False):
     point=wintypes.POINT(round(x),round(y));hwnd=api.WindowFromPoint(point)
     assert owner(hwnd)==pid,'Refusing pointer input outside the owned CI GUI'
-    api.SetForegroundWindow(hwnd);assert api.SetCursorPos(point.x,point.y)
-    if click:api.mouse_event(2,0,0,0,0);api.mouse_event(4,0,0,0,0)
+    if owner(api.GetForegroundWindow())!=pid:api.SetForegroundWindow(hwnd)
+    assert api.SetCursorPos(point.x,point.y)
+    if click:api.mouse_event(8 if right else 2,0,0,0,0);api.mouse_event(16 if right else 4,0,0,0,0)
     time.sleep(.25)
 def layout():return tool('ui_layout',{'window':'active'})
 def button(name):return next(b for b in layout()['buttons'] if b['name']==name)
 def screen(bounds,xf=.5,yf=.5):
-    window=next(d for d in reversed(tool('ui_state')['dialogs']) if d['type'] in ('MergeConflictEditor','Confirm'))
+    window=next((d for d in reversed(tool('ui_state')['dialogs']) if d['type'] in ('MergeConflictEditor','Confirm')),None)
+    if window is None:
+        hwnd=api.GetForegroundWindow();assert owner(hwnd)==pid
+        origin=wintypes.POINT(0,0);assert api.ClientToScreen(hwnd,ctypes.byref(origin))
+        window={'x':origin.x,'y':origin.y,'scaling':layout()['window']['scaling']}
     return window['x']+(bounds['x']+bounds['width']*xf)*window['scaling'],window['y']+(bounds['y']+bounds['height']*yf)*window['scaling']
 def press(name):pointer(*screen(button(name)['bounds']),click=True)
-def source_block(index,click=False,side='left'):
+def source_block(index,click=False,side='left',right=False):
     target=dialog()['merge']['regions'][index]['sourceTarget']
     assert target is not None,'Block is outside the current viewport'
     if side=='right':
         window=dialog();right=[s for s in layout()['scrolls'] if s['visible']][1]['bounds']
         target={**target,'x':window['x']+(right['x']+80)*window['scaling']}
-    pointer(target['x'],target['y'],click)
+    pointer(target['x'],target['y'],click or right,right)
+
+def press_text(text):
+    item=next(b for b in layout()['buttons'] if b['text']==text)
+    pointer(*screen(item['bounds']),click=True)
+def menu_items():
+    return (dialog()['merge']['contextMenu'] or {}).get('items',[]) if dialog() else []
+def menu_labels():
+    return [i['text'] for i in wait_for(menu_items)]
+def choose(name):
+    item=next(i for i in wait_for(menu_items) if i['name']==name)
+    assert item['enabled'];pointer(item['x'],item['y'],click=True)
+    wait_for(lambda:not menu_items())
+def select_conflicted_file():
+    tool('ui_refresh',{'repo':str(repo)});time.sleep(.3)
+    tool('ui_diff',{'repo':str(repo),'action':'select','file':file,'source':'unstaged'})
+    wait_for(lambda:any(b['name']=='UseLocalConflict' and b['enabled'] for b in layout()['buttons']))
 
 try:
     rpc('initialize',{'protocolVersion':'2025-11-25'});tool('ui_open_repository',{'repo':str(repo)})
     pid=tool('ui_state')['processId'];tool('ui_window',{'state':'maximized','theme':'Blue'})
     wait_for(lambda: any(Path(r['repo']).resolve()==repo and not r['graphLoading'] for r in tool('ui_state')['repositories']))
-    original=path.read_bytes();text=open_editor()
+    for name,value in [('UseLocalConflict',1),('UseRemoteConflict',2)]:
+        select_conflicted_file()
+        local=button('UseLocalConflict');remote=button('UseRemoteConflict')
+        check('conflict overview places Local before Remote '+name,local['text']=='使用 Local' and remote['text']=='使用 Remote' and local['bounds']['x']<remote['bounds']['x'])
+        check('overview uses the requested merge-tool label '+name,any(b['text']=='用合并工具编辑' for b in layout()['buttons']))
+        if name=='UseLocalConflict':shot('conflict-overview')
+        press(name);wait_for(lambda:not git('ls-files','-u','--',file).stdout)
+        check('overview choice selects the correct complete version '+name,path.read_bytes()==b'\xef\xbb\xbf'+base.replace('first = 0','first = '+str(value)).replace('last = 0','last = '+str(value)).replace('\n','\r\n').encode('utf-8'))
+        time.sleep(.3);conflict()
+    select_conflicted_file()
+    original=path.read_bytes();text=open_editor(use_button=True)
+    check('overview merge-tool button opens the editable conflict window',dialog() is not None)
+    press('CancelMergeEditor');wait_for(lambda:dialog() is None)
+    check('the actual Cancel button closes an unchanged editor directly',path.read_bytes()==original)
+    text=open_editor(use_button=True)
     check('actual merge markers load without BOM characters or synthetic padding',text==original.decode('utf-8-sig') and action('read')['unsolved']==2)
     check('the displayed result is enabled and editable',dialog()['merge']['editable'])
     divider=next(s for s in layout()['splitters'] if s['visible'])
@@ -133,16 +169,26 @@ try:
     check('navigation aligns with the THEIRS column',abs(nav['x']-scrolls[1]['bounds']['x'])<=2)
     check('there are no bottom undo or redo buttons',not any(b['text'] in ('撤销','重做') for b in controls['buttons']))
     source_block(0)
-    check('left choices use the requested labels',all(any(b['text']==name for b in layout()['buttons']) for name in ('仅用左边','先左后右','先右后左')))
-    source_block(0,side='right')
-    check('right choices use the requested labels',all(any(b['text']==name for b in layout()['buttons']) for name in ('仅用右边','先左后右','先右后左')))
-    source_block(0)
-    shot('editable-result')
-    action('resolve',region=0,choice='ours')
+    check('hover does not display actions over code',dialog()['merge']['contextMenu'] is None and not any(b['name'] in ('AcceptLocalConflict','AcceptRemoteConflict','RestoreLocalConflict','RestoreRemoteConflict') for b in layout()['buttons']))
+    source_block(0,right=True)
+    check('left context menu has the three requested choices',menu_labels()[:3]==['仅用左边','先左后右','先右后左'])
+    shot('left-context-menu')
+    choose('RightThenLeftConflict')
+    check('right-then-left menu action edits just the selected block','int first = 2;\r\nint first = 1;' in action('read')['text'] and action('read')['unsolved']==1)
+    press('UndoMergeResult')
+    source_block(0,side='right',right=True)
+    check('right context menu has the three requested choices',menu_labels()[:3]==['仅用右边','先左后右','先右后左'])
+    shot('right-context-menu');choose('UseRightConflict')
+    check('right menu uses the remote contents','int first = 2;' in action('read')['text'] and 'int first = 1;' not in action('read')['text'])
+    press('UndoMergeResult')
+    source_block(0,right=True);choose('UseLeftConflict')
+    check('left menu uses local contents','int first = 1;' in action('read')['text'] and 'int first = 2;' not in action('read')['text'])
     check('resolving a block changes remaining count but not the total',dialog()['merge']['unsolved']==1 and dialog()['merge']['position']=='1/2')
     source_block(0)
-    check('a resolved block exposes Restore on hover',button('RestoreLocalConflict')['text']=='复原')
-    press('RestoreLocalConflict')
+    check('resolved blocks also show no hover overlay',dialog()['merge']['contextMenu'] is None)
+    source_block(0,right=True)
+    check('a resolved block offers Restore in its context menu',menu_labels()[0]=='复原')
+    choose('RestoreConflict')
     check('Restore brings back exactly the original block',action('read')['text']==text and dialog()['merge']['unsolved']==2)
     press('UndoMergeResult')
     check('toolbar undo reverses Restore',dialog()['merge']['unsolved']==1)
@@ -169,20 +215,21 @@ try:
     shot('unsaved-close')
     press('BtnNo');wait_for(lambda:not any(d['type']=='Confirm' for d in tool('ui_state')['dialogs']))
     check('Cancel keeps unsaved text and the editor open',dialog() is not None and action('read')['text']==expected+'x')
-    check('explicit save succeeds',action('save')['saved'])
-    wait_for(lambda: dialog() is None)
+    press('SaveMergeResult');wait_for(lambda: dialog() is None)
+    check('the actual Save and Stage button closes the editor after success',True)
     wanted=b'\xef\xbb\xbf'+(expected+'x').encode('utf-8')
     check('save preserves UTF-8 BOM, CRLF and the missing final newline',path.read_bytes()==wanted)
     check('save stages the actual merged bytes and clears unmerged entries',not git('ls-files','-u','--',file).stdout and git('show',':'+file).stdout==wanted.decode('utf-8').replace('\r\n','\n'))
     check('saving never commits or ends the pending merge',git('rev-parse','HEAD').stdout.strip()==head and (repo/'.git/MERGE_HEAD').exists())
 
     conflict();original=path.read_bytes();open_editor();action('replace',text='cancelled edit\n')
-    tool('ui_command',{'command':'close_dialog'});wait_for(lambda:any(d['type']=='Confirm' for d in tool('ui_state')['dialogs']))
+    press('CancelMergeEditor');wait_for(lambda:any(d['type']=='Confirm' for d in tool('ui_state')['dialogs']))
     press('BtnYes');wait_for(lambda:dialog() is None)
     check('OK discards only unsaved changes without writing or staging',path.read_bytes()==original and len(git('ls-files','-u','--',file).stdout.splitlines())==3)
     check('closing an unchanged restored buffer does not write or stage',path.read_bytes()==original and len(git('ls-files','-u','--',file).stdout.splitlines())==3)
     open_editor();action('replace',text='my edited result\n');external=b'external modification\n';path.write_bytes(external)
-    check('an external file change is rejected',not action('save')['saved'])
+    press('SaveMergeResult');wait_for(lambda:dialog() and dialog()['merge']['error'])
+    check('a failed save keeps the editor open and rejects an external file change',dialog() is not None)
     check('external text and the edited in-memory result both survive',path.read_bytes()==external and action('read')['text']=='my edited result\n' and dialog()['merge']['error'])
     shot('external-edit-protected');clean_close()
     check('no temporary merge file is left behind',not list(repo.glob('.*.treegit-merge-*')))

@@ -41,16 +41,16 @@
         </Border>
 
         <StackPanel Margin="0,8,0,0" Orientation="Horizontal" HorizontalAlignment="Center">
-          <Button Classes="flat" Margin="0,0,0,0" Click="OnUseTheirs">
-            <StackPanel Orientation="Horizontal">
-              <Path Width="12" Height="12" Data="{StaticResource Icons.Incoming}"/>
-              <TextBlock Margin="6,0,0,0" Text="{DynamicResource Text.WorkingCopy.Conflicts.UseTheirs}" VerticalAlignment="Center"/>
-            </StackPanel>
-          </Button>
-          <Button Classes="flat" Margin="8,0,0,0" Click="OnUseMine">
+          <Button x:Name="UseLocalConflict" Classes="flat" Margin="0" Click="OnUseMine">
             <StackPanel Orientation="Horizontal">
               <Path Width="12" Height="12" Data="{StaticResource Icons.Local}"/>
               <TextBlock Margin="6,0,0,0" Text="{DynamicResource Text.WorkingCopy.Conflicts.UseMine}" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+          <Button x:Name="UseRemoteConflict" Classes="flat" Margin="8,0,0,0" Click="OnUseTheirs">
+            <StackPanel Orientation="Horizontal">
+              <Path Width="12" Height="12" Data="{StaticResource Icons.Incoming}"/>
+              <TextBlock Margin="6,0,0,0" Text="{DynamicResource Text.WorkingCopy.Conflicts.UseTheirs}" VerticalAlignment="Center"/>
             </StackPanel>
           </Button>
           <SplitButton Height="28" Margin="8,0,0,0" Padding="8,0" Click="OnMerge" IsVisible="{Binding CanOpenMergeEditor}">
