@@ -359,6 +359,18 @@ try:
     check('delete resolution can be retried after fixing file permissions',not path.exists() and (repo/'.git/MERGE_HEAD').exists())
     git('merge','--abort')
 
+    # A revert's incoming file is the version before the reverted commit,
+    # rather than the commit being undone.
+    git('checkout','-B','revert-metadata','feature^')
+    write(base.replace('first = 0','first = 1'));git('add','.');git('commit','-m','Revert metadata target');reverted_sha=git('rev-parse','HEAD').stdout.strip()
+    write(base.replace('first = 0','first = 2'));git('add','.');git('commit','-m','Later local change');later_sha=git('rev-parse','HEAD').stdout.strip()
+    check('revert metadata fixture creates an actual conflict',git('revert','--no-edit',reverted_sha,ok=False).returncode==1)
+    select_conflicted_file();shot('revert-conflict-overview');open_editor(use_button=True)
+    comparison=dialog()['merge']
+    check('revert conflict shows the actual Local and Remote file contents','int first = 2;' in comparison['localSample'] and 'int first = 0;' in comparison['remoteSample'])
+    check('revert metadata never labels the original commit as the incoming version',comparison['localVersion']==later_sha and comparison['remoteVersion']=='被回退提交之前的版本' and comparison['remoteVersion']!=reverted_sha)
+    shot('revert-editor-versions');clean_close();git('revert','--abort')
+
     # Resolve gitlink conflicts to the chosen index SHA, never to an unrelated
     # submodule HEAD. Preserve the module's own uncommitted and untracked data.
     module_source=root/'module-source';module_source.mkdir()

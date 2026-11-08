@@ -1110,8 +1110,8 @@
   <x:String x:Key="Text.WorkingCopy.Conflicts.MergeExternal" xml:space="preserve">使用外部工具解決衝突</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.OpenExternalMergeToolAllConflicts" xml:space="preserve">使用外部合併工具開啟</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.Resolved" xml:space="preserve">檔案衝突已解決</x:String>
-  <x:String x:Key="Text.WorkingCopy.Conflicts.UseMine" xml:space="preserve">使用我方版本 (ours)</x:String>
-  <x:String x:Key="Text.WorkingCopy.Conflicts.UseTheirs" xml:space="preserve">使用對方版本 (theirs)</x:String>
+  <x:String x:Key="Text.WorkingCopy.Conflicts.UseMine" xml:space="preserve">使用 Local</x:String>
+  <x:String x:Key="Text.WorkingCopy.Conflicts.UseTheirs" xml:space="preserve">使用 Remote</x:String>
   <x:String x:Key="Text.WorkingCopy.DiscardAll" xml:space="preserve">捨棄所有變更</x:String>
   <x:String x:Key="Text.WorkingCopy.ExpandSidebar" xml:space="preserve">展開側邊欄</x:String>
   <x:String x:Key="Text.WorkingCopy.FilterChanges" xml:space="preserve">篩選變更...</x:String>
@@ -1307,4 +1307,15 @@
   <x:String x:Key="Text.CommitAction.Failed">本次操作未能完成。請檢查本機變更或查看命令記錄，然後重試。</x:String>
   <x:String x:Key="Text.CommitAction.LocalFilesBlocked">此操作會覆寫本機未追蹤或忽略的檔案。請先移走或備份這些檔案，然後重試。</x:String>
   <x:String x:Key="Text.File.HexViewer.LoadFailed">無法讀取此檔案。請確認檔案或所選版本仍可讀取，然後重新開啟檢視器。</x:String>
+  <x:String x:Key="Text.Conflict.MineLabel">Local</x:String>
+  <x:String x:Key="Text.Conflict.TheirsLabel">Remote</x:String>
+  <x:String x:Key="Text.Conflict.State.BothDeleted">Local 和 Remote 均已刪除此檔案</x:String>
+  <x:String x:Key="Text.Conflict.State.AddedByUs">僅 Local 新增此檔案</x:String>
+  <x:String x:Key="Text.Conflict.State.DeletedByThem">Remote 已刪除此檔案</x:String>
+  <x:String x:Key="Text.Conflict.State.AddedByThem">僅 Remote 新增此檔案</x:String>
+  <x:String x:Key="Text.Conflict.State.DeletedByUs">Local 已刪除此檔案</x:String>
+  <x:String x:Key="Text.Conflict.State.BothAdded">Local 和 Remote 均新增此檔案</x:String>
+  <x:String x:Key="Text.Conflict.State.BothModified">Local 和 Remote 均有修改</x:String>
+  <x:String x:Key="Text.Conflict.RevertVersion">被回退提交之前的版本</x:String>
+  <x:String x:Key="Text.Conflict.StashOrPatch">貯藏或修補檔中的變更</x:String>
 </ResourceDictionary>

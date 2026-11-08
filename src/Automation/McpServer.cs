@@ -54,7 +54,12 @@ namespace SourceGit.Automation
             var repo = Field("Absolute path of a repository opened in this TreeGit window.");
             var tools = new List<object>
             {
-                Tool("ui_state", "Inspect the running TreeGit application's repository tabs, selected view, branch and pending dialog.", []),
+                Tool("ui_state", "Inspect TreeGit tabs, selected view, branches and dialogs. Search metadata is paged; use the returned counts and truncation flags to read every page without changing the UI.", new() {
+                    ["searchOffset"] = Field("Search result offset, default 0.", "integer"),
+                    ["searchLimit"] = Field("Search results per repository, default 64, range 0–256. Zero reads counts only.", "integer"),
+                    ["searchBranchOffset"] = Field("Containing-branch offset within each returned search result, default 0.", "integer"),
+                    ["searchBranchLimit"] = Field("Containing branches per search result, default 128, range 0–512. Zero reads counts only.", "integer"),
+                }),
                 Tool("ui_tabs", "List tabs with their loading status, open their dropdown, select, close or move a tab. Index is zero-based.", new() { ["action"] = Field("Tab action.", values: ["list", "dropdown", "select", "close", "move"]), ["index"] = Field("Tab index; required for select, close and move.", "integer"), ["targetIndex"] = Field("Destination index; required for move.", "integer") }, ["action"]),
                 Tool("ui_screenshot", "Capture the running TreeGit window or its open dialog as a PNG image.", new() { ["window"] = Field("Window to capture (default main).", values: ["main", "active"]) }),
                 Tool("ui_open_repository", "Open or activate a local Git repository in the TreeGit GUI. Does not initialize a repository.", new() { ["repo"] = repo }, ["repo"]),

@@ -16,7 +16,19 @@ namespace SourceGit.ViewModels
 
         public string Description
         {
-            get => _change.ConflictDesc;
+            get
+            {
+                var reason = _change.ConflictReason;
+                if (_isRebase)
+                    reason = reason switch {
+                        Models.ConflictReason.AddedByUs => Models.ConflictReason.AddedByThem,
+                        Models.ConflictReason.AddedByThem => Models.ConflictReason.AddedByUs,
+                        Models.ConflictReason.DeletedByUs => Models.ConflictReason.DeletedByThem,
+                        Models.ConflictReason.DeletedByThem => Models.ConflictReason.DeletedByUs,
+                        _ => reason,
+                    };
+                return reason == Models.ConflictReason.None ? string.Empty : App.Text("Conflict.State." + reason);
+            }
         }
 
         public Models.ConflictFileState State
@@ -54,9 +66,9 @@ namespace SourceGit.ViewModels
                 {
                     CherryPickInProgress cherryPick => (_head, cherryPick.Head),
                     RebaseInProgress rebase => (rebase.StoppedAt, _head),
-                    RevertInProgress revert => (_head, revert.Head),
+                    RevertInProgress => (_head, (object)App.Text("Conflict.RevertVersion")),
                     MergeInProgress merge => (_head, merge.Source),
-                    _ => (_head, (object)"Stash or Patch"),
+                    _ => (_head, (object)App.Text("Conflict.StashOrPatch")),
                 };
 
                 var state = Models.ConflictFileState.Unknown;
