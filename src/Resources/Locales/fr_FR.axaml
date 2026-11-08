@@ -1000,8 +1000,8 @@
   <x:String x:Key="Text.WorkingCopy.Conflicts.MergeExternal" xml:space="preserve">Fusion avec un outil externe</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.OpenExternalMergeToolAllConflicts" xml:space="preserve">OUVRIR TOUS LES CONFLITS DANS L'OUTIL DE FUSION EXTERNE</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.Resolved" xml:space="preserve">LES CONFLITS DE FICHIER SONT RÉSOLUS</x:String>
-  <x:String x:Key="Text.WorkingCopy.Conflicts.UseMine" xml:space="preserve">UTILISER LES MIENS</x:String>
-  <x:String x:Key="Text.WorkingCopy.Conflicts.UseTheirs" xml:space="preserve">UTILISER LES LEURS</x:String>
+  <x:String x:Key="Text.WorkingCopy.Conflicts.UseMine" xml:space="preserve">Use Local</x:String>
+  <x:String x:Key="Text.WorkingCopy.Conflicts.UseTheirs" xml:space="preserve">Use Remote</x:String>
   <x:String x:Key="Text.WorkingCopy.IncludeUntracked" xml:space="preserve">INCLURE LES FICHIERS NON-SUIVIS</x:String>
   <x:String x:Key="Text.WorkingCopy.NoCommitHistories" xml:space="preserve">PAS DE MESSAGE D'ENTRÉE RÉCENT</x:String>
   <x:String x:Key="Text.WorkingCopy.NoCommitTemplates" xml:space="preserve">PAS DE MODÈLES DE COMMIT</x:String>
@@ -1162,4 +1162,15 @@
   <x:String x:Key="Text.CommitAction.Failed">The operation could not complete. Check local changes or the command log, then retry.</x:String>
   <x:String x:Key="Text.CommitAction.LocalFilesBlocked">Local untracked or ignored files would be replaced. Move or back them up, then retry.</x:String>
   <x:String x:Key="Text.File.HexViewer.LoadFailed">This file could not be read. Check that the file or selected revision is still available, then reopen the viewer.</x:String>
+  <x:String x:Key="Text.Conflict.MineLabel">Local</x:String>
+  <x:String x:Key="Text.Conflict.TheirsLabel">Remote</x:String>
+  <x:String x:Key="Text.Conflict.State.BothDeleted">Local and Remote both deleted this file</x:String>
+  <x:String x:Key="Text.Conflict.State.AddedByUs">Only Local added this file</x:String>
+  <x:String x:Key="Text.Conflict.State.DeletedByThem">Remote deleted this file</x:String>
+  <x:String x:Key="Text.Conflict.State.AddedByThem">Only Remote added this file</x:String>
+  <x:String x:Key="Text.Conflict.State.DeletedByUs">Local deleted this file</x:String>
+  <x:String x:Key="Text.Conflict.State.BothAdded">Local and Remote both added this file</x:String>
+  <x:String x:Key="Text.Conflict.State.BothModified">Local and Remote both modified this file</x:String>
+  <x:String x:Key="Text.Conflict.RevertVersion">Version before the reverted commit</x:String>
+  <x:String x:Key="Text.Conflict.StashOrPatch">Changes from a stash or patch</x:String>
 </ResourceDictionary>

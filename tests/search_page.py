@@ -217,6 +217,17 @@ try:
     tool('ui_refresh',{'repo':str(repo)})
     wait_refs({'refs/heads/derived/child':child,'refs/heads/merge/receiver':merged})
     s=search(feature,'sha');row=verify_coverage('derived coverage',feature,s)
+    paged_refs=[]
+    for offset in range(0,row['branchCount'],16):
+        page_state=tool('ui_state',{'searchOffset':0,'searchLimit':1,'searchBranchOffset':offset,'searchBranchLimit':16})
+        page=next(r for r in page_state['repositories'] if Path(r['repo']).resolve()==repo)
+        result=page['searchResults'][0]
+        check('MCP branch page preserves the full count '+str(offset),page['searchResultCount']==1 and result['sha']==feature and result['branchCount']==row['branchCount'] and len(result['branches'])<=16 and result['branchesTruncated']==(offset+16<row['branchCount']))
+        paged_refs.extend(result['branches'])
+    check('MCP pagination exposes every containing branch without duplication',set(paged_refs)==set(row['branches']) and len(paged_refs)==len(set(paged_refs)))
+    count_state=tool('ui_state',{'searchLimit':0,'searchBranchLimit':0})
+    count_page=next(r for r in count_state['repositories'] if Path(r['repo']).resolve()==repo)
+    check('MCP count-only inspection preserves search and returns no rows',count_page['searchResultCount']==1 and count_page['searchResults']==[] and count_page['searchResultsTruncated'] and count_page['searchActive'])
     check('derived descendants and merge recipients contain the original',all('refs/heads/'+name in row['branches'] for name in ('derived/child','derived/grandchild','merge/receiver')))
     check('revert never removes original ancestry from coverage','refs/heads/revert/receiver' in row['branches'])
     check('branches forked before the change are excluded','refs/heads/before/calibration' not in row['branches'] and 'refs/heads/unrelated/main' not in row['branches'])

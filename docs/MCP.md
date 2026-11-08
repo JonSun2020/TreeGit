@@ -89,3 +89,7 @@ MCP 的完整读写意味着 AI 可以修改甚至删除 Git 数据。应在 AI 
 合并、变基、挑选提交和回退提交未完成时，`pendingDialogError` 返回当前弹框的恢复提示。弹框保持打开时先处理该提示，不能仅凭确认动作已受理判断操作成功。
 
 `git_action` 的切换、合并、变基、挑选和回退操作会在执行前检查可能被覆盖的本地未跟踪或忽略文件。挑选、回退按实际补丁检查，仍支持提交范围；无关的忽略文件不会阻止操作。`git_run` 保持直接执行原生 Git 参数的能力。
+
+`ui_state` 的搜索元数据采用分页，界面中的结果不变。每个仓库返回完整的 `searchResultCount`；默认读取前 64 条，使用 `searchOffset` 和 `searchLimit`（0–256）继续读取，`searchResultsTruncated` 表示后面还有结果。每条结果的 `branchCount` 始终是完整数量，`branches` 默认最多 128 个；通过 `searchBranchOffset`、`searchBranchLimit`（0–512）以及 `branchesTruncated` 取全关联分支。数量为 0 时只读计数。这些参数不改变搜索、选择或页面。
+
+冲突窗口的 `localVersion`、`remoteVersion` 给出对应版本的提交或说明；回退冲突的 Remote 是被回退提交之前的版本，不会错误标成被回退提交本身。

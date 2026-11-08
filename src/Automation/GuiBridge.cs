@@ -133,6 +133,10 @@ namespace SourceGit.Automation
             if (name == "ui_state")
                 return await Dispatcher.UIThread.InvokeAsync(() =>
                 {
+                    var searchOffset = PageArgument(args, "searchOffset", 0, 0, int.MaxValue);
+                    var searchLimit = PageArgument(args, "searchLimit", 64, 0, 256);
+                    var branchOffset = PageArgument(args, "searchBranchOffset", 0, 0, int.MaxValue);
+                    var branchLimit = PageArgument(args, "searchBranchLimit", 128, 0, 512);
                     var launcher = App.GetLauncher();
                     var window = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow;
                     var tabs = window.GetVisualDescendants().OfType<ListBox>().FirstOrDefault(b => b.Name == "LauncherTabsList");
@@ -184,6 +188,8 @@ namespace SourceGit.Automation
                                         totalConflicts = merge.TotalConflictCount, activeConflict = merge.ActiveConflictIndex, position = merge.ConflictPosition,
                                         contextMenu = MergeContextMenuData(w),
                                         baseSample = merge.BaseSample, baseHint = merge.BaseHint, rebase = merge.IsRebase,
+                                        localVersion = merge.Mine is Models.Commit localVersion ? localVersion.SHA : merge.Mine?.ToString(),
+                                        remoteVersion = merge.Theirs is Models.Commit remoteVersion ? remoteVersion.SHA : merge.Theirs?.ToString(),
                                         localSample = string.Join("\n", merge.OursLines.Take(16).Select(l => l.Content[..Math.Min(l.Content.Length, 128)])),
                                         remoteSample = string.Join("\n", merge.TheirsLines.Take(16).Select(l => l.Content[..Math.Min(l.Content.Length, 128)])),
                                         regions = merge.ConflictRegions.Select((r, i) => new { index = i, resolved = r.IsResolved, canResolve = merge.CanResolve(i),
@@ -203,6 +209,7 @@ namespace SourceGit.Automation
                             var repositoryView = mainWindow.GetVisualDescendants().OfType<Views.Repository>().FirstOrDefault(v => v.DataContext == r);
                             var historyList = repositoryView?.GetVisualDescendants().OfType<Views.HistoriesCommitList>().FirstOrDefault();
                             var pendingRow = repositoryView?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "WorkingCopyRow");
+                            var searchResults = r.Histories?.SearchCommitContext.Results;
                             return new
                             {
                                 repo = r.FullPath,
@@ -232,8 +239,16 @@ namespace SourceGit.Automation
                                 searchActive = r.Histories?.IsSearchingCommits,
                                 searchQuerying = r.Histories?.SearchCommitContext.IsQuerying,
                                 searchSelected = r.Histories?.SearchCommitContext.Selected?.SHA,
-                                searchResults = r.Histories?.SearchCommitContext.Results?.Select(c => new { sha = c.SHA, subject = c.Subject, branch = c.SearchBranchName,
-                                    branchCount = c.SearchBranches?.Count, branches = c.SearchBranches?.Branches.Select(b => b.FullName).ToArray() }).ToArray(),
+                                searchResultCount = searchResults?.Count ?? 0,
+                                searchResultOffset = searchOffset,
+                                searchResultLimit = searchLimit,
+                                searchResultsTruncated = (searchResults?.Count ?? 0) > searchOffset + (long)searchLimit,
+                                searchBranchOffset = branchOffset,
+                                searchBranchLimit = branchLimit,
+                                searchResults = searchResults?.Skip(searchOffset).Take(searchLimit).Select(c => new { sha = c.SHA, subject = c.Subject, branch = c.SearchBranchName,
+                                    branchCount = c.SearchBranches?.Count,
+                                    branchesTruncated = c.SearchBranches?.Count > branchOffset + (long)branchLimit,
+                                    branches = c.SearchBranches?.Branches.Skip(branchOffset).Take(branchLimit).Select(b => b.FullName).ToArray() }).ToArray(),
                                 detailView = r.Histories?.DetailContext?.GetType().Name,
                                 detailChanges = r.Histories?.DetailContext is ViewModels.CommitDetail detail ? detail.Changes?.Take(256).Select(c => c.Path).ToArray()
                                     : r.Histories?.DetailContext is ViewModels.RevisionCompare comparison ? comparison.VisibleChanges?.Take(256).Select(c => c.Path).ToArray() : null,
@@ -1279,6 +1294,14 @@ namespace SourceGit.Automation
 
         private static bool IsSelected(ViewModels.ChangeSelection selection, Models.Change change) =>
             selection is { Count: 1, HasFolder: false } && ReferenceEquals(selection.Changes[0], change);
+
+        private static int PageArgument(JsonElement args, string key, int fallback, int minimum, int maximum)
+        {
+            if (!args.TryGetProperty(key, out var value)) return fallback;
+            if (value.ValueKind != JsonValueKind.Number || !value.TryGetInt32(out var number) || number < minimum || number > maximum)
+                throw new ArgumentException($"{key} must be between {minimum} and {maximum}.");
+            return number;
+        }
 
         private static string Text(JsonElement args, string key)
         {

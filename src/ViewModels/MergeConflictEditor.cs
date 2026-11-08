@@ -100,9 +100,9 @@ namespace SourceGit.ViewModels
             {
                 CherryPickInProgress cherryPick => (head, cherryPick.Head),
                 RebaseInProgress rebase => (rebase.StoppedAt, head),
-                RevertInProgress revert => (head, revert.Head),
+                RevertInProgress => (head, (object)App.Text("Conflict.RevertVersion")),
                 MergeInProgress merge => (head, merge.Source),
-                _ => (head, (object)"Stash or Patch"),
+                _ => (head, (object)App.Text("Conflict.StashOrPatch")),
             };
             try
             {
