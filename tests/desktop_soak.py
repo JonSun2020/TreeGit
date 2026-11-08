@@ -28,7 +28,7 @@ def make_repo(index):
     (repo/'note.txt').write_text('initial\n');(repo/'firmware.bin').write_bytes(bytes([(i+index)%256 for i in range(65537)]));git(repo,'add','.');git(repo,'commit','-m','Initial');return repo
 p=subprocess.Popen([str(exe),'--mcp'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',env=env,creationflags=subprocess.CREATE_NO_WINDOW)
 replies=queue.Queue();threading.Thread(target=lambda:[replies.put(line) for line in p.stdout],daemon=True).start()
-seq=0;pid=None;latencies=[];samples=[];snapshots=set();cycle=0;failure=None;start=time.monotonic();rng=random.Random(704)
+seq=0;pid=None;latencies=[];samples=[];snapshots=set();cycle=0;merge_cycles=0;failure=None;start=time.monotonic();rng=random.Random(704)
 def rpc(method,params=None):
     global seq
     seq+=1;p.stdin.write(json.dumps({'jsonrpc':'2.0','id':seq,'method':method,'params':params or {}},ensure_ascii=False)+'\n');p.stdin.flush()
@@ -45,7 +45,7 @@ def close_repositories():
 def save_result():
     ordered=sorted(latencies)
     pending=out/'desktop-soak-results.tmp'
-    pending.write_text(json.dumps({'exe':str(exe),'build':build,'root':str(root),'seconds':round(time.monotonic()-start,1),'requestedDurationSeconds':seconds,'stoppedByRequest':(out/'stop-requested').exists(),'verifierGit':verifier_git,'verifierLaunchRetries':verifier_retries,'cycles':cycle,'requests':len(latencies),'maxRequestSeconds':max(latencies,default=0),'p95RequestSeconds':ordered[int(len(ordered)*.95)] if ordered else 0,'samples':samples,'ownedSnapshotCount':len(snapshots),'remainingSnapshots':[str(s) for s in snapshots if s.exists()],'failure':failure},ensure_ascii=False,indent=2),encoding='utf-8')
+    pending.write_text(json.dumps({'exe':str(exe),'build':build,'root':str(root),'seconds':round(time.monotonic()-start,1),'requestedDurationSeconds':seconds,'stoppedByRequest':(out/'stop-requested').exists(),'verifierGit':verifier_git,'verifierLaunchRetries':verifier_retries,'cycles':cycle,'mergeEditorCycles':merge_cycles,'requests':len(latencies),'maxRequestSeconds':max(latencies,default=0),'p95RequestSeconds':ordered[int(len(ordered)*.95)] if ordered else 0,'samples':samples,'ownedSnapshotCount':len(snapshots),'remainingSnapshots':[str(s) for s in snapshots if s.exists()],'failure':failure},ensure_ascii=False,indent=2),encoding='utf-8')
     pending.replace(out/'desktop-soak-results.json')
 def sample(label):
     state=tool('ui_state');assert state['processId']==pid and not state['dialogs'],state['dialogs']
@@ -74,6 +74,12 @@ try:
     (out/'overflow-selected.png').write_bytes(tool('ui_screenshot'))
     for tab in reversed(tool('ui_tabs',{'action':'list'})['tabs']):
         if tab['repo'] and Path(tab['repo']) in extras:tool('ui_tabs',{'action':'close','index':tab['index']})
+    merge_repo=make_repo(24)
+    git(merge_repo,'checkout','-b','incoming');(merge_repo/'note.txt').write_text('incoming\n');git(merge_repo,'commit','-am','Incoming')
+    git(merge_repo,'checkout','main');(merge_repo/'note.txt').write_text('local\n');git(merge_repo,'commit','-am','Local')
+    conflicted=verify_git_process(['-C',str(merge_repo),'merge','incoming'],capture_output=True)
+    assert conflicted.returncode==1 and git(merge_repo,'ls-files','-u')
+    original_conflict=(merge_repo/'note.txt').read_bytes()
     sample('eight-active-after-overflow');start=time.monotonic();deadline=start+seconds
     while time.monotonic()<deadline and not (out/'stop-requested').exists():
         repo=repos[cycle%len(repos)];tool('ui_open_repository',{'repo':str(repo)})
@@ -103,6 +109,30 @@ try:
             tool('ui_tabs',{'action':'close','index':tab['index']});tool('ui_open_repository',{'repo':str(repo)})
         cycle+=1
         if cycle%10==0:
+            tool('ui_open_repository',{'repo':str(merge_repo)})
+            for attempt in range(100):
+                current=next((r for r in tool('ui_state')['repositories'] if Path(r['repo']).resolve()==merge_repo),None)
+                if current and current['workingCopyStatusKnown'] and current['changes']>0:break
+                time.sleep(.05)
+            else:raise AssertionError('Persistent conflict repository did not load')
+            tool('ui_command',{'repo':str(merge_repo),'command':'merge_conflicts','file':'note.txt'})
+            for attempt in range(100):
+                dialogs=tool('ui_state')['dialogs']
+                if any(d['type']=='MergeConflictEditor' and d['merge']['editable'] for d in dialogs):break
+                time.sleep(.05)
+            else:raise AssertionError('Repeated merge editor did not open')
+            args={'repo':str(merge_repo),'file':'note.txt'}
+            original=tool('ui_merge_result',{**args,'action':'read'})['text']
+            tool('ui_merge_result',{**args,'action':'resolve','region':0,'choice':'left'})
+            tool('ui_merge_result',{**args,'action':'undo'})
+            assert tool('ui_merge_result',{**args,'action':'read'})['text']==original
+            tool('ui_command',{'command':'close_dialog'})
+            for attempt in range(100):
+                if not tool('ui_state')['dialogs']:break
+                time.sleep(.05)
+            else:raise AssertionError('Unchanged merge editor did not close')
+            assert (merge_repo/'note.txt').read_bytes()==original_conflict and git(merge_repo,'ls-files','-u')
+            merge_cycles+=1
             sample('running');print('PASS sustained cycles',cycle,'elapsed',round(time.monotonic()-start),'seconds',flush=True)
         time.sleep(rng.choice([.05,.2,.7,1.1]))
     tool('ui_window',{'zoom':1,'theme':'Blue','width':1440,'height':900});close_repositories()

@@ -123,5 +123,7 @@
         </StackPanel>
       </Grid>
     </Grid>
+    <TextBlock Margin="0,8,0,0" Text="{Binding ErrorMessage}" Foreground="{DynamicResource Brush.FG1}" TextWrapping="Wrap"
+               IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
   </StackPanel>
 </UserControl>

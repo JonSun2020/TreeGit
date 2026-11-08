@@ -337,6 +337,11 @@ try:
     check('moving the same destination branch while a dialog is open is also rejected', git('rev-parse', 'HEAD').stdout.strip() == external_head and not (repo / 'remote.txt').exists())
     cancel(); reset()
 
+    git('config','merge.autoStash','true'); write('values.txt','preserve unchecked auto stash\n'); refresh()
+    merge(conflict_sha); command('merge_options',autoStash=False); confirm(); error()
+    check('unchecked merge auto stash overrides repository config',git('rev-parse','HEAD').stdout.strip()==main and (repo/'values.txt').read_text()=='preserve unchecked auto stash\n' and not git('ls-files','-u').stdout and not (repo/'.git/MERGE_AUTOSTASH').exists() and not git('stash','list').stdout)
+    cancel(); git('config','--unset-all','merge.autoStash'); reset()
+
     # A rejected checkout must restore this action's stash, preserving both the
     # exact index and any older stash. No blind stash@{0} pop is permitted.
     write('draft.txt', 'older checkout stash\n'); git('stash', 'push', '-m', 'Older checkout stash')

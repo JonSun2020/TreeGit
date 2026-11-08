@@ -59,6 +59,12 @@ namespace SourceGit.Tests
 
         private static async Task<int> RunStreamAsync(string root, string mode, string report)
         {
+            if (mode.StartsWith("replay-", StringComparison.Ordinal))
+            {
+                var bundled = Environment.GetEnvironmentVariable("TREEGIT_TEST_BUNDLED_GIT") ?? Path.Combine(AppContext.BaseDirectory, "git", "cmd", "git.exe");
+                if (!File.Exists(bundled)) throw new IOException("The disposable bundled Git fixture is missing.");
+                Native.OS.GitExecutable = bundled;
+            }
             async Task Git(string arguments)
             {
                 var result = await new Query { WorkingDirectory = root, Args = arguments, UseCredentialManager = false, Editor = Commands.Command.EditorType.None }.ReadAsync();
@@ -76,6 +82,38 @@ namespace SourceGit.Tests
             Environment.SetEnvironmentVariable("GIT_TRACE2_EVENT", "1");
             Environment.SetEnvironmentVariable("GIT_TRACE2_CONFIG_PARAMS", "treegit.flood");
             var change = new Models.Change { Path = "sample.txt" };
+            if (mode.StartsWith("replay-", StringComparison.Ordinal))
+            {
+                await Git("config user.name ReplayQA"); await Git("config user.email qa@example.invalid");
+                File.WriteAllText(Path.Combine(root, "sample.txt"), "before\n");
+                await Git("checkout -b target HEAD~1");
+                File.WriteAllText(Path.Combine(root, "target.txt"), "target\n");
+                await Git("add target.txt"); await Git("-c user.name=ReplayQA -c user.email=qa@example.invalid commit -m Target");
+                await Git("checkout main");
+                File.WriteAllText(Path.Combine(root, "sample.txt"), "preserve working file\n");
+                if (mode == "replay-ref-config") await Git("config replay.refAction update");
+                async Task<string> Snapshot(string args)
+                {
+                    var snapshot = await new Query { WorkingDirectory = root, Args = args, UseCredentialManager = false }.ReadAsync();
+                    if (!snapshot.IsSuccess) throw new IOException(snapshot.StdErr);
+                    return snapshot.StdOut;
+                }
+                var refs = await Snapshot("show-ref --head"); var index = await Snapshot("ls-files --stage");
+                var before = File.ReadAllBytes(Path.Combine(root, "sample.txt"));
+                var starts = 0;
+                Native.ProcessLauncher.BeforeStart = (_, _) => System.Threading.Interlocked.Increment(ref starts);
+                int code;
+                try
+                {
+                    code = await new Commands.Replay(root, "target", "target..main")
+                    { CancellationToken = mode == "replay-cancelled" ? new System.Threading.CancellationToken(true) : System.Threading.CancellationToken.None }.GetExitCodeAsync();
+                }
+                finally { Native.ProcessLauncher.BeforeStart = null; }
+                var correct = code == (mode == "replay-cancelled" ? -1 : 0) && refs == await Snapshot("show-ref --head") && index == await Snapshot("ls-files --stage") &&
+                    before.AsSpan().SequenceEqual(File.ReadAllBytes(Path.Combine(root, "sample.txt"))) && (mode != "replay-cancelled" || starts == 0);
+                File.WriteAllText(report, JsonSerializer.Serialize(new { mode, success = correct, exitCode = code, starts, git = Native.OS.GitVersionString }));
+                return correct ? 0 : 1;
+            }
             if (mode.StartsWith("keygen-", StringComparison.Ordinal))
             {
                 Environment.SetEnvironmentVariable("GIT_TRACE2_EVENT", null);

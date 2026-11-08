@@ -11,7 +11,7 @@ namespace SourceGit.Commands
             Context = repo;
 
             var builder = new StringBuilder();
-            builder.Append("merge --progress --no-overwrite-ignore ");
+            builder.Append("-c merge.autoStash=false merge --progress --no-overwrite-ignore ");
             builder.Append(edit ? "--edit " : "--no-edit ");
             if (autoStash) builder.Append("--autostash ");
             if (allowUnrelated) builder.Append("--allow-unrelated-histories ");
@@ -28,7 +28,7 @@ namespace SourceGit.Commands
             Context = repo;
 
             var builder = new StringBuilder();
-            builder.Append("merge --progress --no-overwrite-ignore ");
+            builder.Append("-c merge.autoStash=false merge --progress --no-overwrite-ignore ");
             if (autoStash) builder.Append("--autostash ");
             if (!string.IsNullOrEmpty(mode)) builder.Append(mode).Append(' ');
             if (messageFile != null) builder.Append("--no-edit --file=").Append(messageFile.Quoted()).Append(' ');

@@ -1,5 +1,6 @@
 ﻿using System.Diagnostics;
 using System.Threading.Tasks;
+using System.IO;
 
 namespace SourceGit.Commands
 {
@@ -10,20 +11,34 @@ namespace SourceGit.Commands
             WorkingDirectory = repo;
             Context = repo;
             RaiseError = false;
-            Args = $"replay --onto {onto} {range}";
+            // Git 2.56 changed replay's default to updating refs. This command is
+            // exclusively a preview; the config is harmless on older versions.
+            Args = $"-c replay.refAction=print replay --onto {onto.Quoted()} {range.Quoted()}";
         }
 
         public async Task<int> GetExitCodeAsync()
         {
+            if (CancellationToken.IsCancellationRequested) return -1;
             using var proc = new Process();
-            proc.StartInfo = CreateGitStartInfo(false);
+            proc.StartInfo = CreateGitStartInfo(true);
 
             var exitCode = -1;
             try
             {
                 Native.ProcessLauncher.Start(proc);
+                var gate = new object();
+                var running = true;
+                using var registration = CancellationToken.Register(() =>
+                {
+                    lock (gate)
+                        if (running && !proc.HasExited) Native.OS.TerminateProcess(proc);
+                });
+                var stdout = proc.StandardOutput.BaseStream.CopyToAsync(Stream.Null);
+                var stderr = proc.StandardError.BaseStream.CopyToAsync(Stream.Null);
                 await proc.WaitForExitAsync().ConfigureAwait(false);
-                exitCode = proc.ExitCode;
+                await Task.WhenAll(stdout, stderr).ConfigureAwait(false);
+                lock (gate) running = false;
+                exitCode = CancellationToken.IsCancellationRequested ? -1 : proc.ExitCode;
             }
             catch
             {

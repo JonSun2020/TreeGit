@@ -17,6 +17,8 @@ if '--launches' in sys.argv[3:]:
     modes=['stream-launch-'+mode for mode in ['sync','async','exec','permanent','exit','missing']]
 if '--keygen' in sys.argv[3:]:
     modes=['stream-keygen-'+mode for mode in ['plain','protected','existing','pub-only','private-only','invalid','missing']]
+if '--replays' in sys.argv[3:]:
+    modes=['stream-replay-'+mode for mode in ['readonly','ref-config','cancelled']]
 if '--safety' in sys.argv[3:]:
     modes=['safety-'+mode for mode in ['status-failure','status-cancelled','status-count','bounded-output','quoted-arguments','normal','unborn','obstruction','selected-obstruction','selected-literal','nested-repository','selected-nested-repository','junction','failed-discard','merge-ignored','merge-benign-directory','merge-file-ancestor','merge-nested-repository']]
 if '--pull-safety' in sys.argv[3:]:

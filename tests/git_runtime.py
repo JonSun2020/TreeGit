@@ -1,8 +1,10 @@
 """Exercise real GUI startup with/without discovered system Git. Integration build only."""
 import atexit,json,os,queue,shutil,subprocess,sys,tempfile,threading,time,traceback
 from pathlib import Path
+from qa_cleanup import new_fixture, remove_fixture
+assert os.environ.get('GITHUB_ACTIONS')=='true' and os.environ.get('RUNNER_OS')=='Windows', 'Destructive runtime tests require an owned CI runner'
 exe=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
-root=Path(tempfile.mkdtemp(prefix='TreeGit Git runtime 中文 '));bundled=exe.parent/'git/cmd/git.exe'
+root=new_fixture(out,'TreeGit Git runtime 中文 ');bundled=exe.parent/'git/cmd/git.exe'
 checks=[];failure=None
 def save():
  (out/'git-runtime-results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'root':str(root),'failure':failure},ensure_ascii=False,indent=2),encoding='utf-8')
@@ -97,3 +99,4 @@ try:
  try:check('a corrupt bundled Git is rejected without a GUI crash',not c.state['git']['path'])
  finally:c.close()
 finally:bundled.unlink();held.rename(bundled)
+remove_fixture(root,out,'TreeGit Git runtime 中文 ')

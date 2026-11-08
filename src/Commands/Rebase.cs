@@ -8,7 +8,7 @@ namespace SourceGit.Commands
         {
             WorkingDirectory = repo;
             Context = repo;
-            Args = $"-c core.commentChar=\"^\" -c core.commentString=\"±\" rebase --onto {newBase.Quoted()} {upstream.Quoted()}";
+            Args = $"-c rebase.autoStash=false -c core.commentChar=\"^\" -c core.commentString=\"±\" rebase --onto {newBase.Quoted()} {upstream.Quoted()}";
         }
 
         public Rebase(string repo, string basedOn, bool autoStash, bool noVerify)
@@ -17,7 +17,7 @@ namespace SourceGit.Commands
             Context = repo;
 
             var builder = new StringBuilder(512);
-            builder.Append("-c core.commentChar=\"^\" -c core.commentString=\"±\" rebase ");
+            builder.Append("-c rebase.autoStash=false -c core.commentChar=\"^\" -c core.commentString=\"±\" rebase ");
             if (autoStash)
                 builder.Append("--autostash ");
             if (noVerify)

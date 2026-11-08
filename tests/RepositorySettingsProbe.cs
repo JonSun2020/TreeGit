@@ -73,13 +73,17 @@ namespace SourceGit.Tests
                                 repo.WorkingCopy.CommitMessage = data.GetProperty("draft").GetString();
                                 ViewModels.Popup popup = operation.GetString() switch
                                 {
-                                    "native_merge" => new ViewModels.Merge(repo, targets[0], "main"),
+                                    "native_merge" => new ViewModels.Merge(repo, targets[0], "main") { AutoStash = data.TryGetProperty("autoStash", out var mergeStash) && mergeStash.GetBoolean() },
                                     "native_revert" => new ViewModels.Revert(repo, targets[0]),
-                                    "native_rebase" => new ViewModels.Rebase(repo, repo.CurrentBranch ?? (await new Commands.QueryBranches(repo.FullPath).GetResultAsync()).First(b => b.Name == "main"), targets[0]) { AutoStash = false },
+                                    "native_rebase" => new ViewModels.Rebase(repo, repo.CurrentBranch ?? (await new Commands.QueryBranches(repo.FullPath).GetResultAsync()).First(b => b.Name == "main"), targets[0]) { AutoStash = data.TryGetProperty("autoStash", out var rebaseStash) && rebaseStash.GetBoolean() },
                                     _ => new ViewModels.CherryPick(repo, targets) { AutoCommit = false },
                                 };
-                                await popup.Sure(); popup.Cleanup(); repo.RefreshAll(); await Task.Delay(600);
-                                operationDetails = new { draft = repo.WorkingCopy.CommitMessage, log = repo.Logs.FirstOrDefault()?.Content, messageFileExists = File.Exists(Path.Combine(repo.GitDir, "MERGE_MSG")) };
+                                if (data.TryGetProperty("switchAfterOpen", out var switchAfterOpen))
+                                    await new Commands.Checkout(repo.FullPath).BranchAsync(switchAfterOpen.GetString().Quoted(), false);
+                                var nativeSuccess = await popup.Sure(); popup.Cleanup(); repo.RefreshAll(); await Task.Delay(600);
+                                operationDetails = new { draft = repo.WorkingCopy.CommitMessage, log = repo.Logs.FirstOrDefault()?.Content, messageFileExists = File.Exists(Path.Combine(repo.GitDir, "MERGE_MSG")),
+                                    succeeded = nativeSuccess, error = (popup as ViewModels.Rebase)?.ErrorMessage,
+                                    selectedWorkingCopy = repo.Histories.IsWorkingCopySelected, activeLogs = repo.Logs.Count(l => !l.IsComplete) };
                                 operationResult = true; break;
                             case "cleanup": operationResult = await new ViewModels.Cleanup(repo).Sure(); break;
                             case "native_binary_launch_recovery":

@@ -1301,4 +1301,9 @@
   <x:String x:Key="Text.Conflict.StateChanged">文件的冲突状态已变化，请重新选择文件后再操作。</x:String>
   <x:String x:Key="Text.Conflict.ResolveFailed">未能应用所选版本，请检查文件是否被占用或设为只读，然后重试。</x:String>
   <x:String x:Key="Text.Repository.ReviewAndContinue">检查并继续</x:String>
+  <x:String x:Key="Text.Rebase.Progress">正在变基…</x:String>
+  <x:String x:Key="Text.Rebase.DestinationChanged">当前分支或提交已变化，请重新打开变基窗口后重试。</x:String>
+  <x:String x:Key="Text.Rebase.Failed">本次变基未能完成。请检查本地更改或查看命令日志，然后重试。</x:String>
+  <x:String x:Key="Text.Rebase.LocalFilesBlocked">本地文件会被覆盖，已保留原内容。请先保存或移开这些文件，再重试变基。</x:String>
+  <x:String x:Key="Text.Rebase.FinishCurrent">请先继续或终止当前操作，再开始变基。已转到待处理文件。</x:String>
 </ResourceDictionary>

@@ -1197,4 +1197,9 @@
   <x:String x:Key="Text.Conflict.StateChanged">The conflict state has changed. Select the file again before applying a side.</x:String>
   <x:String x:Key="Text.Conflict.ResolveFailed">The selected version could not be applied. Check whether the file is in use or read-only, then retry.</x:String>
   <x:String x:Key="Text.Repository.ReviewAndContinue">Review and continue</x:String>
+  <x:String x:Key="Text.Rebase.Progress">Rebasing…</x:String>
+  <x:String x:Key="Text.Rebase.DestinationChanged">The current branch or commit changed. Reopen the rebase window and retry.</x:String>
+  <x:String x:Key="Text.Rebase.Failed">Rebase could not complete. Check local changes or the command log, then retry.</x:String>
+  <x:String x:Key="Text.Rebase.LocalFilesBlocked">Local files would be overwritten and have been preserved. Save or move them before rebasing.</x:String>
+  <x:String x:Key="Text.Rebase.FinishCurrent">Continue or abort the current operation before starting another rebase. The pending files are now selected.</x:String>
 </ResourceDictionary>

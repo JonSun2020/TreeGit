@@ -77,6 +77,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/ssh-keygen-results" --keygen
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/replay-safety-results" --replays
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify native rebase recovery and commit-draft preservation
+        shell: pwsh
+        run: python tests/rebase_safety.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/rebase-safety-results"
       - name: Verify closing during an active native commit
         shell: pwsh
         run: python tests/close_during_commit.py src/bin/Debug/net10.0/SourceGit.exe "${{ runner.temp }}/close-during-commit-results"
@@ -130,6 +135,8 @@ jobs:
             ${{ runner.temp }}/pull-safety-results/command-pipes-results.json
             ${{ runner.temp }}/pull-safety-results/*.log
             ${{ runner.temp }}/ssh-keygen-results/command-pipes-results.json
+            ${{ runner.temp }}/replay-safety-results/command-pipes-results.json
+            ${{ runner.temp }}/rebase-safety-results/*.json
             ${{ runner.temp }}/mode-results/repository-mode-results.json
             ${{ runner.temp }}/profile-safety-results/*.json
             ${{ runner.temp }}/startup-results/ui-startup-results.json
