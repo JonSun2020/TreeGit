@@ -41,6 +41,7 @@ namespace SourceGit.ViewModels
         public void OnReceiveCommandLog(string data)
         {
             var desc = data.Trim();
+            if (desc.Length > 1024) desc = desc[..1024];
             if (!string.IsNullOrEmpty(desc))
                 ProgressDescription = desc;
         }

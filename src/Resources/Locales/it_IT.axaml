@@ -1048,4 +1048,5 @@ ${pure_files:N} Come ${files:N}, ma senza cartelle</x:String>
   <x:String x:Key="Text.Stash.Failed">Stash did not finish. Existing stashes were preserved; check file access and available space.</x:String>
   <x:String x:Key="Text.Stash.NoStagedChanges">There are no staged changes to stash.</x:String>
   <x:String x:Key="Text.Merge.MultipleFailed">The multiple-head merge did not finish. For complex conflicts, merge one branch at a time and resolve its conflicts before continuing.</x:String>
+  <x:String x:Key="Text.Log.Truncated">Earlier output was omitted. The most recent operation details are shown below.</x:String>
 </ResourceDictionary>

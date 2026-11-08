@@ -62,7 +62,7 @@ namespace SourceGit.Commands
                 if (CancellationToken.IsCancellationRequested) { FailureMessage = "Operation cancelled."; return false; }
                 Log?.AppendLine($"$ git {Args}\n");
 
-                var errs = new List<string>();
+                var errs = new Models.BoundedTextBuffer(65536);
 
                 using var proc = new Process();
                 proc.StartInfo = CreateGitStartInfo(true);
@@ -123,7 +123,8 @@ namespace SourceGit.Commands
                 LastExitCode = proc.ExitCode;
                 if (proc.ExitCode != 0)
                 {
-                    var errMsg = string.Join("\n", errs).Trim();
+                    string errMsg;
+                    lock (errs) errMsg = errs.ToString().Trim();
                     FailureMessage = errMsg[..Math.Min(errMsg.Length, 65536)];
                     // Git rejects/erases an invalid HTTP credential before returning this
                     // error. Keep requesting corrected credentials until success or cancellation.
@@ -326,7 +327,7 @@ namespace SourceGit.Commands
             Models.Notification.Send(Context, error, true);
         }
 
-        private void HandleOutput(string line, List<string> errs)
+        private void HandleOutput(string line, Models.BoundedTextBuffer errs)
         {
             if (line == null)
                 return;
@@ -347,7 +348,7 @@ namespace SourceGit.Commands
                     return;
             }
 
-            lock (errs) errs.Add(line);
+            lock (errs) errs.AppendLine(line);
         }
 
         private class CapturedProcess

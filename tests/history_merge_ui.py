@@ -281,6 +281,7 @@ try:
     check('no-commit merge shows the pending result for review', state()['workingCopySelected'] and (repo / '.git/MERGE_HEAD').exists() and git('rev-parse', 'HEAD').stdout.strip() == main)
     reset()
     merge(safe_sha, '--squash'); confirm(); completed()
+    wait_for(lambda: 'remote.txt' in state()['workingCopyState']['staged'])
     check('squash merge shows staged files without creating a commit', state()['workingCopySelected'] and 'remote.txt' in state()['workingCopyState']['staged'] and git('rev-parse', 'HEAD').stdout.strip() == main)
     reset()
 
@@ -303,7 +304,9 @@ try:
     hook.unlink(); cancel(); reset()
 except BaseException as exc:
     failure = repr(exc)
-    try: (out / 'failure-state.json').write_text(json.dumps({'state': tool('ui_state'), 'layout': layout()}, ensure_ascii=False, indent=2), encoding='utf-8')
+    try: (out / 'failure-state.json').write_text(json.dumps({'state': tool('ui_state'), 'layout': layout(),
+        'git': {'head': git('rev-parse', 'HEAD', ok=False).stdout, 'status': git('status', '--porcelain', ok=False).stdout,
+                'unmerged': git('ls-files', '-u', ok=False).stdout, 'stashes': git('stash', 'list', ok=False).stdout}}, ensure_ascii=False, indent=2), encoding='utf-8')
     except BaseException: pass
     try: shot('failure')
     except BaseException: pass

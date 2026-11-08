@@ -716,6 +716,10 @@ namespace SourceGit.ViewModels
         {
             var log = new CommandLog(name);
             Logs.Insert(0, log);
+            // Logs are session diagnostics; keep bounded history and never remove
+            // a running operation while pruning completed entries.
+            for (var i = Logs.Count - 1; Logs.Count > 100 && i > 0; i--)
+                if (Logs[i].IsComplete) Logs.RemoveAt(i);
             return log;
         }
 

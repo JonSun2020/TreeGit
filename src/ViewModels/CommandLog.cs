@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -35,7 +34,8 @@ namespace SourceGit.ViewModels
         {
             get
             {
-                return IsComplete ? _content : _builder.ToString();
+                var text = IsComplete ? _content : _buffer.ToString();
+                return (_truncated || _buffer?.WasTruncated == true) ? App.Text("Log.Truncated") + "\n" + text : text;
             }
         }
 
@@ -63,10 +63,16 @@ namespace SourceGit.ViewModels
             else
             {
                 var newline = line ?? string.Empty;
-                if (_builder != null)
-                    _builder.AppendLine(newline);
+                if (_buffer != null)
+                    _buffer.AppendLine(newline);
                 else
-                    _content = $"{_content}{newline}\n";
+                {
+                    var tail = new Models.BoundedTextBuffer(MaximumLength);
+                    tail.Append(_content);
+                    tail.AppendLine(newline);
+                    _content = tail.ToString();
+                    _truncated |= tail.WasTruncated;
+                }
 
                 foreach (var receiver in _receivers)
                     receiver.OnReceiveCommandLog(newline);
@@ -81,19 +87,22 @@ namespace SourceGit.ViewModels
                 return;
             }
 
+            if (IsComplete) return;
             IsComplete = true;
             EndTime = DateTime.Now;
 
-            _content = _builder.ToString();
-            _builder.Clear();
+            _content = _buffer.ToString();
+            _truncated |= _buffer.WasTruncated;
             _receivers.Clear();
-            _builder = null;
+            _buffer = null;
 
             OnPropertyChanged(nameof(IsComplete));
         }
 
         private string _content = string.Empty;
-        private StringBuilder _builder = new StringBuilder();
+        private const int MaximumLength = 512 * 1024;
+        private Models.BoundedTextBuffer _buffer = new(MaximumLength);
+        private bool _truncated;
         private List<Models.ICommandLogReceiver> _receivers = new List<Models.ICommandLogReceiver>();
     }
 }

@@ -1261,4 +1261,5 @@
   <x:String x:Key="Text.Stash.Failed">贮藏未完成，已有贮藏已保留，请确认文件访问权限及磁盘空间。</x:String>
   <x:String x:Key="Text.Stash.NoStagedChanges">没有可贮藏的已暂存修改。</x:String>
   <x:String x:Key="Text.Merge.MultipleFailed">多分支合并未完成。如存在复杂冲突，请逐个合并分支，并在解决冲突后继续。</x:String>
+  <x:String x:Key="Text.Log.Truncated">较早的输出已省略，以下保留最近的操作记录。</x:String>
 </ResourceDictionary>

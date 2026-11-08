@@ -45,6 +45,20 @@ namespace SourceGit.Tests
                     var changes = await cancelled.GetResultAsync();
                     success = !cancelled.Succeeded && changes.Count == 0;
                     break;
+                case "bounded-output":
+                    var output = new Commands.Command { WorkingDirectory = root, RaiseError = false, UseCredentialManager = false,
+                        Args = "-c alias.treegit-output=\"!printf '%1048576s' x >&2; printf '\\nEND_MARKER\\n' >&2; exit 9\" treegit-output" };
+                    success = !await output.ExecAsync() && output.LastExitCode == 9 && output.FailureMessage.Length <= 65536 && output.FailureMessage.EndsWith("END_MARKER", StringComparison.Ordinal);
+                    var bounded = new Models.BoundedTextBuffer(32);
+                    bounded.Append(new string('x', 1000000));
+                    bounded.Append("\U0001F600 tail");
+                    success &= bounded.Length <= 32 && bounded.WasTruncated && bounded.ToString().EndsWith("\U0001F600 tail", StringComparison.Ordinal);
+                    // Trimming in the middle of a surrogate pair must not leave
+                    // an invalid leading low surrogate in visible output.
+                    var unicode = new Models.BoundedTextBuffer(16);
+                    unicode.Append("a\U0001F600" + new string('b', 15));
+                    success &= unicode.Length <= 16 && !char.IsLowSurrogate(unicode.ToString()[0]);
+                    break;
                 case "normal":
                     File.WriteAllText(file, "modified\n");
                     File.WriteAllText(Path.Combine(root, "untracked.txt"), "preserve\n");
