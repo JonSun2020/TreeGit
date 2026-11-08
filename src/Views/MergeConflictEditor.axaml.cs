@@ -737,6 +737,7 @@ namespace SourceGit.Views
                     ConflictContent.RowDefinitions[1].Height = new GridLength(0);
                     ConflictContent.ColumnDefinitions[1].Width = new GridLength(0);
                 }
+                if (vm.ResultDocument != null) ResultPresenter.TextArea.Focus();
             }
         }
 

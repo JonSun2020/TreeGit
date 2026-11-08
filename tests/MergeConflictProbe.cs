@@ -23,7 +23,8 @@ string Block(string ours, string theirs, string eol = "\n", int size = 7, bool d
 }
 try
 {
-    foreach (var eol in new[] { "\n", "\r\n", "\r" })
+    // Git emits LF/CRLF conflict marker lines; a bare CR is file content.
+    foreach (var eol in new[] { "\n", "\r\n" })
     {
         var source = "prefix" + eol + Block("local 1", "remote 1", eol) + "middle" + eol + Block("local 2", "remote 2", eol) + "tail" + eol;
         var model = new MergeConflictDocument(source);

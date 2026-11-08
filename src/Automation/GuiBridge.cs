@@ -142,12 +142,16 @@ namespace SourceGit.Automation
                             {
                                 var area = w.Screens.ScreenFromWindow(w)?.WorkingArea;
                                 var merge = w.DataContext as ViewModels.MergeConflictEditor;
+                                var resultEditor = w.GetVisualDescendants().OfType<Views.MergeResultEditor>().FirstOrDefault();
+                                var resultPoint = resultEditor?.PointToScreen(new Point(resultEditor.Bounds.Width / 2, resultEditor.Bounds.Height / 2));
                                 var confirm = w.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "ConfirmRepositorySettings");
                                 var top = confirm?.TranslatePoint(new Point(0, 0), w);
                                 var bottom = confirm?.TranslatePoint(new Point(confirm.Bounds.Width, confirm.Bounds.Height), w);
                                 return new { title = w.Title, type = w.GetType().Name, topmost = w.Topmost, message = w is Views.Alert ? w.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name == "Message")?.Text : null, width = w.Bounds.Width, height = w.Bounds.Height, x = w.Position.X, y = w.Position.Y, scaling = w.RenderScaling,
                                     workArea = new { x = area?.X, y = area?.Y, width = area?.Width, height = area?.Height },
-                                    merge = merge == null ? null : new { file = merge.FilePath, repo = merge.RepositoryPath, unsolved = merge.UnsolvedCount, modified = merge.HasChanges, saving = merge.IsSaving, canSave = merge.CanSave, error = merge.Error, encoding = merge.SelectedEncoding?.Name },
+                                    merge = merge == null ? null : new { file = merge.FilePath, repo = merge.RepositoryPath, unsolved = merge.UnsolvedCount, modified = merge.HasChanges, saving = merge.IsSaving, canSave = merge.CanSave, error = merge.Error, encoding = merge.SelectedEncoding?.Name,
+                                        editable = resultEditor is { IsReadOnly: false, IsEffectivelyEnabled: true },
+                                        resultTarget = resultPoint.HasValue ? new { x = resultPoint.Value.X, y = resultPoint.Value.Y } : null },
                                     confirmVisible = top.HasValue && bottom.HasValue && top.Value.Y >= 0 && bottom.Value.Y <= w.Bounds.Height && bottom.Value.X <= w.Bounds.Width };
                             }).ToArray(),
                         repositories = launcher.Pages.Where(p => p.Data is ViewModels.Repository).Select(p =>
