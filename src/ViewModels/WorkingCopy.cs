@@ -546,96 +546,89 @@ namespace SourceGit.ViewModels
             Filter = string.Empty;
         }
 
-        public async Task UseTheirsAsync(List<Models.Change> changes)
+        public Task UseTheirsAsync(List<Models.Change> changes) => UseConflictSideAsync(changes, true);
+
+        public Task UseMineAsync(List<Models.Change> changes) => UseConflictSideAsync(changes, false);
+
+        private async Task UseConflictSideAsync(List<Models.Change> changes, bool theirs)
         {
+            if (!CanChangeIndex || changes == null || changes.Count == 0) return;
+            IsStaging = true;
             using var lockWatcher = _repo.LockWatcher();
-
-            var files = new List<string>();
-            var needStage = new List<string>();
-            var log = _repo.CreateLog("Use Theirs");
-
-            foreach (var change in changes)
+            var log = _repo.CreateLog(theirs ? "Use Theirs" : "Use Mine");
+            string pathSpecFile = null;
+            try
             {
-                if (!change.IsConflicted)
-                    continue;
-
-                if (change.ConflictReason is Models.ConflictReason.BothDeleted or Models.ConflictReason.DeletedByThem or Models.ConflictReason.AddedByUs)
+                var files = new List<string>();
+                var deletions = new List<string>();
+                var moduleDeletions = new List<string>();
+                // Inspect the current index before touching any file. An old
+                // selection must never delete a file that was already resolved.
+                foreach (var change in changes)
                 {
-                    var fullpath = Path.Combine(_repo.FullPath, change.Path);
-                    if (File.Exists(fullpath))
-                        File.Delete(fullpath);
-
-                    needStage.Add(change.Path);
+                    if (!change.IsConflicted) continue;
+                    var entries = await new Commands.QueryConflictEntries(_repo.FullPath, change.Path).GetResultAsync();
+                    if (string.IsNullOrEmpty(entries))
+                    {
+                        _repo.SendNotification(App.Text("Conflict.StateChanged"), true);
+                        return;
+                    }
+                    if (entries.Contains(theirs ? " 3\t" : " 2\t", StringComparison.Ordinal)) files.Add(change.Path);
+                    else if (entries.StartsWith("160000 ", StringComparison.Ordinal) || entries.Contains("\n160000 ", StringComparison.Ordinal)) moduleDeletions.Add(change.Path);
+                    else deletions.Add(change.Path);
                 }
-                else
+                foreach (var file in deletions)
                 {
-                    files.Add(change.Path);
+                    var root = Path.GetFullPath(_repo.FullPath).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                    var path = Path.GetFullPath(Path.Combine(root, file));
+                    var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+                    if (!path.StartsWith(root + Path.DirectorySeparatorChar, comparison)) throw new IOException("Path outside repository");
+                    for (var parent = Path.GetDirectoryName(path); parent != null; parent = Path.GetDirectoryName(parent))
+                    {
+                        if ((File.GetAttributes(parent) & FileAttributes.ReparsePoint) != 0) throw new IOException("Linked parent path");
+                        if (parent.Equals(root, comparison)) break;
+                    }
+                    if (Directory.Exists(path)) throw new IOException("A directory occupies the conflicted file path");
+                    File.Delete(path);
                 }
-            }
-
-            if (files.Count > 0)
-            {
-                var succ = await new Commands.Checkout(_repo.FullPath).Use(log).UseTheirsAsync(files);
-                if (succ)
-                    needStage.AddRange(files);
-            }
-
-            if (needStage.Count > 0)
-            {
-                var pathSpecFile = Path.GetTempFileName();
-                await File.WriteAllLinesAsync(pathSpecFile, needStage);
-                await new Commands.Add(_repo.FullPath, pathSpecFile).Use(log).ExecAsync();
-                File.Delete(pathSpecFile);
-            }
-
-            log.Complete();
-            _repo.MarkWorkingCopyDirtyManually();
-        }
-
-        public async Task UseMineAsync(List<Models.Change> changes)
-        {
-            using var lockWatcher = _repo.LockWatcher();
-
-            var files = new List<string>();
-            var needStage = new List<string>();
-            var log = _repo.CreateLog("Use Mine");
-
-            foreach (var change in changes)
-            {
-                if (!change.IsConflicted)
-                    continue;
-
-                if (change.ConflictReason is Models.ConflictReason.BothDeleted or Models.ConflictReason.DeletedByUs or Models.ConflictReason.AddedByThem)
+                foreach (var module in moduleDeletions)
                 {
-                    var fullpath = Path.Combine(_repo.FullPath, change.Path);
-                    if (File.Exists(fullpath))
-                        File.Delete(fullpath);
-
-                    needStage.Add(change.Path);
+                    // Keep the submodule working directory and its own local
+                    // data; resolve only the superproject's index deletion.
+                    var remove = new Commands.Command { WorkingDirectory = _repo.FullPath, Context = _repo.FullPath,
+                        Args = $"--literal-pathspecs rm --cached --force -- {module.Quoted()}" };
+                    if (!await remove.Use(log).ExecAsync()) return;
                 }
-                else
+                if (files.Count > 0)
                 {
-                    files.Add(change.Path);
+                    var checkout = new Commands.Checkout(_repo.FullPath).Use(log);
+                    var success = theirs ? await checkout.UseTheirsAsync(files) : await checkout.UseMineAsync(files);
+                    if (!success) return;
+                }
+                files.AddRange(deletions);
+                if (files.Count > 0)
+                {
+                    pathSpecFile = Path.GetTempFileName();
+                    await File.WriteAllTextAsync(pathSpecFile, string.Join('\0', files) + '\0');
+                    await new Commands.Add(_repo.FullPath, pathSpecFile, true).Use(log).ExecAsync();
                 }
             }
-
-            if (files.Count > 0)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                var succ = await new Commands.Checkout(_repo.FullPath).Use(log).UseMineAsync(files);
-                if (succ)
-                    needStage.AddRange(files);
+                Native.OS.LogException(ex);
+                _repo.SendNotification(App.Text("Conflict.ResolveFailed"), true);
             }
-
-            if (needStage.Count > 0)
+            finally
             {
-                var pathSpecFile = Path.GetTempFileName();
-                await File.WriteAllLinesAsync(pathSpecFile, needStage);
-                await new Commands.Add(_repo.FullPath, pathSpecFile).Use(log).ExecAsync();
-                File.Delete(pathSpecFile);
+                if (pathSpecFile != null)
+                {
+                    try { File.Delete(pathSpecFile); }
+                    catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Native.OS.LogException(ex); }
+                }
+                log.Complete();
+                IsStaging = false;
+                _repo.MarkWorkingCopyDirtyManually();
             }
-
-            log.Complete();
-            _repo.MarkWorkingCopyDirtyManually();
         }
 
         public async Task<bool> UseExternalMergeToolAsync(Models.Change change)

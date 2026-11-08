@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.IO;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -56,25 +58,25 @@ namespace SourceGit.Commands
             return await ExecAsync().ConfigureAwait(false);
         }
 
-        public async Task<bool> UseTheirsAsync(List<string> files)
-        {
-            var builder = new StringBuilder();
-            builder.Append("--literal-pathspecs checkout --theirs --");
-            foreach (var f in files)
-                builder.Append(' ').Append(f.Quoted());
-            Args = builder.ToString();
-            return await ExecAsync().ConfigureAwait(false);
-        }
+        public Task<bool> UseTheirsAsync(List<string> files) => UseConflictStageAsync(files, true);
 
-        public async Task<bool> UseMineAsync(List<string> files)
-        {
-            var builder = new StringBuilder();
-            builder.Append("--literal-pathspecs checkout --ours --");
-            foreach (var f in files)
-                builder.Append(' ').Append(f.Quoted());
+        public Task<bool> UseMineAsync(List<string> files) => UseConflictStageAsync(files, false);
 
-            Args = builder.ToString();
-            return await ExecAsync().ConfigureAwait(false);
+        private async Task<bool> UseConflictStageAsync(List<string> files, bool theirs)
+        {
+            if (files.Count == 0) return true;
+            var temporary = Path.GetTempFileName();
+            try
+            {
+                await File.WriteAllTextAsync(temporary, string.Join('\0', files) + '\0').ConfigureAwait(false);
+                Args = $"--literal-pathspecs checkout {(theirs ? "--theirs" : "--ours")} --pathspec-file-nul --pathspec-from-file={temporary.Quoted()}";
+                return await ExecAsync().ConfigureAwait(false);
+            }
+            finally
+            {
+                try { File.Delete(temporary); }
+                catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { Native.OS.LogException(ex); }
+            }
         }
 
         public async Task<bool> FileWithRevisionAsync(string file, string revision)

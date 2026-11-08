@@ -1149,4 +1149,6 @@
   <x:String x:Key="Text.Validation.RepositoryFolderRequired">Select a repository folder.</x:String>
   <x:String x:Key="Text.Validation.LocalBranchRequired">Select a local branch.</x:String>
   <x:String x:Key="Text.Validation.RemoteRequired">Select a remote repository.</x:String>
+  <x:String x:Key="Text.Conflict.StateChanged">The conflict state has changed. Select the file again before applying a side.</x:String>
+  <x:String x:Key="Text.Conflict.ResolveFailed">The selected version could not be applied. Check whether the file is in use or read-only, then retry.</x:String>
 </ResourceDictionary>

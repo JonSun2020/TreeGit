@@ -42,6 +42,9 @@ namespace SourceGit.Commands
 
                 await proc.WaitForExitAsync().ConfigureAwait(false);
 
+                if (proc.ExitCode != 0)
+                    return Models.ConflictFileState.Unknown;
+
                 if (isBinary)
                     return Models.ConflictFileState.UnmergedBinary;
 

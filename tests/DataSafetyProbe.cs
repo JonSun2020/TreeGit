@@ -40,6 +40,8 @@ namespace SourceGit.Tests
                     var countQuery = new Commands.CountLocalChanges(root, false);
                     await countQuery.GetResultAsync();
                     success &= !countQuery.Succeeded;
+                    success &= await new Commands.QueryConflictFileState(root,
+                        new Models.Change { Path = "sample.txt", WorkTree = Models.ChangeState.Modified }).GetResultAsync() == Models.ConflictFileState.Unknown;
                     break;
                 case "status-cancelled":
                     var cancelled = new Commands.QueryLocalChanges(root) { CancellationToken = new CancellationToken(true) };

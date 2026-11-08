@@ -7,6 +7,8 @@ namespace SourceGit.ViewModels
 {
     public class Conflict : ObservableObject
     {
+        public WorkingCopy WorkingCopy => _wc;
+
         public string Marker
         {
             get => _change.ConflictMarker;

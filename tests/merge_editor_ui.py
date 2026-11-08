@@ -116,7 +116,16 @@ def screen(bounds,xf=.5,yf=.5):
         origin=wintypes.POINT(0,0);assert api.ClientToScreen(hwnd,ctypes.byref(origin))
         window={'x':origin.x,'y':origin.y,'scaling':layout()['window']['scaling']}
     return window['x']+(bounds['x']+bounds['width']*xf)*window['scaling'],window['y']+(bounds['y']+bounds['height']*yf)*window['scaling']
-def press(name):pointer(*screen(button(name)['bounds']),click=True)
+def press_button(item):
+    for _ in range(60):
+        time.sleep(.05)
+        current=next((b for b in layout()['buttons'] if b['name']==item['name'] and b['text']==item['text'] and b['enabled']),None)
+        if current and current['bounds']==item['bounds'] and current['screen']==item['screen']:break
+        if current:item=current
+    assert current and item['screen'], 'Button did not become available'
+    pointer(item['screen']['x'],item['screen']['y'],click=True)
+
+def press(name):press_button(button(name))
 def source_block(index,click=False,side='left',right=False):
     target=dialog()['merge']['regions'][index]['sourceTarget']
     assert target is not None,'Block is outside the current viewport'
@@ -128,7 +137,7 @@ def source_block(index,click=False,side='left',right=False):
 
 def press_text(text):
     item=next(b for b in layout()['buttons'] if b['text']==text)
-    pointer(*screen(item['bounds']),click=True)
+    press_button(item)
 def menu_items():
     return (dialog()['merge']['contextMenu'] or {}).get('items',[]) if dialog() else []
 def menu_labels():
@@ -155,7 +164,10 @@ def conflict_color(index,column):
     return pixel&255,(pixel>>8)&255,(pixel>>16)&255
 
 def select_conflicted_file():
-    tool('ui_refresh',{'repo':str(repo)});time.sleep(.3)
+    def state():return next(r for r in tool('ui_state')['repositories'] if Path(r['repo']).resolve()==repo)
+    version=state()['workingCopyRefreshVersion']
+    tool('ui_refresh',{'repo':str(repo)})
+    wait_for(lambda:state()['workingCopyRefreshVersion']>version and state()['workingCopyStatusKnown'] and file in state()['workingCopyState']['unstaged'])
     tool('ui_diff',{'repo':str(repo),'action':'select','file':file,'source':'unstaged'})
     wait_for(lambda:any(b['name']=='UseLocalConflict' and b['enabled'] for b in layout()['buttons']))
     wait_for(lambda:any(b['text']=='用合并工具编辑' and b['enabled'] for b in layout()['buttons']))
@@ -321,9 +333,23 @@ try:
         press_text('下一步')
         wait_for(lambda:not (repo/'.git/rebase-merge').exists() and not (repo/'.git/rebase-apply').exists())
         check('rebase '+backend+' can continue through the actual GUI after editing',git('symbolic-ref','--short','HEAD').stdout.strip()=='main' and not git('status','--porcelain').stdout and git('show','HEAD:'+file).stdout==('\ufeff'+base.replace('first = 0','first = 1').replace('last = 0','last = 1')))
+    # Structural delete/modify resolution must not crash on a read-only file,
+    # and the same action must remain usable after the user fixes permission.
+    git('checkout','-B','delete-local','feature^');git('rm','--',file);git('commit','-m','Local deletion')
+    result=git('merge','--no-commit','feature',ok=False);assert result.returncode==1
+    select_conflicted_file();before=path.read_bytes();notifications=tool('ui_state')['activePage']['notifications']
+    path.chmod(stat.S_IREAD)
+    press('UseLocalConflict')
+    wait_for(lambda:tool('ui_state')['activePage']['notifications']>notifications)
+    wait_for(lambda:next(r for r in tool('ui_state')['repositories'] if Path(r['repo']).resolve()==repo)['workingCopyState']['canChangeIndex'])
+    check('read-only delete resolution preserves the file and keeps the application usable',path.read_bytes()==before and bool(git('ls-files','-u','--',file).stdout) and not tool('ui_state')['dialogs'])
+    path.chmod(stat.S_IREAD|stat.S_IWRITE)
+    select_conflicted_file();press('UseLocalConflict');wait_for(lambda:not git('ls-files','-u','--',file).stdout)
+    check('delete resolution can be retried after fixing file permissions',not path.exists() and (repo/'.git/MERGE_HEAD').exists())
+    git('merge','--abort')
 except BaseException as error:
     failure=repr(error)
-    try:(out/'failure-state.json').write_text(json.dumps({'state':tool('ui_state'),'layout':layout()},ensure_ascii=False,indent=2),encoding='utf-8')
+    try:(out/'failure-state.json').write_text(json.dumps({'state':tool('ui_state'),'layout':layout(),'git':{'status':git('status','--porcelain').stdout,'unmerged':git('ls-files','-u').stdout,'head':git('rev-parse','HEAD').stdout}},ensure_ascii=False,indent=2),encoding='utf-8')
     except BaseException:pass
     try:shot('failure')
     except BaseException:pass
