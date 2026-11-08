@@ -63,9 +63,13 @@ def dialog():return next((d for d in tool('ui_state')['dialogs'] if d['type']=='
 def action(name,**values):return tool('ui_merge_result',{'repo':str(repo),'file':file,'action':name,**values})
 def open_editor(use_button=False):
     global opened_text
-    tool('ui_refresh',{'repo':str(repo)});time.sleep(.3)
-    if use_button:press_text('用合并工具编辑')
-    else:tool('ui_command',{'repo':str(repo),'command':'merge_conflicts','file':file})
+    if use_button:
+        select_conflicted_file()
+        wait_for(lambda:any(b['text']=='用合并工具编辑' and b['enabled'] for b in layout()['buttons']))
+        press_text('用合并工具编辑')
+    else:
+        tool('ui_refresh',{'repo':str(repo)});time.sleep(.3)
+        tool('ui_command',{'repo':str(repo),'command':'merge_conflicts','file':file})
     wait_for(lambda: dialog() and dialog()['merge']['editable'])
     opened_text=action('read')['text']
     return opened_text
