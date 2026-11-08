@@ -158,6 +158,7 @@ def select_conflicted_file():
     tool('ui_refresh',{'repo':str(repo)});time.sleep(.3)
     tool('ui_diff',{'repo':str(repo),'action':'select','file':file,'source':'unstaged'})
     wait_for(lambda:any(b['name']=='UseLocalConflict' and b['enabled'] for b in layout()['buttons']))
+    wait_for(lambda:any(b['text']=='用合并工具编辑' and b['enabled'] for b in layout()['buttons']))
 
 try:
     rpc('initialize',{'protocolVersion':'2025-11-25'});tool('ui_open_repository',{'repo':str(repo)})
