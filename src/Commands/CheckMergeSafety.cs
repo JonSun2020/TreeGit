@@ -15,12 +15,14 @@ namespace SourceGit.Commands
     {
         public string Obstruction { get; private set; }
 
-        public CheckMergeSafety(string repo, IEnumerable<string> sources, string replayRange = null)
+        public CheckMergeSafety(string repo, IEnumerable<string> sources, string replayRange = null,
+            IEnumerable<(string Revision, int Parent)> patches = null)
         {
             WorkingDirectory = repo;
             Context = repo;
             _sources = sources;
             _replayRange = replayRange;
+            _patches = patches;
             _untracked = new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
         }
 
@@ -36,6 +38,19 @@ namespace SourceGit.Commands
                 Args = $"ls-tree -rz {source.Quoted()}";
                 if (!await ReadRecordsAsync(CheckIncoming).ConfigureAwait(false)) return false;
             }
+            if (_patches != null)
+                foreach (var patch in _patches)
+                {
+                    var commit = await new QuerySingleCommit(WorkingDirectory, patch.Revision) { RaiseError = false }.GetResultAsync().ConfigureAwait(false);
+                    if (commit == null || patch.Parent < 0 || patch.Parent >= Math.Max(1, commit.Parents.Count)) return false;
+                    var revisions = commit.Parents.Count == 0 ? $"--root {commit.SHA.Quoted()}" :
+                        $"{commit.Parents[patch.Parent].Quoted()} {commit.SHA.Quoted()}";
+                    // Cherry-pick and revert apply a patch, not the entire source
+                    // tree. Inspect its actual mainline to avoid blocking files
+                    // which merely exist unchanged in the selected revision.
+                    Args = $"diff-tree --no-commit-id --name-only --no-ext-diff --no-textconv --no-renames -r -z {revisions} --";
+                    if (!await ReadRecordsAsync(CheckPath).ConfigureAwait(false)) return false;
+                }
             if (!string.IsNullOrEmpty(_replayRange))
             {
                 // Rebase can temporarily recreate a path which a later local
@@ -136,6 +151,7 @@ namespace SourceGit.Commands
 
         private readonly IEnumerable<string> _sources;
         private readonly string _replayRange;
+        private readonly IEnumerable<(string Revision, int Parent)> _patches;
         private readonly HashSet<string> _untracked;
     }
 }

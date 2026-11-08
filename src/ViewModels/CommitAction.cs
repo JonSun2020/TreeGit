@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace SourceGit.ViewModels
@@ -20,7 +21,8 @@ namespace SourceGit.ViewModels
             _expectedRef = branch.IsSuccess ? branch.StdOut.Trim() : null;
         }
 
-        protected async Task<bool> RunGitActionAsync(string name, Func<CommandLog, Task<bool>> run)
+        protected async Task<bool> RunGitActionAsync(string name, Func<CommandLog, Task<bool>> run,
+            IEnumerable<(string Revision, int Parent)> patches)
         {
             using var watcher = _repo.LockWatcher();
             ErrorMessage = string.Empty;
@@ -40,6 +42,13 @@ namespace SourceGit.ViewModels
                 var head = await new Commands.QueryRevisionByRefName(_repo.FullPath, "HEAD").GetResultAsync();
                 if (head != _expectedHead || (branch.IsSuccess ? branch.StdOut.Trim() : null) != _expectedRef)
                 { ErrorMessage = App.Text("CommitAction.DestinationChanged"); return false; }
+                var safety = new Commands.CheckMergeSafety(_repo.FullPath, [], patches: patches);
+                if (!await safety.GetResultAsync())
+                {
+                    ErrorMessage = App.Text(safety.Obstruction == null ? "WorkingCopy.RefreshFailed" : "CommitAction.LocalFilesBlocked") +
+                        (safety.Obstruction == null ? string.Empty : "\n" + safety.Obstruction);
+                    return false;
+                }
                 var success = await run(log);
                 var conflicts = await new Commands.QueryConflictEntries(_repo.FullPath).GetResultAsync();
                 if (!string.IsNullOrEmpty(conflicts) || InProgressContext.HasPendingOperation(_repo.GitDir))

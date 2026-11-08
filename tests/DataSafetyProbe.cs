@@ -21,6 +21,56 @@ namespace SourceGit.Tests
             }
         }
 
+        private static async Task<int> CheckPatchAsync(string root, string mode, string report)
+        {
+            async Task Run(string args) => await new Git(root, args).RunAsync();
+            async Task<string> Read(string args) => (await new Git(root, args).ReadAsync()).StdOut.Trim();
+            async Task<string> Commit() { await Run("add -A"); await Run("-c user.name=QA -c user.email=qa@example.invalid commit -m Fixture"); return await Read("rev-parse HEAD"); }
+            var initial = await Read("rev-parse HEAD");
+            var name = "补丁 [1].data";
+            var path = Path.Combine(root, name);
+            var parent = 0;
+            string revision;
+            if (mode == "patch-root")
+            {
+                name = "sample.txt";
+                path = Path.Combine(root, name);
+                await Run("rm --cached -- sample.txt");
+                revision = initial;
+            }
+            else
+            {
+                await Run("checkout -b patch-source");
+                File.WriteAllText(path, "incoming patch data\n");
+                var added = await Commit();
+                File.WriteAllText(Path.Combine(root, "unrelated.txt"), "benign addition\n");
+                var benign = await Commit();
+                revision = mode == "patch-benign" ? benign : added;
+                if (mode is "patch-mainline-1" or "patch-mainline-2")
+                {
+                    await Run($"checkout -b side {initial}");
+                    File.WriteAllText(Path.Combine(root, "other.txt"), "side branch addition\n");
+                    await Commit();
+                    await Run("checkout patch-source");
+                    await Run("-c user.name=QA -c user.email=qa@example.invalid merge --no-ff side -m Merge");
+                    revision = await Read("rev-parse HEAD");
+                    parent = mode == "patch-mainline-1" ? 0 : 1;
+                }
+                await Run("checkout main");
+            }
+            File.WriteAllText(Path.Combine(root, ".git/info/exclude"), "*.data\nsample.txt\n");
+            File.WriteAllText(path, "preserve local ignored bytes\n");
+            var head = await Read("rev-parse HEAD");
+            var index = await Read("ls-files --stage -z");
+            var guard = new Commands.CheckMergeSafety(root, [], patches: [(revision, parent)]);
+            var allowed = await guard.GetResultAsync();
+            var expected = mode is "patch-benign" or "patch-mainline-1";
+            var success = allowed == expected && (expected || guard.Obstruction == name) &&
+                File.ReadAllText(path) == "preserve local ignored bytes\n" && await Read("rev-parse HEAD") == head && await Read("ls-files --stage -z") == index;
+            File.WriteAllText(report, JsonSerializer.Serialize(new { mode, success, allowed, expected, guard.Obstruction, revision, parent }));
+            return success ? 0 : 1;
+        }
+
         public static async Task<int> RunAsync(string root, string mode, string report)
         {
             async Task Run(string args) => await new Git(root, args).RunAsync();
@@ -29,6 +79,7 @@ namespace SourceGit.Tests
             File.WriteAllText(file, "original\n");
             await Run("add .");
             if (mode != "unborn") await Run("-c user.name=QA -c user.email=qa@example.invalid commit -m Initial");
+            if (mode.StartsWith("patch-", StringComparison.Ordinal)) return await CheckPatchAsync(root, mode, report);
             var success = false;
             switch (mode)
             {

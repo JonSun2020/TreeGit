@@ -259,6 +259,12 @@ namespace SourceGit.Automation
                                 pendingDialog = p.Popup?.GetType().Name,
                                 pendingDialogInProgress = p.Popup?.InProgress,
                                 pendingDialogAttemptVersion = p.PopupAttemptVersion,
+                                pendingDialogError = p.Popup switch {
+                                    ViewModels.Merge m => m.ErrorMessage,
+                                    ViewModels.Rebase b => b.ErrorMessage,
+                                    ViewModels.CommitAction a => a.ErrorMessage,
+                                    _ => null,
+                                },
                                 validationErrors = p.Popup == null ? null :
                                     (((System.ComponentModel.INotifyDataErrorInfo)p.Popup).GetErrors(null) ?? Array.Empty<object>()).Cast<object>()
                                     .Select(e => e is System.ComponentModel.DataAnnotations.ValidationResult validation ? validation.ErrorMessage : e.ToString()).ToArray(),

@@ -39,9 +39,11 @@ namespace SourceGit.Tests
             {
                 case "valid":
                 case "missing":
+                case "missing-worktree":
                 case "closed":
                 {
-                    var vm = new ViewModels.BinaryFileViewer(root, "sample.txt", mode == "missing" ? "refs/heads/missing" : "HEAD");
+                    var vm = new ViewModels.BinaryFileViewer(root, mode == "missing-worktree" ? "missing.bin" : "sample.txt",
+                        mode == "missing-worktree" ? null : mode == "missing" ? "refs/heads/missing" : "HEAD");
                     if (mode == "closed") vm.Cleanup();
                     await vm.LoadAsync();
                     success = mode == "valid" ? vm.Content != null && !vm.IsLoading &&

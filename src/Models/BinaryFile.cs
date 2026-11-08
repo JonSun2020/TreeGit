@@ -15,23 +15,19 @@ namespace SourceGit.Models
             _filePath = file;
             _needDeleteFile = needDeleteFile;
 
-            if (File.Exists(_filePath))
+            _reader = new FileStream(_filePath, FileMode.Open, FileAccess.Read, FileShare.Read, BUFFER_SIZE, FileOptions.RandomAccess);
+            try
             {
-                _size = new FileInfo(_filePath).Length;
-                _reader = new FileStream(_filePath, FileMode.Open, FileAccess.Read, FileShare.Read, BUFFER_SIZE, FileOptions.RandomAccess);
+                _size = _reader.Length;
                 _readedStart = 0;
                 _readedEnd = Math.Min(_size, BUFFER_SIZE);
-
-                try
+                if (_size > 0)
                 {
-                    if (_size > 0)
-                    {
-                        _reader.Seek(_readedStart, SeekOrigin.Begin);
-                        _reader.ReadExactly(_buffer, 0, (int)_readedEnd);
-                    }
+                    _reader.Seek(_readedStart, SeekOrigin.Begin);
+                    _reader.ReadExactly(_buffer, 0, (int)_readedEnd);
                 }
-                catch { _reader.Dispose(); _reader = null; throw; }
             }
+            catch { _reader.Dispose(); _reader = null; throw; }
         }
 
         public void Dispose()

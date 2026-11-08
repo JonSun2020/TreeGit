@@ -55,9 +55,9 @@ namespace SourceGit.ViewModels
                 if (revision != null)
                 {
                     temporary = Path.GetTempFileName();
-                    if (!await Commands.SaveRevisionFile.RunAsync(repo, revision, file, temporary, cancellation.Token))
+                    if (!await Commands.SaveRevisionFile.RunAsync(repo, revision, file, temporary, cancellation.Token, reportFailure: false))
                     {
-                        if (!_closed) ErrorMessage = App.Text("File.ExportFailed");
+                        if (!_closed) ErrorMessage = App.Text("File.HexViewer.LoadFailed");
                         return;
                     }
                     cancellation.Token.ThrowIfCancellationRequested();
@@ -77,7 +77,7 @@ namespace SourceGit.ViewModels
             catch (OperationCanceledException) { }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
             {
-                if (!_closed) ErrorMessage = App.Text("BinaryDiff.LoadFailed");
+                if (!_closed) ErrorMessage = App.Text("File.HexViewer.LoadFailed");
             }
             finally
             {

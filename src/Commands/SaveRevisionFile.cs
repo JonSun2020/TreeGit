@@ -8,12 +8,13 @@ namespace SourceGit.Commands
 {
     public static class SaveRevisionFile
     {
-        public static async Task<bool> RunAsync(string repo, string revision, string file, string saveTo, CancellationToken token = default)
+        public static async Task<bool> RunAsync(string repo, string revision, string file, string saveTo, CancellationToken token = default, bool reportFailure = true)
         {
             try
             {
                 token.ThrowIfCancellationRequested();
                 var isLFSFiltered = await new IsLFSFiltered(repo, revision, file).GetResultAsync().ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
                 if (isLFSFiltered)
                 {
                     await using var pointerStream = await QueryFileContent.RunAsync(repo, revision, file, requireSuccess: true).ConfigureAwait(false);
@@ -28,7 +29,7 @@ namespace SourceGit.Commands
             catch (OperationCanceledException) { throw; }
             catch (Exception)
             {
-                ReportFailure(repo);
+                if (reportFailure) ReportFailure(repo);
                 return false;
             }
         }

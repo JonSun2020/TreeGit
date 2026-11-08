@@ -1248,4 +1248,6 @@
   <x:String x:Key="Text.CommitAction.FinishCurrent">Finish or abort the operation already in progress before starting another one.</x:String>
   <x:String x:Key="Text.CommitAction.DestinationChanged">The current branch or commit changed. Reopen this operation and retry.</x:String>
   <x:String x:Key="Text.CommitAction.Failed">The operation could not complete. Check local changes or the command log, then retry.</x:String>
+  <x:String x:Key="Text.CommitAction.LocalFilesBlocked">Local untracked or ignored files would be replaced. Move or back them up, then retry.</x:String>
+  <x:String x:Key="Text.File.HexViewer.LoadFailed">This file could not be read. Check that the file or selected revision is still available, then reopen the viewer.</x:String>
 </ResourceDictionary>

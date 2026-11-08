@@ -32,6 +32,7 @@ write('values.txt','base\n');write('draft.txt','base draft\n');write('.gitignore
 git('checkout','-b','safe');write('incoming.txt','safe addition\n');safe=commit('First safe addition');write('second.txt','second addition\n');second=commit('Second safe addition')
 git('checkout','-b','conflict',base);write('values.txt','incoming\n');conflict=commit('Incoming conflicting change')
 git('checkout','-b','ignored',base);write('ignored.data','incoming tracked data\n');git('add','-f','ignored.data');ignored=commit('Incoming ignored path')
+git('checkout','-b','benign-source');write('benign.txt','unrelated patch addition\n');benign_source=commit('Patch leaves ignored path unchanged')
 git('checkout','-b','restore',base);write('restored.data','tracked original data\n');git('add','-f','restored.data');commit('Add restored path');git('rm','restored.data');restore=commit('Remove restored path')
 git('checkout','main');write('values.txt','local\n');main=commit('Local change');git('branch','alias')
 p=subprocess.Popen([str(exe),'--mcp'],env=env,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',creationflags=subprocess.CREATE_NO_WINDOW)
@@ -95,8 +96,21 @@ try:
         prepare();git('merge','--no-commit','conflict',ok=False);refresh();before=git('ls-files','-u');result=probe(operation,targets,draft)
         check(operation+' reveals an existing operation without replacing it',result['succeeded'] and result['selectedWorkingCopy'] and (repo/'.git/MERGE_HEAD').exists() and git('ls-files','-u')==before and result['draft']==draft)
         prepare();name='ignored.data' if operation=='cherry_pick' else 'restored.data';write(name,'preserve ignored local bytes\n');refresh()
+        reference=new_fixture(root,'TreeGit native reference ')
+        try:
+            cloned=subprocess.run(['git','clone','--shared',str(repo),str(reference)],env=env,capture_output=True,text=True,encoding='utf-8');assert cloned.returncode==0,cloned.stderr
+            (reference/name).write_text('preserve ignored local bytes\n',encoding='utf-8')
+            native_args=['cherry-pick','-n','-x',ignored] if operation=='cherry_pick' else ['revert','-n','-m','1','--no-edit',restore]
+            native=subprocess.run(['git','-C',str(reference),*native_args],env=env,capture_output=True,text=True,encoding='utf-8')
+            records.append({'nativeReference':operation,'exitCode':native.returncode,'ignoredBytesPreserved':(reference/name).read_text()=='preserve ignored local bytes\n','stderr':native.stderr[-2048:]})
+        finally:remove_fixture(reference,root,'TreeGit native reference ')
         result=probe(operation,[ignored if operation=='cherry_pick' else restore],draft)
-        check(operation+' protects an ignored file which its patch would recreate',not result['succeeded'] and (repo/name).read_text()=='preserve ignored local bytes\n' and git('rev-parse','HEAD')==main and result['draft']==draft)
+        retained=(repo/name).read_text()=='preserve ignored local bytes\n'
+        records[-1]['ignoredBytesPreserved']=retained
+        check(operation+' protects an ignored file which its patch would recreate',not result['succeeded'] and name in result['error'] and retained and git('rev-parse','HEAD')==main and result['draft']==draft)
+        prepare();write('ignored.data','preserve unrelated ignored bytes\n');refresh()
+        result=probe(operation,[benign_source if operation=='cherry_pick' else main],draft)
+        check(operation+' allows an unrelated ignored path even when present in the source tree',result['succeeded'] and (repo/'ignored.data').read_text()=='preserve unrelated ignored bytes\n' and result['draft']==draft and bool(git('diff','--cached','--name-only')))
     assert not failures,failures
 except BaseException as error:
     failure=repr(error)

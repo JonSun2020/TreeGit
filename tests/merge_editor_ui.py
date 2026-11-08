@@ -80,7 +80,15 @@ def clean_close():
         action('replace',text=opened_text)
         tool('ui_command',{'command':'close_dialog'})
         wait_for(lambda: dialog() is None)
-def shot(name):(out/(name+'.png')).write_bytes(tool('ui_screenshot',{'window':'active'}))
+def shot(name):
+    (out/(name+'.png')).write_bytes(tool('ui_screenshot',{'window':'active'}))
+    menu=(dialog() or {}).get('merge',{}).get('contextMenu')
+    if menu and menu.get('items'):
+        item=menu['items'][0]
+        result=subprocess.run(['powershell','-NoProfile','-File',str(Path(__file__).with_name('capture_owned_popup.ps1')),
+            '-ProcessId',str(pid),'-ExpectedExecutable',str(exe),'-TargetX',str(item['x']),'-TargetY',str(item['y']),
+            '-OutputPath',str(out/(name+'-native.png'))],capture_output=True,text=True,encoding='utf-8',creationflags=subprocess.CREATE_NO_WINDOW)
+        assert result.returncode==0,(result.stdout,result.stderr)
 
 api=ctypes.WinDLL('user32',use_last_error=True)
 api.WindowFromPoint.argtypes=[wintypes.POINT];api.WindowFromPoint.restype=wintypes.HWND

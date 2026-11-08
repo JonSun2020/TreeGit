@@ -27,7 +27,7 @@ namespace SourceGit.ViewModels
             ProgressDescription = $"Revert commit '{Target.SHA}' ...";
             return await RunGitActionAsync($"Revert '{Target.SHA}'", log => new Commands.Revert(_repo.FullPath, Target.SHA, AutoCommit)
                 .Use(log)
-                .ExecAsync());
+                .ExecAsync(), [(Target.SHA, 0)]);
         }
 
         private readonly Repository _repo = null;

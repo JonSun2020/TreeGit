@@ -85,3 +85,5 @@ MCP 的完整读写意味着 AI 可以修改甚至删除 Git 数据。应在 AI 
 `choice=left` / `right`、`left_then_right` / `right_then_left` 对应界面中的 Local / Remote 和排列顺序。`ours` / `theirs`、`ours_then_theirs` / `theirs_then_ours` 保留 Git 原生两侧的含义，变基时与显示左右相反；`restore` 恢复原始冲突块。AI 按界面操作时优先使用 `left` / `right`。`ui_state` 的冲突窗口同时给出是否正在变基、左右内容摘要和固定的冲突总数。
 
 `ui_refresh` 发起后，可等待仓库的 `workingCopyRefreshVersion` 增加且 `workingCopyStatusKnown=true`，再读取文件列表。`pendingDialogAttemptVersion` 在确认操作被界面受理时增加，包括表单验证未通过的情况；先观察该值变化，再等待 `pendingDialogInProgress=false` 或弹框关闭，避免把点击前的空闲状态当成执行结束。
+
+合并、变基、挑选提交和回退提交未完成时，`pendingDialogError` 返回当前弹框的恢复提示。弹框保持打开时先处理该提示，不能仅凭确认动作已受理判断操作成功。

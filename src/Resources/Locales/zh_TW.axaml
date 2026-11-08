@@ -1305,4 +1305,6 @@
   <x:String x:Key="Text.CommitAction.FinishCurrent">請先完成或終止正在進行的操作，再開始新的操作。</x:String>
   <x:String x:Key="Text.CommitAction.DestinationChanged">目前分支或提交已變更，請重新開啟此操作視窗後重試。</x:String>
   <x:String x:Key="Text.CommitAction.Failed">本次操作未能完成。請檢查本機變更或查看命令記錄，然後重試。</x:String>
+  <x:String x:Key="Text.CommitAction.LocalFilesBlocked">此操作會覆寫本機未追蹤或忽略的檔案。請先移走或備份這些檔案，然後重試。</x:String>
+  <x:String x:Key="Text.File.HexViewer.LoadFailed">無法讀取此檔案。請確認檔案或所選版本仍可讀取，然後重新開啟檢視器。</x:String>
 </ResourceDictionary>
