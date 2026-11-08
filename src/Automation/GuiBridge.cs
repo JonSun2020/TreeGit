@@ -208,6 +208,7 @@ namespace SourceGit.Automation
                                 sidebarVisible = repositoryView?.IsNormalSidebarVisible,
                                 sidebarWidth = repositoryView?.SidebarWidth.Value,
                                 branch = r.CurrentBranch?.Name,
+                                logs = new { retained = r.Logs.Count, active = r.Logs.Count(l => !l.IsComplete) },
                                 changes = r.LocalChangesCount,
                                 workingCopyStatusKnown = r.WorkingCopyStatusKnown,
                                 workingCopyRefreshVersion = r.WorkingCopyRefreshVersion,
@@ -828,6 +829,20 @@ namespace SourceGit.Automation
                     var owner = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow;
                     switch (command)
                     {
+                        case "checkout_dialog":
+                            var checkoutBranch = repo.Branches.Find(b => b.FullName == Text(args, "to") || b.FriendlyName == Text(args, "to")) ?? throw new ArgumentException("Branch does not exist.");
+                            repo.ShowBranchCheckoutOptions(checkoutBranch);
+                            break;
+                        case "checkout_fast_forward_dialog":
+                            var localTarget = repo.Branches.Find(b => b.IsLocal && (b.FullName == Text(args, "base") || b.FriendlyName == Text(args, "base"))) ?? throw new ArgumentException("Local branch does not exist.");
+                            var remoteTarget = repo.Branches.Find(b => !b.IsLocal && (b.FullName == Text(args, "to") || b.FriendlyName == Text(args, "to"))) ?? throw new ArgumentException("Remote branch does not exist.");
+                            repo.ShowPopup(new ViewModels.CheckoutAndFastForward(repo, localTarget, remoteTarget));
+                            break;
+                        case "checkout_commit_dialog":
+                            var checkoutRevision = Text(args, "revision");
+                            if (!Regex.IsMatch(checkoutRevision, "\\A(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})\\z")) throw new ArgumentException("Supply the complete commit hash.");
+                            repo.ShowPopup(new ViewModels.CheckoutDetached(repo, new Commands.QuerySingleCommit(repo.FullPath, checkoutRevision).GetResult() ?? throw new ArgumentException("Commit does not exist.")));
+                            break;
                         case "merge_multiple_dialog":
                             if (!args.TryGetProperty("revisions", out var revisions) || revisions.ValueKind != JsonValueKind.Array || revisions.GetArrayLength() < 2 || revisions.GetArrayLength() > 32)
                                 throw new ArgumentException("Supply between 2 and 32 complete commit hashes.");
@@ -1101,7 +1116,15 @@ namespace SourceGit.Automation
                                 command = "stash pop";
                                 break;
                             case "merge":
-                                command = Join("merge", "--no-edit", "--", Revision(args));
+                                var mergeRevision = Revision(args);
+                                var resolvedMerge = await new Query(path, Join("rev-parse", "--verify", mergeRevision + "^{commit}")).RunAsync().ConfigureAwait(false);
+                                if (!resolvedMerge.IsSuccess) throw new ArgumentException(Redact(resolvedMerge.StdErr));
+                                var mergeSHA = resolvedMerge.StdOut.Trim();
+                                var mergeSafety = new Commands.CheckMergeSafety(path, [mergeSHA]);
+                                if (!await mergeSafety.GetResultAsync().ConfigureAwait(false))
+                                    throw new InvalidOperationException(App.Text(mergeSafety.Obstruction == null ? "WorkingCopy.RefreshFailed" : "Merge.LocalFilesBlocked") +
+                                        (mergeSafety.Obstruction == null ? string.Empty : "\n" + mergeSafety.Obstruction));
+                                command = Join("merge", "--no-edit", "--no-overwrite-ignore", "--", mergeSHA);
                                 break;
                             case "rebase":
                                 command = Join("rebase", "--", Revision(args));

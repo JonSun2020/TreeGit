@@ -63,63 +63,42 @@ namespace SourceGit.ViewModels
             }
 
             var succ = false;
-            var needPop = false;
+            var protectedChanges = new ProtectedLocalChanges(_repo, log);
+            try
+            {
 
-            if (DealWithLocalChanges == Models.DealWithLocalChanges.DoNothing)
-            {
-                succ = await new Commands.Checkout(_repo.FullPath)
-                    .Use(log)
-                    .CommitAsync(_revision, false);
-            }
-            else if (DealWithLocalChanges == Models.DealWithLocalChanges.StashAndReapply)
-            {
-                var countQuery = new Commands.CountLocalChanges(_repo.FullPath, false);
-                var changes = await countQuery.GetResultAsync();
-                if (!countQuery.Succeeded)
+                if (DealWithLocalChanges == Models.DealWithLocalChanges.DoNothing)
                 {
-                    log.Complete();
-                    _repo.NotifyWorkingCopyStatusFailure();
-                    _repo.MarkWorkingCopyDirtyManually();
-                    return false;
-                }
-                if (changes > 0)
-                {
-                    succ = await new Commands.Stash(_repo.FullPath)
+                    succ = await new Commands.Checkout(_repo.FullPath)
                         .Use(log)
-                        .PushAsync("CHECKOUT_AUTO_STASH", false);
-                    if (!succ)
-                    {
-                        log.Complete();
-                        _repo.MarkWorkingCopyDirtyManually();
-                        return false;
-                    }
-
-                    needPop = true;
+                        .CommitAsync(_revision, false);
+                }
+                else if (DealWithLocalChanges == Models.DealWithLocalChanges.StashAndReapply)
+                {
+                    if (!await protectedChanges.SaveAsync("CHECKOUT_AUTO_STASH")) return false;
+                    succ = await new Commands.Checkout(_repo.FullPath).Use(log).CommitAsync(_revision, false);
+                }
+                else
+                {
+                    succ = await new Commands.Checkout(_repo.FullPath)
+                        .Use(log)
+                        .CommitAsync(_revision, true);
                 }
 
-                succ = await new Commands.Checkout(_repo.FullPath)
-                    .Use(log)
-                    .CommitAsync(_revision, false);
+                if (succ)
+                {
+                    try { await _repo.AutoUpdateSubmodulesAsync(log); }
+                    catch (System.Exception ex) { Native.OS.LogException(ex); _repo.SendNotification(App.Text("Repository.SubmodulesPending"), true); }
+
+                }
+
+                return succ;
             }
-            else
+            finally
             {
-                succ = await new Commands.Checkout(_repo.FullPath)
-                    .Use(log)
-                    .CommitAsync(_revision, true);
+                try { await protectedChanges.RestoreAsync(succ); }
+                finally { log.Complete(); _repo.RefreshBranches(); _repo.MarkWorkingCopyDirtyManually(); }
             }
-
-            if (succ)
-            {
-                await _repo.AutoUpdateSubmodulesAsync(log);
-
-                if (needPop)
-                    await new Commands.Stash(_repo.FullPath)
-                        .Use(log)
-                        .PopAsync("stash@{0}");
-            }
-
-            log.Complete();
-            return succ;
         }
 
         private readonly Repository _repo = null;

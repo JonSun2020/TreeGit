@@ -30,6 +30,8 @@ namespace SourceGit.ViewModels
             _repo = repo;
             LocalBranch = localBranch;
             RemoteBranch = remoteBranch;
+            _sourceRevision = remoteBranch.Head;
+            _expectedLocalHead = localBranch.Head;
 
             DealWithLocalChanges = Preferences.Instance.UseStashAndReapplyByDefault ?
                 Models.DealWithLocalChanges.StashAndReapply :
@@ -56,76 +58,52 @@ namespace SourceGit.ViewModels
                 }
             }
 
-            var succ = false;
-            var needPopStash = false;
-
-            if (DealWithLocalChanges == Models.DealWithLocalChanges.DoNothing)
+            var currentTarget = await new Commands.QueryRevisionByRefName(_repo.FullPath, LocalBranch.FullName.Quoted()).GetResultAsync();
+            if (currentTarget != _expectedLocalHead)
             {
-                succ = await new Commands.Checkout(_repo.FullPath)
-                    .Use(log)
-                    .BranchAsync(LocalBranch.Name, RemoteBranch.Head, false, true);
+                log.Complete();
+                _repo.RefreshBranches();
+                _repo.SendNotification(App.Text("Checkout.DestinationChanged"), true);
+                return false;
             }
-            else if (DealWithLocalChanges == Models.DealWithLocalChanges.StashAndReapply)
+            var safety = new Commands.CheckMergeSafety(_repo.FullPath, [_sourceRevision]);
+            if (!await safety.GetResultAsync())
             {
-                var countQuery = new Commands.CountLocalChanges(_repo.FullPath, false);
-                var changes = await countQuery.GetResultAsync();
-                if (!countQuery.Succeeded)
+                log.Complete();
+                _repo.SendNotification(App.Text(safety.Obstruction == null ? "WorkingCopy.RefreshFailed" : "Merge.LocalFilesBlocked"), true);
+                return false;
+            }
+            var protectedChanges = new ProtectedLocalChanges(_repo, log);
+            var checkoutSucceeded = false;
+            try
+            {
+                if (DealWithLocalChanges == Models.DealWithLocalChanges.StashAndReapply &&
+                    !await protectedChanges.SaveAsync("CHECKOUT_AND_FASTFORWARD_AUTO_STASH")) return false;
+                checkoutSucceeded = await new Commands.Checkout(_repo.FullPath).Use(log)
+                    .BranchAsync(LocalBranch.Name.Quoted(), DealWithLocalChanges == Models.DealWithLocalChanges.Discard);
+                if (!checkoutSucceeded) return false;
+                // A fast-forward must never be implemented as checkout -B, which
+                // can erase newer local commits when the dialog's data is stale.
+                var success = await new Commands.Checkout(_repo.FullPath).Use(log).FastForwardAsync(_sourceRevision);
+                if (success)
                 {
-                    log.Complete();
-                    _repo.NotifyWorkingCopyStatusFailure();
-                    _repo.MarkWorkingCopyDirtyManually();
-                    return false;
+                    try { await _repo.AutoUpdateSubmodulesAsync(log); }
+                    catch (System.Exception ex) { Native.OS.LogException(ex); _repo.SendNotification(App.Text("Repository.SubmodulesPending"), true); }
+                    LocalBranch.Behind.Clear();
+                    LocalBranch.Head = _sourceRevision;
+                    LocalBranch.CommitterDate = RemoteBranch.CommitterDate;
                 }
-                if (changes > 0)
-                {
-                    succ = await new Commands.Stash(_repo.FullPath)
-                        .Use(log)
-                        .PushAsync("CHECKOUT_AND_FASTFORWARD_AUTO_STASH", false);
-                    if (!succ)
-                    {
-                        log.Complete();
-                        _repo.MarkWorkingCopyDirtyManually();
-                        return false;
-                    }
-
-                    needPopStash = true;
-                }
-
-                succ = await new Commands.Checkout(_repo.FullPath)
-                    .Use(log)
-                    .BranchAsync(LocalBranch.Name, RemoteBranch.Head, false, true);
-            }
-            else
-            {
-                succ = await new Commands.Checkout(_repo.FullPath)
-                    .Use(log)
-                    .BranchAsync(LocalBranch.Name, RemoteBranch.Head, true, true);
-            }
-
-            if (succ)
-            {
-                await _repo.AutoUpdateSubmodulesAsync(log);
-
-                if (needPopStash)
-                    await new Commands.Stash(_repo.FullPath)
-                        .Use(log)
-                        .PopAsync("stash@{0}");
-
-                LocalBranch.Behind.Clear();
-                LocalBranch.Head = RemoteBranch.Head;
-                LocalBranch.CommitterDate = RemoteBranch.CommitterDate;
-
                 _repo.RefreshAfterCheckoutBranch(LocalBranch);
+                return success;
             }
-            else
+            finally
             {
-                _repo.MarkWorkingCopyDirtyManually();
+                try { await protectedChanges.RestoreAsync(checkoutSucceeded); }
+                finally { log.Complete(); _repo.RefreshBranches(); _repo.MarkWorkingCopyDirtyManually(); }
             }
-
-            log.Complete();
-            return succ;
         }
 
         private Repository _repo;
+        private readonly string _sourceRevision, _expectedLocalHead;
     }
 }

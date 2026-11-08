@@ -1158,4 +1158,6 @@
   <x:String x:Key="Text.Stash.NoStagedChanges">There are no staged changes to stash.</x:String>
   <x:String x:Key="Text.Merge.MultipleFailed">The multiple-head merge did not finish. For complex conflicts, merge one branch at a time and resolve its conflicts before continuing.</x:String>
   <x:String x:Key="Text.Log.Truncated">Earlier output was omitted. The most recent operation details are shown below.</x:String>
+  <x:String x:Key="Text.Repository.SubmodulesPending">The main repository operation completed, but some submodules could not be updated. Continue from the submodule list.</x:String>
+  <x:String x:Key="Text.Checkout.DestinationChanged">The target branch changed. Close this dialog, refresh, and try again.</x:String>
 </ResourceDictionary>

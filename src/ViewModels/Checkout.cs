@@ -62,69 +62,48 @@ namespace SourceGit.ViewModels
             }
 
             var succ = false;
-            var needPopStash = false;
+            var protectedChanges = new ProtectedLocalChanges(_repo, log);
+            try
+            {
 
-            if (DealWithLocalChanges == Models.DealWithLocalChanges.DoNothing)
-            {
-                succ = await new Commands.Checkout(_repo.FullPath)
-                    .Use(log)
-                    .BranchAsync(branchName.Quoted(), false);
-            }
-            else if (DealWithLocalChanges == Models.DealWithLocalChanges.StashAndReapply)
-            {
-                var countQuery = new Commands.CountLocalChanges(_repo.FullPath, false);
-                var changes = await countQuery.GetResultAsync();
-                if (!countQuery.Succeeded)
+                if (DealWithLocalChanges == Models.DealWithLocalChanges.DoNothing)
                 {
-                    log.Complete();
-                    _repo.NotifyWorkingCopyStatusFailure();
+                    succ = await new Commands.Checkout(_repo.FullPath)
+                        .Use(log)
+                        .BranchAsync(branchName.Quoted(), false);
+                }
+                else if (DealWithLocalChanges == Models.DealWithLocalChanges.StashAndReapply)
+                {
+                    if (!await protectedChanges.SaveAsync("CHECKOUT_AUTO_STASH")) return false;
+                    succ = await new Commands.Checkout(_repo.FullPath).Use(log).BranchAsync(branchName.Quoted(), false);
+                }
+                else
+                {
+                    succ = await new Commands.Checkout(_repo.FullPath)
+                        .Use(log)
+                        .BranchAsync(branchName.Quoted(), true);
+                }
+
+                if (succ)
+                {
+                    try { await _repo.AutoUpdateSubmodulesAsync(log); }
+                    catch (System.Exception ex) { Native.OS.LogException(ex); _repo.SendNotification(App.Text("Repository.SubmodulesPending"), true); }
+
+
+                    _repo.RefreshAfterCheckoutBranch(_branch);
+                }
+                else
+                {
                     _repo.MarkWorkingCopyDirtyManually();
-                    return false;
-                }
-                if (changes > 0)
-                {
-                    succ = await new Commands.Stash(_repo.FullPath)
-                        .Use(log)
-                        .PushAsync("CHECKOUT_AUTO_STASH", false);
-                    if (!succ)
-                    {
-                        log.Complete();
-                        _repo.MarkWorkingCopyDirtyManually();
-                        return false;
-                    }
-
-                    needPopStash = true;
                 }
 
-                succ = await new Commands.Checkout(_repo.FullPath)
-                    .Use(log)
-                    .BranchAsync(branchName.Quoted(), false);
+                return succ;
             }
-            else
+            finally
             {
-                succ = await new Commands.Checkout(_repo.FullPath)
-                    .Use(log)
-                    .BranchAsync(branchName.Quoted(), true);
+                try { await protectedChanges.RestoreAsync(succ); }
+                finally { log.Complete(); _repo.RefreshBranches(); _repo.MarkWorkingCopyDirtyManually(); }
             }
-
-            if (succ)
-            {
-                await _repo.AutoUpdateSubmodulesAsync(log);
-
-                if (needPopStash)
-                    await new Commands.Stash(_repo.FullPath)
-                        .Use(log)
-                        .PopAsync("stash@{0}");
-
-                _repo.RefreshAfterCheckoutBranch(_branch);
-            }
-            else
-            {
-                _repo.MarkWorkingCopyDirtyManually();
-            }
-
-            log.Complete();
-            return succ;
         }
 
         private readonly Repository _repo = null;

@@ -608,14 +608,17 @@ namespace SourceGit.ViewModels
         public void ShowPopup(Popup popup)
         {
             var page = GetOwnerPage();
-            if (page != null)
-                page.Popup = popup;
+            if (page == null || !page.CanCreatePopup()) { popup.Cleanup(); return; }
+            if (ReferenceEquals(page.Popup, popup)) return;
+            page.CancelPopup();
+            page.Popup = popup;
         }
 
         public async Task ShowAndStartPopupAsync(Popup popup)
         {
             var page = GetOwnerPage();
-            page.Popup = popup;
+            ShowPopup(popup);
+            if (page?.Popup != popup) return;
 
             if (popup.CanStartDirectly())
                 await page.ProcessPopupAsync();

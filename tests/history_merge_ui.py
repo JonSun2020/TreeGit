@@ -49,9 +49,11 @@ git('checkout', '-b', 'ignored-collision', base); write('ignored.data', 'incomin
 git('checkout', '-b', 'restore-conflict', base); write('values.txt', 'incoming restore\n'); restore_sha = commit('Incoming restore')
 git('checkout', '--orphan', 'unrelated'); git('rm', '-rf', '.'); write('independent.txt', 'independent\n'); unrelated_sha = commit('Independent history')
 git('checkout', 'main'); write('values.txt', 'local\n'); main = commit('Local head')
+git('branch', 'ff-target', base); git('remote', 'add', 'origin', 'https://example.invalid/qa.git')
+git('update-ref', 'refs/remotes/origin/ff-safe', safe_sha)
 
 prefs = exe.parent / 'data/preference.json'; prefs.parent.mkdir(exist_ok=True)
-default_prefs = {'Locale': 'zh_CN', 'Theme': 'Blue', 'EnableAutoFetch': False, 'Check4UpdatesOnStartup': False}
+default_prefs = {'Locale': 'zh_CN', 'Theme': 'Blue', 'EnableAutoFetch': False, 'Check4UpdatesOnStartup': False, 'UseStashAndReapplyByDefault': True}
 prefs.write_text(json.dumps(default_prefs), encoding='utf-8')
 p = subprocess.Popen([str(exe), '--mcp'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                      text=True, encoding='utf-8', env=env, creationflags=subprocess.CREATE_NO_WINDOW)
@@ -84,8 +86,13 @@ def shot(name): (out / (name + '.png')).write_bytes(tool('ui_screenshot'))
 def command(name, **args): return tool('ui_command', {'repo': str(repo), 'command': name, **args})
 def refresh():
     before = state()['workingCopyRefreshVersion']
+    actual_branch = git('symbolic-ref', '--quiet', 'HEAD', ok=False)
+    actual_head = git('rev-parse', 'HEAD').stdout.strip()
     tool('ui_refresh', {'repo': str(repo)})
     wait_for(lambda: state()['workingCopyRefreshVersion'] > before and state()['workingCopyStatusKnown'] and not state()['graphLoading'])
+    if actual_branch.returncode == 0:
+        reference = actual_branch.stdout.strip()
+        wait_for(lambda: state()['branch'] == reference.removeprefix('refs/heads/') and any(b['reference'] == reference and b['head'] == actual_head for b in state()['loadedBranches']))
 
 api = ctypes.WinDLL('user32', use_last_error=True)
 api.WindowFromPoint.argtypes = [wintypes.POINT]; api.WindowFromPoint.restype = wintypes.HWND
@@ -263,6 +270,11 @@ try:
         merge(revision); confirm(); message = error()
         check('incoming path collision keeps the dialog open: ' + name, bool(message) and state()['pendingDialog'] == 'Merge')
         check('incoming path collision preserves local bytes and HEAD: ' + name, (repo / name).read_bytes() == contents and git('rev-parse', 'HEAD').stdout.strip() == main)
+        if name == 'ignored.data':
+            cancel()
+            response = rpc('tools/call', {'name': 'git_action', 'arguments': {'repo': str(repo), 'action': 'merge', 'revision': revision}})
+            payload = json.loads(response['content'][0]['text'])
+            check('MCP merge enforces the same ignored-file protection', (response.get('isError') or payload.get('error')) and (repo / name).read_bytes() == contents and git('rev-parse', 'HEAD').stdout.strip() == main)
         cancel(); reset()
 
     git('config', 'merge.ff', 'only'); merge(safe_sha); confirm(); error()
@@ -291,6 +303,51 @@ try:
     merge(safe_sha); git('commit', '--allow-empty', '-m', 'External new destination'); external_head = git('rev-parse', 'HEAD').stdout.strip(); confirm(); error()
     check('moving the same destination branch while a dialog is open is also rejected', git('rev-parse', 'HEAD').stdout.strip() == external_head and not (repo / 'remote.txt').exists())
     cancel(); reset()
+
+    # A rejected checkout must restore this action's stash, preserving both the
+    # exact index and any older stash. No blind stash@{0} pop is permitted.
+    write('draft.txt', 'older checkout stash\n'); git('stash', 'push', '-m', 'Older checkout stash')
+    older = git('rev-parse', 'refs/stash').stdout.strip()
+    write('draft.txt', 'staged checkout draft\n'); git('add', 'draft.txt')
+    write('future.txt', 'untracked collision remains\n'); before_index = git('ls-files', '--stage').stdout; refresh()
+    command('checkout_dialog', to='refs/heads/untracked-collision'); confirm()
+    wait_for(lambda: not state()['pendingDialogInProgress'] and state()['pendingDialog'] == 'Checkout')
+    wait_for(lambda: (repo / 'draft.txt').read_text() == 'staged checkout draft\n')
+    check('failed checkout restores local bytes and exact staged index', git('rev-parse', 'HEAD').stdout.strip() == main and git('ls-files', '--stage').stdout == before_index and (repo / 'future.txt').read_text() == 'untracked collision remains\n')
+    check('failed checkout never applies or drops an older stash', git('rev-parse', 'refs/stash').stdout.strip() == older and len(git('stash', 'list').stdout.splitlines()) == 1)
+    cancel(); wait_for(lambda: state()['logs']['active'] == 0); reset()
+
+    write('draft.txt', 'preserved on checkout\n'); git('add', 'draft.txt'); refresh()
+    command('checkout_dialog', to='refs/heads/safe'); confirm(); completed()
+    wait_for(lambda: state()['branch'] == 'safe')
+    check('successful branch switch restores staged edits without leaving an auto stash', (repo / 'draft.txt').read_text() == 'preserved on checkout\n' and 'draft.txt' in git('diff', '--cached', '--name-only').stdout.splitlines() and not git('stash', 'list').stdout)
+    git('checkout', 'main'); reset()
+
+    write('draft.txt', 'preserved on detached checkout\n'); refresh()
+    command('checkout_commit_dialog', revision=base); confirm(); completed()
+    check('detached checkout also restores its protected local edits', git('symbolic-ref', '--quiet', 'HEAD', ok=False).returncode == 1 and (repo / 'draft.txt').read_text() == 'preserved on detached checkout\n' and not git('stash', 'list').stdout)
+    git('checkout', 'main'); reset()
+
+    refresh(); wait_for(lambda: any(b['reference'] == 'refs/heads/ff-target' and b['head'] == base for b in state()['loadedBranches']))
+    command('clear_notifications'); command('checkout_fast_forward_dialog', base='refs/heads/ff-target', to='refs/remotes/origin/ff-safe')
+    git('branch', '-f', 'ff-target', main); confirm()
+    wait_for(lambda: not state()['pendingDialogInProgress'] and tool('ui_state')['activePage']['notifications'] > 0)
+    check('stale fast-forward dialog cannot reset newer local commits', git('rev-parse', 'ff-target').stdout.strip() == main and git('symbolic-ref', '--short', 'HEAD').stdout.strip() == 'main')
+    cancel(); git('branch', '-f', 'ff-target', base); refresh()
+    wait_for(lambda: any(b['reference'] == 'refs/heads/ff-target' and b['head'] == base for b in state()['loadedBranches']))
+    write('draft.txt', 'preserved on fast forward\n'); refresh()
+    command('checkout_fast_forward_dialog', base='refs/heads/ff-target', to='refs/remotes/origin/ff-safe'); confirm(); completed()
+    check('real fast-forward advances the selected branch and restores local edits', git('rev-parse', 'ff-target').stdout.strip() == safe_sha and git('symbolic-ref', '--short', 'HEAD').stdout.strip() == 'ff-target' and (repo / 'draft.txt').read_text() == 'preserved on fast forward\n' and not git('stash', 'list').stdout)
+    git('checkout', 'main'); reset()
+
+    checkout_hook = repo / '.git/hooks/post-checkout'
+    checkout_hook.write_text('#!/bin/sh\necho "checkout hook rejected" >&2\nexit 1\n', encoding='utf-8')
+    write('draft.txt', 'recoverable after hook failure\n'); refresh()
+    command('checkout_dialog', to='refs/heads/safe'); confirm()
+    wait_for(lambda: not state()['pendingDialogInProgress'] and state()['pendingDialog'] == 'Checkout' and state()['workingCopySelected'])
+    check('a hook failure after checkout keeps the local edit recoverable and refreshes the true branch', git('symbolic-ref', '--short', 'HEAD').stdout.strip() == 'safe' and bool(git('stash', 'list').stdout) and state()['workingCopySelected'])
+    checkout_hook.unlink(); cancel(); wait_for(lambda: state()['logs']['active'] == 0)
+    git('checkout', 'main'); reset()
     git('config', '--unset', 'user.name'); git('config', '--unset', 'user.email')
     merge(safe_sha); confirm(); error()
     check('missing author identity offers repository settings instead of a silent failure', state()['mergeDialog']['showAuthorSettings'])

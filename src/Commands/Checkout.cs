@@ -18,6 +18,8 @@ namespace SourceGit.Commands
             builder.Append("checkout --progress ");
             if (force)
                 builder.Append("--force ");
+            else
+                builder.Append("--no-overwrite-ignore ");
             builder.Append(branch);
 
             Args = builder.ToString();
@@ -26,7 +28,7 @@ namespace SourceGit.Commands
 
         public async Task<bool> FastForwardAsync(string remote)
         {
-            Args = $"merge --ff-only {remote.Quoted()}";
+            Args = $"merge --ff-only --no-overwrite-ignore {remote.Quoted()}";
             return await ExecAsync().ConfigureAwait(false);
         }
 
@@ -36,6 +38,8 @@ namespace SourceGit.Commands
             builder.Append("checkout --progress ");
             if (force)
                 builder.Append("--force ");
+            else
+                builder.Append("--no-overwrite-ignore ");
             builder.Append(allowOverwrite ? "-B " : "-b ");
             builder.Append(branch);
             builder.Append(" ");
@@ -47,7 +51,7 @@ namespace SourceGit.Commands
 
         public async Task<bool> CommitAsync(string commitId, bool force)
         {
-            var option = force ? "--force" : string.Empty;
+            var option = force ? "--force" : "--no-overwrite-ignore";
             Args = $"checkout {option} --detach --progress {commitId}";
             return await ExecAsync().ConfigureAwait(false);
         }

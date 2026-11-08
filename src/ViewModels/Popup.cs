@@ -49,6 +49,7 @@ namespace SourceGit.ViewModels
         public virtual void Cleanup()
         {
             _log?.Unsubscribe(this);
+            if (_log is { IsComplete: false }) _log.Complete();
         }
 
         public virtual bool CanStartDirectly()
@@ -67,6 +68,11 @@ namespace SourceGit.ViewModels
 
         protected void Use(CommandLog log)
         {
+            if (_log != null && !ReferenceEquals(_log, log))
+            {
+                _log.Unsubscribe(this);
+                if (!_log.IsComplete) _log.Complete();
+            }
             _log = log;
             _log.Subscribe(this);
         }
