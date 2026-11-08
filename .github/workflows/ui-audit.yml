@@ -6,12 +6,16 @@ on:
         description: Also audit an enumerated wider desktop mode on the CI VM
         type: boolean
         default: false
+      soak:
+        description: Run 30 minutes of disposable multi-repository Git and binary-diff cycles
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
   resize:
     runs-on: windows-latest
-    timeout-minutes: 35
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-dotnet@v5
@@ -34,6 +38,10 @@ jobs:
         if: ${{ always() && inputs.wide }}
         shell: pwsh
         run: python tests/ci_display_audit.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/display-audit-results"
+      - name: Verify sustained operation and resource cleanup
+        if: ${{ success() && inputs.soak }}
+        shell: pwsh
+        run: python tests/desktop_soak.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/desktop-soak-results" 1800
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -45,3 +53,5 @@ jobs:
             ${{ runner.temp }}/dialog-audit-results/*.png
             ${{ runner.temp }}/display-audit-results/**/*.json
             ${{ runner.temp }}/display-audit-results/**/*.png
+            ${{ runner.temp }}/desktop-soak-results/*.json
+            ${{ runner.temp }}/desktop-soak-results/*.png

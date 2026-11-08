@@ -1,10 +1,12 @@
 """Sustained multi-repository GUI/Git/diff cycles; only disposable repositories are written."""
 import base64, json, os, queue, random, shutil, subprocess, sys, tempfile, threading, time, traceback
 from pathlib import Path
+from qa_cleanup import remove_fixture
+assert os.environ.get('GITHUB_ACTIONS')=='true' and os.environ.get('RUNNER_OS')=='Windows', 'Long-running application tests require an owned CI desktop'
 exe=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
 seconds=float(sys.argv[3]) if len(sys.argv)>3 else 600
 build=json.loads((exe.parent/'build-info.json').read_text('utf-8-sig')) if (exe.parent/'build-info.json').exists() else {}
-root=Path(tempfile.mkdtemp(prefix='TreeGit sustained desktop audit '));env=os.environ.copy()
+root=Path(tempfile.mkdtemp(prefix='TreeGit sustained desktop audit ',dir=out));env=os.environ.copy()
 snapshot_root=root/'snapshots';snapshot_root.mkdir()
 env.update(GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'),GIT_CONFIG_NOSYSTEM='1',TEMP=str(snapshot_root),TMP=str(snapshot_root))
 verifier_git=shutil.which('git');assert verifier_git,'A separate Git verifier is required'
@@ -50,8 +52,13 @@ def sample(label):
     script="[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new($false); Get-Process -Id "+str(pid)+" | Select-Object Id,Path,HandleCount,PrivateMemorySize64,WorkingSet64 | ConvertTo-Json -Compress"
     r=subprocess.run(['powershell','-NoProfile','-Command',script],capture_output=True,text=True,encoding='utf-8');assert r.returncode==0,r.stderr
     process=json.loads(r.stdout);assert process['Path'].lower()==str(exe).lower(),process
-    samples.append({'label':label,'cycles':cycle,'seconds':round(time.monotonic()-start,1),'repositories':len(state['repositories']),'process':process})
+    temporary_bytes=0
+    for directory,dirs,files in os.walk(root,followlinks=False):
+        dirs[:]=[d for d in dirs if not (Path(directory)/d).is_symlink() and not (Path(directory)/d).is_junction()]
+        temporary_bytes+=sum((Path(directory)/f).stat().st_size for f in files if not (Path(directory)/f).is_symlink())
+    samples.append({'label':label,'cycles':cycle,'seconds':round(time.monotonic()-start,1),'repositories':len(state['repositories']),'process':process,'temporaryMiB':round(temporary_bytes/1048576,2)})
     assert process['PrivateMemorySize64']<1536*1024*1024,process
+    assert temporary_bytes<2*1024*1024*1024, 'Owned test fixtures exceeded 2 GiB'
     save_result()
 try:
     rpc('initialize',{'protocolVersion':'2025-11-25'});state=tool('ui_state');pid=state['processId'];close_repositories();sample('baseline')
@@ -114,8 +121,12 @@ except BaseException:
 finally:
     save_result();p.stdin.close()
     try:p.wait(timeout=10)
-    except subprocess.TimeoutExpired:p.kill()
+    except subprocess.TimeoutExpired:p.kill();p.wait(timeout=10)
     if pid:
         # Retain the exact owned process identity; a long run must not close a reused PID.
         script="$p=Get-Process -Id "+str(pid)+" -ErrorAction SilentlyContinue;if($p){if($p.Path -ne '"+str(exe).replace("'","''")+"'){throw 'Unexpected process; left unchanged'};$null=$p.CloseMainWindow();if(-not $p.WaitForExit(15000)){$p.Kill();$p.WaitForExit()}}"
         subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)
+    remove_fixture(root,out,'TreeGit sustained desktop audit ')
+    report=out/'desktop-soak-results.json';result=json.loads(report.read_text('utf-8'))
+    result['fixtureRemoved']=not root.exists();result['ownedApplicationExited']=True
+    report.write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')

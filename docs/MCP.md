@@ -24,11 +24,12 @@ TreeGit 是一个 **MCP 服务端**。AI 客户端通过 stdio 连接，再由�
 | `ui_state` / `ui_screenshot` | 查看真实窗口、仓库标签、分支、图谱及弹窗状态；获取窗口图片 |
 | `ui_open_repository` | 打开或切换已有仓库 |
 | `ui_select_view` / `ui_select_commit` | 切换历史、工作副本、贮藏及提交详情 |
-| `ui_working_copy` | 选中图谱顶部“未提交的更改”，下方显示暂存/未暂存文件与差异 |
+| `ui_working_copy` | 打开工作区概览并筛选文件、编辑提交草稿；有更改时显示图谱顶部“未提交的更改”，不自动提交 |
 | `ui_search` | 打开搜索页，按提交信息、作者、SHA、路径或内容搜索并选择结果 |
 | `ui_tabs` | 列出标签及加载状态、打开仓库下拉列表、选择、移动或关闭标签 |
 | `ui_graph` | 显示当前分支/所有分支及对应远端；所有分支模式可跳到分支头，图谱主线始终跟随当前检出分支 |
 | `ui_history_columns` | 读取、调整、重置图谱、描述、日期、作者、提交等列宽；按仓库保存 |
+| `ui_merge_result` | 读取、编辑和解决已打开的冲突结果，撤销/重做，显式保存并暂存；不自动提交 |
 | `ui_layout` | 读取本软件窗口的分栏和滚动区域，拖动分隔条、恢复分栏尺寸、滚动或调整窗口大小 |
 | `ui_refresh` / `ui_window` | 刷新、调整窗口尺寸、主题和侧栏 |
 | `ui_fonts` | 列出本机可选字体、设置界面或代码 / Diff 字体、恢复默认 |
@@ -78,3 +79,9 @@ MCP 的完整读写意味着 AI 可以修改甚至删除 Git 数据。应在 AI 
 `ui_window` 的 `zoom` 支持 0.75 至 2.5。`ui_working_copy` 的可选 `filter` 按文件路径筛选；空字符串清除。`ui_state` 返回搜索结果的 `branch`、工作区操作状态和当前提交的已加载变更文件，读取异步视图前可据此确认内容就绪。
 
 `ui_command` 还可打开 SSH 密钥管理（`ssh_keys`）、文件 / 目录历史（`file_history` / `directory_history`，指定相对路径 `file`）、分支 / 提交比较（`compare_branches` / `compare_commits`，指定 `base` 和 `to`）、子模块版本比较（`submodule_compare`，先选中可比较的子模块变更），以及命令日志（`git_logs`）。`interactive_rebase` 仅打开配置页面，`commit_info` / `commit_changes` / `commit_files` 切换当前提交详情页。这些命令不自动提交 Git 操作。
+
+当前开发分支的冲突编辑入口：先用 `ui_command` 的 `merge_conflicts` 打开指定文件，再调用 `ui_merge_result`。`read` 返回编辑内容、未解决数量和保存状态；`replace` 按字符偏移修改结果；`resolve` 指定原始冲突的 `region` 和 `choice`；`undo` / `redo` 与结果编辑器共用历史，`save` 保存并暂存，成功后关闭窗口。外部文件或冲突状态已变化时会拒绝覆盖，编辑内容仍留在窗口中。
+
+`choice=left` / `right`、`left_then_right` / `right_then_left` 对应界面中的 Local / Remote 和排列顺序。`ours` / `theirs`、`ours_then_theirs` / `theirs_then_ours` 保留 Git 原生两侧的含义，变基时与显示左右相反；`restore` 恢复原始冲突块。AI 按界面操作时优先使用 `left` / `right`。`ui_state` 的冲突窗口同时给出是否正在变基、左右内容摘要和固定的冲突总数。
+
+`ui_refresh` 发起后，可等待仓库的 `workingCopyRefreshVersion` 增加且 `workingCopyStatusKnown=true`，再读取文件列表。`pendingDialogAttemptVersion` 在确认操作被界面受理时增加，包括表单验证未通过的情况；先观察该值变化，再等待 `pendingDialogInProgress=false` 或弹框关闭，避免把点击前的空闲状态当成执行结束。

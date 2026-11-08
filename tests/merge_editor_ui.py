@@ -197,16 +197,16 @@ try:
     check('Base shows the actual common ancestor instead of either side','int first = 0;' in dialog()['merge']['baseSample'] and 'int first = 1;' not in dialog()['merge']['baseSample'] and not dialog()['merge']['baseHint'])
     check('there are three comparison columns and one editable result',len([s for s in layout()['scrolls'] if s['visible']])==4)
     original_window=dialog()
-    for zoom in (.75,1.5,2,2.5):
-        tool('ui_window',{'zoom':zoom})
+    for theme,zoom in [('Blue',.75),('Blue',1.5),('Blue',2),('Blue',2.5),('Light',2.5),('Dark',2.5)]:
+        tool('ui_window',{'zoom':zoom,'theme':theme})
         tool('ui_layout',{'window':'active','action':'resize','width':800,'height':520});time.sleep(.3)
         geometry=layout();window=geometry['window']
         footers=[b for b in geometry['buttons'] if b['name'] in ('SaveMergeResult','CancelMergeEditor')]
-        check('merge footer stays visible while resizing at zoom '+str(zoom),len(footers)==2 and all(b['bounds']['x']>=-1.5 and b['bounds']['y']>=-1.5 and b['bounds']['x']+b['bounds']['width']<=window['width']+1.5 and b['bounds']['y']+b['bounds']['height']<=window['height']+1.5 for b in footers))
+        check('merge footer stays visible in '+theme+' while resizing at zoom '+str(zoom),len(footers)==2 and all(b['bounds']['x']>=-1.5 and b['bounds']['y']>=-1.5 and b['bounds']['x']+b['bounds']['width']<=window['width']+1.5 and b['bounds']['y']+b['bounds']['height']<=window['height']+1.5 for b in footers))
         panes=[s for s in geometry['scrolls'] if s['visible']]
-        check('all four comparison panes remain reachable at zoom '+str(zoom),len(panes)==4 and all(s['bounds']['width']>=20 and s['bounds']['height']>=20 and s['bounds']['x']>=-1.5 and s['bounds']['y']>=-1.5 and s['bounds']['x']+s['bounds']['width']<=window['width']+1.5 and s['bounds']['y']+s['bounds']['height']<=window['height']+1.5 for s in panes))
-        if zoom==2.5:shot('merge-editor-narrow-zoom-2.5')
-    tool('ui_window',{'zoom':1})
+        check('all four comparison panes remain reachable in '+theme+' at zoom '+str(zoom),len(panes)==4 and all(s['bounds']['width']>=20 and s['bounds']['height']>=20 and s['bounds']['x']>=-1.5 and s['bounds']['y']>=-1.5 and s['bounds']['x']+s['bounds']['width']<=window['width']+1.5 and s['bounds']['y']+s['bounds']['height']<=window['height']+1.5 for s in panes))
+        if zoom==2.5:shot('merge-editor-narrow-'+theme+'-zoom-2.5')
+    tool('ui_window',{'zoom':1,'theme':'Blue'})
     tool('ui_layout',{'window':'active','action':'resize','width':original_window['width'],'height':original_window['height']});time.sleep(.3)
     divider=next(s for s in layout()['splitters'] if s['visible'])
     for delta in (-10000,10000):
