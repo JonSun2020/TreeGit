@@ -813,7 +813,7 @@
   <x:String x:Key="Text.RenameBranch.Name.Placeholder" xml:space="preserve">新的分支名不能与现有分支名相同</x:String>
   <x:String x:Key="Text.RenameBranch.Target" xml:space="preserve">分支 ：</x:String>
   <x:String x:Key="Text.Repository.Loading" xml:space="preserve">正在加载仓库…</x:String>
-  <x:String x:Key="Text.Repository.Abort" xml:space="preserve">终止合并</x:String>
+  <x:String x:Key="Text.Repository.Abort" xml:space="preserve">终止操作</x:String>
   <x:String x:Key="Text.Repository.AutoFetching" xml:space="preserve">自动拉取远端变更中...</x:String>
   <x:String x:Key="Text.Repository.BranchSort" xml:space="preserve">排序方式</x:String>
   <x:String x:Key="Text.Repository.BranchSort.ByCommitterDate" xml:space="preserve">按提交时间</x:String>
@@ -1300,4 +1300,5 @@
   <x:String x:Key="Text.Validation.RemoteRequired">请选择远程仓库。</x:String>
   <x:String x:Key="Text.Conflict.StateChanged">文件的冲突状态已变化，请重新选择文件后再操作。</x:String>
   <x:String x:Key="Text.Conflict.ResolveFailed">未能应用所选版本，请检查文件是否被占用或设为只读，然后重试。</x:String>
+  <x:String x:Key="Text.Repository.ReviewAndContinue">检查并继续</x:String>
 </ResourceDictionary>

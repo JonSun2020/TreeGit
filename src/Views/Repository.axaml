@@ -91,7 +91,12 @@
               </v:LoadingIcon.Styles>
             </v:LoadingIcon>
 
-            <Button Grid.Column="2" Classes="flat" FontWeight="Regular" BorderThickness="0" Content="{DynamicResource Text.Repository.Resolve}" Padding="8,2" Margin="0,0,8,0" Click="OnResolveInProgress" IsVisible="{Binding !IsWorkingCopyVisible}"/>
+            <Button Grid.Column="2" x:Name="ReviewInProgress" Classes="flat inprogress_review" Classes.resolved="{Binding !WorkingCopy.HasUnsolvedConflicts}" FontWeight="Regular" BorderThickness="0" Padding="8,2" Margin="0,0,8,0" Click="OnResolveInProgress" IsVisible="{Binding !IsWorkingCopyVisible}">
+              <Button.Styles>
+                <Style Selector="Button.inprogress_review"><Setter Property="Content" Value="{DynamicResource Text.Repository.Resolve}"/></Style>
+                <Style Selector="Button.inprogress_review.resolved"><Setter Property="Content" Value="{DynamicResource Text.Repository.ReviewAndContinue}"/></Style>
+              </Button.Styles>
+            </Button>
 
             <Button Grid.Column="3" Classes="flat" FontWeight="Regular" BorderThickness="0" Content="{DynamicResource Text.Repository.Abort}" Padding="8,2" Margin="0,0,8,0" Click="OnAbortInProgress"/>
           </Grid>
