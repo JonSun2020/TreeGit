@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
@@ -31,7 +31,7 @@ namespace SourceGit.ViewModels
             private set;
         }
 
-        [Required(ErrorMessage = "Name is required!!!")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.NameRequired))]
         [CustomValidation(typeof(GitFlowStart), nameof(ValidateBranchName))]
         public string Name
         {

@@ -88,8 +88,10 @@ namespace SourceGit.Tests
             var rebase = mode is "rebase" or "rewritten-upstream";
             using var cancel = new CancellationTokenSource();
             if (mode == "cancelled") cancel.Cancel();
+            Native.ProcessLauncher.BeforeStart = (process, attempt) => File.AppendAllText(report + ".trace.log", process.StartInfo.Arguments + "\n");
             var outcome = await Commands.SafePull.RunAsync(client, Path.Combine(client, ".git"), new Models.Remote { Name = "origin" },
                 null, "refs/remotes/origin/main", rebase, mode == "ff-only", cancel.Token, null);
+            Native.ProcessLauncher.BeforeStart = null;
             if (hook != null) File.Delete(hook);
             var after = (await Git(client, "rev-parse HEAD")).output;
             bool success;

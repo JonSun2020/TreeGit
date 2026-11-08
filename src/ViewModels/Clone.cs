@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
@@ -11,7 +11,7 @@ namespace SourceGit.ViewModels
 
     public class Clone : Popup
     {
-        [Required(ErrorMessage = "Remote URL is required")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.RemoteUrlRequired))]
         [CustomValidation(typeof(Clone), nameof(ValidateRemote))]
         public string Remote
         {
@@ -41,7 +41,7 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _sshKey, value);
         }
 
-        [Required(ErrorMessage = "Parent folder is required")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.ParentFolderRequired))]
         [CustomValidation(typeof(Clone), nameof(ValidateParentFolder))]
         public string ParentFolder
         {

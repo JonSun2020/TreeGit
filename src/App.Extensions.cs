@@ -11,7 +11,19 @@ namespace SourceGit
     {
         public static string Quoted(this string value)
         {
-            return $"\"{Escaped(value)}\"";
+            ArgumentNullException.ThrowIfNull(value);
+            var quoted = new StringBuilder(value.Length + 2).Append('"');
+            var slashes = 0;
+            foreach (var character in value)
+            {
+                if (character == '\\') { slashes++; continue; }
+                quoted.Append('\\', character == '"' ? slashes * 2 + 1 : slashes);
+                quoted.Append(character);
+                slashes = 0;
+            }
+            // Backslashes before a closing quote must be doubled; otherwise a
+            // trailing path separator consumes the quote and the next argument.
+            return quoted.Append('\\', slashes * 2).Append('"').ToString();
         }
 
         public static string Escaped(this string value)

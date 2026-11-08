@@ -13,6 +13,7 @@ namespace SourceGit.Tests
         private sealed class Git : Commands.Command
         {
             public Git(string root, string args) { WorkingDirectory = root; Args = args; UseCredentialManager = false; }
+            public Task<Result> ReadAsync() => ReadToEndAsync();
             public async Task RunAsync()
             {
                 var result = await ReadToEndAsync();
@@ -58,6 +59,14 @@ namespace SourceGit.Tests
                     var unicode = new Models.BoundedTextBuffer(16);
                     unicode.Append("a\U0001F600" + new string('b', 15));
                     success &= unicode.Length <= 16 && !char.IsLowSurrogate(unicode.ToString()[0]);
+                    break;
+                case "quoted-arguments":
+                    success = true;
+                    foreach (var value in new[] { "", "plain", "ends\\", "C:\\folder name\\", "quote\"value", "slash\\\"quote", "中文目录\\" })
+                    {
+                        var query = await new Git(root, "-c " + ("treegit.quote=" + value).Quoted() + " config --get treegit.quote").ReadAsync();
+                        success &= query.IsSuccess && query.StdOut.TrimEnd('\r', '\n') == value;
+                    }
                     break;
                 case "normal":
                     File.WriteAllText(file, "modified\n");

@@ -116,13 +116,11 @@ namespace SourceGit.Automation
                 return new { x = start?.X, y = start?.Y, width = end?.X - start?.X, height = end?.Y - start?.Y,
                     localWidth = control.Bounds.Width, localHeight = control.Bounds.Height };
             }
-#if INTEGRATION_TESTS
             object ScreenPoint(Control control, bool grip = false)
             {
                 var point = control.PointToScreen(new Point(grip ? Math.Max(1, control.Bounds.Width - 2) : control.Bounds.Width / 2, control.Bounds.Height / 2));
                 return new { x = point.X, y = point.Y };
             }
-#endif
             return new
             {
                 window = new { title = window.Title, width = window.Bounds.Width, height = window.Bounds.Height, minWidth = window.MinWidth, minHeight = window.MinHeight,
@@ -153,7 +151,7 @@ namespace SourceGit.Automation
                 {
                     var border = b.FindAncestorOfType<Border>();
                     var point = border == null ? null : b.TranslatePoint(default, border);
-                    return new { name = b.Name, text = b.Content as string ?? string.Join("", b.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text)), classes = b.Classes.ToArray(), enabled = b.IsEnabled, bounds = Bounds(b),
+                    return new { name = b.Name, text = b.Content as string ?? string.Join("", b.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text)), classes = b.Classes.ToArray(), enabled = b.IsEnabled, bounds = Bounds(b), screen = ScreenPoint(b),
                         inScrollArea = b.FindAncestorOfType<ScrollViewer>() != null,
                         parentBorderWidth = border?.Bounds.Width, parentBorderHeight = border?.Bounds.Height,
                         outsideParentBorder = point.HasValue && (point.Value.X < -.5 || point.Value.Y < -.5 || point.Value.X + b.Bounds.Width > border.Bounds.Width + .5 || point.Value.Y + b.Bounds.Height > border.Bounds.Height + .5) };

@@ -7,7 +7,7 @@ namespace SourceGit.ViewModels
 {
     public class Archive : Popup
     {
-        [Required(ErrorMessage = "Output file name is required")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.OutputFileRequired))]
         public string SaveFile
         {
             get => _saveFile;

@@ -103,14 +103,35 @@ api.WindowFromPoint.argtypes = [wintypes.POINT]; api.WindowFromPoint.restype = w
 api.GetForegroundWindow.restype = wintypes.HWND
 api.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
 api.SetForegroundWindow.argtypes = [wintypes.HWND]
+api.GetAncestor.argtypes = [wintypes.HWND, wintypes.UINT]; api.GetAncestor.restype = wintypes.HWND
+api.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
+api.IsWindowVisible.argtypes = [wintypes.HWND]
+enum_callback = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+api.EnumWindows.argtypes = [enum_callback, wintypes.LPARAM]
 def owner(hwnd):
     value = wintypes.DWORD(); api.GetWindowThreadProcessId(hwnd, ctypes.byref(value)); return value.value
+
+def activate_main():
+    owned = []
+    def collect(hwnd, _):
+        if owner(hwnd) == pid and api.IsWindowVisible(hwnd):
+            bounds = wintypes.RECT()
+            if api.GetWindowRect(hwnd, ctypes.byref(bounds)):
+                owned.append(((bounds.right-bounds.left)*(bounds.bottom-bounds.top), hwnd))
+        return True
+    assert api.EnumWindows(enum_callback(collect), 0)
+    assert owned, 'Owned CI main window is unavailable'
+    hwnd = max(owned)[1]; assert owner(hwnd) == pid
+    api.SetForegroundWindow(hwnd)
+    return hwnd
+
 api.GetDC.argtypes = [wintypes.HWND]; api.GetDC.restype = wintypes.HDC
 api.ReleaseDC.argtypes = [wintypes.HWND, wintypes.HDC]
 gdi = ctypes.WinDLL('gdi32', use_last_error=True)
 gdi.GetPixel.argtypes = [wintypes.HDC, ctypes.c_int, ctypes.c_int]; gdi.GetPixel.restype = wintypes.DWORD
 
 def click_pending_and_measure():
+    activate_main()
     row = state()['pendingRow']; scale = layout()['window']['scaling']
     point = wintypes.POINT(round(row['x'] + 6*scale), round(row['y'] + 9.5*scale))
     assert owner(api.WindowFromPoint(point)) == pid
@@ -128,21 +149,21 @@ def click_pending_and_measure():
     finally: stopped.set(); observer.join(timeout=3)
     check('pending graph marker stays at the same physical pixel throughout selection', len(samples) >= 10 and all(p == 0x8a8a8a for p in samples))
 def press(name):
+    main = activate_main()
     def available(): return next((b for b in layout()['buttons'] if b['name'] == name and b['enabled']), None)
     b = wait_for(available)
     # Wait for the real button to finish moving during popup/detail layout.
     stable = 0
     for _ in range(60):
         time.sleep(.05); current = available()
-        stable = stable + 1 if current and current['bounds'] == b['bounds'] else 0
+        stable = stable + 1 if current and current['bounds'] == b['bounds'] and current['screen'] == b['screen'] else 0
         if current: b = current
         if stable >= 3: break
     assert stable >= 3, 'Button layout did not settle: ' + name
     hwnd = api.GetForegroundWindow(); assert owner(hwnd) == pid, 'Native input outside owned CI GUI'
-    origin = wintypes.POINT(0, 0); assert api.ClientToScreen(hwnd, ctypes.byref(origin))
-    bounds = b['bounds']; scale = layout()['window']['scaling']
-    point = wintypes.POINT(round(origin.x + (bounds['x'] + bounds['width']/2)*scale), round(origin.y + (bounds['y'] + bounds['height']/2)*scale))
+    point = wintypes.POINT(b['screen']['x'], b['screen']['y'])
     assert owner(api.WindowFromPoint(point)) == pid, 'Pointer target outside owned CI GUI'
+    assert api.GetAncestor(api.WindowFromPoint(point), 2) == main, 'An owned dialog is covering the main-window button'
     assert api.SetCursorPos(point.x, point.y)
     api.mouse_event(2, 0, 0, 0, 0); api.mouse_event(4, 0, 0, 0, 0)
 

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
@@ -8,7 +8,7 @@ namespace SourceGit.ViewModels
 {
     public class OpenLocalRepository : Popup
     {
-        [Required(ErrorMessage = "Repository folder is required")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.RepositoryFolderRequired))]
         [CustomValidation(typeof(OpenLocalRepository), nameof(ValidateRepoPath))]
         public string RepoPath
         {

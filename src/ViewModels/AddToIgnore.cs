@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Threading.Tasks;
@@ -12,14 +12,14 @@ namespace SourceGit.ViewModels
             get;
         }
 
-        [Required(ErrorMessage = "Ignore pattern is required!")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.IgnorePatternRequired))]
         public string Pattern
         {
             get => _pattern;
             set => SetProperty(ref _pattern, value, true);
         }
 
-        [Required(ErrorMessage = "Storage file is required!!!")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.StorageFileRequired))]
         public Models.GitIgnoreFile SelectedStorageFile
         {
             get => _selectedStorageFile;

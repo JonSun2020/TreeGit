@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Threading;
@@ -19,7 +19,7 @@ namespace SourceGit.ViewModels
             get;
         }
 
-        [Required(ErrorMessage = "Local branch is required!!!")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.LocalBranchRequired))]
         public Models.Branch SelectedLocalBranch
         {
             get => _selectedLocalBranch;
@@ -36,7 +36,7 @@ namespace SourceGit.ViewModels
             private set => SetProperty(ref _remotes, value);
         }
 
-        [Required(ErrorMessage = "Remote is required!!!")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.RemoteRequired))]
         public Models.Remote SelectedRemote
         {
             get => _selectedRemote;
@@ -53,7 +53,7 @@ namespace SourceGit.ViewModels
             private set => SetProperty(ref _remoteBranches, value);
         }
 
-        [Required(ErrorMessage = "Remote branch is required!!!")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.RemoteBranchRequired))]
         public Models.Branch SelectedRemoteBranch
         {
             get => _selectedRemoteBranch;

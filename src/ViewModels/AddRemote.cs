@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -6,7 +6,7 @@ namespace SourceGit.ViewModels
 {
     public class AddRemote : Popup
     {
-        [Required(ErrorMessage = "Remote name is required!!!")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.RemoteNameRequired))]
         [RegularExpression(@"^[\w\-\.]+$", ErrorMessage = "Bad remote name format!!!")]
         [CustomValidation(typeof(AddRemote), nameof(ValidateRemoteName))]
         public string Name
@@ -15,7 +15,7 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _name, value, true);
         }
 
-        [Required(ErrorMessage = "Remote URL is required!!!")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.RemoteUrlRequired))]
         [CustomValidation(typeof(AddRemote), nameof(ValidateRemoteURL))]
         public string Url
         {

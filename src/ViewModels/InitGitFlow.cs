@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
@@ -11,7 +11,7 @@ namespace SourceGit.ViewModels
         [GeneratedRegex(@"^[\w\-/\.]+$")]
         private static partial Regex REG_TAG_PREFIX();
 
-        [Required(ErrorMessage = "Production branch name is required!!!")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.ProductionBranchRequired))]
         [CustomValidation(typeof(InitGitFlow), nameof(ValidateBaseBranch))]
         public string Production
         {
@@ -19,7 +19,7 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _production, value, true);
         }
 
-        [Required(ErrorMessage = "Development branch name is required!!!")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.DevelopmentBranchRequired))]
         [CustomValidation(typeof(InitGitFlow), nameof(ValidateBaseBranch))]
         public string Develop
         {
@@ -27,7 +27,7 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _develop, value, true);
         }
 
-        [Required(ErrorMessage = "Feature prefix is required!!!")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.FeaturePrefixRequired))]
         [RegularExpression(@"^[\w\-\.]+/$", ErrorMessage = "Bad feature prefix format!")]
         public string FeaturePrefix
         {
@@ -35,7 +35,7 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _featurePrefix, value, true);
         }
 
-        [Required(ErrorMessage = "Release prefix is required!!!")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.ReleasePrefixRequired))]
         [RegularExpression(@"^[\w\-\.]+/$", ErrorMessage = "Bad release prefix format!")]
         public string ReleasePrefix
         {
@@ -43,7 +43,7 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _releasePrefix, value, true);
         }
 
-        [Required(ErrorMessage = "Hotfix prefix is required!!!")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.HotfixPrefixRequired))]
         [RegularExpression(@"^[\w\-\.]+/$", ErrorMessage = "Bad hotfix prefix format!")]
         public string HotfixPrefix
         {

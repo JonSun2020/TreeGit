@@ -1,11 +1,11 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
 namespace SourceGit.ViewModels
 {
     public class LFSTrackCustomPattern : Popup
     {
-        [Required(ErrorMessage = "LFS track pattern is required!!!")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.LfsPatternRequired))]
         public string Pattern
         {
             get => _pattern;

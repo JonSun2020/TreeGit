@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Threading.Tasks;
@@ -7,7 +7,7 @@ namespace SourceGit.ViewModels
 {
     public class AddSubmodule : Popup
     {
-        [Required(ErrorMessage = "Url is required!!!")]
+        [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.UrlRequired))]
         [CustomValidation(typeof(AddSubmodule), nameof(ValidateURL))]
         public string Url
         {
