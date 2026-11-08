@@ -13,6 +13,16 @@
                     Icon="/App.ico"
                     Title="{DynamicResource Text.MergeConflictEditor.Title}"
                     MinWidth="1024" MinHeight="600">
+  <v:ChromelessWindow.Styles>
+    <Style Selector="Button.merge_save:pointerover /template/ Border#PART_Border">
+      <Setter Property="Background" Value="#3C00AA00"/>
+    </Style>
+    <Style Selector="Button.merge_cancel:pointerover /template/ Border#PART_Border">
+      <Setter Property="Background" Value="#30FF0000"/>
+    </Style>
+    <Style Selector="Button.merge_save:disabled"><Setter Property="Opacity" Value=".55"/></Style>
+    <Style Selector="Button.merge_cancel:disabled"><Setter Property="Opacity" Value=".55"/></Style>
+  </v:ChromelessWindow.Styles>
   <Grid RowDefinitions="Auto,32,*,32">
     <!-- TitleBar -->
     <Grid Grid.Row="0" Height="28" IsVisible="{Binding !#ThisControl.UseSystemWindowFrame}">
@@ -35,32 +45,32 @@
       <v:CaptionButtons HorizontalAlignment="Right" IsVisible="{OnPlatform True, macOS=False}"/>
     </Grid>
 
-    <!-- The navigation starts at the Remote column. -->
+    <!-- The navigation starts at the Base column. -->
     <Border Grid.Row="1" Background="{DynamicResource Brush.ToolBar}" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Brush.Border2}">
       <Grid ColumnDefinitions="*,*,*" Margin="4,0,24,0">
-        <Grid Grid.ColumnSpan="2" ColumnDefinitions="Auto,*" Margin="8,0">
+        <Grid ColumnDefinitions="Auto,*" Margin="8,0">
           <Path Width="14" Height="14" Data="{StaticResource Icons.File}"/>
           <TextBlock Grid.Column="1" Margin="8,0" Text="{Binding FilePath}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
         </Grid>
-        <StackPanel Grid.Column="2" x:Name="ConflictNavigation" Orientation="Horizontal" Margin="2,0,0,0" VerticalAlignment="Center" Spacing="4">
-          <Button x:Name="PreviousConflict" Classes="icon_button" Width="28" Height="28"
-                  ToolTip.Tip="{DynamicResource Text.MergeConflictEditor.PrevConflict}" Click="OnGotoPrevConflict"
-                  HotKey="{OnPlatform Ctrl+Up, macOS=?+Up}"
-                  IsEnabled="{Binding TotalConflictCount, Converter={x:Static c:IntConverters.IsGreaterThanZero}}">
-            <Path Width="12" Height="12" Data="{StaticResource Icons.Up}"/>
-          </Button>
-          <Button x:Name="NextConflict" Classes="icon_button" Width="28" Height="28"
-                  ToolTip.Tip="{DynamicResource Text.MergeConflictEditor.NextConflict}" Click="OnGotoNextConflict"
-                  HotKey="{OnPlatform Ctrl+Down, macOS=?+Down}"
-                  IsEnabled="{Binding TotalConflictCount, Converter={x:Static c:IntConverters.IsGreaterThanZero}}">
-            <Path Width="12" Height="12" Data="{StaticResource Icons.Down}"/>
-          </Button>
+        <StackPanel Grid.Column="1" Grid.ColumnSpan="2" x:Name="ConflictNavigation" Orientation="Horizontal" Margin="2,0,0,0" VerticalAlignment="Center" Spacing="4">
           <Button x:Name="UndoMergeResult" Classes="icon_button" Width="28" Height="28" Click="OnUndoResult"
                   ToolTip.Tip="{DynamicResource Text.MergeConflictEditor.UndoEdit}" IsEnabled="{Binding ResultDocument.UndoStack.CanUndo}">
             <Path Width="18" Height="12" Stretch="Uniform" Fill="Transparent" Stroke="{DynamicResource Brush.FG1}" StrokeThickness="1.5"
                   StrokeLineCap="Round" StrokeJoin="Round" Data="M 20,13 A 8,8 0 0 0 4,13 M 0.5,9.5 L 4,13 L 7.5,9.5"/>
           </Button>
-          <TextBlock x:Name="ConflictPosition" Margin="4,0" Text="{Binding ConflictPosition}" VerticalAlignment="Center"/>
+          <Button x:Name="PreviousConflict" Classes="icon_button" Width="28" Height="28"
+                  ToolTip.Tip="{DynamicResource Text.MergeConflictEditor.PrevConflict}" Click="OnGotoPrevConflict"
+                  HotKey="{OnPlatform Ctrl+Up, macOS=⌘+Up}"
+                  IsEnabled="{Binding TotalConflictCount, Converter={x:Static c:IntConverters.IsGreaterThanZero}}">
+            <Path Width="12" Height="12" Data="{StaticResource Icons.Up}"/>
+          </Button>
+          <Button x:Name="NextConflict" Classes="icon_button" Width="28" Height="28"
+                  ToolTip.Tip="{DynamicResource Text.MergeConflictEditor.NextConflict}" Click="OnGotoNextConflict"
+                  HotKey="{OnPlatform Ctrl+Down, macOS=⌘+Down}"
+                  IsEnabled="{Binding TotalConflictCount, Converter={x:Static c:IntConverters.IsGreaterThanZero}}">
+            <Path Width="12" Height="12" Data="{StaticResource Icons.Down}"/>
+          </Button>
+          <TextBlock x:Name="ConflictPosition" Margin="4,0,12,0" Text="{Binding ConflictPosition}" VerticalAlignment="Center"/>
           <TextBlock Text="{Binding UnsolvedCount, Converter={x:Static c:IntConverters.ToUnsolvedDesc}}" VerticalAlignment="Center"/>
         </StackPanel>
       </Grid>
@@ -246,7 +256,7 @@
 
     <!-- Foot -->
     <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top" Spacing="8">
-      <Button x:Name="SaveMergeResult" Classes="flat primary"
+      <Button x:Name="SaveMergeResult" Classes="flat merge_save" Background="#2C00AA00" Foreground="{DynamicResource Brush.FG1}"
               HorizontalAlignment="Center" VerticalAlignment="Top"
               HotKey="{OnPlatform Ctrl+S, macOS=⌘+S}"
               Click="OnSaveAndStage"
@@ -254,7 +264,7 @@
         <TextBlock Text="{DynamicResource Text.MergeConflictEditor.SaveAndStage}"/>
       </Button>
 
-      <Button x:Name="CancelMergeEditor" Classes="flat" IsEnabled="{Binding !IsSaving}"
+      <Button x:Name="CancelMergeEditor" Classes="flat merge_cancel" Background="#24FF0000" Foreground="{DynamicResource Brush.FG1}" IsEnabled="{Binding !IsSaving}"
               Width="80"
               Content="{DynamicResource Text.Cancel}"
               Click="CloseWindow"

@@ -189,9 +189,9 @@ try:
         check('both editing panes stay usable at splitter extreme '+str(delta),all(s['bounds']['height']>=60 for s in layout()['scrolls'] if s['visible']))
     tool('ui_layout',{'window':'active','action':'restore','splitter':divider['index'],'rows':['*','4','*']});time.sleep(.15)
     check('initial conflict position is one of a fixed total',dialog()['merge']['position']=='1/2')
-    controls=layout();nav=button('PreviousConflict')['bounds']
+    controls=layout();nav=button('UndoMergeResult')['bounds']
     scrolls=[s for s in controls['scrolls'] if s['visible']]
-    check('navigation aligns with the Remote column',abs(nav['x']-scrolls[2]['bounds']['x'])<=2)
+    check('navigation starts with Undo and aligns with the Base column',abs(nav['x']-scrolls[1]['bounds']['x'])<=2)
     check('there are no bottom undo or redo buttons',not any(b['text'] in ('撤销','重做') for b in controls['buttons']))
     source_block(0)
     check('hover does not display actions over code',dialog()['merge']['contextMenu'] is None and not any(b['name'] in ('AcceptLocalConflict','AcceptRemoteConflict','RestoreLocalConflict','RestoreRemoteConflict') for b in layout()['buttons']))
