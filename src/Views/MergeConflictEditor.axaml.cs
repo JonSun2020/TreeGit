@@ -460,6 +460,17 @@ namespace SourceGit.Views
             InitializeComponent();
         }
 
+        private void OnEditorLayoutUpdated(object sender, EventArgs e)
+        {
+            if (DataContext is not ViewModels.MergeConflictEditor vm || MergeEditorRoot.Bounds.Height <= 0) return;
+            var rows = MergeEditorRoot.RowDefinitions;
+            var available = Math.Max(0, MergeEditorRoot.Bounds.Height - rows[0].ActualHeight - rows[1].ActualHeight - rows[3].ActualHeight - 4);
+            var source = vm.HasComparison ? Math.Min(110, available * 110 / 250) : 0;
+            var result = vm.HasComparison ? Math.Min(140, available * 140 / 250) : Math.Min(140, available);
+            if (Math.Abs(ConflictContent.RowDefinitions[0].MinHeight - source) > .05) ConflictContent.RowDefinitions[0].MinHeight = source;
+            if (Math.Abs(ConflictContent.RowDefinitions[2].MinHeight - result) > .05) ConflictContent.RowDefinitions[2].MinHeight = result;
+        }
+
         protected override async void OnClosing(WindowClosingEventArgs e)
         {
             base.OnClosing(e);

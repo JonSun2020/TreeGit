@@ -38,8 +38,9 @@ try:
             (out/(mode+'-stdout.log')).write_bytes(stdout[-65536:]); (out/(mode+'-stderr.log')).write_bytes(stderr[-65536:])
         result = json.loads(report.read_text('utf-8')) if report.exists() else None
         if timed_out or p.returncode != 0 or not result or not result.get('success'):
-            trace = Path(str(report)+'.trace.log')
-            if trace.exists(): (out/(mode+'-trace.log')).write_bytes(trace.read_bytes()[-65536:])
+            for suffix in ('.trace.log','.output.log'):
+                trace = Path(str(report)+suffix)
+                if trace.exists(): (out/(mode+suffix)).write_bytes(trace.read_bytes()[-65536:])
         record = {'mode':mode, 'timedOut':timed_out, 'seconds':round(time.monotonic()-started, 2), 'exitCode':p.returncode, 'result':result}
         records.append(record)
         (out/'command-pipes-results.json').write_text(json.dumps(records, indent=2), 'utf-8')
@@ -49,7 +50,7 @@ finally:
     # Preserve compact diagnostics even when a timeout or infrastructure failure
     # interrupts the normal per-case reporting path.
     if len(records) < len(modes):
-        for trace in root.glob('*.trace.log'):
+        for trace in root.glob('*.log'):
             if trace.is_symlink(): continue
             with trace.open('rb') as stream:
                 stream.seek(max(0, trace.stat().st_size-65536))

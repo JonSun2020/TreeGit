@@ -23,7 +23,7 @@
     <Style Selector="Button.merge_save:disabled"><Setter Property="Opacity" Value=".55"/></Style>
     <Style Selector="Button.merge_cancel:disabled"><Setter Property="Opacity" Value=".55"/></Style>
   </v:ChromelessWindow.Styles>
-  <Grid RowDefinitions="Auto,32,*,32">
+  <Grid x:Name="MergeEditorRoot" RowDefinitions="Auto,32,*,32" LayoutUpdated="OnEditorLayoutUpdated" ClipToBounds="True">
     <!-- TitleBar -->
     <Grid Grid.Row="0" Height="28" IsVisible="{Binding !#ThisControl.UseSystemWindowFrame}">
       <Border Background="{DynamicResource Brush.TitleBar}"

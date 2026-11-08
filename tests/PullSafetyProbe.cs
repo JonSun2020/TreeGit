@@ -10,6 +10,19 @@ namespace SourceGit.Tests
 {
     internal static class PullSafetyProbe
     {
+        private sealed class RecordLog(string file) : Models.ICommandLog
+        {
+            public void AppendLine(string line)
+            {
+                lock (_gate)
+                {
+                    var length = File.Exists(file) ? new FileInfo(file).Length : 0;
+                    if (length < 65536) File.AppendAllText(file, (line ?? string.Empty)[..Math.Min(line?.Length ?? 0, 4096)] + "\n");
+                }
+            }
+            private readonly object _gate = new();
+        }
+
         public static async Task<int> RunAsync(string root, string mode, string report)
         {
             Environment.SetEnvironmentVariable("GIT_AUTHOR_DATE", "2020-01-02T03:04:05+00:00");
@@ -90,7 +103,7 @@ namespace SourceGit.Tests
             if (mode == "cancelled") cancel.Cancel();
             Native.ProcessLauncher.BeforeStart = (process, attempt) => File.AppendAllText(report + ".trace.log", process.StartInfo.Arguments + "\n");
             var outcome = await Commands.SafePull.RunAsync(client, Path.Combine(client, ".git"), new Models.Remote { Name = "origin" },
-                null, "refs/remotes/origin/main", rebase, mode == "ff-only", cancel.Token, null);
+                null, "refs/remotes/origin/main", rebase, mode == "ff-only", cancel.Token, new RecordLog(report + ".output.log"));
             Native.ProcessLauncher.BeforeStart = null;
             if (hook != null) File.Delete(hook);
             var after = (await Git(client, "rev-parse HEAD")).output;
@@ -101,6 +114,7 @@ namespace SourceGit.Tests
                 success = !outcome.IsSuccess && before == after && (await Git(client, "ls-files --stage")).output == beforeIndex;
                 if (mode == "ignored") success &= File.ReadAllText(Path.Combine(client, "ignored.data")) == "preserve local ignored\n";
                 if (mode == "fetch-hook") success &= File.ReadAllLines(Path.Combine(client, ".git/fetch-hook-calls")).Length == 1;
+                if (mode == "fetch-hook") success &= Native.RepositoryCredentials.IsAuthenticationFailure("fatal: Authentication failed for 'https://example.invalid/hook.git'");
             }
             else
             {

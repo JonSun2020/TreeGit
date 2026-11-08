@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace SourceGit.Native
@@ -16,10 +17,22 @@ namespace SourceGit.Native
     internal static class RepositoryCredentials
     {
         public static bool IsAuthenticationFailure(string output)
-            => output?.Contains("fatal: Authentication failed for 'http", StringComparison.OrdinalIgnoreCase) == true &&
+        {
+            if (output == null) return false;
+            // A local reference hook can print an authentication-like message
+            // after the fetch transport has succeeded. Never replay that hook.
+            // Remove URLs before testing so a repository named "hook" still
+            // receives the normal credential correction flow.
+            var detail = Regex.Replace(output, @"\b(?:https?|ssh|git|file)://\S+", string.Empty, RegexOptions.IgnoreCase);
+            if (Regex.IsMatch(detail, @"\bhooks?\b", RegexOptions.IgnoreCase) ||
+                detail.Contains("unable to update local ref", StringComparison.OrdinalIgnoreCase) ||
+                detail.Contains("cannot lock ref", StringComparison.OrdinalIgnoreCase) ||
+                detail.Contains("failed to update ref", StringComparison.OrdinalIgnoreCase)) return false;
+            return output.Contains("fatal: Authentication failed for 'http", StringComparison.OrdinalIgnoreCase) &&
                 !output.Contains("told us to quit", StringComparison.OrdinalIgnoreCase) &&
                 !output.Contains("User canceled authentication", StringComparison.OrdinalIgnoreCase) &&
                 !output.Contains("User cancelled authentication", StringComparison.OrdinalIgnoreCase);
+        }
 
         private static readonly ConcurrentDictionary<string, Lazy<bool>> _managerModes = new(StringComparer.OrdinalIgnoreCase);
 
