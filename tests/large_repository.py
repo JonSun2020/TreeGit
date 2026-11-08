@@ -36,7 +36,7 @@ def tool(name,args=None):
     result=response['result'];assert not result.get('isError'),result
     return base64.b64decode(result['content'][0]['data']) if name=='ui_screenshot' else json.loads(result['content'][0]['text'])
 
-def state():return next(r for r in tool('ui_state')['repositories'] if Path(r['repo']).resolve()==repo)
+def state(**page):return next(r for r in tool('ui_state',page)['repositories'] if Path(r['repo']).resolve()==repo)
 def wait(label,fn):
     before=time.monotonic()
     while time.monotonic()-before<120:
@@ -104,8 +104,15 @@ try:
     wait('navigate other branch',lambda:not state()['graphLoading'])
     navigated=state();check('branch navigation preserves current HEAD and graph lane',git('rev-parse','HEAD')==head and next(c for c in navigated['graphCommits'] if c['sha']==head)['x']==current['x'])
     tool('ui_search',{'repo':str(repo),'query':'Stress history','method':'message','currentBranchOnly':False})
-    wait('1000 result search',lambda:not state()['searchQuerying'] and len(state()['searchResults'] or [])==1000)
+    wait('1000 result search',lambda:not state()['searchQuerying'] and state()['searchResultCount']==1000)
     results=state()['searchResults'];check('search reaches its 1000 result limit with branch coverage',all(r['branchCount'] and r['branches'] for r in results))
+    check('default state bounds its search payload without hiding the full count',0<len(results)<1000 and state()['searchResultsTruncated'])
+    all_results=[]
+    for offset in range(0,1000,256):
+        page=state(searchOffset=offset,searchLimit=256,searchBranchLimit=0)
+        check('search page preserves complete totals '+str(offset),page['searchResultCount']==1000 and page['searchResultOffset']==offset and page['searchResultsTruncated']==(offset+256<1000))
+        all_results.extend(page['searchResults'])
+    check('all 1000 search results remain readable through pagination',len(all_results)==1000 and len({r['sha'] for r in all_results})==1000)
     for result in results[:5]:
         expected=git('for-each-ref','--contains',result['sha'],'--format=%(refname)','refs/heads','refs/remotes').splitlines()
         check('branch containment matches native Git '+result['sha'][:10],sorted(result['branches'])==sorted(expected))
@@ -114,7 +121,13 @@ try:
     wait('sparse full history search',lambda:not state()['searchQuerying'] and len(state()['searchResults'] or [])==10)
     results=state()['searchResults'];oldest=min(results,key=lambda r:int(r['subject'].split()[2]))
     expected=git('for-each-ref','--contains',oldest['sha'],'--format=%(refname)','refs/heads','refs/remotes').splitlines()
-    check('old commits expose every actual descendant branch',sorted(oldest['branches'])==sorted(expected) and len(expected)==333)
+    old_index=results.index(oldest);full_branches=[]
+    for offset in range(0,oldest['branchCount'],256):
+        page=state(searchOffset=old_index,searchLimit=1,searchBranchOffset=offset,searchBranchLimit=256)
+        result=page['searchResults'][0]
+        check('containing branch page preserves counts '+str(offset),result['branchCount']==333 and result['branchesTruncated']==(offset+256<333))
+        full_branches.extend(result['branches'])
+    check('old commits expose every actual descendant branch',sorted(full_branches)==sorted(expected) and len(expected)==333)
     tool('ui_search',{'repo':str(repo),'select':oldest['sha'],'open':True})
     wait('open old result',lambda:state()['detailCommit']==oldest['sha'] and not state()['graphLoading'])
     check('opening a deep search result selects the exact commit with all branches visible',state()['graphMode']==0 and state()['graphShowRemotes'] and not state()['searchActive'])
@@ -125,6 +138,7 @@ try:
     for tab in reversed(tool('ui_tabs',{'action':'list'})['tabs']):
         if tab['repo']:tool('ui_tabs',{'action':'close','index':tab['index']})
     sample('all tabs closed')
+    check('paged MCP responses stay below 512 KiB for the large fixture',max_response<512*1024)
 except BaseException as error:
     failure=repr(error);raise
 finally:
