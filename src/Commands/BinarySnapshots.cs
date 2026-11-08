@@ -80,12 +80,35 @@ namespace SourceGit.Commands
             }
             if (type.Trim() != "blob") throw new IOException("The selected path is not a file.");
             using var process = Start(repo, "cat-file", "blob", spec);
-            using var cancel = token.Register(() => { try { process.Kill(true); } catch (InvalidOperationException) { } });
+            await CopyAsync(process, output, token).ConfigureAwait(false);
+        }
+
+        internal static async Task CopyAsync(Process process, Stream output, CancellationToken token)
+        {
+            void Stop()
+            {
+                try { if (!process.HasExited) process.Kill(true); }
+                catch (Exception error) when (error is InvalidOperationException or System.ComponentModel.Win32Exception) { }
+            }
+            using var cancel = token.Register(Stop);
             var error = process.StandardError.ReadToEndAsync(token);
-            await process.StandardOutput.BaseStream.CopyToAsync(output, token).ConfigureAwait(false);
-            await process.WaitForExitAsync(token).ConfigureAwait(false);
-            var message = await error.ConfigureAwait(false);
-            if (process.ExitCode != 0) throw new IOException(message);
+            try
+            {
+                await process.StandardOutput.BaseStream.CopyToAsync(output, token).ConfigureAwait(false);
+                await process.WaitForExitAsync(token).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
+                var message = await error.ConfigureAwait(false);
+                if (process.ExitCode != 0) throw new IOException(message);
+            }
+            catch
+            {
+                Stop();
+                try { await process.WaitForExitAsync().WaitAsync(TimeSpan.FromSeconds(5)).ConfigureAwait(false); }
+                catch (Exception failure) when (failure is TimeoutException or InvalidOperationException) { }
+                try { await error.ConfigureAwait(false); }
+                catch (OperationCanceledException) { }
+                throw;
+            }
         }
 
         private static Process Start(string repo, params string[] args)

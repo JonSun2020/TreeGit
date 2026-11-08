@@ -40,6 +40,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/streaming-query-results" --streaming
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/revision-file-results" --revision-files
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/pointer-results" --pointers
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/index-info-results" --indexes
@@ -128,6 +130,8 @@ jobs:
             ${{ runner.temp }}/runtime-ui-results
             ${{ runner.temp }}/command-pipes-results
             ${{ runner.temp }}/streaming-query-results/command-pipes-results.json
+            ${{ runner.temp }}/revision-file-results/command-pipes-results.json
+            ${{ runner.temp }}/revision-file-results/*.log
             ${{ runner.temp }}/pointer-results/command-pipes-results.json
             ${{ runner.temp }}/index-info-results/command-pipes-results.json
             ${{ runner.temp }}/process-launch-results/command-pipes-results.json

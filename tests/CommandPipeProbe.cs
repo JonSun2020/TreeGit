@@ -82,6 +82,8 @@ namespace SourceGit.Tests
             Environment.SetEnvironmentVariable("GIT_TRACE2_EVENT", "1");
             Environment.SetEnvironmentVariable("GIT_TRACE2_CONFIG_PARAMS", "treegit.flood");
             var change = new Models.Change { Path = "sample.txt" };
+            if (mode.StartsWith("revision-file-", StringComparison.Ordinal))
+                return await RevisionFileProbe.RunAsync(root, mode[14..], report);
             if (mode.StartsWith("replay-", StringComparison.Ordinal))
             {
                 await Git("config user.name ReplayQA"); await Git("config user.email qa@example.invalid");

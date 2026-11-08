@@ -1,4 +1,6 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -30,25 +32,71 @@ namespace SourceGit.ViewModels
             _revision = revision;
         }
 
+        public string ErrorMessage
+        {
+            get => _errorMessage;
+            private set => SetProperty(ref _errorMessage, value);
+        }
+
         public async Task LoadAsync()
         {
-            if (_revision != null)
+            if (_closed || _loadCancellation != null || Content != null) return;
+            IsLoading = true;
+            ErrorMessage = string.Empty;
+            var cancellation = new CancellationTokenSource();
+            _loadCancellation = cancellation;
+            var repo = _repo;
+            var file = _file;
+            var revision = _revision;
+            string temporary = null;
+            Models.BinaryFile content = null;
+            try
             {
-                string saveTo = Path.GetTempFileName();
-                await Commands.SaveRevisionFile.RunAsync(_repo, _revision, _file, saveTo);
-
-                Content = new Models.BinaryFile(saveTo, true);
+                if (revision != null)
+                {
+                    temporary = Path.GetTempFileName();
+                    if (!await Commands.SaveRevisionFile.RunAsync(repo, revision, file, temporary, cancellation.Token))
+                    {
+                        if (!_closed) ErrorMessage = App.Text("File.ExportFailed");
+                        return;
+                    }
+                    cancellation.Token.ThrowIfCancellationRequested();
+                    content = new Models.BinaryFile(temporary, true);
+                    temporary = null;
+                }
+                else
+                {
+                    var path = Path.Combine(repo, file);
+                    if (!System.IO.File.Exists(path)) throw new FileNotFoundException();
+                    content = new Models.BinaryFile(path, false);
+                }
+                if (_closed) return;
+                Content = content;
+                content = null;
             }
-            else
+            catch (OperationCanceledException) { }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception)
             {
-                Content = new Models.BinaryFile(Path.Combine(_repo, _file), false);
+                if (!_closed) ErrorMessage = App.Text("BinaryDiff.LoadFailed");
             }
-
-            IsLoading = false;
+            finally
+            {
+                content?.Dispose();
+                if (temporary != null)
+                {
+                    try { System.IO.File.Delete(temporary); }
+                    catch (Exception error) when (error is IOException or UnauthorizedAccessException) { Native.OS.LogException(error); }
+                }
+                _loadCancellation = null;
+                cancellation.Dispose();
+                if (!_closed) IsLoading = false;
+            }
         }
 
         public void Cleanup()
         {
+            _closed = true;
+            _loadCancellation?.Cancel();
             _repo = null;
             _file = null;
             _revision = null;
@@ -62,5 +110,8 @@ namespace SourceGit.ViewModels
         private string _file = null;
         private string _revision = null;
         private Models.BinaryFile _content = null;
+        private string _errorMessage = string.Empty;
+        private CancellationTokenSource _loadCancellation;
+        private bool _closed;
     }
 }

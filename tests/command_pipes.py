@@ -19,6 +19,8 @@ if '--keygen' in sys.argv[3:]:
     modes=['stream-keygen-'+mode for mode in ['plain','protected','existing','pub-only','private-only','invalid','missing']]
 if '--replays' in sys.argv[3:]:
     modes=['stream-replay-'+mode for mode in ['readonly','ref-config','cancelled']]
+if '--revision-files' in sys.argv[3:]:
+    modes=['stream-revision-file-'+mode for mode in ['valid','missing','closed','close-loading','cancelled','write-failure','snapshot-write-failure','literal']]
 if '--safety' in sys.argv[3:]:
     modes=['safety-'+mode for mode in ['status-failure','status-cancelled','status-count','bounded-output','quoted-arguments','normal','rebase-history-blocked','rebase-history-benign','unborn','obstruction','selected-obstruction','selected-literal','nested-repository','selected-nested-repository','junction','failed-discard','merge-ignored','merge-benign-directory','merge-file-ancestor','merge-nested-repository']]
 if '--pull-safety' in sys.argv[3:]:
@@ -26,7 +28,11 @@ if '--pull-safety' in sys.argv[3:]:
 try:
     for mode in modes:
         report = root/(mode+'.json'); started = time.monotonic()
-        p = subprocess.Popen([str(exe), '--integration-command-pipes', str(root/mode), mode, str(report)], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
+        case_env = env
+        if mode.startswith('stream-revision-file-'):
+            temporary = root/mode/'tmp';temporary.mkdir(parents=True)
+            case_env = {**env, 'TEMP':str(temporary), 'TMP':str(temporary)}
+        p = subprocess.Popen([str(exe), '--integration-command-pipes', str(root/mode), mode, str(report)], env=case_env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)
         timed_out = False
         try:
             stdout, stderr = p.communicate(timeout=30)

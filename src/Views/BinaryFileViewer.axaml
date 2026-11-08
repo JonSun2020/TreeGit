@@ -96,6 +96,10 @@
     </Border>
 
     <!-- Loading Icon -->
+    <TextBlock Grid.Row="2" Margin="24"
+               Text="{Binding ErrorMessage}" TextWrapping="Wrap"
+               HorizontalAlignment="Center" VerticalAlignment="Center"
+               Foreground="{DynamicResource Brush.FG2}"/>
     <v:LoadingIcon Grid.Row="2"
                    Width="64" Height="64"
                    IsVisible="{Binding IsLoading, Mode=OneWay}"/>

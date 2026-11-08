@@ -22,11 +22,15 @@ namespace SourceGit.Models
                 _readedStart = 0;
                 _readedEnd = Math.Min(_size, BUFFER_SIZE);
 
-                if (_size > 0)
+                try
                 {
-                    _reader.Seek(_readedStart, SeekOrigin.Begin);
-                    _reader.ReadExactly(_buffer, 0, (int)_readedEnd);
+                    if (_size > 0)
+                    {
+                        _reader.Seek(_readedStart, SeekOrigin.Begin);
+                        _reader.ReadExactly(_buffer, 0, (int)_readedEnd);
+                    }
                 }
+                catch { _reader.Dispose(); _reader = null; throw; }
             }
         }
 
