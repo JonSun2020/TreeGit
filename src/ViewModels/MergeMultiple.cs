@@ -55,6 +55,13 @@ namespace SourceGit.ViewModels
                 _repo.SendNotification(App.Text("Merge.FinishCurrent"), true);
                 return true;
             }
+            var safety = new Commands.CheckMergeSafety(_repo.FullPath, _sources);
+            if (!await safety.GetResultAsync())
+            {
+                _repo.SendNotification(App.Text(safety.Obstruction == null ? "WorkingCopy.RefreshFailed" : "Merge.LocalFilesBlocked") +
+                    (safety.Obstruction == null ? string.Empty : "\n" + safety.Obstruction), true);
+                return false;
+            }
             ProgressDescription = App.Text("Merge.Progress", _repo.CurrentBranch?.Name ?? "HEAD");
 
             var log = _repo.CreateLog("Merge Multiple Heads");

@@ -84,6 +84,14 @@ namespace SourceGit.ViewModels
                 return true;
             }
 
+            var safety = new Commands.CheckMergeSafety(_repo.FullPath, [_sourceName]);
+            if (!await safety.GetResultAsync())
+            {
+                ErrorMessage = App.Text(safety.Obstruction == null ? "WorkingCopy.RefreshFailed" : "Merge.LocalFilesBlocked");
+                if (safety.Obstruction != null) ErrorMessage += "\n" + safety.Obstruction;
+                return false;
+            }
+
             ProgressDescription = App.Text("Merge.Progress", Into);
             var log = _repo.CreateLog($"Merging '{_sourceName}' into '{Into}'");
             Use(log);
@@ -135,7 +143,9 @@ namespace SourceGit.ViewModels
         public override void Cleanup()
         {
             StopTesting();
-            _testingCancellation.Dispose();
+            // Cancellation may race with the queued process starting. Keep the
+            // token source alive until the readonly probe has actually finished.
+            _ = _testingTask.ContinueWith(_ => _testingCancellation.Dispose(), TaskScheduler.Default);
             base.Cleanup();
         }
 
@@ -190,7 +200,7 @@ namespace SourceGit.ViewModels
             if (Native.OS.GitVersion < Models.GitVersions.TESTING_MERGE) return;
             TestingState = MergeTestingState.Testing;
             var token = _testingCancellation.Token;
-            Task.Run(async () =>
+            _testingTask = Task.Run(async () =>
             {
                 var exit = await new Commands.MergeTree(_repo.FullPath, _sourceName, "HEAD").WithCancellation(token).GetExitCodeAsync().ConfigureAwait(false);
                 Dispatcher.UIThread.Post(() =>
@@ -204,6 +214,7 @@ namespace SourceGit.ViewModels
         private readonly string _sourceName, _expectedInto;
         private readonly string _expectedHead;
         private readonly CancellationTokenSource _testingCancellation = new();
+        private Task _testingTask = Task.CompletedTask;
         private bool _testingStopped, _fastForwardFailure, _showAllowUnrelated, _showAuthorSettings;
         private bool _autoStash = true, _allowUnrelated;
         private string _errorMessage = string.Empty;

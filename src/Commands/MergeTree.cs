@@ -14,6 +14,7 @@ namespace SourceGit.Commands
 
         public async Task<int> GetExitCodeAsync()
         {
+            if (CancellationToken.IsCancellationRequested) return -1;
             using var proc = new Process();
             proc.StartInfo = CreateGitStartInfo(true);
 

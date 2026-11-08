@@ -89,7 +89,7 @@ namespace SourceGit.Commands
                 catch (DirectoryNotFoundException) { return true; }
                 var directory = (attributes & FileAttributes.Directory) != 0;
                 var link = (attributes & FileAttributes.ReparsePoint) != 0;
-                if ((i < parts.Length - 1 && (!directory || link)) ||
+                if ((i < parts.Length - 1 && (!directory || link || Directory.Exists(Path.Combine(current, ".git")) || File.Exists(Path.Combine(current, ".git")))) ||
                     (i == parts.Length - 1 && directory && (link || HasContents(current))))
                 {
                     Obstruction = path;

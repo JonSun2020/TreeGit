@@ -106,6 +106,38 @@ namespace SourceGit.Tests
                     File.WriteAllText(Path.Combine(root, ".git/config"), "[broken");
                     success = !await Commands.Discard.AllAsync(root, true, true, true, null) && File.Exists(file) && File.Exists(Path.Combine(root, "untracked.txt"));
                     break;
+                case "merge-ignored":
+                case "merge-benign-directory":
+                case "merge-file-ancestor":
+                case "merge-nested-repository":
+                    File.WriteAllText(Path.Combine(root, ".git/info/exclude"), "ignored.data\nnewdir/\n");
+                    await Run("checkout -b incoming");
+                    Directory.CreateDirectory(Path.Combine(root, "newdir"));
+                    File.WriteAllText(Path.Combine(root, "newdir/incoming.txt"), "incoming child\n");
+                    File.WriteAllText(Path.Combine(root, "ignored.data"), "incoming ignored\n");
+                    await Run("add -f -- ignored.data newdir/incoming.txt");
+                    await Run("-c user.name=QA -c user.email=qa@example.invalid commit -m Incoming");
+                    await Run("checkout main");
+                    if (mode == "merge-ignored") File.WriteAllText(Path.Combine(root, "ignored.data"), "preserve ignored\n");
+                    else if (mode == "merge-file-ancestor") File.WriteAllText(Path.Combine(root, "newdir"), "preserve ancestor\n");
+                    else
+                    {
+                        Directory.CreateDirectory(Path.Combine(root, "newdir"));
+                        File.WriteAllText(Path.Combine(root, "newdir/keep.txt"), "preserve directory\n");
+                        if (mode == "merge-nested-repository") await new Git(Path.Combine(root, "newdir"), "init -b inner").RunAsync();
+                    }
+                    var check = new Commands.CheckMergeSafety(root, ["incoming"]);
+                    var safe = await check.GetResultAsync();
+                    success = safe == (mode == "merge-benign-directory");
+                    if (safe)
+                        success &= await new Commands.Merge(root, "incoming", "", false).ExecAsync() &&
+                            File.ReadAllText(Path.Combine(root, "newdir/keep.txt")) == "preserve directory\n" &&
+                            File.ReadAllText(Path.Combine(root, "newdir/incoming.txt")) == "incoming child\n";
+                    else success &= !string.IsNullOrEmpty(check.Obstruction);
+                    if (mode == "merge-ignored") success &= File.ReadAllText(Path.Combine(root, "ignored.data")) == "preserve ignored\n";
+                    if (mode == "merge-file-ancestor") success &= File.ReadAllText(Path.Combine(root, "newdir")) == "preserve ancestor\n";
+                    if (mode == "merge-nested-repository") success &= Directory.Exists(Path.Combine(root, "newdir/.git")) && !File.Exists(Path.Combine(root, "newdir/incoming.txt"));
+                    break;
                 default: throw new ArgumentException(mode);
             }
             File.WriteAllText(report, JsonSerializer.Serialize(new { mode, success }));

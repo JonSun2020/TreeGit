@@ -17,7 +17,7 @@ if '--launches' in sys.argv[3:]:
 if '--keygen' in sys.argv[3:]:
     modes=['stream-keygen-'+mode for mode in ['plain','protected','existing','pub-only','private-only','invalid','missing']]
 if '--safety' in sys.argv[3:]:
-    modes=['safety-'+mode for mode in ['status-failure','status-cancelled','normal','unborn','obstruction','selected-obstruction','selected-literal','nested-repository','selected-nested-repository','junction','failed-discard']]
+    modes=['safety-'+mode for mode in ['status-failure','status-cancelled','normal','unborn','obstruction','selected-obstruction','selected-literal','nested-repository','selected-nested-repository','junction','failed-discard','merge-ignored','merge-benign-directory','merge-file-ancestor','merge-nested-repository']]
 for mode in modes:
     report = root/(mode+'.json'); started = time.monotonic()
     p = subprocess.Popen([str(exe), '--integration-command-pipes', str(root/mode), mode, str(report)], env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, creationflags=subprocess.CREATE_NO_WINDOW)

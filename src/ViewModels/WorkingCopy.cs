@@ -940,7 +940,7 @@ namespace SourceGit.ViewModels
             if (!File.Exists(file))
                 return false;
 
-            var msg = File.ReadAllText(file).Trim();
+            var msg = SourceGit.ViewModels.InProgressContext.ReadStateFile(file);
             if (string.IsNullOrEmpty(msg))
                 return false;
 
