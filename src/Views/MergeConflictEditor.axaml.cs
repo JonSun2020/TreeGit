@@ -666,6 +666,7 @@ namespace SourceGit.Views
                 vm.PropertyChanged += OnEditorStateChanged;
                 if (!vm.HasComparison)
                 {
+                    ConflictContent.RowDefinitions[0].MinHeight = 0;
                     ConflictContent.RowDefinitions[0].Height = new GridLength(0);
                     ConflictContent.RowDefinitions[1].Height = new GridLength(0);
                     ConflictContent.ColumnDefinitions[1].Width = new GridLength(0);

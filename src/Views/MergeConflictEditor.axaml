@@ -67,7 +67,12 @@
     </Border>
 
     <!-- Main Content -->
-    <Grid x:Name="ConflictContent" Grid.Row="2" RowDefinitions="*,4,*" ColumnDefinitions="*,20" IsEnabled="{Binding !IsSaving}">
+    <Grid x:Name="ConflictContent" Grid.Row="2" ColumnDefinitions="*,20" IsEnabled="{Binding !IsSaving}">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="*" MinHeight="110"/>
+        <RowDefinition Height="4"/>
+        <RowDefinition Height="*" MinHeight="140"/>
+      </Grid.RowDefinitions>
       <!-- Mine and Theirs Panels (Side-by-Side) -->
       <Grid Grid.Row="0" Grid.Column="0" ColumnDefinitions="*,*" Margin="4,4,4,2" IsVisible="{Binding HasComparison}">
         <!-- Mine (Ours) Panel -->

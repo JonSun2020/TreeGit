@@ -122,6 +122,11 @@ try:
     original=path.read_bytes();text=open_editor()
     check('actual merge markers load without BOM characters or synthetic padding',text==original.decode('utf-8-sig') and action('read')['unsolved']==2)
     check('the displayed result is enabled and editable',dialog()['merge']['editable'])
+    divider=next(s for s in layout()['splitters'] if s['visible'])
+    for delta in (-10000,10000):
+        tool('ui_layout',{'window':'active','action':'drag','splitter':divider['index'],'dy':delta});time.sleep(.15)
+        check('both editing panes stay usable at splitter extreme '+str(delta),all(s['bounds']['height']>=60 for s in layout()['scrolls'] if s['visible']))
+    tool('ui_layout',{'window':'active','action':'restore','splitter':divider['index'],'rows':['*','4','*']});time.sleep(.15)
     check('initial conflict position is one of a fixed total',dialog()['merge']['position']=='1/2')
     controls=layout();nav=button('PreviousConflict')['bounds']
     scrolls=[s for s in controls['scrolls'] if s['visible']]
