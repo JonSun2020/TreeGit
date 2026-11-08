@@ -44,10 +44,11 @@ namespace SourceGit.Commands
             return await ExecAsync().ConfigureAwait(false);
         }
 
-        public async Task<bool> PushAsync(string message, string pathspecFromFile, bool keepIndex)
+        public async Task<bool> PushAsync(string message, string pathspecFromFile, bool keepIndex, bool nulTerminated = false)
         {
             var builder = new StringBuilder();
             builder.Append("--literal-pathspecs stash push --include-untracked --pathspec-from-file=").Append(pathspecFromFile.Quoted()).Append(" ");
+            if (nulTerminated) builder.Append("--pathspec-file-nul ");
             if (keepIndex)
                 builder.Append("--keep-index ");
             if (!string.IsNullOrEmpty(message))

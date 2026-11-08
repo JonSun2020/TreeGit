@@ -15,8 +15,8 @@ namespace SourceGit.ViewModels
         public string Into { get; }
         public string SourceRevision => _sourceName;
         public bool AutoStashAvailable => Native.OS.GitVersion >= Models.GitVersions.MERGE_AUTOSTASH;
-        public bool AutoStash { get; set; } = true;
-        public bool AllowUnrelated { get; set; }
+        public bool AutoStash { get => _autoStash; set => SetProperty(ref _autoStash, value); }
+        public bool AllowUnrelated { get => _allowUnrelated; set => SetProperty(ref _allowUnrelated, value); }
         public bool ShowAllowUnrelated { get => _showAllowUnrelated; private set => SetProperty(ref _showAllowUnrelated, value); }
         public bool ShowAuthorSettings { get => _showAuthorSettings; private set => SetProperty(ref _showAuthorSettings, value); }
         public string ErrorMessage { get => _errorMessage; private set => SetProperty(ref _errorMessage, value); }
@@ -42,6 +42,7 @@ namespace SourceGit.ViewModels
             _repo = repo; _sourceName = string.IsNullOrEmpty(source.Head) ? source.FriendlyName : source.Head;
             Source = source; Into = into;
             _expectedInto = repo.CurrentBranch is { IsDetachedHead: false } current ? current.FullName : null;
+            _expectedHead = repo.CurrentBranch?.Head;
             Mode = forceFastForward ? Models.MergeMode.FastForward : AutoSelectMergeMode();
             if (!forceFastForward) Test();
         }
@@ -49,6 +50,7 @@ namespace SourceGit.ViewModels
         {
             _repo = repo; _sourceName = source.SHA; Source = source; Into = into;
             _expectedInto = repo.CurrentBranch is { IsDetachedHead: false } current ? current.FullName : null;
+            _expectedHead = repo.CurrentBranch?.Head;
             Mode = AutoSelectMergeMode(); Test();
         }
         public Merge(Repository repo, Models.Tag source, string into)
@@ -56,6 +58,7 @@ namespace SourceGit.ViewModels
             _repo = repo; _sourceName = string.IsNullOrEmpty(source.SHA) ? source.Name : source.SHA;
             Source = source; Into = into;
             _expectedInto = repo.CurrentBranch is { IsDetachedHead: false } current ? current.FullName : null;
+            _expectedHead = repo.CurrentBranch?.Head;
             Mode = AutoSelectMergeMode(); Test();
         }
 
@@ -70,6 +73,8 @@ namespace SourceGit.ViewModels
             if (!destination.IsSuccess && destination.ExitCode != 1) { ErrorMessage = App.Text("WorkingCopy.RefreshFailed"); return false; }
             var currentRef = destination.IsSuccess ? destination.StdOut.Trim() : null;
             if (currentRef != _expectedInto) { ErrorMessage = App.Text("Merge.DestinationChanged"); return false; }
+            var currentHead = await new Commands.QueryRevisionByRefName(_repo.FullPath, "HEAD").GetResultAsync();
+            if (currentHead != _expectedHead) { ErrorMessage = App.Text("Merge.DestinationChanged"); return false; }
             var before = await new Commands.QueryConflictEntries(_repo.FullPath).GetResultAsync();
             if (before == null) { ErrorMessage = App.Text("WorkingCopy.RefreshFailed"); return false; }
             if (before.Length > 0 || HasPendingOperation())
@@ -200,8 +205,10 @@ namespace SourceGit.ViewModels
         }
         private readonly Repository _repo;
         private readonly string _sourceName, _expectedInto;
+        private readonly string _expectedHead;
         private readonly CancellationTokenSource _testingCancellation = new();
         private bool _testingStopped, _fastForwardFailure, _showAllowUnrelated, _showAuthorSettings;
+        private bool _autoStash = true, _allowUnrelated;
         private string _errorMessage = string.Empty;
         private Models.MergeMode _mode = Models.MergeMode.Default;
         private bool _canEditMessage = true;

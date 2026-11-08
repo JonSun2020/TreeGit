@@ -214,7 +214,9 @@ namespace SourceGit.Automation
                                 hasPendingChanges = r.Histories?.HasPendingChanges,
                                 pendingRow = pendingRow == null ? null : new { visible = pendingRow.IsEffectivelyVisible,
                                     x = pendingRow.PointToScreen(default).X, y = pendingRow.PointToScreen(default).Y,
-                                    width = pendingRow.Bounds.Width, height = pendingRow.Bounds.Height },
+                                    width = pendingRow.Bounds.Width, height = pendingRow.Bounds.Height,
+                                    subjectX = pendingRow.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Text == "未提交的更改")?.PointToScreen(default).X,
+                                    graphMargin = r.Histories?.CommitGraphMargin.Top },
                                 workingCopyState = r.WorkingCopy == null ? null : new { staging = r.WorkingCopy.IsStaging, unstaging = r.WorkingCopy.IsUnstaging,
                                     committing = r.WorkingCopy.IsCommitting, canChangeIndex = r.WorkingCopy.CanChangeIndex,
                                     message = r.WorkingCopy.CommitMessage,
@@ -255,7 +257,9 @@ namespace SourceGit.Automation
                                     mode = merge.Mode.Arg, error = merge.ErrorMessage, testing = merge.TestingState.ToString(),
                                     autoStash = merge.AutoStash, autoStashAvailable = merge.AutoStashAvailable,
                                     allowUnrelated = merge.AllowUnrelated, showAllowUnrelated = merge.ShowAllowUnrelated,
-                                    showAuthorSettings = merge.ShowAuthorSettings, canUseRegularMerge = merge.CanUseRegularMerge }
+                                    showAuthorSettings = merge.ShowAuthorSettings, canUseRegularMerge = merge.CanUseRegularMerge },
+                                stashDialog = p.Popup is not ViewModels.StashChanges stash ? null : new { onlyStaged = stash.OnlyStaged,
+                                    includeUntracked = stash.IncludeUntracked, afterStash = stash.ChangesAfterStashing }
                             };
                         }).ToArray(),
                     };
@@ -806,6 +810,16 @@ namespace SourceGit.Automation
                             merge.Mode = Models.MergeMode.Supported.FirstOrDefault(m => m.Arg == mode.GetString()) ?? throw new ArgumentException("Unknown merge mode.");
                         if (args.TryGetProperty("autoStash", out var autoStash)) merge.AutoStash = autoStash.GetBoolean();
                         if (args.TryGetProperty("allowUnrelated", out var unrelated)) merge.AllowUnrelated = unrelated.GetBoolean();
+                        return (object)new { configured = true };
+                    }
+                    if (command == "stash_options")
+                    {
+                        if (page.Popup is not ViewModels.StashChanges stash || stash.InProgress)
+                            throw new InvalidOperationException("Open an idle stash dialog first.");
+                        if (args.TryGetProperty("onlyStaged", out var staged)) stash.OnlyStaged = staged.GetBoolean();
+                        if (args.TryGetProperty("includeUntracked", out var untracked)) stash.IncludeUntracked = untracked.GetBoolean();
+                        if (args.TryGetProperty("stashMode", out var stashMode))
+                            stash.ChangesAfterStashing = stashMode.GetString() switch { "discard" => 0, "keep_index" => 1, "keep_all" => 2, _ => throw new ArgumentException("Unknown stash mode.") };
                         return (object)new { configured = true };
                     }
                     if (page.Popup != null)

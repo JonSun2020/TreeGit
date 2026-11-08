@@ -99,7 +99,16 @@ namespace SourceGit.Views
             for (var i = 0; i < ColumnNames.Length; i++)
             {
                 WorkingCopyColumns.ColumnDefinitions[i].Width = new GridLength(widths[i]);
+                if (i > 0) WorkingCopyDetailsColumns.ColumnDefinitions[i - 1].Width = new GridLength(widths[i]);
             }
+            WorkingCopyDetailsColumns.Width = widths.Skip(1).Sum();
+            if (WorkingCopyDetailsColumns.RenderTransform != _pendingColumnsTransform)
+                WorkingCopyDetailsColumns.RenderTransform = _pendingColumnsTransform;
+            var horizontal = CommitListContainer.GetVisualDescendants().OfType<ScrollBar>()
+                .FirstOrDefault(s => s.Orientation == Avalonia.Layout.Orientation.Horizontal);
+            _pendingColumnsTransform.X = -(horizontal?.Value ?? 0);
         }
+
+        private readonly Avalonia.Media.TranslateTransform _pendingColumnsTransform = new();
     }
 }

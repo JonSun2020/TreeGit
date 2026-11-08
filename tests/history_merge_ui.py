@@ -94,8 +94,39 @@ api.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.
 api.SetForegroundWindow.argtypes = [wintypes.HWND]
 def owner(hwnd):
     value = wintypes.DWORD(); api.GetWindowThreadProcessId(hwnd, ctypes.byref(value)); return value.value
+api.GetDC.argtypes = [wintypes.HWND]; api.GetDC.restype = wintypes.HDC
+api.ReleaseDC.argtypes = [wintypes.HWND, wintypes.HDC]
+gdi = ctypes.WinDLL('gdi32', use_last_error=True)
+gdi.GetPixel.argtypes = [wintypes.HDC, ctypes.c_int, ctypes.c_int]; gdi.GetPixel.restype = wintypes.DWORD
+
+def click_pending_and_measure():
+    row = state()['pendingRow']; scale = layout()['window']['scaling']
+    point = wintypes.POINT(round(row['x'] + 6*scale), round(row['y'] + 9.5*scale))
+    assert owner(api.WindowFromPoint(point)) == pid
+    samples = []; stopped = threading.Event()
+    def observe():
+        dc = api.GetDC(None)
+        try:
+            while not stopped.is_set():
+                samples.append(gdi.GetPixel(dc, point.x, point.y))
+                time.sleep(.008)
+        finally: api.ReleaseDC(None, dc)
+    observer = threading.Thread(target=observe); observer.start()
+    try:
+        press('WorkingCopyRow'); wait_for(lambda: state()['workingCopySelected']); time.sleep(.3)
+    finally: stopped.set(); observer.join(timeout=3)
+    check('pending graph marker stays at the same physical pixel throughout selection', len(samples) >= 10 and all(p == 0x8a8a8a for p in samples))
 def press(name):
-    b = wait_for(lambda: next((b for b in layout()['buttons'] if b['name'] == name and b['enabled']), None))
+    def available(): return next((b for b in layout()['buttons'] if b['name'] == name and b['enabled']), None)
+    b = wait_for(available)
+    # Wait for the real button to finish moving during popup/detail layout.
+    stable = 0
+    for _ in range(60):
+        time.sleep(.05); current = available()
+        stable = stable + 1 if current and current['bounds'] == b['bounds'] else 0
+        if current: b = current
+        if stable >= 3: break
+    assert stable >= 3, 'Button layout did not settle: ' + name
     hwnd = api.GetForegroundWindow(); assert owner(hwnd) == pid, 'Native input outside owned CI GUI'
     origin = wintypes.POINT(0, 0); assert api.ClientToScreen(hwnd, ctypes.byref(origin))
     bounds = b['bounds']; scale = layout()['window']['scaling']
@@ -109,6 +140,7 @@ def merge(revision, mode=None):
     command('merge_dialog', revision=revision)
     wait_for(lambda: state()['mergeDialog'])
     if mode is not None: command('merge_options', mode=mode)
+    wait_for(lambda: state()['mergeDialog']['testing'] != 'Testing')
 
 def confirm(): press('ConfirmPopup')
 def completed(): wait_for(lambda: state()['pendingDialog'] is None)
@@ -133,7 +165,7 @@ try:
     write('values.txt', 'local edit\n'); refresh(); pending(True)
     check('tracked change reveals the history row', state()['changes'] == 1)
     tool('ui_select_commit', {'repo': str(repo), 'revision': base})
-    press('WorkingCopyRow'); wait_for(lambda: state()['workingCopySelected'])
+    click_pending_and_measure()
     check('native row click opens working copy without losing history columns', state()['pendingRow']['visible'] and state()['detailView'] == 'WorkingCopy')
     git('add', 'values.txt'); refresh(); pending(True)
     check('staged-only change keeps the row visible', state()['workingCopyState']['staged'] == ['values.txt'])
@@ -148,6 +180,26 @@ try:
     check('untracked file reveals the row', state()['workingCopyState']['unstaged'] == ['new [1].txt'])
     reset(); write('ignored.data', 'ignored only\n'); refresh(); pending(False)
     check('ignored-only files do not add a pending row', state()['changes'] == 0)
+    reset()
+
+    # A successful no-op stash must never reapply a pre-existing stash.
+    write('draft.txt', 'old stash content\n'); git('stash', 'push', '-m', 'Unrelated old stash')
+    old_stash = git('rev-parse', 'refs/stash').stdout.strip()
+    refresh(); command('stash_dialog'); command('stash_options', stashMode='keep_all', onlyStaged=False)
+    confirm(); completed()
+    check('no-op keep-all stash does not apply a previous stash', (repo / 'draft.txt').read_text() == 'original draft file\n' and git('rev-parse', 'refs/stash').stdout.strip() == old_stash)
+    command('stash_dialog'); command('stash_options', stashMode='keep_all', onlyStaged=True)
+    confirm(); completed()
+    check('no staged changes cannot reapply a previous stash', (repo / 'draft.txt').read_text() == 'original draft file\n' and git('rev-parse', 'refs/stash').stdout.strip() == old_stash)
+    reset()
+    write('draft.txt', 'staged draft edit\n'); git('add', 'draft.txt')
+    write('values.txt', 'unstaged values edit\n'); write('new [1].txt', 'untracked edit\n')
+    original_index = git('ls-files', '--stage').stdout
+    command('stash_dialog'); command('stash_options', stashMode='keep_all', onlyStaged=False, includeUntracked=True)
+    confirm(); completed(); refresh()
+    check('keep-all stash restores staged unstaged and literal untracked contents', (repo / 'draft.txt').read_text() == 'staged draft edit\n' and (repo / 'values.txt').read_text() == 'unstaged values edit\n' and (repo / 'new [1].txt').read_text() == 'untracked edit\n')
+    check('keep-all stash restores the exact index', git('ls-files', '--stage').stdout == original_index)
+    check('one stash operation produces exactly one recoverable stash', len(git('stash', 'list').stdout.splitlines()) == 1)
     reset()
 
     draft = 'Authored message that must survive merge\nsecond line'

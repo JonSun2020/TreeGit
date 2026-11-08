@@ -1255,4 +1255,9 @@
   <x:String x:Key="Text.Merge.UseRegular">改为普通合并</x:String>
   <x:String x:Key="Text.Discard.ProtectedFiles">继续操作会覆盖未跟踪文件或目录链接，请先将相关文件移到安全位置，再丢弃已跟踪修改。</x:String>
   <x:String x:Key="Text.Discard.Failed">丢弃未完成，请确认磁盘空间和文件访问权限后重试。</x:String>
+  <x:String x:Key="Text.Stash.RefreshFailed">未能确认贮藏状态，已有贮藏已保留，请刷新后重试。</x:String>
+  <x:String x:Key="Text.Stash.OnlyStagedUnsupported">当前 Git 版本不支持仅贮藏暂存修改，请更新 Git 或取消此选项。</x:String>
+  <x:String x:Key="Text.Stash.SelectionUnsupported">当前 Git 版本无法一次贮藏这么多选定文件，请更新 Git 后重试。</x:String>
+  <x:String x:Key="Text.Stash.Failed">贮藏未完成，已有贮藏已保留，请确认文件访问权限及磁盘空间。</x:String>
+  <x:String x:Key="Text.Stash.NoStagedChanges">没有可贮藏的已暂存修改。</x:String>
 </ResourceDictionary>

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -21,7 +21,7 @@ namespace SourceGit.ViewModels
         public bool IncludeUntracked
         {
             get => _repo.UIStates.IncludeUntrackedWhenStash;
-            set => _repo.UIStates.IncludeUntrackedWhenStash = value;
+            set { _repo.UIStates.IncludeUntrackedWhenStash = value; OnPropertyChanged(); }
         }
 
         public bool OnlyStaged
@@ -40,7 +40,7 @@ namespace SourceGit.ViewModels
         public int ChangesAfterStashing
         {
             get => _repo.UIStates.ChangesAfterStashing;
-            set => _repo.UIStates.ChangesAfterStashing = value;
+            set { _repo.UIStates.ChangesAfterStashing = value; OnPropertyChanged(); }
         }
 
         public StashChanges(Repository repo, List<Models.Change> selectedChanges)
@@ -57,57 +57,83 @@ namespace SourceGit.ViewModels
             var log = _repo.CreateLog("Stash Local Changes");
             Use(log);
 
-            var mode = (DealWithChangesAfterStashing)ChangesAfterStashing;
-            var keepIndex = mode == DealWithChangesAfterStashing.KeepIndex;
-            bool succ;
-
-            if (_changes == null)
+            try
             {
-                if (OnlyStaged)
+                var mode = (DealWithChangesAfterStashing)ChangesAfterStashing;
+                var keepIndex = mode == DealWithChangesAfterStashing.KeepIndex;
+                bool succ;
+
+                var before = await new Commands.QueryStashHead(_repo.FullPath).GetResultAsync();
+                if (!before.IsSuccess && before.ExitCode != 1)
                 {
-                    if (Native.OS.GitVersion >= Models.GitVersions.STASH_PUSH_ONLY_STAGED)
+                    _repo.SendNotification(App.Text("Stash.RefreshFailed"), true);
+                    return false;
+                }
+
+                if (_changes == null)
+                {
+                    if (OnlyStaged)
                     {
-                        succ = await new Commands.Stash(_repo.FullPath)
-                            .Use(log)
-                            .PushOnlyStagedAsync(Message, keepIndex);
+                        if (Native.OS.GitVersion >= Models.GitVersions.STASH_PUSH_ONLY_STAGED)
+                        {
+                            var query = new Commands.QueryLocalChanges(_repo.FullPath, false);
+                            var changes = await query.GetResultAsync();
+                            if (!query.Succeeded) { _repo.NotifyWorkingCopyStatusFailure(); return false; }
+                            if (!changes.Exists(c => c.Index != Models.ChangeState.None && c.Index != Models.ChangeState.Untracked))
+                            {
+                                _repo.SendNotification(App.Text("Stash.NoStagedChanges"), false);
+                                return true;
+                            }
+                            succ = await new Commands.Stash(_repo.FullPath).Use(log).PushOnlyStagedAsync(Message, keepIndex);
+                        }
+                        else
+                        {
+                            // Selecting paths on older Git also stashes their unstaged
+                            // edits. That is not equivalent to "only staged".
+                            _repo.SendNotification(App.Text("Stash.OnlyStagedUnsupported"), true);
+                            succ = false;
+                        }
                     }
                     else
                     {
-                        var all = await new Commands.QueryLocalChanges(_repo.FullPath, false)
+                        succ = await new Commands.Stash(_repo.FullPath)
                             .Use(log)
-                            .GetResultAsync();
-
-                        var staged = new List<Models.Change>();
-                        foreach (var c in all)
-                        {
-                            if (c.Index != Models.ChangeState.None && c.Index != Models.ChangeState.Untracked)
-                                staged.Add(c);
-                        }
-
-                        succ = await StashWithChangesAsync(staged, keepIndex, log);
+                            .PushAsync(Message, IncludeUntracked, keepIndex);
                     }
                 }
                 else
                 {
-                    succ = await new Commands.Stash(_repo.FullPath)
-                        .Use(log)
-                        .PushAsync(Message, IncludeUntracked, keepIndex);
+                    succ = await StashWithChangesAsync(_changes, keepIndex, log);
                 }
+
+                if (mode == DealWithChangesAfterStashing.KeepAll && succ)
+                {
+                    var after = await new Commands.QueryStashHead(_repo.FullPath).GetResultAsync();
+                    if (!after.IsSuccess && after.ExitCode != 1)
+                    {
+                        _repo.SendNotification(App.Text("Stash.RefreshFailed"), true);
+                        succ = false;
+                    }
+                    // "No local changes to save" exits successfully but creates no
+                    // stash. Never apply an unrelated pre-existing stash in that case.
+                    else if (after.IsSuccess && after.StdOut.Trim() != before.StdOut.Trim())
+                        succ = await new Commands.Stash(_repo.FullPath).Use(log).ApplyAsync(after.StdOut.Trim(), true);
+                }
+
+                return succ;
             }
-            else
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
-                succ = await StashWithChangesAsync(_changes, keepIndex, log);
+                Native.OS.LogException(ex);
+                _repo.SendNotification(App.Text("Stash.Failed"), true);
+                return false;
             }
-
-            if (mode == DealWithChangesAfterStashing.KeepAll && succ)
-                succ = await new Commands.Stash(_repo.FullPath)
-                    .Use(log)
-                    .ApplyAsync("stash@{0}", true);
-
-            log.Complete();
-            _repo.MarkWorkingCopyDirtyManually();
-            _repo.MarkStashesDirtyManually();
-            return succ;
+            finally
+            {
+                log.Complete();
+                _repo.MarkWorkingCopyDirtyManually();
+                _repo.MarkStashesDirtyManually();
+            }
         }
 
         private async Task<bool> StashWithChangesAsync(List<Models.Change> changes, bool keepIndex, CommandLog log)
@@ -123,26 +149,28 @@ namespace SourceGit.ViewModels
                     paths.Add(c.Path);
 
                 var pathSpecFile = Path.GetTempFileName();
-                await File.WriteAllLinesAsync(pathSpecFile, paths);
-                succ = await new Commands.Stash(_repo.FullPath)
-                    .Use(log)
-                    .PushAsync(Message, pathSpecFile, keepIndex)
-                    .ConfigureAwait(false);
-                File.Delete(pathSpecFile);
+                try
+                {
+                    await File.WriteAllTextAsync(pathSpecFile, string.Join('\0', paths) + '\0');
+                    succ = await new Commands.Stash(_repo.FullPath)
+                        .Use(log)
+                        .PushAsync(Message, pathSpecFile, keepIndex, true)
+                        .ConfigureAwait(false);
+                }
+                finally { File.Delete(pathSpecFile); }
             }
             else
             {
-                for (int i = 0; i < changes.Count; i += 32)
+                // Splitting into multiple pushes creates multiple stash objects;
+                // restoring only the last object loses the earlier working state.
+                var length = Message?.Length ?? 0;
+                foreach (var change in changes) length += change.Path.Quoted().Length + 1;
+                if (length > 24000)
                 {
-                    var count = Math.Min(32, changes.Count - i);
-                    var step = changes.GetRange(i, count);
-                    succ = await new Commands.Stash(_repo.FullPath)
-                        .Use(log)
-                        .PushAsync(Message, step, keepIndex)
-                        .ConfigureAwait(false);
-                    if (!succ)
-                        break;
+                    _repo.SendNotification(App.Text("Stash.SelectionUnsupported"), true);
+                    return false;
                 }
+                succ = await new Commands.Stash(_repo.FullPath).Use(log).PushAsync(Message, changes, keepIndex).ConfigureAwait(false);
             }
 
             return succ;

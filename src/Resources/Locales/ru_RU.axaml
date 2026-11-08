@@ -1216,4 +1216,9 @@
   <x:String x:Key="Text.Merge.UseRegular">Use a regular merge</x:String>
   <x:String x:Key="Text.Discard.ProtectedFiles">Untracked files or a linked folder would be overwritten. Move them to a safe location before discarding tracked changes.</x:String>
   <x:String x:Key="Text.Discard.Failed">Discard failed. Check available disk space and file permissions, then retry.</x:String>
+  <x:String x:Key="Text.Stash.RefreshFailed">Could not verify the stash state. Existing stashes were preserved; refresh and retry.</x:String>
+  <x:String x:Key="Text.Stash.OnlyStagedUnsupported">This Git version cannot stash only staged changes. Update Git or clear this option.</x:String>
+  <x:String x:Key="Text.Stash.SelectionUnsupported">This Git version cannot stash this many selected paths at once. Update Git and retry.</x:String>
+  <x:String x:Key="Text.Stash.Failed">Stash did not finish. Existing stashes were preserved; check file access and available space.</x:String>
+  <x:String x:Key="Text.Stash.NoStagedChanges">There are no staged changes to stash.</x:String>
 </ResourceDictionary>
