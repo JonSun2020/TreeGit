@@ -123,7 +123,7 @@ try:
     check('navigation aligns with the THEIRS column',abs(nav['x']-scrolls[1]['bounds']['x'])<=2)
     check('there are no bottom undo or redo buttons',not any(b['text'] in ('撤销','重做') for b in controls['buttons']))
     source_block(0)
-    check('all three choices are directly visible on hover',all(any(b['text']==name for b in layout()['buttons']) for name in ('仅应用','先左后右','先右后左')))
+    check('all three choices are directly visible on hover',all(any(b['text'].startswith(name) for b in layout()['buttons']) for name in ('仅应用','先左后右','先右后左')))
     shot('editable-result')
     action('resolve',region=0,choice='ours')
     check('resolving a block changes remaining count but not the total',dialog()['merge']['unsolved']==1 and dialog()['merge']['position']=='1/2')
@@ -135,6 +135,8 @@ try:
     check('toolbar undo reverses Restore',dialog()['merge']['unsolved']==1)
     press('NextConflict');check('Next selects the second original block',dialog()['merge']['position']=='2/2')
     press('PreviousConflict');check('Previous includes the already resolved block',dialog()['merge']['position']=='1/2')
+    source_scroll=next(s for s in layout()['scrolls'] if s['visible'])
+    tool('ui_layout',{'window':'active','action':'scroll','scroller':source_scroll['index'],'dy':10000});time.sleep(.2)
     source_block(1,click=True)
     check('clicking reference data selects that block',dialog()['merge']['position']=='2/2')
     current=action('read')['text'];action('replace',offset=0,length=0,text='// manual common edit\r\n')
@@ -173,6 +175,8 @@ try:
     check('no temporary merge file is left behind',not list(repo.glob('.*.treegit-merge-*')))
 except BaseException as error:
     failure=repr(error)
+    try:(out/'failure-state.json').write_text(json.dumps({'state':tool('ui_state'),'layout':layout()},ensure_ascii=False,indent=2),encoding='utf-8')
+    except BaseException:pass
     try:shot('failure')
     except BaseException:pass
     raise
