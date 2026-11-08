@@ -72,7 +72,9 @@ namespace SourceGit.Commands
 
                 var canFastForward = heads.Count == 1 && (currentHead == null || await new IsAncestor(repo, currentHead, heads[0]).GetResultAsync().ConfigureAwait(false));
                 Command integrate;
-                if (ffOnly || rebase && canFastForward)
+                // Native pull initializes an unborn branch directly, regardless
+                // of pull.ff=false; there is no local history to merge yet.
+                if (currentHead == null || ffOnly || rebase && canFastForward)
                     integrate = new Merge(repo, heads, true, null, mode: "--ff-only");
                 else if (rebase)
                 {

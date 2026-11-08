@@ -85,7 +85,20 @@ namespace SourceGit.Tests
                 var value = mode[7..];
                 await Git(client, "config pull.ff " + value); await Git(native, "config pull.ff " + value);
             }
-            var before = (await Git(client, "rev-parse HEAD")).output;
+            var unborn = mode.StartsWith("unborn", StringComparison.Ordinal);
+            if (unborn)
+            {
+                foreach (var directory in new[] { client, native })
+                {
+                    await Git(directory, "symbolic-ref HEAD refs/heads/unborn");
+                    await Git(directory, "read-tree --empty");
+                    await Git(directory, "clean -fdx");
+                    if (mode == "unborn-no-ff") await Git(directory, "config pull.ff false");
+                    if (mode == "unborn-untracked") File.WriteAllText(Path.Combine(directory, "keep.txt"), "preserve local file\n");
+                }
+            }
+            var beforeResult = await Git(client, "rev-parse --verify --quiet HEAD", false);
+            var before = beforeResult.code == 0 ? beforeResult.output : null;
             var beforeIndex = (await Git(client, "ls-files --stage")).output;
             string hook = null;
             if (mode == "ignored")
@@ -103,10 +116,11 @@ namespace SourceGit.Tests
             if (mode == "cancelled") cancel.Cancel();
             Native.ProcessLauncher.BeforeStart = (process, attempt) => File.AppendAllText(report + ".trace.log", process.StartInfo.Arguments + "\n");
             var outcome = await Commands.SafePull.RunAsync(client, Path.Combine(client, ".git"), new Models.Remote { Name = "origin" },
-                null, "refs/remotes/origin/main", rebase, mode == "ff-only", cancel.Token, new RecordLog(report + ".output.log"));
+                unborn ? new Models.Branch { Name = "main" } : null, "refs/remotes/origin/main", rebase, mode == "ff-only", cancel.Token, new RecordLog(report + ".output.log"));
             Native.ProcessLauncher.BeforeStart = null;
             if (hook != null) File.Delete(hook);
-            var after = (await Git(client, "rev-parse HEAD")).output;
+            var afterResult = await Git(client, "rev-parse --verify --quiet HEAD", false);
+            var after = afterResult.code == 0 ? afterResult.output : null;
             bool success;
             string expected = null;
             if (mode is "ignored" or "cancelled" or "fetch-hook" or "ff-only")
@@ -118,9 +132,10 @@ namespace SourceGit.Tests
             }
             else
             {
-                await Git(native, "pull --no-edit --rebase=" + (rebase ? "true" : "false") + " origin");
+                await Git(native, "pull --no-edit --rebase=" + (rebase ? "true" : "false") + " origin" + (unborn ? " main" : string.Empty));
                 expected = (await Git(native, "rev-parse HEAD")).output;
                 success = outcome.IsSuccess && after == expected;
+                if (mode == "unborn-untracked") success &= File.ReadAllText(Path.Combine(client, "keep.txt")) == "preserve local file\n";
             }
             success &= Directory.GetFiles(Path.Combine(client, ".git"), "treegit-pull-*").Length == 0;
             File.WriteAllText(report, JsonSerializer.Serialize(new { mode, success, outcome.IsSuccess, outcome.ExitCode, outcome.StdErr, actual = after, expected }));
