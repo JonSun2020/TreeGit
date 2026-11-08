@@ -21,8 +21,8 @@ checks=[];samples=[];timings={};failure=None;p=None;pid=None;seq=0;max_response=
 messages=queue.Queue();started=time.monotonic()
 
 def git(*args,input=None):
-    result=subprocess.run([verifier,'--no-optional-locks','-C',str(repo),*args],env=env,input=input,capture_output=True,text=True,encoding='utf-8',creationflags=subprocess.CREATE_NO_WINDOW)
-    assert result.returncode==0,(args,result.stderr[-2048:]);return result.stdout.strip()
+    result=subprocess.run([verifier,'--no-optional-locks','-C',str(repo),*args],env=env,input=input.encode('utf-8') if input is not None else None,capture_output=True,creationflags=subprocess.CREATE_NO_WINDOW)
+    assert result.returncode==0,(args,result.stderr.decode('utf-8',errors='replace')[-2048:]);return result.stdout.decode('utf-8').strip()
 
 def tool(name,args=None):
     global seq,max_response
