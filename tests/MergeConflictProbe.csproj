@@ -8,6 +8,7 @@
     <Compile Include="MergeConflictProbe.cs"/>
     <Compile Include="../src/Models/Conflict.cs" Link="Conflict.cs"/>
     <Compile Include="../src/Models/MergeConflictDocument.cs" Link="MergeConflictDocument.cs"/>
+    <Compile Include="../src/Models/MergeConflictComparison.cs" Link="MergeConflictComparison.cs"/>
     <Compile Include="../src/Models/MergeConflictEncoding.cs" Link="MergeConflictEncoding.cs"/>
   </ItemGroup>
 </Project>

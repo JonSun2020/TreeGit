@@ -88,7 +88,6 @@ namespace SourceGit.Models
         {
             if (!CanResolve(index)) return false;
             var region = _regions[index];
-            if (resolution != ConflictResolution.None && region.Info.IsResolved) return false;
             var result = resolution switch
             {
                 ConflictResolution.UseOurs => region.Ours,

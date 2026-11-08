@@ -62,65 +62,7 @@ namespace SourceGit.Views
 
             public void Draw(TextView textView, DrawingContext drawingContext)
             {
-                var lines = _presenter.Lines;
-                if (lines == null || _presenter.Document == null || !textView.VisualLinesValid)
-                    return;
-
-                if (_presenter.DataContext is not ViewModels.MergeConflictEditor vm)
-                    return;
-
-                var width = textView.Bounds.Width;
-                var pixelHeight = PixelSnapHelpers.GetPixelSize(_presenter).Height;
-                foreach (var line in textView.VisualLines)
-                {
-                    if (line.IsDisposed || line.FirstDocumentLine == null || line.FirstDocumentLine.IsDeleted)
-                        continue;
-
-                    var index = line.FirstDocumentLine.LineNumber;
-                    if (index > lines.Count)
-                        break;
-
-                    var lineIndex = index - 1;
-                    var info = lines[lineIndex];
-                    var startY = line.GetTextLineVisualYPosition(line.TextLines[0], VisualYPosition.LineTop) - textView.VerticalOffset;
-                    var endY = line.GetTextLineVisualYPosition(line.TextLines[^1], VisualYPosition.LineBottom) - textView.VerticalOffset;
-                    var rect = new Rect(0, startY, width, endY - startY);
-
-                    if (vm.IsActiveSourceLine(index))
-                    {
-                        drawingContext.DrawRectangle(MergeConflictHighlight.Background, null, rect);
-                        continue;
-                    }
-                    if (info.Type == Models.ConflictLineType.Common) continue;
-
-                    var alignedTop = PixelSnapHelpers.PixelAlign(startY, pixelHeight);
-                    var alignedBottom = PixelSnapHelpers.PixelAlign(endY, pixelHeight);
-
-                    var lineState = vm.GetLineState(lineIndex);
-                    if (lineState == Models.ConflictLineState.ConflictBlockStart)
-                        drawingContext.DrawLine(new Pen(new SolidColorBrush(Colors.Red, 0.6)), new Point(0, alignedTop), new Point(width, alignedTop));
-                    else if (lineState == Models.ConflictLineState.ConflictBlockEnd)
-                        drawingContext.DrawLine(new Pen(new SolidColorBrush(Colors.Red, 0.6)), new Point(0, alignedBottom), new Point(width, alignedBottom));
-                    else if (lineState == Models.ConflictLineState.ResolvedBlockStart)
-                        drawingContext.DrawLine(new Pen(new SolidColorBrush(Colors.Green, 0.6)), new Point(0, alignedTop), new Point(width, alignedTop));
-                    else if (lineState == Models.ConflictLineState.ResolvedBlockEnd)
-                        drawingContext.DrawLine(new Pen(new SolidColorBrush(Colors.Green, 0.6)), new Point(0, alignedBottom), new Point(width, alignedBottom));
-
-                    if (lineState >= Models.ConflictLineState.ResolvedBlockStart)
-                        drawingContext.DrawRectangle(new SolidColorBrush(Colors.Green, 0.1), null, rect);
-                    else if (lineState >= Models.ConflictLineState.ConflictBlockStart)
-                        drawingContext.DrawRectangle(new SolidColorBrush(Colors.Red, 0.1), null, rect);
-
-                    var bg = info.Type switch
-                    {
-                        Models.ConflictLineType.Ours => _presenter.OursContentBackground,
-                        Models.ConflictLineType.Theirs => _presenter.TheirsContentBackground,
-                        _ => null,
-                    };
-
-                    if (bg != null)
-                        drawingContext.DrawRectangle(bg, null, rect);
-                }
+                MergeConflictHighlight.Draw(_presenter, true, drawingContext, textView.Bounds.Width);
             }
 
             private readonly MergeConflictTextPresenter _presenter;
@@ -447,11 +389,12 @@ namespace SourceGit.Views
             var unitHeight = Bounds.Height / (total * 1.0);
             var conflicts = vm.ConflictRegions;
             var blockBGs = new SolidColorBrush[] { new(Colors.Red, 0.6), new(Colors.Green, 0.6) };
-            foreach (var c in conflicts)
+            for (var i = 0; i < conflicts.Count; i++)
             {
-                var topY = c.StartLineInOriginal * unitHeight;
-                var bottomY = (c.EndLineInOriginal + 1) * unitHeight;
-                var bg = blockBGs[c.IsResolved ? 1 : 0];
+                var range = vm.ComparisonRanges[i];
+                var topY = range.Start * unitHeight;
+                var bottomY = (range.End + 1) * unitHeight;
+                var bg = blockBGs[conflicts[i].IsResolved ? 1 : 0];
                 context.DrawRectangle(bg, null, new Rect(0, topY, Bounds.Width, bottomY - topY));
             }
 
@@ -571,7 +514,7 @@ namespace SourceGit.Views
         {
             if (e.PropertyName is nameof(ViewModels.MergeConflictEditor.UnsolvedCount) or nameof(ViewModels.MergeConflictEditor.ActiveConflictIndex))
             {
-                foreach (var presenter in new TextEditor[] { OursPresenter, TheirsPresenter, ResultPresenter })
+                foreach (var presenter in new TextEditor[] { OursPresenter, BasePresenter, TheirsPresenter, ResultPresenter })
                 {
                     presenter.TextArea.TextView.Redraw();
                     foreach (var margin in presenter.TextArea.LeftMargins) margin.InvalidateVisual();
@@ -591,7 +534,7 @@ namespace SourceGit.Views
                 var target = vm.ResultOffset(index);
                 ResultPresenter.CaretOffset = target;
                 ResultPresenter.ScrollToLine(vm.ResultDocument.GetLineByOffset(target).LineNumber);
-                OursPresenter.ScrollToLine(vm.ConflictRegions[index].StartLineInOriginal + 1);
+                OursPresenter.ScrollToLine(vm.ComparisonRanges[index].Start + 1);
                 ResultPresenter.TextArea.Focus();
             }
             e.Handled = true;

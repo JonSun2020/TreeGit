@@ -14,7 +14,8 @@ namespace SourceGit.Models
     {
         Ours,
         Theirs,
-        Result
+        Result,
+        Base
     }
 
     public enum ConflictResolution

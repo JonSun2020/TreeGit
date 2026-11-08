@@ -1232,4 +1232,6 @@
   <x:String x:Key="Text.MergeConflictEditor.LeftThenRight">先左後右</x:String>
   <x:String x:Key="Text.MergeConflictEditor.RightThenLeft">先右後左</x:String>
   <x:String x:Key="Text.MergeConflictEditor.Restore">復原</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.EmptyBase">No file in the common ancestor</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.BaseUnavailable">The common ancestor cannot be displayed</x:String>
 </ResourceDictionary>

@@ -14,7 +14,10 @@ namespace SourceGit.Views
     // are left between them, so the active conflict is identifiable at any width.
     internal static class MergeConflictHighlight
     {
-        public static readonly IBrush Background = new SolidColorBrush(Color.FromArgb(36, 255, 0, 0));
+        private static readonly IBrush Red = new SolidColorBrush(Color.FromArgb(24, 255, 0, 0));
+        private static readonly IBrush ActiveRed = new SolidColorBrush(Color.FromArgb(36, 255, 0, 0));
+        private static readonly IBrush Green = new SolidColorBrush(Color.FromArgb(24, 0, 170, 0));
+        private static readonly IBrush ActiveGreen = new SolidColorBrush(Color.FromArgb(44, 0, 170, 0));
 
         public static void Draw(TextEditor editor, bool source, DrawingContext context, double width)
         {
@@ -25,9 +28,12 @@ namespace SourceGit.Views
             {
                 if (line.IsDisposed || line.FirstDocumentLine == null || line.FirstDocumentLine.IsDeleted) continue;
                 var number = line.FirstDocumentLine.LineNumber;
-                if (!(source ? vm.IsActiveSourceLine(number) : vm.IsActiveResultLine(number))) continue;
+                var index = source ? vm.RegionForSourceLine(number) : vm.RegionForResultLine(number);
+                if (index < 0) continue;
+                var active = vm.ActiveConflictIndex == index;
+                var brush = vm.ConflictRegions[index].IsResolved ? (active ? ActiveGreen : Green) : (active ? ActiveRed : Red);
                 var top = line.VisualTop - view.VerticalOffset;
-                context.DrawRectangle(Background, null, new Rect(0, top, width, line.Height));
+                context.DrawRectangle(brush, null, new Rect(0, top, width, line.Height));
             }
         }
     }
@@ -50,7 +56,7 @@ namespace SourceGit.Views
                 if (line.IsDisposed || line.FirstDocumentLine == null || line.FirstDocumentLine.IsDeleted) continue;
                 var number = line.FirstDocumentLine.LineNumber;
                 var label = source && editor is MergeConflictTextPresenter comparison
-                    ? (number <= comparison.Lines.Count ? comparison.Lines[number - 1].LineNumber : string.Empty)
+                    ? (number <= (comparison.Lines?.Count ?? 0) ? comparison.Lines[number - 1].LineNumber : string.Empty)
                     : number.ToString(CultureInfo.CurrentCulture);
                 if (string.IsNullOrEmpty(label)) continue;
                 var text = new FormattedText(label, CultureInfo.CurrentCulture, FlowDirection.LeftToRight,

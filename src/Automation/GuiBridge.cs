@@ -171,6 +171,8 @@ namespace SourceGit.Automation
                                 var merge = w.DataContext as ViewModels.MergeConflictEditor;
                                 var resultEditor = w.GetVisualDescendants().OfType<Views.MergeResultEditor>().FirstOrDefault();
                                 var comparisonEditor = w.GetVisualDescendants().OfType<Views.MergeConflictTextPresenter>().FirstOrDefault(p => p.PanelType == Models.ConflictPanelType.Ours);
+                                var baseEditor = w.GetVisualDescendants().OfType<Views.MergeConflictTextPresenter>().FirstOrDefault(p => p.PanelType == Models.ConflictPanelType.Base);
+                                var remoteEditor = w.GetVisualDescendants().OfType<Views.MergeConflictTextPresenter>().FirstOrDefault(p => p.PanelType == Models.ConflictPanelType.Theirs);
                                 var resultPoint = resultEditor?.PointToScreen(new Point(resultEditor.Bounds.Width / 2, resultEditor.Bounds.Height / 2));
                                 var confirm = w.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "ConfirmRepositorySettings");
                                 var top = confirm?.TranslatePoint(new Point(0, 0), w);
@@ -180,9 +182,12 @@ namespace SourceGit.Automation
                                     merge = merge == null ? null : new { file = merge.FilePath, repo = merge.RepositoryPath, unsolved = merge.UnsolvedCount, modified = merge.HasChanges, saving = merge.IsSaving, canSave = merge.CanSave, error = merge.Error, encoding = merge.SelectedEncoding?.Name,
                                         totalConflicts = merge.TotalConflictCount, activeConflict = merge.ActiveConflictIndex, position = merge.ConflictPosition,
                                         contextMenu = MergeContextMenuData(w),
+                                        baseSample = merge.BaseSample, baseHint = merge.BaseHint,
                                         regions = merge.ConflictRegions.Select((r, i) => new { index = i, resolved = r.IsResolved, canResolve = merge.CanResolve(i),
-                                            sourceLine = r.StartLineInOriginal + 1, resultOffset = merge.ResultOffset(i),
-                                            sourceTarget = MergeLineTarget(comparisonEditor, r.StartLineInOriginal + 1),
+                                            sourceLine = merge.ComparisonRanges[i].Start + 1, resultOffset = merge.ResultOffset(i),
+                                            sourceTarget = MergeLineTarget(comparisonEditor, merge.ComparisonRanges[i].Start + 1),
+                                            baseTarget = MergeLineTarget(baseEditor, merge.ComparisonRanges[i].Start + 1),
+                                            remoteTarget = MergeLineTarget(remoteEditor, merge.ComparisonRanges[i].Start + 1),
                                             resultTarget = resultEditor?.Document == null ? null : MergeLineTarget(resultEditor, resultEditor.Document.GetLineByOffset(merge.ResultOffset(i)).LineNumber) }).ToArray(),
                                         editable = resultEditor is { IsReadOnly: false, IsEffectivelyEnabled: true },
                                         resultTarget = resultPoint.HasValue ? new { x = resultPoint.Value.X, y = resultPoint.Value.Y } : null },

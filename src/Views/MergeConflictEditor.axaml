@@ -35,14 +35,14 @@
       <v:CaptionButtons HorizontalAlignment="Right" IsVisible="{OnPlatform True, macOS=False}"/>
     </Grid>
 
-    <!-- The navigation starts at the same horizontal position as THEIRS. -->
+    <!-- The navigation starts at the Remote column. -->
     <Border Grid.Row="1" Background="{DynamicResource Brush.ToolBar}" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Brush.Border2}">
-      <Grid ColumnDefinitions="*,*" Margin="4,0,24,0">
-        <Grid ColumnDefinitions="Auto,*" Margin="8,0">
+      <Grid ColumnDefinitions="*,*,*" Margin="4,0,24,0">
+        <Grid Grid.ColumnSpan="2" ColumnDefinitions="Auto,*" Margin="8,0">
           <Path Width="14" Height="14" Data="{StaticResource Icons.File}"/>
           <TextBlock Grid.Column="1" Margin="8,0" Text="{Binding FilePath}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
         </Grid>
-        <StackPanel Grid.Column="1" x:Name="ConflictNavigation" Orientation="Horizontal" Margin="2,0,0,0" VerticalAlignment="Center" Spacing="4">
+        <StackPanel Grid.Column="2" x:Name="ConflictNavigation" Orientation="Horizontal" Margin="2,0,0,0" VerticalAlignment="Center" Spacing="4">
           <Button x:Name="PreviousConflict" Classes="icon_button" Width="28" Height="28"
                   ToolTip.Tip="{DynamicResource Text.MergeConflictEditor.PrevConflict}" Click="OnGotoPrevConflict"
                   HotKey="{OnPlatform Ctrl+Up, macOS=?+Up}"
@@ -74,14 +74,14 @@
         <RowDefinition Height="*" MinHeight="140"/>
       </Grid.RowDefinitions>
       <!-- Mine and Theirs Panels (Side-by-Side) -->
-      <Grid Grid.Row="0" Grid.Column="0" ColumnDefinitions="*,*" Margin="4,4,4,2" IsVisible="{Binding HasComparison}">
+      <Grid Grid.Row="0" Grid.Column="0" ColumnDefinitions="*,*,*" Margin="4,4,4,2" IsVisible="{Binding HasComparison}">
         <!-- Mine (Ours) Panel -->
         <Border Grid.Column="0" Margin="0,0,2,0">
           <Grid RowDefinitions="26,*">
-            <Border Grid.Row="0" Padding="8,0" Background="{DynamicResource Brush.Popup}" BorderThickness="1,1,1,0" BorderBrush="{DynamicResource Brush.Border2}">
+            <Border Grid.Row="0" Padding="8,0" ClipToBounds="True" Background="{DynamicResource Brush.Popup}" BorderThickness="1,1,1,0" BorderBrush="{DynamicResource Brush.Border2}">
               <Grid ColumnDefinitions="Auto,*">
                 <TextBlock Grid.Column="0"
-                           Text="{DynamicResource Text.MergeConflictEditor.Mine}"
+                           Text="Local"
                            FontWeight="Bold"
                            VerticalAlignment="Center"/>
                 <ContentControl Grid.Column="1" Margin="8,0,0,0" Content="{Binding Mine, Mode=OneWay}">
@@ -126,13 +126,29 @@
           </Grid>
         </Border>
 
-        <!-- Theirs Panel -->
-        <Border x:Name="TheirsPanel" Grid.Column="1" Margin="2,0,0,0">
+        <!-- The immutable index-stage ancestor, aligned with Local and Remote. -->
+        <Border Grid.Column="1" Margin="2,0">
           <Grid RowDefinitions="26,*">
-            <Border Grid.Row="0" Padding="8,0" Background="{DynamicResource Brush.Popup}" BorderThickness="1,1,1,0" BorderBrush="{DynamicResource Brush.Border2}">
+            <Border Grid.Row="0" Padding="8,0" ClipToBounds="True" Background="{DynamicResource Brush.Popup}" BorderThickness="1,1,1,0" BorderBrush="{DynamicResource Brush.Border2}">
+              <Grid ColumnDefinitions="Auto,*">
+                <TextBlock Text="Base" FontWeight="Bold" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="1" Margin="8,0,0,0" Text="{Binding BaseHint}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+              </Grid>
+            </Border>
+            <v:MergeConflictTextPresenter x:Name="BasePresenter" Grid.Row="1" PanelType="Base"
+                                          Lines="{Binding BaseLines}" MaxLineNumber="{Binding MaxLineNumber}"
+                                          FileName="{Binding FilePath}" FontFamily="{DynamicResource Fonts.Monospace}"
+                                          BorderThickness="1" BorderBrush="{DynamicResource Brush.Border2}"/>
+          </Grid>
+        </Border>
+
+        <!-- Theirs Panel -->
+        <Border x:Name="TheirsPanel" Grid.Column="2" Margin="2,0,0,0">
+          <Grid RowDefinitions="26,*">
+            <Border Grid.Row="0" Padding="8,0" ClipToBounds="True" Background="{DynamicResource Brush.Popup}" BorderThickness="1,1,1,0" BorderBrush="{DynamicResource Brush.Border2}">
               <Grid ColumnDefinitions="Auto,*">
                 <TextBlock Grid.Column="0"
-                           Text="{DynamicResource Text.MergeConflictEditor.Theirs}"
+                           Text="Remote"
                            FontWeight="Bold"
                            VerticalAlignment="Center"/>
                 <ContentControl Grid.Column="1" Margin="8,0,0,0" Content="{Binding Theirs, Mode=OneWay}">
@@ -182,7 +198,7 @@
       <!-- The result is a real editable document, not the aligned comparison rows. -->
       <Border Grid.Row="2" Grid.Column="0" Margin="4,2,4,4">
         <Grid RowDefinitions="32,*">
-          <Border Grid.Row="0" Padding="8,0" Background="{DynamicResource Brush.Popup}" BorderThickness="1,1,1,0" BorderBrush="{DynamicResource Brush.Border2}">
+          <Border Grid.Row="0" Padding="8,0" ClipToBounds="True" Background="{DynamicResource Brush.Popup}" BorderThickness="1,1,1,0" BorderBrush="{DynamicResource Brush.Border2}">
             <Grid ColumnDefinitions="*,Auto">
               <TextBlock Text="{DynamicResource Text.MergeConflictEditor.EditableResult}" FontWeight="Bold" VerticalAlignment="Center"/>
               <ComboBox Grid.Column="1" Width="125" Margin="8,0,0,0" ItemsSource="{Binding EncodingChoices}" SelectedItem="{Binding SelectedEncoding, Mode=TwoWay}" IsEnabled="{Binding CanChangeEncoding}" ToolTip.Tip="{DynamicResource Text.MergeConflictEditor.EncodingHint}">

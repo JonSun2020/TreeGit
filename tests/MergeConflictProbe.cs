@@ -60,6 +60,27 @@ try
     }
 
     {
+        var source = "head\n" + Block("local", "remote") + "tail\n";
+        var model = new MergeConflictDocument(source);
+        var comparison = new MergeConflictComparison(model, "head\nancestor\ntail\n");
+        var row = comparison.Ranges[0].Start;
+        Check("Local, Base and Remote share one aligned conflict row", comparison.Local[row].Content == "local" && comparison.Base[row].Content == "ancestor" && comparison.Remote[row].Content == "remote" && comparison.RegionAtLine(row + 1) == 0);
+        Check("display alignment never edits the merge result", model.Document.Text == source && !model.HasChanges);
+        model.Resolve(0, ConflictResolution.UseOurs);
+        model.Resolve(0, ConflictResolution.UseTheirs);
+        Check("a resolved block can be explicitly reselected without touching common text", model.Document.Text == "head\nremote\ntail\n" && model.UnsolvedCount == 0);
+        model.Document.UndoStack.Undo();
+        Check("undo of reselection restores the previous resolved version", model.Document.Text == "head\nlocal\ntail\n");
+        var missing = new MergeConflictComparison(model, null);
+        Check("a missing ancestor never fabricates Base contents", missing.Base.All(l => l.LineNumber.Length == 0) && missing.Local.Count == missing.Remote.Count);
+        var many = string.Join("\n", Enumerable.Range(0, 100).Select(i => "deleted ancestor " + i));
+        comparison = new MergeConflictComparison(model, "head\n" + many + "\ntail\n");
+        Check("a longer ancestor retains every actual line exactly once", comparison.Base.Where(l => l.LineNumber.Length > 0).Select(l => l.Content).SequenceEqual(("head\n" + many + "\ntail\n").Split('\n')));
+        Check("long Base deletions keep all three columns the same height", comparison.Local.Count == comparison.Base.Count && comparison.Base.Count == comparison.Remote.Count && comparison.Ranges[0].End > comparison.Ranges[0].Start);
+        Check("Local and Remote display lines are not duplicated by Base padding", comparison.Local.Where(l => l.LineNumber.Length > 0).Select(l => l.Content).SequenceEqual(new[] { "head", "local", "tail", "" }) && comparison.Remote.Where(l => l.LineNumber.Length > 0).Select(l => l.Content).SequenceEqual(new[] { "head", "remote", "tail", "" }));
+    }
+
+    {
         var source = "head\n" + Block("one", "two") + "between\n" + Block("three", "four") + "tail\n";
         var model = new MergeConflictDocument(source);
         model.Resolve(0, ConflictResolution.UseOurs);

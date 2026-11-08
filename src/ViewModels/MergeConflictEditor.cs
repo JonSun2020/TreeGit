@@ -18,8 +18,12 @@ namespace SourceGit.ViewModels
         public object Mine { get; }
         public object Theirs { get; }
         public TextDocument ResultDocument => _buffer?.Document;
-        public List<Models.ConflictLine> OursLines => _buffer?.OursLines ?? [];
-        public List<Models.ConflictLine> TheirsLines => _buffer?.TheirsLines ?? [];
+        public List<Models.ConflictLine> OursLines => _comparison?.Local ?? [];
+        public List<Models.ConflictLine> BaseLines => _comparison?.Base ?? [];
+        public List<Models.ConflictLine> TheirsLines => _comparison?.Remote ?? [];
+        public IReadOnlyList<Models.MergeConflictRange> ComparisonRanges => _comparison?.Ranges ?? [];
+        public string BaseHint => _baseHint;
+        public string BaseSample => _baseText == null ? string.Empty : _baseText[..Math.Min(4096, _baseText.Length)];
         public IReadOnlyList<Models.ConflictRegion> ConflictRegions => _buffer?.Regions ?? [];
         public int MaxLineNumber => Math.Max(OursLines.Count, TheirsLines.Count);
         public int UnsolvedCount => _buffer?.UnsolvedCount ?? 0;
@@ -46,13 +50,16 @@ namespace SourceGit.ViewModels
         public int RegionForOffset(int offset) => _buffer?.RegionForOffset(offset) ?? -1;
         public int RegionForSourceLine(int line)
         {
-            for (var i = 0; i < ConflictRegions.Count; i++)
-                if (line - 1 >= ConflictRegions[i].StartLineInOriginal && line - 1 <= ConflictRegions[i].EndLineInOriginal) return i;
-            return -1;
+            return _comparison?.RegionAtLine(line) ?? -1;
         }
-        public bool IsActiveSourceLine(int line) => _activeConflictIndex >= 0 && _activeConflictIndex < ConflictRegions.Count &&
-            line - 1 >= ConflictRegions[_activeConflictIndex].StartLineInOriginal && line - 1 <= ConflictRegions[_activeConflictIndex].EndLineInOriginal;
+        public bool IsActiveSourceLine(int line) => _activeConflictIndex >= 0 && RegionForSourceLine(line) == _activeConflictIndex;
         public bool IsActiveResultLine(int line) => _buffer?.ContainsResultLine(_activeConflictIndex, line) == true;
+        public int RegionForResultLine(int line)
+        {
+            // Empty resolved blocks still have a visible caret location.
+            var index = _buffer?.RegionForOffset(ResultDocument.GetLineByNumber(line).Offset) ?? -1;
+            return index;
+        }
 
         public string Error { get => _error; private set => SetProperty(ref _error, value); }
         public bool IsSaving { get => _isSaving; private set { if (SetProperty(ref _isSaving, value)) NotifyState(); } }
@@ -102,6 +109,17 @@ namespace SourceGit.ViewModels
                 _expectedBytes = File.ReadAllBytes(path);
                 _expectedIndex = new Commands.QueryConflictEntries(repo.FullPath, filePath).GetResult();
                 if (string.IsNullOrEmpty(_expectedIndex)) { Error = App.Text("MergeConflictEditor.StateChanged"); return; }
+                try
+                {
+                    var bytes = new Commands.QueryConflictBase(repo.FullPath, _expectedIndex).GetResult();
+                    if (bytes != null) _baseText = Models.MergeConflictTextFile.Read(bytes).Text;
+                    else _baseHint = App.Text("MergeConflictEditor.EmptyBase");
+                }
+                catch (Exception ex)
+                {
+                    Native.OS.LogException(ex);
+                    _baseHint = App.Text("MergeConflictEditor.BaseUnavailable");
+                }
                 Load(_expectedBytes);
             }
             catch (Exception ex)
@@ -113,14 +131,13 @@ namespace SourceGit.ViewModels
 
         public Models.ConflictLineState GetLineState(int line)
         {
-            foreach (var region in ConflictRegions)
-            {
-                if (line < region.StartLineInOriginal || line > region.EndLineInOriginal) continue;
-                if (line == region.StartLineInOriginal) return region.IsResolved ? Models.ConflictLineState.ResolvedBlockStart : Models.ConflictLineState.ConflictBlockStart;
-                if (line == region.EndLineInOriginal) return region.IsResolved ? Models.ConflictLineState.ResolvedBlockEnd : Models.ConflictLineState.ConflictBlockEnd;
-                return region.IsResolved ? Models.ConflictLineState.ResolvedBlock : Models.ConflictLineState.ConflictBlock;
-            }
-            return Models.ConflictLineState.Normal;
+            var index = RegionForSourceLine(line + 1);
+            if (index < 0) return Models.ConflictLineState.Normal;
+            var region = ConflictRegions[index];
+            var range = ComparisonRanges[index];
+            if (line == range.Start) return region.IsResolved ? Models.ConflictLineState.ResolvedBlockStart : Models.ConflictLineState.ConflictBlockStart;
+            if (line == range.End) return region.IsResolved ? Models.ConflictLineState.ResolvedBlockEnd : Models.ConflictLineState.ConflictBlockEnd;
+            return region.IsResolved ? Models.ConflictLineState.ResolvedBlock : Models.ConflictLineState.ConflictBlock;
         }
 
         public bool ResolveRegion(int index, Models.ConflictResolution resolution)
@@ -214,11 +231,12 @@ namespace SourceGit.ViewModels
             if (_buffer != null) _buffer.Changed -= OnDocumentChanged;
             _inputCodec = _outputCodec = codec;
             _buffer = buffer;
+            _comparison = new Models.MergeConflictComparison(buffer, _baseText);
             _buffer.Changed += OnDocumentChanged;
             _activeConflictIndex = buffer.Regions.Count > 0 ? Math.Clamp(_activeConflictIndex, 0, buffer.Regions.Count - 1) : -1;
             _convertedEncoding = false;
             _selectedEncoding = EncodingChoices.First(e => e.CodePage == codec.CodePage);
-            foreach (var property in new[] { nameof(ResultDocument), nameof(OursLines), nameof(TheirsLines), nameof(ConflictRegions), nameof(MaxLineNumber), nameof(HasComparison), nameof(SelectedEncoding), nameof(TotalConflictCount), nameof(ActiveConflictIndex), nameof(ConflictPosition) }) OnPropertyChanged(property);
+            foreach (var property in new[] { nameof(ResultDocument), nameof(OursLines), nameof(BaseLines), nameof(TheirsLines), nameof(BaseHint), nameof(ConflictRegions), nameof(MaxLineNumber), nameof(HasComparison), nameof(SelectedEncoding), nameof(TotalConflictCount), nameof(ActiveConflictIndex), nameof(ConflictPosition) }) OnPropertyChanged(property);
             NotifyState();
         }
 
@@ -235,6 +253,9 @@ namespace SourceGit.ViewModels
         private readonly Repository _repo;
         private readonly string _filePath;
         private Models.MergeConflictDocument _buffer;
+        private Models.MergeConflictComparison _comparison;
+        private string _baseText;
+        private string _baseHint = string.Empty;
         private Models.MergeConflictTextFile _inputCodec, _outputCodec;
         private Models.MergeConflictEncoding _selectedEncoding;
         private byte[] _expectedBytes;

@@ -116,9 +116,10 @@ def press(name):pointer(*screen(button(name)['bounds']),click=True)
 def source_block(index,click=False,side='left',right=False):
     target=dialog()['merge']['regions'][index]['sourceTarget']
     assert target is not None,'Block is outside the current viewport'
-    if side=='right':
-        window=dialog();right=[s for s in layout()['scrolls'] if s['visible']][1]['bounds']
-        target={**target,'x':window['x']+(right['x']+80)*window['scaling']}
+    if side in ('base','right'):
+        target=dialog()['merge']['regions'][index]['baseTarget' if side=='base' else 'remoteTarget']
+        assert target is not None
+
     pointer(target['x'],target['y'],click or right,right)
 
 def press_text(text):
@@ -132,6 +133,23 @@ def choose(name):
     item=next(i for i in wait_for(menu_items) if i['name']==name)
     assert item['enabled'];pointer(item['x'],item['y'],click=True)
     wait_for(lambda:not menu_items())
+api.GetDC.argtypes=[wintypes.HWND];api.GetDC.restype=wintypes.HDC
+api.ReleaseDC.argtypes=[wintypes.HWND,wintypes.HDC]
+gdi=ctypes.WinDLL('gdi32',use_last_error=True)
+gdi.GetPixel.argtypes=[wintypes.HDC,ctypes.c_int,ctypes.c_int];gdi.GetPixel.restype=wintypes.DWORD
+def conflict_color(index,column):
+    window=dialog();region=window['merge']['regions'][index]
+    target=region[['sourceTarget','baseTarget','remoteTarget','resultTarget'][column]]
+    assert target is not None
+    scroller=[s for s in layout()['scrolls'] if s['visible']][column]
+    x=round(window['x']+(scroller['bounds']['x']+4)*window['scaling']);y=target['y']
+    assert owner(api.WindowFromPoint(wintypes.POINT(x,y)))==pid,'Read pixels only inside the owned QA window'
+    dc=api.GetDC(None)
+    try:pixel=gdi.GetPixel(dc,x,y)
+    finally:api.ReleaseDC(None,dc)
+    assert pixel!=0xffffffff
+    return pixel&255,(pixel>>8)&255,(pixel>>16)&255
+
 def select_conflicted_file():
     tool('ui_refresh',{'repo':str(repo)});time.sleep(.3)
     tool('ui_diff',{'repo':str(repo),'action':'select','file':file,'source':'unstaged'})
@@ -158,6 +176,8 @@ try:
     text=open_editor(use_button=True)
     check('actual merge markers load without BOM characters or synthetic padding',text==original.decode('utf-8-sig') and action('read')['unsolved']==2)
     check('the displayed result is enabled and editable',dialog()['merge']['editable'])
+    check('Base shows the actual common ancestor instead of either side','int first = 0;' in dialog()['merge']['baseSample'] and 'int first = 1;' not in dialog()['merge']['baseSample'] and not dialog()['merge']['baseHint'])
+    check('there are three comparison columns and one editable result',len([s for s in layout()['scrolls'] if s['visible']])==4)
     divider=next(s for s in layout()['splitters'] if s['visible'])
     for delta in (-10000,10000):
         tool('ui_layout',{'window':'active','action':'drag','splitter':divider['index'],'dy':delta});time.sleep(.15)
@@ -166,18 +186,29 @@ try:
     check('initial conflict position is one of a fixed total',dialog()['merge']['position']=='1/2')
     controls=layout();nav=button('PreviousConflict')['bounds']
     scrolls=[s for s in controls['scrolls'] if s['visible']]
-    check('navigation aligns with the THEIRS column',abs(nav['x']-scrolls[1]['bounds']['x'])<=2)
+    check('navigation aligns with the Remote column',abs(nav['x']-scrolls[2]['bounds']['x'])<=2)
     check('there are no bottom undo or redo buttons',not any(b['text'] in ('撤销','重做') for b in controls['buttons']))
     source_block(0)
     check('hover does not display actions over code',dialog()['merge']['contextMenu'] is None and not any(b['name'] in ('AcceptLocalConflict','AcceptRemoteConflict','RestoreLocalConflict','RestoreRemoteConflict') for b in layout()['buttons']))
     source_block(0,right=True)
-    check('left context menu has the three requested choices',menu_labels()[:3]==['仅用左边','先左后右','先右后左'])
+    check('Local has all four consistent choices',menu_labels()[:4]==['<-仅左边','仅右边->','先左后右','先右后左'])
     shot('left-context-menu')
     choose('RightThenLeftConflict')
     check('right-then-left menu action edits just the selected block','int first = 2;\r\nint first = 1;' in action('read')['text'] and action('read')['unsolved']==1)
+    for column in range(4):
+        red,green,blue=conflict_color(0,column)
+        check('the selected resolved block immediately turns green in column '+str(column),green>red+8)
+    press('UndoMergeResult')
+    for column in range(4):
+        red,green,blue=conflict_color(0,column)
+        check('undo immediately restores red in column '+str(column),red>green+8)
+    source_block(0,side='base',right=True)
+    check('Base has the same four choices',menu_labels()[:4]==['<-仅左边','仅右边->','先左后右','先右后左'])
+    choose('LeftThenRightConflict')
+    check('the Base menu still uses Local and Remote in the requested order','int first = 1;\r\nint first = 2;' in action('read')['text'])
     press('UndoMergeResult')
     source_block(0,side='right',right=True)
-    check('right context menu has the three requested choices',menu_labels()[:3]==['仅用右边','先左后右','先右后左'])
+    check('Remote has all four consistent choices',menu_labels()[:4]==['<-仅左边','仅右边->','先左后右','先右后左'])
     shot('right-context-menu');choose('UseRightConflict')
     check('right menu uses the remote contents','int first = 2;' in action('read')['text'] and 'int first = 1;' not in action('read')['text'])
     press('UndoMergeResult')
@@ -187,7 +218,7 @@ try:
     source_block(0)
     check('resolved blocks also show no hover overlay',dialog()['merge']['contextMenu'] is None)
     source_block(0,right=True)
-    check('a resolved block offers Restore in its context menu',menu_labels()[0]=='复原')
+    check('a resolved block retains the four choices and Restore',menu_labels()[:4]==['<-仅左边','仅右边->','先左后右','先右后左'] and '复原' in menu_labels())
     choose('RestoreConflict')
     check('Restore brings back exactly the original block',action('read')['text']==text and dialog()['merge']['unsolved']==2)
     press('UndoMergeResult')
@@ -207,6 +238,11 @@ try:
     check('real keyboard input edits the result',action('read')['text']==expected+'x')
     key(0x5A,ctrl=True);time.sleep(.2);check('real keyboard Undo restores the result',action('read')['text']==expected)
     key(0x59,ctrl=True);time.sleep(.2);check('real keyboard Redo restores the edit',action('read')['text']==expected+'x')
+    region=dialog()['merge']['regions'][1]['resultTarget']
+    if region:
+        pointer(region['x'],region['y'],click=True,right=True)
+        check('the editable result also uses the same four choices',menu_labels()[:4]==['<-仅左边','仅右边->','先左后右','先右后左'])
+        key(0x1b);wait_for(lambda:not menu_items())
     shot('manual-mixed-result')
     check('all-resolved navigation remains enabled and preserves the total',button('NextConflict')['enabled'] and dialog()['merge']['totalConflicts']==2)
     tool('ui_command',{'command':'close_dialog'})
