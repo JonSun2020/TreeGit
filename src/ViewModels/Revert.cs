@@ -2,7 +2,7 @@
 
 namespace SourceGit.ViewModels
 {
-    public class Revert : Popup
+    public class Revert : CommitAction
     {
         public Models.Commit Target
         {
@@ -15,7 +15,7 @@ namespace SourceGit.ViewModels
             set;
         }
 
-        public Revert(Repository repo, Models.Commit target)
+        public Revert(Repository repo, Models.Commit target) : base(repo)
         {
             _repo = repo;
             Target = target;
@@ -24,20 +24,10 @@ namespace SourceGit.ViewModels
 
         public override async Task<bool> Sure()
         {
-            using var lockWatcher = _repo.LockWatcher();
             ProgressDescription = $"Revert commit '{Target.SHA}' ...";
-
-            var log = _repo.CreateLog($"Revert '{Target.SHA}'");
-            Use(log);
-
-            var success = await new Commands.Revert(_repo.FullPath, Target.SHA, AutoCommit)
+            return await RunGitActionAsync($"Revert '{Target.SHA}'", log => new Commands.Revert(_repo.FullPath, Target.SHA, AutoCommit)
                 .Use(log)
-                .ExecAsync();
-
-            if (success) _repo.ClearCommitMessage();
-
-            log.Complete();
-            return true;
+                .ExecAsync());
         }
 
         private readonly Repository _repo = null;

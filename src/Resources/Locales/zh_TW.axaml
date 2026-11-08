@@ -1302,4 +1302,7 @@
   <x:String x:Key="Text.Rebase.Failed">Rebase could not complete. Check local changes or the command log, then retry.</x:String>
   <x:String x:Key="Text.Rebase.LocalFilesBlocked">Local files would be overwritten and have been preserved. Save or move them before rebasing.</x:String>
   <x:String x:Key="Text.Rebase.FinishCurrent">Continue or abort the current operation before starting another rebase. The pending files are now selected.</x:String>
+  <x:String x:Key="Text.CommitAction.FinishCurrent">請先完成或終止正在進行的操作，再開始新的操作。</x:String>
+  <x:String x:Key="Text.CommitAction.DestinationChanged">目前分支或提交已變更，請重新開啟此操作視窗後重試。</x:String>
+  <x:String x:Key="Text.CommitAction.Failed">本次操作未能完成。請檢查本機變更或查看命令記錄，然後重試。</x:String>
 </ResourceDictionary>

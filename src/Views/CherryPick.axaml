@@ -114,5 +114,7 @@
                 IsEnabled="{Binding AutoCommit}"
                 ToolTip.Tip="-x"/>
     </Grid>
+    <TextBlock Margin="0,8,0,0" Text="{Binding ErrorMessage}" TextWrapping="Wrap"
+               Foreground="{DynamicResource Brush.FG1}"/>
   </StackPanel>
 </UserControl>

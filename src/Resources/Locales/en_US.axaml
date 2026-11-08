@@ -1302,4 +1302,7 @@
   <x:String x:Key="Text.Rebase.Failed">Rebase could not complete. Check local changes or the command log, then retry.</x:String>
   <x:String x:Key="Text.Rebase.LocalFilesBlocked">Local files would be overwritten and have been preserved. Save or move them before rebasing.</x:String>
   <x:String x:Key="Text.Rebase.FinishCurrent">Continue or abort the current operation before starting another rebase. The pending files are now selected.</x:String>
+  <x:String x:Key="Text.CommitAction.FinishCurrent">Finish or abort the operation already in progress before starting another one.</x:String>
+  <x:String x:Key="Text.CommitAction.DestinationChanged">The current branch or commit changed. Reopen this operation and retry.</x:String>
+  <x:String x:Key="Text.CommitAction.Failed">The operation could not complete. Check local changes or the command log, then retry.</x:String>
 </ResourceDictionary>

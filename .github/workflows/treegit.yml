@@ -84,6 +84,9 @@ jobs:
       - name: Verify native rebase recovery and commit-draft preservation
         shell: pwsh
         run: python tests/rebase_safety.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/rebase-safety-results"
+      - name: Verify cherry-pick and revert recovery and commit-draft preservation
+        shell: pwsh
+        run: python tests/commit_action_safety.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/commit-action-safety-results"
       - name: Verify closing during an active native commit
         shell: pwsh
         run: python tests/close_during_commit.py src/bin/Debug/net10.0/SourceGit.exe "${{ runner.temp }}/close-during-commit-results"
@@ -141,6 +144,7 @@ jobs:
             ${{ runner.temp }}/ssh-keygen-results/command-pipes-results.json
             ${{ runner.temp }}/replay-safety-results/command-pipes-results.json
             ${{ runner.temp }}/rebase-safety-results/*.json
+            ${{ runner.temp }}/commit-action-safety-results/*.json
             ${{ runner.temp }}/mode-results/repository-mode-results.json
             ${{ runner.temp }}/profile-safety-results/*.json
             ${{ runner.temp }}/startup-results/ui-startup-results.json

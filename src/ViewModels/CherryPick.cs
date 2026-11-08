@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace SourceGit.ViewModels
 {
-    public class CherryPick : Popup
+    public class CherryPick : CommitAction
     {
         public List<Models.Commit> Targets
         {
@@ -43,7 +43,7 @@ namespace SourceGit.ViewModels
             set;
         }
 
-        public CherryPick(Repository repo, List<Models.Commit> targets)
+        public CherryPick(Repository repo, List<Models.Commit> targets) : base(repo)
         {
             _repo = repo;
             Targets = targets;
@@ -54,7 +54,7 @@ namespace SourceGit.ViewModels
             AutoCommit = true;
         }
 
-        public CherryPick(Repository repo, Models.Commit merge, List<Models.Commit> parents)
+        public CherryPick(Repository repo, Models.Commit merge, List<Models.Commit> parents) : base(repo)
         {
             _repo = repo;
             Targets = [merge];
@@ -67,12 +67,12 @@ namespace SourceGit.ViewModels
 
         public override async Task<bool> Sure()
         {
-            using var lockWatcher = _repo.LockWatcher();
             ProgressDescription = "Cherry-Pick commit(s) ...";
+            return await RunGitActionAsync("Cherry-Pick", RunAsync);
+        }
 
-            var log = _repo.CreateLog("Cherry-Pick");
-            Use(log);
-
+        private async Task<bool> RunAsync(CommandLog log)
+        {
             bool success;
             if (IsMergeCommit)
             {
@@ -110,10 +110,7 @@ namespace SourceGit.ViewModels
                 }
             }
 
-            if (success) _repo.ClearCommitMessage();
-
-            log.Complete();
-            return true;
+            return success;
         }
 
         private readonly Repository _repo = null;
