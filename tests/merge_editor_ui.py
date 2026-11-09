@@ -113,7 +113,10 @@ def pointer(x,y,click=False,right=False):
     assert owner(hwnd)==pid,'Refusing pointer input outside the owned CI GUI'
     if owner(api.GetForegroundWindow())!=pid:api.SetForegroundWindow(hwnd)
     assert api.SetCursorPos(point.x,point.y)
-    if click:api.mouse_event(8 if right else 2,0,0,0,0);api.mouse_event(16 if right else 4,0,0,0,0)
+    if click:
+        # Let the owned window consume the pointer move before a real click.
+        time.sleep(.1)
+        api.mouse_event(8 if right else 2,0,0,0,0);time.sleep(.05);api.mouse_event(16 if right else 4,0,0,0,0)
     time.sleep(.25)
 def layout():return tool('ui_layout',{'window':'active'})
 def button(name):return next(b for b in layout()['buttons'] if b['name']==name)
@@ -125,12 +128,14 @@ def screen(bounds,xf=.5,yf=.5):
         window={'x':origin.x,'y':origin.y,'scaling':layout()['window']['scaling']}
     return window['x']+(bounds['x']+bounds['width']*xf)*window['scaling'],window['y']+(bounds['y']+bounds['height']*yf)*window['scaling']
 def press_button(item):
+    stable=0
     for _ in range(60):
         time.sleep(.05)
         current=next((b for b in layout()['buttons'] if b['name']==item['name'] and b['text']==item['text'] and b['enabled']),None)
-        if current and current['bounds']==item['bounds'] and current['screen']==item['screen']:break
+        stable=stable+1 if current and current['bounds']==item['bounds'] and current['screen']==item['screen'] else 0
         if current:item=current
-    assert current and item['screen'], 'Button did not become available'
+        if stable>=3:break
+    assert current and stable>=3 and item['screen'], 'Button did not settle before the click'
     pointer(item['screen']['x'],item['screen']['y'],click=True)
 
 def press(name):press_button(button(name))

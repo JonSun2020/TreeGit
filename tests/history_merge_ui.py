@@ -194,6 +194,25 @@ def open_commit_menu(sha, select=True):
     api.mouse_event(8, 0, 0, 0, 0); api.mouse_event(16, 0, 0, 0, 0)
     return wait_for(lambda: (m if m and all(i['width'] > 10 and i['height'] > 0 for i in m['items']) else None) if (m := state()['commitMenu']) else None)['items']
 
+def press_commit_menu(name):
+    # Popup placement and pointer hover finish asynchronously. Measure the
+    # final menu item, rather than clicking its first non-empty layout bounds.
+    previous = None; stable = 0
+    for _ in range(60):
+        menu = state()['commitMenu']
+        item = next((i for i in (menu or {}).get('items', []) if i['name'] == name and i['enabled']), None)
+        geometry = tuple(item.get(k) for k in ('x', 'y', 'width', 'height')) if item else None
+        stable = stable + 1 if geometry and geometry == previous else 0
+        if stable >= 3: break
+        previous = geometry; time.sleep(.05)
+    assert item and stable >= 3, 'Menu item did not settle: ' + name
+    point = wintypes.POINT(item['x'], item['y'])
+    assert owner(api.WindowFromPoint(point)) == pid
+    api.SetCursorPos(point.x, point.y); time.sleep(.1)
+    current = next(i for i in state()['commitMenu']['items'] if i['name'] == name)
+    assert all(current[k] == item[k] for k in ('x', 'y', 'width', 'height')), 'Menu moved before the click'
+    api.mouse_event(2, 0, 0, 0, 0); time.sleep(.05); api.mouse_event(4, 0, 0, 0, 0)
+
 def close_commit_menu():
     assert owner(api.GetForegroundWindow()) == pid
     api.keybd_event(0x1B, 0, 0, 0); api.keybd_event(0x1B, 0, 2, 0)
@@ -269,9 +288,7 @@ try:
     check('commit context menu exposes SourceTree common actions in order', [i['name'] for i in items] == expected)
     check('reset to current HEAD remains available while redundant merge and rebase are disabled', next(i for i in items if i['name'] == 'CommitReset')['enabled'] and not any(i['enabled'] for i in items if i['name'] in ['CommitMerge', 'CommitRebase', 'CommitInteractiveRebase']))
     shot('commit-menu-current-head', active=True)
-    reset_item = next(i for i in items if i['name'] == 'CommitReset')
-    point = wintypes.POINT(reset_item['x'], reset_item['y']); assert owner(api.WindowFromPoint(point)) == pid
-    api.SetCursorPos(point.x, point.y); api.mouse_event(2, 0, 0, 0, 0); api.mouse_event(4, 0, 0, 0, 0)
+    press_commit_menu('CommitReset')
     wait_for(lambda: state()['pendingDialog'] == 'Reset'); cancel()
     check('current HEAD reset opens a real cancellable operation without changing files', (repo / 'values.txt').read_text() == 'local edit\n' and git('rev-parse', 'HEAD').stdout.strip() == main)
     for name, popup, target in [('CommitCheckout', 'CheckoutDetached', main), ('CommitMerge', 'Merge', conflict_sha),
@@ -279,8 +296,7 @@ try:
             ('CommitBranch', 'CreateBranch', main), ('CommitRevert', 'Revert', conflict_sha), ('CommitCherryPick', 'CherryPick', conflict_sha)]:
         items = open_commit_menu(target)
         item = next(i for i in items if i['name'] == name); check(name + ': common entry is enabled for its valid target', item['enabled'])
-        point = wintypes.POINT(item['x'], item['y']); assert owner(api.WindowFromPoint(point)) == pid
-        api.SetCursorPos(point.x, point.y); api.mouse_event(2, 0, 0, 0, 0); api.mouse_event(4, 0, 0, 0, 0)
+        press_commit_menu(name)
         wait_for(lambda: state()['pendingDialog'] == popup)
         if popup == 'Merge': check('context merge uses the commit under the pointer', state()['mergeDialog']['revision'] == conflict_sha)
         cancel()
