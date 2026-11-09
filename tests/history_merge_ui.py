@@ -137,24 +137,47 @@ def click_pending_and_measure(label):
     assert owner(api.WindowFromPoint(point)) == pid
     left = round(row['subjectX'] - scale)
     top = round(row['y'] + 3*scale); bottom = round(row['y'] + 16*scale)
-    samples = []; stopped = threading.Event()
+    samples = []; stopped = threading.Event(); ready = threading.Event()
+    # Capture one small top-down DIB per frame. GetPixel performs a synchronous
+    # desktop read on every call and cannot measure a transient text shift.
+    class BitmapHeader(ctypes.Structure):
+        _fields_ = [('size', wintypes.DWORD), ('width', wintypes.LONG), ('height', wintypes.LONG),
+                    ('planes', wintypes.WORD), ('bits', wintypes.WORD), ('compression', wintypes.DWORD),
+                    ('image_size', wintypes.DWORD), ('xppm', wintypes.LONG), ('yppm', wintypes.LONG),
+                    ('used', wintypes.DWORD), ('important', wintypes.DWORD)]
+    gdi.CreateCompatibleDC.argtypes = [wintypes.HDC]; gdi.CreateCompatibleDC.restype = wintypes.HDC
+    gdi.CreateDIBSection.argtypes = [wintypes.HDC, ctypes.POINTER(BitmapHeader), wintypes.UINT, ctypes.POINTER(ctypes.c_void_p), wintypes.HANDLE, wintypes.DWORD]
+    gdi.CreateDIBSection.restype = wintypes.HANDLE
+    gdi.SelectObject.argtypes = [wintypes.HDC, wintypes.HANDLE]; gdi.SelectObject.restype = wintypes.HANDLE
+    gdi.BitBlt.argtypes = [wintypes.HDC, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, wintypes.HDC, ctypes.c_int, ctypes.c_int, wintypes.DWORD]
+    gdi.DeleteObject.argtypes = [wintypes.HANDLE]; gdi.DeleteDC.argtypes = [wintypes.HDC]
     def contrast(a, b):
         return max(abs(((a >> shift) & 255) - ((b >> shift) & 255)) for shift in (0, 8, 16))
     def observe():
-        dc = api.GetDC(None)
+        dc = api.GetDC(None); memory = gdi.CreateCompatibleDC(dc)
+        width = round(row['subjectX'] - row['x'] + 125*scale); height = round(19*scale)
+        header = BitmapHeader(ctypes.sizeof(BitmapHeader), width, -height, 1, 32, 0, width*height*4, 0, 0, 0, 0)
+        bits = ctypes.c_void_p(); bitmap = gdi.CreateDIBSection(dc, ctypes.byref(header), 0, ctypes.byref(bits), None, 0)
+        assert bitmap and bits.value
+        old = gdi.SelectObject(memory, bitmap); pixels = (ctypes.c_uint32*(width*height)).from_address(bits.value)
+        first_x = left - row['x']; top_y = top - row['y']; bottom_y = bottom - row['y']
+        ready.set()
         try:
             while not stopped.is_set():
-                background = gdi.GetPixel(dc, left - round(scale), top)
+                assert gdi.BitBlt(memory, 0, 0, width, height, dc, row['x'], row['y'], 0x00CC0020)
+                background = pixels[top_y*width + first_x - round(scale)]
                 first = None
-                for x in range(left, left + round(120*scale)):
-                    if sum(contrast(gdi.GetPixel(dc, x, y), background) > 80 for y in range(top, bottom)) >= 2:
-                        first = x; break
-                samples.append({'dot': gdi.GetPixel(dc, point.x, point.y), 'inkX': first})
+                for x in range(first_x, first_x + round(120*scale)):
+                    if sum(contrast(pixels[y*width+x], background) > 80 for y in range(top_y, bottom_y)) >= 2:
+                        first = x + row['x']; break
+                samples.append({'dot': pixels[round(9.5*scale)*width + round(6*scale)] & 0xffffff, 'inkX': first})
                 time.sleep(.008)
-        finally: api.ReleaseDC(None, dc)
+        finally:
+            gdi.SelectObject(memory, old); gdi.DeleteObject(bitmap); gdi.DeleteDC(memory); api.ReleaseDC(None, dc)
     observer = threading.Thread(target=observe); observer.start()
     try:
-        press('WorkingCopyRow'); wait_for(lambda: state()['workingCopySelected']); time.sleep(.3)
+        assert ready.wait(5), 'Desktop frame observer did not initialize'
+        press('WorkingCopyRow'); wait_for(lambda: state()['workingCopySelected']); time.sleep(.5)
     finally: stopped.set(); observer.join(timeout=3)
     motion_samples.append({'case': label, 'row': row, 'scale': scale, 'samples': samples})
     (out / 'pending-row-motion.json').write_text(json.dumps(motion_samples, indent=2), encoding='utf-8')
