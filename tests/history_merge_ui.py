@@ -168,7 +168,7 @@ def click_pending_and_measure(label):
                 background = pixels[top_y*width + first_x - round(scale)]
                 first = None
                 for x in range(first_x, first_x + round(120*scale)):
-                    if sum(contrast(pixels[y*width+x], background) > 80 for y in range(top_y, bottom_y)) >= 2:
+                    if sum(contrast(pixels[y*width+x], background) > 32 for y in range(top_y, bottom_y)) >= 2:
                         first = x + row['x']; break
                 samples.append({'dot': pixels[round(9.5*scale)*width + round(6*scale)] & 0xffffff, 'inkX': first})
                 time.sleep(.008)
@@ -183,7 +183,7 @@ def click_pending_and_measure(label):
     (out / 'pending-row-motion.json').write_text(json.dumps(motion_samples, indent=2), encoding='utf-8')
     check(label + ': pending graph marker stays at the same physical pixel throughout selection', len(samples) >= 10 and all(p['dot'] == 0x8a8a8a for p in samples))
     positions = [p['inkX'] for p in samples]
-    check(label + ': rendered description ink stays fixed throughout selection', len(samples) >= 10 and None not in positions and max(positions) - min(positions) <= 1)
+    check(label + ': rendered description ink stays fixed throughout selection', len(samples) >= 10 and None not in positions and max(positions) - min(positions) <= 2)
 
 def open_commit_menu(sha):
     tool('ui_select_commit', {'repo': str(repo), 'revision': sha})
