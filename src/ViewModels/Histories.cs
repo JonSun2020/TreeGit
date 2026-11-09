@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 using Avalonia;
@@ -164,13 +165,28 @@ namespace SourceGit.ViewModels
         public bool HasWorkingCopy => !_repo.IsBare;
         public bool HasPendingChanges => HasWorkingCopy && _repo.LocalChangesCount > 0;
         public Thickness PendingRowsMargin => new(0, HasPendingChanges ? 19 : 0, 0, 0);
-        public Thickness CommitGraphMargin => new(0, HasPendingChanges ? 43 : 24, 0, 0);
+        public Thickness CommitGraphMargin => new(0, 24, 0, 0);
         public int WorkingCopyHeadIndex => HasPendingChanges ? _commits.FindIndex(c => c.IsCurrentHead) : -1;
+        public IReadOnlyList<int> WorkingCopyParentIndices => !HasPendingChanges ? [] :
+            _commits.Select((commit, index) => (commit, index))
+                .Where(item => item.commit.IsCurrentHead || item.commit.SHA == _preferredGraphHead || _pendingMergeHeads.Contains(item.commit.SHA))
+                .Select(item => item.index).ToArray();
+
+        internal static string[] ReadPendingMergeHeads(string gitDir) =>
+            InProgressContext.ReadStateFile(Path.Combine(gitDir, "MERGE_HEAD"))?
+                .Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(sha => (sha.Length == 40 || sha.Length == 64) && sha.All(Uri.IsHexDigit)).Distinct().ToArray() ?? [];
+
+        private string[] _pendingMergeHeads = [];
 
         public void NotifyWorkingCopyChanged()
         {
-            foreach (var name in new[] { nameof(HasPendingChanges), nameof(PendingRowsMargin), nameof(CommitGraphMargin), nameof(WorkingCopyHeadIndex) })
+            var mergeHeads = ReadPendingMergeHeads(_repo.GitDir);
+            var changed = !_pendingMergeHeads.SequenceEqual(mergeHeads);
+            _pendingMergeHeads = mergeHeads;
+            foreach (var name in new[] { nameof(HasPendingChanges), nameof(PendingRowsMargin), nameof(CommitGraphMargin), nameof(WorkingCopyHeadIndex), nameof(WorkingCopyParentIndices) })
                 OnPropertyChanged(name);
+            if (changed) _repo.RefreshCommits();
         }
         public bool ShowRemoteBranches
         {
@@ -261,6 +277,7 @@ namespace SourceGit.ViewModels
             Commits = commits;
             OnPropertyChanged(nameof(GraphWidth));
             OnPropertyChanged(nameof(WorkingCopyHeadIndex));
+            OnPropertyChanged(nameof(WorkingCopyParentIndices));
         }
 
         public Models.CommitGraphHighlighting GraphHighlighting

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
@@ -209,6 +209,7 @@ namespace SourceGit.Automation
                             var repositoryView = mainWindow.GetVisualDescendants().OfType<Views.Repository>().FirstOrDefault(v => v.DataContext == r);
                             var historyList = repositoryView?.GetVisualDescendants().OfType<Views.HistoriesCommitList>().FirstOrDefault();
                             var pendingRow = repositoryView?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "WorkingCopyRow");
+                            var commitMenu = historyList?.FindAncestorOfType<Views.Histories>()?.OpenCommitMenu;
                             var searchResults = r.Histories?.SearchCommitContext.Results;
                             return new
                             {
@@ -227,7 +228,17 @@ namespace SourceGit.Automation
                                     x = pendingRow.PointToScreen(default).X, y = pendingRow.PointToScreen(default).Y,
                                     width = pendingRow.Bounds.Width, height = pendingRow.Bounds.Height,
                                     subjectX = pendingRow.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Text == "未提交的更改")?.PointToScreen(default).X,
-                                    graphMargin = r.Histories?.CommitGraphMargin.Top },
+                                    graphMargin = r.Histories?.CommitGraphMargin.Top,
+                                    parents = r.Histories?.WorkingCopyParentIndices.Select(index => new { sha = r.Histories.Commits[index].SHA, index,
+                                        x = r.Histories.Graph?.Dots[index].Center.X }).ToArray() },
+                                historyRows = historyList?.GetVisualDescendants().OfType<DataGridRow>().Where(row => row.IsEffectivelyVisible && row.DataContext is Models.Commit).Take(24)
+                                    .Select(row => new { sha = ((Models.Commit)row.DataContext).SHA,
+                                        x = row.PointToScreen(new Point(Math.Min(row.Bounds.Width / 2, 240), row.Bounds.Height / 2)).X,
+                                        y = row.PointToScreen(new Point(0, row.Bounds.Height / 2)).Y }).ToArray(),
+                                commitMenu = commitMenu?.IsOpen != true ? null : new {
+                                    items = commitMenu.Items.OfType<MenuItem>().Select(item => new { name = item.Name, text = item.Header?.ToString(), enabled = item.IsEnabled,
+                                        x = item.PointToScreen(new Point(item.Bounds.Width / 2, item.Bounds.Height / 2)).X,
+                                        y = item.PointToScreen(new Point(item.Bounds.Width / 2, item.Bounds.Height / 2)).Y }).ToArray() },
                                 workingCopyState = r.WorkingCopy == null ? null : new { staging = r.WorkingCopy.IsStaging, unstaging = r.WorkingCopy.IsUnstaging,
                                     committing = r.WorkingCopy.IsCommitting, canChangeIndex = r.WorkingCopy.CanChangeIndex,
                                     message = r.WorkingCopy.CommitMessage,

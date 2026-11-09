@@ -1,13 +1,16 @@
 ﻿using Avalonia;
 using Avalonia.Controls;
+using System.Collections.Generic;
 using Avalonia.Media;
 
 namespace SourceGit.Views
 {
     public class CommitGraph : Control
     {
-        public static readonly StyledProperty<int> PendingHeadIndexProperty = AvaloniaProperty.Register<CommitGraph, int>(nameof(PendingHeadIndex), -1);
-        public int PendingHeadIndex { get => GetValue(PendingHeadIndexProperty); set => SetValue(PendingHeadIndexProperty, value); }
+        public static readonly StyledProperty<bool> HasPendingChangesProperty = AvaloniaProperty.Register<CommitGraph, bool>(nameof(HasPendingChanges));
+        public bool HasPendingChanges { get => GetValue(HasPendingChangesProperty); set => SetValue(HasPendingChangesProperty, value); }
+        public static readonly StyledProperty<IReadOnlyList<int>> PendingHeadIndicesProperty = AvaloniaProperty.Register<CommitGraph, IReadOnlyList<int>>(nameof(PendingHeadIndices));
+        public IReadOnlyList<int> PendingHeadIndices { get => GetValue(PendingHeadIndicesProperty); set => SetValue(PendingHeadIndicesProperty, value); }
 
         public static readonly DirectProperty<CommitGraph, Models.CommitGraph> GraphProperty =
             AvaloniaProperty.RegisterDirect<CommitGraph, Models.CommitGraph>(
@@ -46,29 +49,40 @@ namespace SourceGit.Views
         {
             base.Render(context);
 
-            if (_graph == null || _layout == null)
+            if (_layout == null)
                 return;
 
             var startY = _layout.StartY;
             var clipWidth = _layout.ClipWidth;
             var clipHeight = Bounds.Height;
             var rowHeight = _layout.RowHeight;
+            var rowOffset = HasPendingChanges ? rowHeight : 0;
             var endY = startY + clipHeight + 28;
 
             using (context.PushClip(new Rect(0, 0, clipWidth, clipHeight)))
-            using (context.PushTransform(Matrix.CreateTranslation(0, -startY)))
+            using (context.PushTransform(Matrix.CreateTranslation(0, rowOffset - startY)))
             {
-                if (PendingHeadIndex >= 0 && PendingHeadIndex < _graph.Dots.Count)
+                if (HasPendingChanges)
                 {
-                    var dot = _graph.Dots[PendingHeadIndex];
-                    var target = new Point(dot.Center.X, dot.Center.Y * rowHeight);
-                    var pen = new Pen(Brushes.Gray, 2);
-                    var join = new Point(6, target.Y - (target.X == 6 ? 0 : rowHeight * .5));
-                    context.DrawLine(pen, new Point(6, -rowHeight * .5), join);
-                    if (target != join) context.DrawLine(pen, join, target);
+                    var origin = new Point(6, -rowHeight * .5);
+                    if (_graph != null && PendingHeadIndices != null)
+                        foreach (var index in PendingHeadIndices)
+                        {
+                            if (index < 0 || index >= _graph.Dots.Count) continue;
+                            var dot = _graph.Dots[index];
+                            var target = new Point(dot.Center.X, dot.Center.Y * rowHeight);
+                            var pen = Models.CommitGraph.Pens[dot.Color];
+                            var join = new Point(target.X, origin.Y + (target.X == origin.X ? 0 : rowHeight * .4));
+                            context.DrawLine(new Pen(Brushes.Gray, 2), origin, join);
+                            context.DrawLine(pen, join, target);
+                        }
+                    context.DrawEllipse(new SolidColorBrush(Color.Parse("#8A8A8A")), new Pen(Brushes.White, 1.5), origin, 5, 5);
                 }
-                DrawCurves(context, _graph, startY, endY, rowHeight);
-                DrawAnchors(context, _graph, startY, endY, rowHeight);
+                if (_graph != null)
+                {
+                    DrawCurves(context, _graph, startY - rowOffset, endY - rowOffset, rowHeight);
+                    DrawAnchors(context, _graph, startY - rowOffset, endY - rowOffset, rowHeight);
+                }
             }
         }
 
@@ -78,7 +92,7 @@ namespace SourceGit.Views
 
             if (change.Property == GraphProperty ||
                 change.Property == LayoutProperty ||
-                change.Property == DotBrushProperty || change.Property == PendingHeadIndexProperty)
+                change.Property == DotBrushProperty || change.Property == PendingHeadIndicesProperty || change.Property == HasPendingChangesProperty)
                 InvalidateVisual();
         }
 

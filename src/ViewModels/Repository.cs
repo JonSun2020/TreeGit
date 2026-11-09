@@ -1441,6 +1441,9 @@ namespace SourceGit.ViewModels
                 if (!string.IsNullOrEmpty(graphView.NavigationCommit))
                     builder.Append(' ').Append(graphView.NavigationCommit.Quoted());
 
+                var pendingMergeHeads = SourceGit.ViewModels.Histories.ReadPendingMergeHeads(GitDir);
+                foreach (var mergeHead in pendingMergeHeads) builder.Append(' ').Append(mergeHead.Quoted());
+
                 var commits = await new Commands.QueryCommits(FullPath, builder.ToString())
                     .GetResultAsync()
                     .ConfigureAwait(false);
@@ -1487,7 +1490,8 @@ namespace SourceGit.ViewModels
                 {
                     graphView.Name = commits.Find(c => c.SHA == preferredHead)?.Decorators.Find(d => d.Type == Models.DecoratorType.CurrentBranchHead)?.Name ?? graphView.Name;
                     foreach (var commit in commits)
-                        commit.Decorators.RemoveAll(d => (d.Type is Models.DecoratorType.LocalBranchHead or Models.DecoratorType.RemoteBranchHead or Models.DecoratorType.CurrentBranchHead) && d.Name != graphView.Name && d.Name != upstreamName);
+                        if (!Array.Exists(pendingMergeHeads, sha => sha == commit.SHA))
+                            commit.Decorators.RemoveAll(d => (d.Type is Models.DecoratorType.LocalBranchHead or Models.DecoratorType.RemoteBranchHead or Models.DecoratorType.CurrentBranchHead) && d.Name != graphView.Name && d.Name != upstreamName);
                 }
 
                 Dispatcher.UIThread.Invoke(() =>
@@ -1620,7 +1624,9 @@ namespace SourceGit.ViewModels
                     WorkingCopyRefreshVersion++;
                     OnPropertyChanged(nameof(WorkingCopyStatusKnown));
                     _workingCopy.SetData(changes);
+                    var countChanged = LocalChangesCount != changes.Count;
                     LocalChangesCount = changes.Count;
+                    if (!countChanged) _histories?.NotifyWorkingCopyChanged();
                     OnPropertyChanged(nameof(InProgressContext));
                     GetOwnerPage()?.ChangeDirtyState(Models.DirtyState.HasLocalChanges, changes.Count == 0);
                 });

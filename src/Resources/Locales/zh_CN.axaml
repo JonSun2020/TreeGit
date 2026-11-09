@@ -1320,4 +1320,17 @@
   <x:String x:Key="Text.Conflict.State.BothModified">Local 和 Remote 均有修改</x:String>
   <x:String x:Key="Text.Conflict.RevertVersion">被回退提交之前的版本</x:String>
   <x:String x:Key="Text.Conflict.StashOrPatch">贮藏或补丁中的更改</x:String>
+  <x:String x:Key="Text.CommitMenu.Checkout">检出…</x:String>
+  <x:String x:Key="Text.CommitMenu.Merge">合并…</x:String>
+  <x:String x:Key="Text.CommitMenu.Rebase">变基…</x:String>
+  <x:String x:Key="Text.CommitMenu.Tag">标签…</x:String>
+  <x:String x:Key="Text.CommitMenu.Archive">存档…</x:String>
+  <x:String x:Key="Text.CommitMenu.Branch">分支…</x:String>
+  <x:String x:Key="Text.CommitMenu.InteractiveRebase">交互式变基此提交的子提交…</x:String>
+  <x:String x:Key="Text.CommitMenu.Reset">重置当前分支到此次提交…</x:String>
+  <x:String x:Key="Text.CommitMenu.Revert">回滚提交…</x:String>
+  <x:String x:Key="Text.CommitMenu.Patch">创建补丁…</x:String>
+  <x:String x:Key="Text.CommitMenu.CherryPick">遴选…</x:String>
+  <x:String x:Key="Text.CommitMenu.CopySHA">复制 SHA 到剪贴板</x:String>
+  <x:String x:Key="Text.CommitMenu.Advanced">高级操作</x:String>
 </ResourceDictionary>

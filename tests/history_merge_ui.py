@@ -25,7 +25,7 @@ root = Path(tempfile.mkdtemp(prefix='TreeGit merge flow QA ')).resolve()
 repo = root / 'repo'; repo.mkdir()
 env = os.environ.copy()
 env.update(GIT_CONFIG_GLOBAL=str(root / 'global.gitconfig'), GIT_CONFIG_NOSYSTEM='1')
-checks = []; failure = None; pid = None
+checks = []; failure = None; pid = None; motion_samples = []
 
 def git(*args, ok=True):
     r = subprocess.run(['git', '-C', str(repo), *args], env=env, capture_output=True, text=True, encoding='utf-8')
@@ -130,24 +130,52 @@ api.ReleaseDC.argtypes = [wintypes.HWND, wintypes.HDC]
 gdi = ctypes.WinDLL('gdi32', use_last_error=True)
 gdi.GetPixel.argtypes = [wintypes.HDC, ctypes.c_int, ctypes.c_int]; gdi.GetPixel.restype = wintypes.DWORD
 
-def click_pending_and_measure():
+def click_pending_and_measure(label):
     activate_main()
     row = state()['pendingRow']; scale = layout()['window']['scaling']
     point = wintypes.POINT(round(row['x'] + 6*scale), round(row['y'] + 9.5*scale))
     assert owner(api.WindowFromPoint(point)) == pid
+    left = round(row['subjectX'] - scale)
+    top = round(row['y'] + 3*scale); bottom = round(row['y'] + 16*scale)
     samples = []; stopped = threading.Event()
+    def contrast(a, b):
+        return max(abs(((a >> shift) & 255) - ((b >> shift) & 255)) for shift in (0, 8, 16))
     def observe():
         dc = api.GetDC(None)
         try:
             while not stopped.is_set():
-                samples.append(gdi.GetPixel(dc, point.x, point.y))
+                background = gdi.GetPixel(dc, left - round(scale), top)
+                first = None
+                for x in range(left, left + round(120*scale)):
+                    if sum(contrast(gdi.GetPixel(dc, x, y), background) > 80 for y in range(top, bottom)) >= 2:
+                        first = x; break
+                samples.append({'dot': gdi.GetPixel(dc, point.x, point.y), 'inkX': first})
                 time.sleep(.008)
         finally: api.ReleaseDC(None, dc)
     observer = threading.Thread(target=observe); observer.start()
     try:
         press('WorkingCopyRow'); wait_for(lambda: state()['workingCopySelected']); time.sleep(.3)
     finally: stopped.set(); observer.join(timeout=3)
-    check('pending graph marker stays at the same physical pixel throughout selection', len(samples) >= 10 and all(p == 0x8a8a8a for p in samples))
+    motion_samples.append({'case': label, 'row': row, 'scale': scale, 'samples': samples})
+    (out / 'pending-row-motion.json').write_text(json.dumps(motion_samples, indent=2), encoding='utf-8')
+    check(label + ': pending graph marker stays at the same physical pixel throughout selection', len(samples) >= 10 and all(p['dot'] == 0x8a8a8a for p in samples))
+    positions = [p['inkX'] for p in samples]
+    check(label + ': rendered description ink stays fixed throughout selection', len(samples) >= 10 and None not in positions and max(positions) - min(positions) <= 1)
+
+def open_commit_menu(sha):
+    tool('ui_select_commit', {'repo': str(repo), 'revision': sha})
+    row = wait_for(lambda: next((r for r in state()['historyRows'] if r['sha'] == sha), None))
+    hwnd = activate_main(); point = wintypes.POINT(row['x'], row['y'])
+    assert owner(api.WindowFromPoint(point)) == pid and api.GetAncestor(api.WindowFromPoint(point), 2) == hwnd
+    assert api.SetCursorPos(point.x, point.y)
+    api.mouse_event(8, 0, 0, 0, 0); api.mouse_event(16, 0, 0, 0, 0)
+    return wait_for(lambda: state()['commitMenu'])['items']
+
+def close_commit_menu():
+    assert owner(api.GetForegroundWindow()) == pid
+    api.keybd_event(0x1B, 0, 0, 0); api.keybd_event(0x1B, 0, 2, 0)
+    wait_for(lambda: state()['commitMenu'] is None)
+
 def press(name):
     main = activate_main()
     def available(): return next((b for b in layout()['buttons'] if b['name'] == name and b['enabled']), None)
@@ -204,7 +232,24 @@ try:
     write('values.txt', 'local edit\n'); refresh(); pending(True)
     check('tracked change reveals the history row', state()['changes'] == 1)
     tool('ui_select_commit', {'repo': str(repo), 'revision': base})
-    click_pending_and_measure()
+    click_pending_and_measure('Blue 100%')
+    for theme, zoom in [('Light', 1), ('Dark', 1), ('Light', 1.5), ('Blue', 1.5)]:
+        tool('ui_window', {'state': 'maximized', 'theme': theme, 'zoom': zoom})
+        tool('ui_select_commit', {'repo': str(repo), 'revision': base}); time.sleep(.2)
+        click_pending_and_measure(f'{theme} {zoom*100:g}%')
+    tool('ui_window', {'state': 'maximized', 'theme': 'Blue', 'zoom': 1})
+    items = open_commit_menu(main)
+    expected = ['CommitCheckout', 'CommitMerge', 'CommitRebase', 'CommitTag', 'CommitArchive', 'CommitBranch',
+                'CommitInteractiveRebase', 'CommitReset', 'CommitRevert', 'CommitPatch', 'CommitCherryPick', 'CommitCopySHA', 'CommitAdvanced']
+    check('commit context menu exposes SourceTree common actions in order', [i['name'] for i in items] == expected)
+    check('reset to current HEAD remains available while redundant merge and rebase are disabled', next(i for i in items if i['name'] == 'CommitReset')['enabled'] and not any(i['enabled'] for i in items if i['name'] in ['CommitMerge', 'CommitRebase', 'CommitInteractiveRebase']))
+    shot('commit-menu-current-head')
+    reset_item = next(i for i in items if i['name'] == 'CommitReset')
+    point = wintypes.POINT(reset_item['x'], reset_item['y']); assert owner(api.WindowFromPoint(point)) == pid
+    api.SetCursorPos(point.x, point.y); api.mouse_event(2, 0, 0, 0, 0); api.mouse_event(4, 0, 0, 0, 0)
+    wait_for(lambda: state()['pendingDialog'] == 'Reset'); cancel()
+    check('current HEAD reset opens a real cancellable operation without changing files', (repo / 'values.txt').read_text() == 'local edit\n' and git('rev-parse', 'HEAD').stdout.strip() == main)
+    tool('ui_working_copy', {'repo': str(repo)})
     check('native row click opens working copy without losing history columns', state()['pendingRow']['visible'] and state()['detailView'] == 'WorkingCopy')
     tool('ui_history_columns', {'repo': str(repo), 'graph': 120, 'description': 1000, 'date': 200, 'author': 200, 'commit': 160})
     horizontal = wait_for(lambda: next((b for b in layout()['scrollBars'] if b['visible'] and b['orientation'] == 'Horizontal' and b['owner'] == 'Histories' and b['maximum'] > 100), None))
@@ -255,11 +300,23 @@ try:
     check('conflicting commits enter normal manual resolution', bool(git('ls-files', '-u').stdout) and (repo / '.git/MERGE_HEAD').exists())
     check('conflict is selected and old file filter is cleared', state()['workingCopySelected'] and state()['workingCopyState']['selectedUnstaged'] == ['values.txt'])
     check('authored commit draft survives merge and message refresh', state()['workingCopyState']['message'] == draft)
+    tool('ui_graph', {'repo': str(repo), 'mode': 'current', 'showRemotes': False})
+    wait_for(lambda: not state()['graphLoading'] and {p['sha'] for p in state()['pendingRow']['parents']} == {main, conflict_sha})
+    parents = state()['pendingRow']['parents']
+    check('current-branch graph includes both actual pending merge parents', len(parents) == 2 and len({p['x'] for p in parents}) == 2)
+    shot('pending-merge-two-parents')
+    items = open_commit_menu(main)
+    check('unfinished merge keeps common actions visible and disables another merge rebase or cherry-pick', not any(i['enabled'] for i in items if i['name'] in ['CommitCheckout', 'CommitMerge', 'CommitRebase', 'CommitRevert', 'CommitCherryPick']))
+    close_commit_menu()
+    tool('ui_working_copy', {'repo': str(repo)})
     shot('commit-conflict')
     index_before = git('ls-files', '-u').stdout
     merge(safe_sha); confirm(); completed()
     check('second merge cannot replace an unfinished operation', git('ls-files', '-u').stdout == index_before and git('rev-parse', 'HEAD').stdout.strip() == main)
     reset()
+    write('values.txt', 'post-abort draft\n'); refresh()
+    check('aborting merge removes incoming parent while ordinary pending changes remain', {p['sha'] for p in state()['pendingRow']['parents']} == {main})
+    tool('ui_graph', {'repo': str(repo), 'mode': 'all', 'showRemotes': True}); reset()
 
     merge(conflict_sha); git('branch', '-f', 'conflicting', safe_sha); confirm(); completed()
     check('merge uses the selected immutable commit after its source branch moves', (repo / '.git/MERGE_HEAD').read_text().strip() == conflict_sha and bool(git('ls-files', '-u').stdout))

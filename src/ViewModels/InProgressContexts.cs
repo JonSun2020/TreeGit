@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System.Threading.Tasks;
+using System.Linq;
 using System;
 
 namespace SourceGit.ViewModels
@@ -329,7 +330,7 @@ namespace SourceGit.ViewModels
 
             Current = new Commands.QueryCurrentBranch(repo.FullPath).GetResult();
 
-            var sourceSHA = File.ReadAllText(Path.Combine(repo.GitDir, "MERGE_HEAD")).Trim();
+            var sourceSHA = Histories.ReadPendingMergeHeads(repo.GitDir).FirstOrDefault() ?? string.Empty;
             Source = new Commands.QuerySingleCommit(repo.FullPath, sourceSHA).GetResult() ?? new Models.Commit() { SHA = sourceSHA };
             SourceName = Source.GetFriendlyName();
         }

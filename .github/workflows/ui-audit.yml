@@ -2,6 +2,10 @@ name: TreeGit resize and operation UI audit
 on:
   workflow_dispatch:
     inputs:
+      history_only:
+        description: Verify history text stability, pending merge graph and commit menu only
+        type: boolean
+        default: false
       wide:
         description: Also audit an enumerated wider desktop mode on the CI VM
         type: boolean
@@ -27,19 +31,24 @@ jobs:
           dotnet build src/SourceGit.csproj -c Debug -p:EnableIntegrationTests=true -v:q
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           New-Item -ItemType Directory -Path src/bin/Debug/net10.0/data -Force | Out-Null
+      - name: Audit history against SourceTree references
+        if: ${{ inputs.history_only }}
+        shell: pwsh
+        run: python tests/history_merge_ui.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/history-merge-results"
       - name: Audit splitter extremes, view transitions and restored selection
+        if: ${{ !inputs.history_only }}
         shell: pwsh
         run: python tests/layout_audit.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/layout-audit-results"
       - name: Audit settings and operation windows at several zoom levels
-        if: always()
+        if: ${{ always() && !inputs.history_only }}
         shell: pwsh
         run: python tests/dialog_audit.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/dialog-audit-results"
       - name: Audit a wider real CI desktop and restore its original mode
-        if: ${{ always() && inputs.wide }}
+        if: ${{ always() && inputs.wide && !inputs.history_only }}
         shell: pwsh
         run: python tests/ci_display_audit.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/display-audit-results"
       - name: Verify sustained operation and resource cleanup
-        if: ${{ success() && inputs.soak }}
+        if: ${{ success() && inputs.soak && !inputs.history_only }}
         shell: pwsh
         run: python tests/desktop_soak.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/desktop-soak-results" 1800
       - uses: actions/upload-artifact@v4
@@ -47,6 +56,8 @@ jobs:
         with:
           name: TreeGit-resize-audit
           path: |
+            ${{ runner.temp }}/history-merge-results/*.json
+            ${{ runner.temp }}/history-merge-results/*.png
             ${{ runner.temp }}/layout-audit-results/*.json
             ${{ runner.temp }}/layout-audit-results/*.png
             ${{ runner.temp }}/dialog-audit-results/*.json

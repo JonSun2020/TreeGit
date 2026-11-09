@@ -830,4 +830,17 @@
   <x:String x:Key="Text.Conflict.StashOrPatch">Changes from a stash or patch</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.UseMine">Use Local</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.UseTheirs">Use Remote</x:String>
+  <x:String x:Key="Text.CommitMenu.Checkout">Checkout…</x:String>
+  <x:String x:Key="Text.CommitMenu.Merge">Merge…</x:String>
+  <x:String x:Key="Text.CommitMenu.Rebase">Rebase…</x:String>
+  <x:String x:Key="Text.CommitMenu.Tag">Tag…</x:String>
+  <x:String x:Key="Text.CommitMenu.Archive">Archive…</x:String>
+  <x:String x:Key="Text.CommitMenu.Branch">Branch…</x:String>
+  <x:String x:Key="Text.CommitMenu.InteractiveRebase">Interactive rebase descendants…</x:String>
+  <x:String x:Key="Text.CommitMenu.Reset">Reset current branch to this commit…</x:String>
+  <x:String x:Key="Text.CommitMenu.Revert">Revert commit…</x:String>
+  <x:String x:Key="Text.CommitMenu.Patch">Create patch…</x:String>
+  <x:String x:Key="Text.CommitMenu.CherryPick">Cherry-pick…</x:String>
+  <x:String x:Key="Text.CommitMenu.CopySHA">Copy SHA to clipboard</x:String>
+  <x:String x:Key="Text.CommitMenu.Advanced">Advanced operations</x:String>
 </ResourceDictionary>

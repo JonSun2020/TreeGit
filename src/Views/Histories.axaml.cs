@@ -762,6 +762,12 @@ namespace SourceGit.Views
             if (repoView is not { DataContext: ViewModels.Repository repo })
                 return;
 
+            // A context request on another row must target that row. Preserve an
+            // existing multi-selection when the pointer is already inside it.
+            var pointerRow = (e.Source as Control)?.FindAncestorOfType<DataGridRow>();
+            if (pointerRow?.DataContext is Models.Commit pointed && !CommitListContainer.SelectedItems.Contains(pointed))
+                CommitListContainer.SelectedItem = pointed;
+
             var selected = CommitListContainer.SelectedItems;
             if (selected is not { Count: > 0 })
                 return;
@@ -1013,7 +1019,7 @@ namespace SourceGit.Views
             return menu;
         }
 
-        private ContextMenu CreateContextMenuForSingleCommit(ViewModels.Repository repo, Models.Commit commit)
+        private ContextMenu CreateExtendedContextMenuForSingleCommit(ViewModels.Repository repo, Models.Commit commit)
         {
             var current = repo.CurrentBranch;
             var vm = DataContext as ViewModels.Histories;
@@ -1060,7 +1066,7 @@ namespace SourceGit.Views
                 menu.Items.Add(new MenuItem() { Header = "-" });
             }
 
-            var createBranch = new MenuItem();
+            var createBranch = new MenuItem { Name = "LegacyCommitCore" };
             createBranch.Icon = this.CreateMenuIcon("Icons.Branch.Add");
             createBranch.Header = App.Text("CreateBranch");
             createBranch.Tag = OperatingSystem.IsMacOS() ? "⌘+⇧+B" : "Ctrl+Shift+B";
@@ -1072,7 +1078,7 @@ namespace SourceGit.Views
             };
             menu.Items.Add(createBranch);
 
-            var createTag = new MenuItem();
+            var createTag = new MenuItem { Name = "LegacyCommitCore" };
             createTag.Icon = this.CreateMenuIcon("Icons.Tag.Add");
             createTag.Header = App.Text("CreateTag");
             createTag.Tag = OperatingSystem.IsMacOS() ? "⌘+⇧+T" : "Ctrl+Shift+T";
@@ -1093,7 +1099,7 @@ namespace SourceGit.Views
 
                 if (!isHead)
                 {
-                    var reset = new MenuItem();
+                    var reset = new MenuItem { Name = "LegacyCommitCore" };
                     reset.Header = App.Text("CommitCM.Reset", current.Name, target);
                     reset.Icon = this.CreateMenuIcon("Icons.Reset");
                     reset.Click += (_, e) =>
@@ -1107,7 +1113,7 @@ namespace SourceGit.Views
 
                 if (!commit.IsMerged)
                 {
-                    var rebase = new MenuItem();
+                    var rebase = new MenuItem { Name = "LegacyCommitCore" };
                     rebase.Header = App.Text("CommitCM.Rebase", current.Name, target);
                     rebase.Icon = this.CreateMenuIcon("Icons.Rebase");
                     rebase.Click += (_, e) =>
@@ -1118,7 +1124,7 @@ namespace SourceGit.Views
                     };
                     menu.Items.Add(rebase);
 
-                    var merge = new MenuItem();
+                    var merge = new MenuItem { Name = "LegacyCommitCore" };
                     merge.Header = App.Text("BranchCM.Merge", target, current.Name);
                     merge.Icon = this.CreateMenuIcon("Icons.Merge");
                     merge.Click += (_, e) =>
@@ -1133,7 +1139,7 @@ namespace SourceGit.Views
                     menu.Items.Add(merge);
                 }
 
-                var cherryPick = new MenuItem();
+                var cherryPick = new MenuItem { Name = "LegacyCommitCore" };
                 cherryPick.Header = App.Text("CommitCM.CherryPick");
                 cherryPick.Icon = this.CreateMenuIcon("Icons.CherryPick");
                 cherryPick.Click += async (_, e) =>
@@ -1143,7 +1149,7 @@ namespace SourceGit.Views
                 };
                 menu.Items.Add(cherryPick);
 
-                var revert = new MenuItem();
+                var revert = new MenuItem { Name = "LegacyCommitCore" };
                 revert.Header = App.Text("CommitCM.Revert");
                 revert.Icon = this.CreateMenuIcon("Icons.Undo");
                 revert.Click += (_, e) =>
@@ -1156,7 +1162,7 @@ namespace SourceGit.Views
 
                 if (!isHead)
                 {
-                    var checkoutCommit = new MenuItem();
+                    var checkoutCommit = new MenuItem { Name = "LegacyCommitCore" };
                     checkoutCommit.Header = App.Text("CommitCM.Checkout");
                     checkoutCommit.Icon = this.CreateMenuIcon("Icons.Detached");
                     checkoutCommit.Click += (_, e) =>
@@ -1307,7 +1313,7 @@ namespace SourceGit.Views
                 menu.Items.Add(new MenuItem() { Header = "-" });
             }
 
-            var saveToPatch = new MenuItem();
+            var saveToPatch = new MenuItem { Name = "LegacyCommitPatch" };
             saveToPatch.Icon = this.CreateMenuIcon("Icons.Save");
             saveToPatch.Header = App.Text("CommitCM.SaveAsPatch");
             saveToPatch.Click += async (_, e) =>
@@ -1338,7 +1344,7 @@ namespace SourceGit.Views
             };
             menu.Items.Add(saveToPatch);
 
-            var archive = new MenuItem();
+            var archive = new MenuItem { Name = "LegacyCommitCore" };
             archive.Icon = this.CreateMenuIcon("Icons.Archive");
             archive.Header = App.Text("Archive");
             archive.Click += (_, e) =>
@@ -1385,7 +1391,7 @@ namespace SourceGit.Views
                 e.Handled = true;
             };
 
-            var copySHA = new MenuItem();
+            var copySHA = new MenuItem { Name = "LegacyCommitCore" };
             copySHA.Header = App.Text("CommitCM.CopySHA");
             copySHA.Icon = this.CreateMenuIcon("Icons.Hash");
             copySHA.Click += async (_, e) =>
