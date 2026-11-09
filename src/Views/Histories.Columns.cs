@@ -98,13 +98,9 @@ namespace SourceGit.Views
                 if (CommitListContainer.Columns[i].IsVisible && (!double.IsFinite(widths[i]) || widths[i] < CommitListContainer.Columns[i].MinWidth)) return;
             for (var i = 0; i < ColumnNames.Length; i++)
             {
+                WorkingCopyColumns.ColumnDefinitions[i].Width = new GridLength(widths[i]);
                 if (i > 0) WorkingCopyDetailsColumns.ColumnDefinitions[i - 1].Width = new GridLength(widths[i]);
             }
-            // Canvas has no content-driven desired width. Fixed-width cells in
-            // a Grid used to enlarge/recenter the button's presenter for a frame
-            // when the lower details view was replaced.
-            Canvas.SetLeft(WorkingCopyDetailsClip, widths[0]);
-            WorkingCopyDetailsClip.Width = Math.Max(0, WorkingCopyRow.Bounds.Width - widths[0]);
             WorkingCopyDetailsColumns.Width = widths.Skip(1).Sum();
             if (WorkingCopyDetailsColumns.RenderTransform != _pendingColumnsTransform)
                 WorkingCopyDetailsColumns.RenderTransform = _pendingColumnsTransform;

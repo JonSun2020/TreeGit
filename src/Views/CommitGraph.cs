@@ -1,6 +1,5 @@
-﻿using Avalonia;
+using Avalonia;
 using Avalonia.Controls;
-using System.Collections.Generic;
 using Avalonia.Media;
 
 namespace SourceGit.Views
@@ -9,9 +8,6 @@ namespace SourceGit.Views
     {
         public static readonly StyledProperty<bool> HasPendingChangesProperty = AvaloniaProperty.Register<CommitGraph, bool>(nameof(HasPendingChanges));
         public bool HasPendingChanges { get => GetValue(HasPendingChangesProperty); set => SetValue(HasPendingChangesProperty, value); }
-        public static readonly StyledProperty<IReadOnlyList<int>> PendingHeadIndicesProperty = AvaloniaProperty.Register<CommitGraph, IReadOnlyList<int>>(nameof(PendingHeadIndices));
-        public IReadOnlyList<int> PendingHeadIndices { get => GetValue(PendingHeadIndicesProperty); set => SetValue(PendingHeadIndicesProperty, value); }
-
         public static readonly DirectProperty<CommitGraph, Models.CommitGraph> GraphProperty =
             AvaloniaProperty.RegisterDirect<CommitGraph, Models.CommitGraph>(
                 nameof(Graph),
@@ -57,31 +53,39 @@ namespace SourceGit.Views
             var clipHeight = Bounds.Height;
             var rowHeight = _layout.RowHeight;
             var rowOffset = HasPendingChanges ? rowHeight : 0;
-            var endY = startY + clipHeight + 28;
+            var endY = startY + clipHeight - rowOffset + 28;
 
             using (context.PushClip(new Rect(0, 0, clipWidth, clipHeight)))
-            using (context.PushTransform(Matrix.CreateTranslation(0, rowOffset - startY)))
             {
-                if (HasPendingChanges)
-                {
-                    var origin = new Point(6, -rowHeight * .5);
-                    if (_graph != null && PendingHeadIndices != null)
-                        foreach (var index in PendingHeadIndices)
-                        {
-                            if (index < 0 || index >= _graph.Dots.Count) continue;
-                            var dot = _graph.Dots[index];
-                            var target = new Point(dot.Center.X, dot.Center.Y * rowHeight);
-                            var pen = Models.CommitGraph.Pens[dot.Color];
-                            var join = new Point(target.X, origin.Y + (target.X == origin.X ? 0 : rowHeight * .4));
-                            context.DrawLine(new Pen(Brushes.Gray, 2), origin, join);
-                            context.DrawLine(pen, join, target);
-                        }
-                    context.DrawEllipse(new SolidColorBrush(Color.Parse("#8A8A8A")), new Pen(Brushes.White, 1.5), origin, 5, 5);
-                }
+                // The working-copy row is pinned; real history must not paint
+                // over its marker when the list has scrolled to older commits.
+                var bodyTop = HasPendingChanges && startY > .01 ? rowOffset : 0;
                 if (_graph != null)
                 {
-                    DrawCurves(context, _graph, startY - rowOffset, endY - rowOffset, rowHeight);
-                    DrawAnchors(context, _graph, startY - rowOffset, endY - rowOffset, rowHeight);
+                    using (context.PushClip(new Rect(0, bodyTop, clipWidth, System.Math.Max(0, clipHeight - bodyTop))))
+                    using (context.PushTransform(Matrix.CreateTranslation(0, rowOffset - startY)))
+                    {
+                        DrawCurves(context, _graph, startY - rowOffset + bodyTop, endY, rowHeight);
+                        DrawAnchors(context, _graph, startY - rowOffset + bodyTop, endY, rowHeight);
+                    }
+                }
+                if (HasPendingChanges)
+                {
+                    var gray = new Pen(Brushes.Gray, 2);
+                    var origin = new Point(6, rowHeight * .5);
+                    if (startY <= .01 && _graph?.HasWorkingCopyNode == true)
+                    {
+                        foreach (var path in _graph.Paths)
+                            for (var i = 1; i < path.Points.Count && path.Points[i - 1].Y < 0; i++)
+                            {
+                                var a = path.Points[i - 1]; var b = path.Points[i];
+                                if (b.Y > 0) b = new Point(a.X + (b.X - a.X) * -a.Y / (b.Y - a.Y), 0);
+                                context.DrawLine(gray, new Point(a.X, rowOffset + a.Y * rowHeight), new Point(b.X, rowOffset + b.Y * rowHeight));
+                            }
+                    }
+                    else
+                        context.DrawLine(gray, origin, new Point(origin.X, rowOffset));
+                    context.DrawEllipse(new SolidColorBrush(Color.Parse("#8A8A8A")), new Pen(Brushes.White, 1.5), origin, 5, 5);
                 }
             }
         }
@@ -92,7 +96,7 @@ namespace SourceGit.Views
 
             if (change.Property == GraphProperty ||
                 change.Property == LayoutProperty ||
-                change.Property == DotBrushProperty || change.Property == PendingHeadIndicesProperty || change.Property == HasPendingChangesProperty)
+                change.Property == DotBrushProperty || change.Property == HasPendingChangesProperty)
                 InvalidateVisual();
         }
 

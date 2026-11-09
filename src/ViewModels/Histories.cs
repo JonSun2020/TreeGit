@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -187,6 +187,7 @@ namespace SourceGit.ViewModels
             foreach (var name in new[] { nameof(HasPendingChanges), nameof(PendingRowsMargin), nameof(CommitGraphMargin), nameof(WorkingCopyHeadIndex), nameof(WorkingCopyParentIndices) })
                 OnPropertyChanged(name);
             if (changed) _repo.RefreshCommits();
+            else if ((Graph?.HasWorkingCopyNode ?? false) != HasPendingChanges) GenerateGraph(_commits);
         }
         public bool ShowRemoteBranches
         {
@@ -747,7 +748,9 @@ namespace SourceGit.ViewModels
                 highlighting = Models.CommitGraphHighlighting.All;
                 firstParentOnly = false;
             }
-            Graph = Models.CommitGraph.Generate(commits, firstParentOnly, highlighting, extraHeads, _preferredGraphHead);
+            var head = commits.Find(commit => commit.IsCurrentHead)?.SHA ?? _preferredGraphHead;
+            var pendingParents = HasPendingChanges && !string.IsNullOrEmpty(head) ? new[] { head }.Concat(_pendingMergeHeads).Distinct().ToArray() : null;
+            Graph = Models.CommitGraph.Generate(commits, firstParentOnly, highlighting, extraHeads, _preferredGraphHead, pendingParents);
         }
 
         private Repository _repo = null;

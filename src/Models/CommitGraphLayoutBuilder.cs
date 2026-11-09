@@ -16,8 +16,10 @@ namespace SourceGit.Models
         // happens above the node; newly merged ancestry fans out below it.
         // The focused branch keeps a reserved first lane throughout the history.
         public static CommitGraph Generate(List<Commit> commits, bool firstParentOnlyEnabled,
-            CommitGraphHighlighting highlighting, HashSet<string> highlightExtraCommits, string preferredHead = null)
+            CommitGraphHighlighting highlighting, HashSet<string> highlightExtraCommits, string preferredHead = null, IReadOnlyList<string> pendingParents = null)
         {
+            if (pendingParents is { Count: > 0 })
+                return GenerateWithWorkingCopy(commits, firstParentOnlyEnabled, highlighting, highlightExtraCommits, pendingParents);
             if (highlighting != CommitGraphHighlighting.All)
                 return GenerateLegacy(commits, firstParentOnlyEnabled, highlighting, highlightExtraCommits, preferredHead);
 
@@ -155,6 +157,33 @@ namespace SourceGit.Models
 
             var descriptionLeft = Math.Max(20, FirstColumnX + maxColumn * ColumnWidth + 8);
             foreach (var commit in commits) commit.LeftMargin = descriptionLeft;
+            return graph;
+        }
+
+        public bool HasWorkingCopyNode { get; private set; }
+
+        private static CommitGraph GenerateWithWorkingCopy(List<Commit> commits, bool firstParentOnly,
+            CommitGraphHighlighting highlighting, HashSet<string> extraHeads, IReadOnlyList<string> parents)
+        {
+            // Pending merges use the normal lane allocator, so incoming edges
+            // cannot run straight through unrelated branch nodes. This temporary
+            // layout node never enters the repository's commit list or APIs.
+            var pending = new Commit { SHA = "treegit-working-copy", Parents = parents.Distinct().ToList(), IsMerged = true };
+            var layoutCommits = new List<Commit>(commits.Count + 1) { pending };
+            layoutCommits.AddRange(commits);
+            var graph = Generate(layoutCommits, firstParentOnly, highlighting, extraHeads, pending.SHA);
+            graph.HasWorkingCopyNode = true;
+            graph.Dots.RemoveAt(0);
+            foreach (var dot in graph.Dots) dot.Center = new Point(dot.Center.X, dot.Center.Y - 1);
+            foreach (var path in graph.Paths)
+                for (var i = 0; i < path.Points.Count; i++)
+                    path.Points[i] = new Point(path.Points[i].X, path.Points[i].Y - 1);
+            foreach (var link in graph.Links)
+            {
+                link.Start = new Point(link.Start.X, link.Start.Y - 1);
+                link.Control = new Point(link.Control.X, link.Control.Y - 1);
+                link.End = new Point(link.End.X, link.End.Y - 1);
+            }
             return graph;
         }
 

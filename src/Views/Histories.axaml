@@ -189,23 +189,23 @@
         </StackPanel>
       </Border>
 
-      <Button Grid.Row="1" x:Name="WorkingCopyRow" Height="19" Margin="0,24,16,0" Padding="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Top" Classes="working_copy_row" ClipToBounds="True" IsVisible="{Binding HasPendingChanges}" Click="OnWorkingCopyPressed">
+      <Button Grid.Row="1" x:Name="WorkingCopyRow" RenderTransform="scale(1)" Transitions="{x:Null}" Height="19" Margin="0,24,16,0" Padding="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Top" Classes="working_copy_row" ClipToBounds="True" IsVisible="{Binding HasPendingChanges}" Click="OnWorkingCopyPressed">
         <Button.Styles>
           <Style Selector="Button.working_copy_row"><Setter Property="Background" Value="{DynamicResource Brush.Contents}"/><Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/><Setter Property="Template"><ControlTemplate><ContentPresenter Background="{TemplateBinding Background}" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" ClipToBounds="True"/></ControlTemplate></Setter></Style>
           <Style Selector="Button.working_copy_row.selected"><Setter Property="Background" Value="{DynamicResource Brush.Accent}"/><Setter Property="Foreground" Value="White"/></Style>
         </Button.Styles>
-        <Canvas x:Name="WorkingCopyColumns" ClipToBounds="True">
-          <Border x:Name="WorkingCopyDetailsClip" Canvas.Left="48" Height="19" ClipToBounds="True">
+        <Grid x:Name="WorkingCopyColumns" ClipToBounds="True" ColumnDefinitions="48,*,160,120,100,0">
+          <Border Grid.Column="1" Grid.ColumnSpan="5" ClipToBounds="True">
             <Grid x:Name="WorkingCopyDetailsColumns" HorizontalAlignment="Left" ColumnDefinitions="*,160,120,100,0">
               <Border Grid.Column="0" ClipToBounds="True"><TextBlock Margin="6,0" Text="未提交的更改" Foreground="{Binding $parent[Button].Foreground}" FontWeight="Bold" VerticalAlignment="Center"/></Border>
               <Border Grid.Column="2" ClipToBounds="True" IsVisible="{Binding IsAuthorColumnVisible}"><TextBlock Margin="8,0" Text="*" Foreground="{Binding $parent[Button].Foreground}"/></Border>
               <Border Grid.Column="3" ClipToBounds="True" IsVisible="{Binding IsSHAColumnVisible}"><TextBlock Margin="8,0" Text="*" Foreground="{Binding $parent[Button].Foreground}"/></Border>
             </Grid>
           </Border>
-        </Canvas>
+        </Grid>
       </Button>
 
-      <v:CommitGraph Grid.Row="1" x:Name="CommitGraph" Margin="{Binding CommitGraphMargin}" Graph="{Binding Graph}" HasPendingChanges="{Binding HasPendingChanges}" PendingHeadIndices="{Binding WorkingCopyParentIndices}" DotBrush="{DynamicResource Brush.Contents}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsHitTestVisible="False" ClipToBounds="True" Loaded="OnCommitGraphLoaded"/>
+      <v:CommitGraph Grid.Row="1" x:Name="CommitGraph" Margin="{Binding CommitGraphMargin}" Graph="{Binding Graph}" HasPendingChanges="{Binding HasPendingChanges}" DotBrush="{DynamicResource Brush.Contents}" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" IsHitTestVisible="False" ClipToBounds="True" Loaded="OnCommitGraphLoaded"/>
 
       <Border Grid.Row="1" Width="28" Height="28" Margin="0,0,16,8" CornerRadius="14" Background="{DynamicResource Brush.Popup}" HorizontalAlignment="Right" VerticalAlignment="Bottom" Effect="drop-shadow(0 0 8 #80000000)" PointerPressed="OnScrollToTopPointerPressed" IsVisible="{Binding $parent[v:Histories].IsScrollToTopVisible}">
         <Path Width="12" Height="12" Data="{StaticResource Icons.ScrollToTop}" Fill="{DynamicResource Brush.FG1}" Opacity=".8"/>

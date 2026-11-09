@@ -216,7 +216,9 @@ def press(name):
     assert owner(api.WindowFromPoint(point)) == pid, 'Pointer target outside owned CI GUI'
     assert api.GetAncestor(api.WindowFromPoint(point), 2) == main, 'An owned dialog is covering the main-window button'
     assert api.SetCursorPos(point.x, point.y)
-    api.mouse_event(2, 0, 0, 0, 0); api.mouse_event(4, 0, 0, 0, 0)
+    api.mouse_event(2, 0, 0, 0, 0)
+    if name == 'WorkingCopyRow': time.sleep(.25)
+    api.mouse_event(4, 0, 0, 0, 0)
 
 def merge(revision, mode=None):
     command('clear_notifications')
