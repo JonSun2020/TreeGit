@@ -80,7 +80,7 @@ MCP 的完整读写意味着 AI 可以修改甚至删除 Git 数据。应在 AI 
 
 `ui_command` 还可打开 SSH 密钥管理（`ssh_keys`）、文件 / 目录历史（`file_history` / `directory_history`，指定相对路径 `file`）、分支 / 提交比较（`compare_branches` / `compare_commits`，指定 `base` 和 `to`）、子模块版本比较（`submodule_compare`，先选中可比较的子模块变更），以及命令日志（`git_logs`）。`interactive_rebase` 仅打开配置页面，`commit_info` / `commit_changes` / `commit_files` 切换当前提交详情页。这些命令不自动提交 Git 操作。
 
-当前开发分支的冲突编辑入口：先用 `ui_command` 的 `merge_conflicts` 打开指定文件，再调用 `ui_merge_result`。`read` 返回编辑内容、未解决数量和保存状态；`replace` 按字符偏移修改结果；`resolve` 指定原始冲突的 `region` 和 `choice`；`undo` / `redo` 与结果编辑器共用历史，`save` 保存并暂存，成功后关闭窗口。外部文件或冲突状态已变化时会拒绝覆盖，编辑内容仍留在窗口中。
+2026.23.24 起的冲突编辑入口：先用 `ui_command` 的 `merge_conflicts` 打开指定文件，再调用 `ui_merge_result`。`read` 返回编辑内容、未解决数量和保存状态；`replace` 按字符偏移修改结果；`resolve` 指定原始冲突的 `region` 和 `choice`；`undo` / `redo` 与结果编辑器共用历史，`save` 保存并暂存，成功后关闭窗口。外部文件或冲突状态已变化时会拒绝覆盖，编辑内容仍留在窗口中。
 
 `choice=left` / `right`、`left_then_right` / `right_then_left` 对应界面中的 Local / Remote 和排列顺序。`ours` / `theirs`、`ours_then_theirs` / `theirs_then_ours` 保留 Git 原生两侧的含义，变基时与显示左右相反；`restore` 恢复原始冲突块。AI 按界面操作时优先使用 `left` / `right`。`ui_state` 的冲突窗口同时给出是否正在变基、左右内容摘要和固定的冲突总数。
 
