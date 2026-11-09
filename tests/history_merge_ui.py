@@ -132,7 +132,7 @@ gdi.GetPixel.argtypes = [wintypes.HDC, ctypes.c_int, ctypes.c_int]; gdi.GetPixel
 
 def click_pending_and_measure(label):
     activate_main()
-    row = state()['pendingRow']; scale = layout()['window']['scaling']
+    row = state()['pendingRow']; scale = row['scaling']
     point = wintypes.POINT(round(row['x'] + 6*scale), round(row['y'] + 9.5*scale))
     assert owner(api.WindowFromPoint(point)) == pid
     left = round(row['subjectX'] - scale)
@@ -327,6 +327,13 @@ try:
     wait_for(lambda: not state()['graphLoading'] and {p['sha'] for p in state()['pendingRow']['parents']} == {main, conflict_sha})
     parents = state()['pendingRow']['parents']
     check('current-branch graph includes both actual pending merge parents', len(parents) == 2 and len({p['x'] for p in parents}) == 2)
+    activate_main(); row = state()['pendingRow']; scale = row['scaling']; dc = api.GetDC(None)
+    try:
+        line_y = round(row['y'] + 21*scale)
+        for parent in parents:
+            line_x = round(row['x'] + parent['x']*scale)
+            check('pending merge connection is actually painted for ' + parent['sha'][:8], gdi.GetPixel(dc, line_x, line_y) != gdi.GetPixel(dc, line_x + round(4*scale), line_y))
+    finally: api.ReleaseDC(None, dc)
     shot('pending-merge-two-parents')
     items = open_commit_menu(main)
     check('unfinished merge keeps common actions visible and disables another merge rebase or cherry-pick', not any(i['enabled'] for i in items if i['name'] in ['CommitCheckout', 'CommitMerge', 'CommitRebase', 'CommitRevert', 'CommitCherryPick']))

@@ -227,6 +227,7 @@ namespace SourceGit.Automation
                                 pendingRow = pendingRow == null ? null : new { visible = pendingRow.IsEffectivelyVisible,
                                     x = pendingRow.PointToScreen(default).X, y = pendingRow.PointToScreen(default).Y,
                                     width = pendingRow.Bounds.Width, height = pendingRow.Bounds.Height,
+                                    scaling = (pendingRow.PointToScreen(new Point(100, 0)).X - pendingRow.PointToScreen(default).X) / 100.0,
                                     subjectX = pendingRow.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Text == "未提交的更改")?.PointToScreen(default).X,
                                     graphMargin = r.Histories?.CommitGraphMargin.Top,
                                     parents = r.Histories?.WorkingCopyParentIndices.Select(index => new { sha = r.Histories.Commits[index].SHA, index,
