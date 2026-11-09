@@ -237,7 +237,7 @@ namespace SourceGit.Automation
                                         x = row.PointToScreen(new Point(Math.Min(row.Bounds.Width / 2, 240), row.Bounds.Height / 2)).X,
                                         y = row.PointToScreen(new Point(0, row.Bounds.Height / 2)).Y }).ToArray(),
                                 commitMenu = commitMenu?.IsOpen != true ? null : new {
-                                    items = commitMenu.Items.OfType<MenuItem>().Select(item => new { name = item.Name, text = item.Header?.ToString(), enabled = item.IsEnabled,
+                                    items = commitMenu.Items.OfType<MenuItem>().Select(item => new { name = item.Name, text = item.Header?.ToString(), enabled = item.IsEnabled, width = item.Bounds.Width, height = item.Bounds.Height,
                                         x = item.PointToScreen(new Point(item.Bounds.Width / 2, item.Bounds.Height / 2)).X,
                                         y = item.PointToScreen(new Point(item.Bounds.Width / 2, item.Bounds.Height / 2)).Y }).ToArray() },
                                 workingCopyState = r.WorkingCopy == null ? null : new { staging = r.WorkingCopy.IsStaging, unstaging = r.WorkingCopy.IsUnstaging,
@@ -319,6 +319,9 @@ namespace SourceGit.Automation
                         surface = tabMenu;
                     if (args.TryGetProperty("window", out target) && target.GetString() == "active")
                         surface = lifetime.MainWindow.GetVisualDescendants().OfType<Views.CommitSearchView>().Select(v => v.ContainingBranchesSurface).FirstOrDefault(v => v != null) ?? surface;
+                    if (args.TryGetProperty("window", out target) && target.GetString() == "active")
+                        surface = lifetime.MainWindow.GetVisualDescendants().OfType<Views.Histories>().Select(v => v.OpenCommitMenu)
+                            .FirstOrDefault(menu => menu?.IsOpen == true) ?? surface;
                     var width = Math.Max(1, (int)Math.Ceiling(surface.Bounds.Width));
                     var height = Math.Max(1, (int)Math.Ceiling(surface.Bounds.Height));
                     using var image = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96, 96));

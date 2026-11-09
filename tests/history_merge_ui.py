@@ -86,7 +86,7 @@ def wait_for(fn):
 
 def state(): return next(r for r in tool('ui_state')['repositories'] if Path(r['repo']).resolve() == repo)
 def layout(): return tool('ui_layout')
-def shot(name): (out / (name + '.png')).write_bytes(tool('ui_screenshot'))
+def shot(name, active=False): (out / (name + '.png')).write_bytes(tool('ui_screenshot', {'window': 'active'} if active else {}))
 def command(name, **args): return tool('ui_command', {'repo': str(repo), 'command': name, **args})
 def refresh():
     before = state()['workingCopyRefreshVersion']
@@ -185,14 +185,14 @@ def click_pending_and_measure(label):
     positions = [p['inkX'] for p in samples]
     check(label + ': rendered description ink stays fixed throughout selection', len(samples) >= 10 and None not in positions and max(positions) - min(positions) <= 2)
 
-def open_commit_menu(sha):
-    tool('ui_select_commit', {'repo': str(repo), 'revision': sha})
+def open_commit_menu(sha, select=True):
+    if select: tool('ui_select_commit', {'repo': str(repo), 'revision': sha})
     row = wait_for(lambda: next((r for r in state()['historyRows'] if r['sha'] == sha), None))
     hwnd = activate_main(); point = wintypes.POINT(row['x'], row['y'])
     assert owner(api.WindowFromPoint(point)) == pid and api.GetAncestor(api.WindowFromPoint(point), 2) == hwnd
     assert api.SetCursorPos(point.x, point.y)
     api.mouse_event(8, 0, 0, 0, 0); api.mouse_event(16, 0, 0, 0, 0)
-    return wait_for(lambda: state()['commitMenu'])['items']
+    return wait_for(lambda: (m if m and all(i['width'] > 10 and i['height'] > 0 for i in m['items']) else None) if (m := state()['commitMenu']) else None)['items']
 
 def close_commit_menu():
     assert owner(api.GetForegroundWindow()) == pid
@@ -266,12 +266,30 @@ try:
                 'CommitInteractiveRebase', 'CommitReset', 'CommitRevert', 'CommitPatch', 'CommitCherryPick', 'CommitCopySHA', 'CommitAdvanced']
     check('commit context menu exposes SourceTree common actions in order', [i['name'] for i in items] == expected)
     check('reset to current HEAD remains available while redundant merge and rebase are disabled', next(i for i in items if i['name'] == 'CommitReset')['enabled'] and not any(i['enabled'] for i in items if i['name'] in ['CommitMerge', 'CommitRebase', 'CommitInteractiveRebase']))
-    shot('commit-menu-current-head')
+    shot('commit-menu-current-head', active=True)
     reset_item = next(i for i in items if i['name'] == 'CommitReset')
     point = wintypes.POINT(reset_item['x'], reset_item['y']); assert owner(api.WindowFromPoint(point)) == pid
     api.SetCursorPos(point.x, point.y); api.mouse_event(2, 0, 0, 0, 0); api.mouse_event(4, 0, 0, 0, 0)
     wait_for(lambda: state()['pendingDialog'] == 'Reset'); cancel()
     check('current HEAD reset opens a real cancellable operation without changing files', (repo / 'values.txt').read_text() == 'local edit\n' and git('rev-parse', 'HEAD').stdout.strip() == main)
+    for name, popup, target in [('CommitCheckout', 'CheckoutDetached', main), ('CommitMerge', 'Merge', conflict_sha),
+            ('CommitRebase', 'Rebase', conflict_sha), ('CommitTag', 'CreateTag', main), ('CommitArchive', 'Archive', main),
+            ('CommitBranch', 'CreateBranch', main), ('CommitRevert', 'Revert', conflict_sha), ('CommitCherryPick', 'CherryPick', conflict_sha)]:
+        items = open_commit_menu(target)
+        item = next(i for i in items if i['name'] == name); check(name + ': common entry is enabled for its valid target', item['enabled'])
+        point = wintypes.POINT(item['x'], item['y']); assert owner(api.WindowFromPoint(point)) == pid
+        api.SetCursorPos(point.x, point.y); api.mouse_event(2, 0, 0, 0, 0); api.mouse_event(4, 0, 0, 0, 0)
+        wait_for(lambda: state()['pendingDialog'] == popup)
+        if popup == 'Merge': check('context merge uses the commit under the pointer', state()['mergeDialog']['revision'] == conflict_sha)
+        cancel()
+        check(name + ': opening and cancelling leaves HEAD and local edits untouched', git('rev-parse', 'HEAD').stdout.strip() == main and (repo / 'values.txt').read_text() == 'local edit\n')
+    tool('ui_select_commit', {'repo': str(repo), 'revision': main})
+    open_commit_menu(conflict_sha, select=False)
+    check('right-clicking another row selects the pointer target instead of operating on the old commit', state()['historySelectedCommits'] == [conflict_sha])
+    close_commit_menu()
+    items = open_commit_menu(base)
+    check('ancestor exposes the interactive rebase entry for its child commits', next(i for i in items if i['name'] == 'CommitInteractiveRebase')['enabled'])
+    close_commit_menu()
     tool('ui_working_copy', {'repo': str(repo)})
     check('native row click opens working copy without losing history columns', state()['pendingRow']['visible'] and state()['detailView'] == 'WorkingCopy')
     tool('ui_history_columns', {'repo': str(repo), 'graph': 120, 'description': 1000, 'date': 200, 'author': 200, 'commit': 160})
