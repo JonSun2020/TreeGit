@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
@@ -12,6 +13,20 @@ namespace SourceGit.ViewModels
         public string Title
         {
             get;
+        }
+
+        public string OldSource => App.Text("Diff.Source.Old", _option.BinaryOldPath == "/dev/null" ? App.Text("Diff.Source.Empty") :
+            _option.BinaryOldRevision == _option.BinaryNewRevision + "^" ? App.Text("Diff.Source.Parent") : DescribeRevision(_option.BinaryOldRevision));
+        public string NewSource => App.Text("Diff.Source.New", DescribeRevision(_option.BinaryNewRevision));
+        public string SourceDescription => OldSource + " → " + NewSource;
+        private static string DescribeRevision(string revision)
+        {
+            if (revision == null) return App.Text("Diff.Source.WorkingTree");
+            if (revision.Length == 0) return App.Text("Diff.Source.Index");
+            if (revision == Models.EmptyTreeHash.Guess(revision)) return App.Text("Diff.Source.Empty");
+            if (revision == "HEAD") return App.Text("Diff.Source.Head");
+            if (revision.Length > 10 && revision.All(Uri.IsHexDigit)) return App.Text("Diff.Source.Commit", revision[..10]);
+            return revision;
         }
 
         public int OldMode

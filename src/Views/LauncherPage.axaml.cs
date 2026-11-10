@@ -69,7 +69,8 @@ namespace SourceGit.Views
 
         private void OnMaskClicked(object sender, PointerPressedEventArgs e)
         {
-            OnPopupCancel(sender, e);
+            // A click outside a modal must not discard a partially filled form.
+            e.Handled = true;
         }
 
         private void OnDismissNotification(object sender, RoutedEventArgs e)

@@ -48,7 +48,7 @@ namespace SourceGit.ViewModels
             IsExpanded = isExpanded;
         }
 
-        public static List<ChangeTreeNode> Build(IList<Models.Change> changes, HashSet<string> folded, bool compactFolders)
+        public static List<ChangeTreeNode> Build(IList<Models.Change> changes, HashSet<string> folded, bool compactFolders, bool preserveChangeOrder = false)
         {
             var nodes = new List<ChangeTreeNode>();
             var folders = new Dictionary<string, ChangeTreeNode>();
@@ -98,7 +98,13 @@ namespace SourceGit.ViewModels
                     Compact(node);
             }
 
-            SortAndSetDepth(nodes, 0);
+            Dictionary<Models.Change, int> order = null;
+            if (preserveChangeOrder)
+            {
+                order = new();
+                for (var i = 0; i < changes.Count; i++) order[changes[i]] = i;
+            }
+            SortAndSetDepth(nodes, 0, order);
 
             folders.Clear();
             return nodes;
@@ -142,19 +148,22 @@ namespace SourceGit.ViewModels
             Compact(node);
         }
 
-        private static void SortAndSetDepth(List<ChangeTreeNode> nodes, int depth)
+        private static void SortAndSetDepth(List<ChangeTreeNode> nodes, int depth, Dictionary<Models.Change, int> order)
         {
             foreach (var node in nodes)
             {
                 node.Depth = depth;
                 if (node.IsFolder)
-                    SortAndSetDepth(node.Children, depth + 1);
+                    SortAndSetDepth(node.Children, depth + 1, order);
             }
 
             nodes.Sort((l, r) =>
             {
                 if (l.IsFolder == r.IsFolder)
+                {
+                    if (!l.IsFolder && order != null) return order[l.Change].CompareTo(order[r.Change]);
                     return Models.NumericSort.Compare(l.DisplayName, r.DisplayName);
+                }
                 return l.IsFolder ? -1 : 1;
             });
         }

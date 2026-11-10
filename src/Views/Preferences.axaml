@@ -1,4 +1,4 @@
-﻿<v:ChromelessWindow xmlns="https://github.com/avaloniaui"
+<v:ChromelessWindow xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -16,7 +16,7 @@
                     Width="680" Height="570" SizeToContent="Manual"
                     CanResize="False"
                     WindowStartupLocation="CenterScreen">
-  <Grid RowDefinitions="Auto,*" MinWidth="0">
+  <Grid RowDefinitions="Auto,*,Auto" MinWidth="0">
     <!-- TitleBar -->
     <Grid Grid.Row="0" Height="28" IsVisible="{Binding !#ThisControl.UseSystemWindowFrame}">
       <Border Background="{DynamicResource Brush.TitleBar}"
@@ -306,7 +306,7 @@
             <CheckBox Grid.Row="7" Grid.Column="1"
                       Height="32"
                       Content="{DynamicResource Text.Preferences.Appearance.UseNativeWindowFrame}"
-                      IsChecked="{Binding UseSystemWindowFrame, Mode=OneTime}"
+                      x:Name="UseSystemFrameOption" IsChecked="{Binding UseSystemWindowFrame, Mode=OneTime}"
                       IsVisible="{OnPlatform False, Linux=True}"
                       IsCheckedChanged="OnUseNativeWindowFrameChanged"/>
           </Grid>
@@ -359,7 +359,7 @@
             <TextBox Grid.Row="2" Grid.Column="1"
                      Height="28"
                      CornerRadius="3"
-                     Text="{Binding #ThisControl.DefaultUser, Mode=TwoWay}"
+                     x:Name="DefaultGitUserBox" Text="{Binding #ThisControl.DefaultUser, Mode=TwoWay}"
                      Watermark="{DynamicResource Text.Preferences.Git.User.Placeholder}"/>
 
             <TextBlock Grid.Row="3" Grid.Column="0"
@@ -369,7 +369,7 @@
             <TextBox Grid.Row="3" Grid.Column="1"
                      Height="28"
                      CornerRadius="3"
-                     Text="{Binding #ThisControl.DefaultEmail, Mode=TwoWay}"
+                     x:Name="DefaultGitEmailBox" Text="{Binding #ThisControl.DefaultEmail, Mode=TwoWay}"
                      Watermark="{DynamicResource Text.Preferences.Git.Email.Placeholder}"/>
 
             <TextBlock Grid.Row="4" Grid.Column="0"
@@ -460,7 +460,7 @@
                       Padding="8,0"
                       HorizontalAlignment="Stretch"
                       ItemsSource="{Binding Source={x:Static m:GPGFormat.Supported}}"
-                      SelectedItem="{Binding #ThisControl.GPGFormat, Mode=TwoWay}">
+                      x:Name="SigningFormatBox" SelectedItem="{Binding #ThisControl.GPGFormat, Mode=TwoWay}">
               <ComboBox.ItemTemplate>
                 <DataTemplate x:DataType="{x:Type m:GPGFormat}">
                   <Grid ColumnDefinitions="Auto,*">
@@ -687,5 +687,13 @@
 
       </TabControl>
     </Border>
+    <StackPanel Grid.Row="2" Margin="8" Spacing="6">
+      <TextBlock x:Name="PreferencesSaveError" IsVisible="False" TextWrapping="Wrap" Foreground="{DynamicResource Brush.FG1}" FontWeight="Bold"/>
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <TextBlock Grid.Column="0" Text="{DynamicResource Text.Preferences.Save.PreviewHint}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,8,0" Foreground="{DynamicResource Brush.FG2}"/>
+        <Button x:Name="SavePreferencesButton" Grid.Column="1" Classes="flat primary" MinWidth="80" Height="28" Content="{DynamicResource Text.Sure}" Click="OnSavePreferences"/>
+        <Button x:Name="CancelPreferencesButton" Grid.Column="2" Classes="flat" MinWidth="80" Height="28" Margin="8,0,0,0" Content="{DynamicResource Text.Cancel}" Click="OnCancelPreferences"/>
+      </Grid>
+    </StackPanel>
   </Grid>
 </v:ChromelessWindow>

@@ -9,7 +9,7 @@
              x:Class="SourceGit.Views.DeleteRepositoryNode"
              x:DataType="vm:DeleteRepositoryNode">
   <StackPanel Orientation="Vertical" Margin="8,0,0,0">
-    <StackPanel Orientation="Horizontal">
+    <StackPanel Orientation="Horizontal" Classes="popup_heading">
       <Path Width="16" Height="16" Margin="0,0,8,0" Data="{StaticResource Icons.Clear}"/>
 
       <TextBlock FontSize="18"

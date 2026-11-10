@@ -1,7 +1,7 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:m="using:SourceGit.Models" xmlns:vm="using:SourceGit.ViewModels" xmlns:c="using:SourceGit.Converters" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SourceGit.Views.MergeMultiple" x:DataType="vm:MergeMultiple">
   <StackPanel Orientation="Vertical" Margin="8,0">
-    <StackPanel Orientation="Horizontal">
+    <StackPanel Orientation="Horizontal" Classes="popup_heading">
       <Path Width="16" Height="16" Data="{StaticResource Icons.Merge}"/>
 
       <TextBlock FontSize="18" Margin="8,0,0,0" Classes="bold" Text="{DynamicResource Text.MergeMultiple}"/>

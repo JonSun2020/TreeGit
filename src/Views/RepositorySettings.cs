@@ -135,7 +135,7 @@ namespace SourceGit.Views
             _autoRefresh = Option("AutoRefresh", "自动刷新文件状态", _configuration.AutoRefreshEnabled, value => _configuration.AutoRefreshEnabled = value);
             _backgroundFetch = Option("BackgroundFetch", "允许后台获取远程状态（需全局开启）", _configuration.BackgroundFetchEnabled, value => _configuration.BackgroundFetchEnabled = value);
             sync.Children.Add(_autoRefresh); sync.Children.Add(_backgroundFetch);
-            advancedPage.Children.Add(Group("同步与合并", sync));
+            advancedPage.Children.Add(Optional("同步与合并", sync));
             var signing = new StackPanel { Spacing = 4 };
             var signingKey = new TextBox { Name = "SigningKey", Height = 28, Text = _configuration.GPGUserSigningKey, Watermark = "留空使用全局签名密钥" };
             signingKey.TextChanged += (_, _) => _configuration.GPGUserSigningKey = signingKey.Text ?? string.Empty;

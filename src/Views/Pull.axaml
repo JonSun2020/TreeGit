@@ -9,7 +9,7 @@
              x:Class="SourceGit.Views.Pull"
              x:DataType="vm:Pull">
   <StackPanel Orientation="Vertical" Margin="8,0">
-    <StackPanel Orientation="Horizontal">
+    <StackPanel Orientation="Horizontal" Classes="popup_heading">
       <Path Width="16" Height="16"
             Data="{StaticResource Icons.Pull}"/>
 

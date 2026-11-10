@@ -99,15 +99,18 @@ namespace SourceGit.ViewModels
 
         public bool ForcePush
         {
-            get;
-            set;
+            get => _forcePush;
+            set => SetProperty(ref _forcePush, value);
         }
 
         public bool NoVerify
         {
-            get;
-            set;
+            get => _noVerify;
+            set => SetProperty(ref _noVerify, value);
         }
+
+        private bool _forcePush;
+        private bool _noVerify;
 
         public Push(Repository repo, Models.Branch localBranch)
         {

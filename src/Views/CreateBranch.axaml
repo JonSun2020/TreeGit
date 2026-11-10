@@ -10,7 +10,7 @@
              x:Class="SourceGit.Views.CreateBranch"
              x:DataType="vm:CreateBranch">
   <StackPanel Orientation="Vertical" Margin="8,0">
-    <StackPanel Orientation="Horizontal">
+    <StackPanel Orientation="Horizontal" Classes="popup_heading">
       <Path Width="16" Height="16"
             Data="{StaticResource Icons.Branch.Add}"/>
 
@@ -99,10 +99,10 @@
         </v:DealWithLocalChangesMethod.IsVisible>
       </v:DealWithLocalChangesMethod>
 
-      <CheckBox Grid.Row="3" Grid.Column="1"
-                Content="{DynamicResource Text.CreateBranch.OverwriteExisting}"
-                IsChecked="{Binding AllowOverwrite, Mode=TwoWay}"
-                ToolTip.Tip="{Binding OverrideTip, Mode=OneWay}"/>
+      <StackPanel Grid.Row="3" Grid.ColumnSpan="2" Margin="0,8,0,4">
+        <Expander x:Name="BranchAdvancedOptions" Header="{DynamicResource Text.UI.AdvancedOptions}"><CheckBox x:Name="BranchAllowOverwrite" Margin="8,4" Content="{DynamicResource Text.CreateBranch.OverwriteExisting}" IsChecked="{Binding AllowOverwrite, Mode=TwoWay}" ToolTip.Tip="{Binding OverrideTip}"/></Expander>
+        <TextBlock Text="{DynamicResource Text.UI.ResetBranchEnabled}" IsVisible="{Binding AllowOverwrite}" FontWeight="Bold" TextWrapping="Wrap"/>
+      </StackPanel>
 
       <CheckBox Grid.Row="4" Grid.Column="1"
                 Content="{DynamicResource Text.CreateBranch.Checkout}"

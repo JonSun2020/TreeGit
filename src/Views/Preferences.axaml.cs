@@ -125,7 +125,9 @@ namespace SourceGit.Views
 
             if (pref.IsGitConfigured())
             {
-                var config = new Commands.Config(null).ReadAll();
+                var config = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                try { config = Commands.GlobalConfigEdit.ReadEffective(); _configurationKnown = true; _initialConfig = config; }
+                catch { _configurationKnown = false; }
 
                 if (config.TryGetValue("user.name", out var name))
                     DefaultUser = name;
@@ -134,13 +136,13 @@ namespace SourceGit.Views
                 if (config.TryGetValue("user.signingkey", out var signingKey))
                     GPGUserKey = signingKey;
                 if (config.TryGetValue("core.autocrlf", out var crlf))
-                    CRLFMode = Models.CRLFMode.Supported.Find(x => x.Value == crlf);
+                    CRLFMode = Models.CRLFMode.Supported.Find(x => x.Value.Equals(crlf, StringComparison.OrdinalIgnoreCase));
                 if (config.TryGetValue("fetch.prune", out var pruneOnFetch))
-                    EnablePruneOnFetch = (pruneOnFetch == "true");
+                    EnablePruneOnFetch = ParseEnabledSetting(pruneOnFetch);
                 if (config.TryGetValue("commit.gpgsign", out var gpgCommitSign))
-                    EnableGPGCommitSigning = (gpgCommitSign == "true");
+                    EnableGPGCommitSigning = ParseEnabledSetting(gpgCommitSign);
                 if (config.TryGetValue("tag.gpgsign", out var gpgTagSign))
-                    EnableGPGTagSigning = (gpgTagSign == "true");
+                    EnableGPGTagSigning = ParseEnabledSetting(gpgTagSign);
                 if (config.TryGetValue("gpg.format", out var gpgFormat))
                     GPGFormat = Models.GPGFormat.Supported.Find(x => x.Value == gpgFormat) ?? Models.GPGFormat.Supported[0];
 
@@ -150,16 +152,29 @@ namespace SourceGit.Views
                     GPGExecutableFile = gpgProgram;
 
                 if (config.TryGetValue("http.sslverify", out var sslVerify))
-                    EnableHTTPSSLVerify = sslVerify == "true";
+                    EnableHTTPSSLVerify = ParseEnabledSetting(sslVerify);
                 else
                     EnableHTTPSSLVerify = true;
             }
 
+            _initialGitValues = GetGitValues();
+            _initialWindowFrame = pref.UseSystemWindowFrame;
+            _editSession = pref.BeginEdit();
             UpdateGitVersion();
             InitializeComponent();
+            if (pref.IsGitConfigured() && !_configurationKnown)
+            {
+                PreferencesSaveError.Text = App.Text("Preferences.Save.ReadFailed");
+                PreferencesSaveError.IsVisible = true;
+            }
             Opened += (_, _) => FitToScreen();
             ViewModels.Preferences.Instance.PropertyChanged += OnPreferencesChanged;
-            Closed += (_, _) => ViewModels.Preferences.Instance.PropertyChanged -= OnPreferencesChanged;
+            Closed += (_, _) =>
+            {
+                ViewModels.Preferences.Instance.PropertyChanged -= OnPreferencesChanged;
+                _editSession?.Dispose();
+                _editSession = null;
+            };
         }
 
         public void SelectPage(string page)
@@ -199,53 +214,118 @@ namespace SourceGit.Views
 
             if (change.Property == GPGFormatProperty)
             {
-                var config = await new Commands.Config(null).ReadAllAsync();
+                var requestedFormat = GPGFormat.Value;
+                var programBeforeRead = GPGExecutableFile;
+                Dictionary<string, string> config;
+                try { config = await Task.Run(Commands.GlobalConfigEdit.ReadEffective); }
+                catch { return; }
+                if (requestedFormat != GPGFormat.Value || GPGExecutableFile != programBeforeRead) return;
                 if (GPGFormat.Value == "openpgp" && config.TryGetValue("gpg.program", out var openpgp))
                     GPGExecutableFile = openpgp;
                 else if (config.TryGetValue($"gpg.{GPGFormat.Value}.program", out var gpgProgram))
                     GPGExecutableFile = gpgProgram;
+                else
+                    GPGExecutableFile = string.Empty;
             }
         }
 
-        protected override async void OnClosing(WindowClosingEventArgs e)
+        protected override void OnClosing(WindowClosingEventArgs e)
         {
+            if (_saving && !_accepted) { e.Cancel = true; return; }
             base.OnClosing(e);
+        }
 
-            if (Design.IsDesignMode)
-                return;
-
-            var config = await new Commands.Config(null).ReadAllAsync();
-            await SetIfChangedAsync(config, "user.name", DefaultUser, "");
-            await SetIfChangedAsync(config, "user.email", DefaultEmail, "");
-            await SetIfChangedAsync(config, "user.signingkey", GPGUserKey, "");
-            await SetIfChangedAsync(config, "core.autocrlf", CRLFMode?.Value, null);
-            await SetIfChangedAsync(config, "fetch.prune", EnablePruneOnFetch ? "true" : "false", "false");
-            await SetIfChangedAsync(config, "commit.gpgsign", EnableGPGCommitSigning ? "true" : "false", "false");
-            await SetIfChangedAsync(config, "tag.gpgsign", EnableGPGTagSigning ? "true" : "false", "false");
-            await SetIfChangedAsync(config, "http.sslverify", EnableHTTPSSLVerify ? "" : "false", "");
-            await SetIfChangedAsync(config, "gpg.format", GPGFormat.Value, "openpgp");
-
-            if (!GPGFormat.Value.Equals("ssh", StringComparison.Ordinal))
+        private static bool ParseEnabledSetting(string value)
+        {
+            value = value.Trim();
+            return value.Equals("true", StringComparison.OrdinalIgnoreCase) ||
+                value.Equals("yes", StringComparison.OrdinalIgnoreCase) || value.Equals("on", StringComparison.OrdinalIgnoreCase) ||
+                (long.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var number) && number != 0);
+        }
+        private static string NormalizeSetting(string value) => string.IsNullOrWhiteSpace(value) ? null : value;
+        private Dictionary<string, string> GetGitValues()
+        {
+            var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
-                var oldGPG = string.Empty;
-                if (GPGFormat.Value == "openpgp" && config.TryGetValue("gpg.program", out var openpgp))
-                    oldGPG = openpgp;
-                else if (config.TryGetValue($"gpg.{GPGFormat.Value}.program", out var gpgProgram))
-                    oldGPG = gpgProgram;
+                ["user.name"] = NormalizeSetting(DefaultUser),
+                ["user.email"] = NormalizeSetting(DefaultEmail),
+                ["user.signingkey"] = NormalizeSetting(GPGUserKey),
+                ["core.autocrlf"] = CRLFMode?.Value,
+                ["fetch.prune"] = EnablePruneOnFetch ? "true" : "false",
+                ["commit.gpgsign"] = EnableGPGCommitSigning ? "true" : "false",
+                ["tag.gpgsign"] = EnableGPGTagSigning ? "true" : "false",
+                ["http.sslverify"] = EnableHTTPSSLVerify ? "true" : "false",
+                ["gpg.format"] = GPGFormat.Value,
+            };
+            values[GPGFormat.Value == "openpgp" ? "gpg.program" : $"gpg.{GPGFormat.Value}.program"] = NormalizeSetting(GPGExecutableFile);
+            return values;
+        }
 
-                bool changed = false;
-                if (!string.IsNullOrEmpty(oldGPG))
-                    changed = oldGPG != GPGExecutableFile;
-                else if (!string.IsNullOrEmpty(GPGExecutableFile))
-                    changed = true;
+        private async void OnSavePreferences(object sender, RoutedEventArgs e)
+        {
+            await SaveChangesAsync();
+            e.Handled = true;
+        }
 
-                if (changed)
-                    await new Commands.Config(null).SetAsync($"gpg.{GPGFormat.Value}.program", GPGExecutableFile);
+        public string SaveError => PreferencesSaveError.IsVisible ? PreferencesSaveError.Text : null;
+        public bool RestartRequired => _initialWindowFrame != ViewModels.Preferences.Instance.UseSystemWindowFrame;
+
+        public async Task<bool> SaveChangesAsync()
+        {
+            if (_saving) return false;
+            _saving = true; PreferenceTabs.IsEnabled = false;
+            SavePreferencesButton.IsEnabled = CancelPreferencesButton.IsEnabled = false;
+            PreferencesSaveError.IsVisible = false;
+            try
+            {
+                var changes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var (key, value) in GetGitValues())
+                {
+                    _initialGitValues.TryGetValue(key, out var old);
+                    if (old != value) changes[key] = value;
+                }
+                if (changes.Count > 0 && !_configurationKnown)
+                    throw new InvalidOperationException(App.Text("Preferences.Save.ReadFailed"));
+                using var git = await Commands.GlobalConfigEdit.PrepareAsync(changes, _initialConfig);
+                _editSession.SaveCandidate();
+                try { git.Commit(); }
+                catch
+                {
+                    // Put original editable preferences back on disk while retaining
+                    // the visible draft for retry; Git's file was not replaced.
+                    ViewModels.Preferences.Instance.Save(requireSuccess: true);
+                    throw;
+                }
+                _editSession.Accept(); _accepted = true;
+                if (RestartRequired) _ = ConfirmRestartAfterSavingAsync();
+                else Close();
             }
+            catch (Exception error)
+            {
+                Native.OS.LogException(error);
+                PreferencesSaveError.Text = error is InvalidOperationException ? error.Message : App.Text("Preferences.Save.Failed");
+                PreferencesSaveError.IsVisible = true;
+            }
+            finally
+            {
+                _saving = false; PreferenceTabs.IsEnabled = true;
+                SavePreferencesButton.IsEnabled = CancelPreferencesButton.IsEnabled = true;
+            }
+            return _accepted;
+        }
 
-            var preferences = ViewModels.Preferences.Instance;
-            preferences.UpdateAvailableAIModels();
-            preferences.Save();
+        private async Task ConfirmRestartAfterSavingAsync()
+        {
+            // Saving is complete. Release MCP's operation gate before asking the
+            // user about restarting so the confirmation can also be dismissed by AI.
+            try { await this.ShowDialogAsync(new ConfirmRestart()); }
+            catch (Exception error) { Native.OS.LogException(error); }
+            finally { Close(); }
+        }
+        private void OnCancelPreferences(object sender, RoutedEventArgs e)
+        {
+            if (!_saving) Close();
+            e.Handled = true;
         }
 
         private async void SelectThemeOverrideFile(object _, RoutedEventArgs e)
@@ -417,26 +497,9 @@ namespace SourceGit.Views
             e.Handled = true;
         }
 
-        private static async Task SetIfChangedAsync(Dictionary<string, string> cached, string key, string value, string defValue)
+        private void OnUseNativeWindowFrameChanged(object sender, RoutedEventArgs e)
         {
-            bool changed = false;
-            if (cached.TryGetValue(key, out var old))
-                changed = old != value;
-            else if (!string.IsNullOrEmpty(value) && value != defValue)
-                changed = true;
-
-            if (changed)
-                await new Commands.Config(null).SetAsync(key, value);
-        }
-
-        private async void OnUseNativeWindowFrameChanged(object sender, RoutedEventArgs e)
-        {
-            if (sender is CheckBox box)
-            {
-                ViewModels.Preferences.Instance.UseSystemWindowFrame = box.IsChecked == true;
-                await this.ShowDialogAsync(new ConfirmRestart());
-            }
-
+            if (sender is CheckBox box) ViewModels.Preferences.Instance.UseSystemWindowFrame = box.IsChecked == true;
             e.Handled = true;
         }
 
@@ -525,6 +588,13 @@ namespace SourceGit.Views
             ShowGitVersionWarning = !string.IsNullOrEmpty(GitVersion) && Native.OS.GitVersion < Models.GitVersions.MINIMAL;
         }
 
+        private ViewModels.Preferences.EditSession _editSession;
+        private Dictionary<string, string> _initialConfig = new(StringComparer.OrdinalIgnoreCase);
+        private Dictionary<string, string> _initialGitValues;
+        private bool _configurationKnown;
+        private bool _initialWindowFrame;
+        private bool _saving;
+        private bool _accepted;
         private string _gitVersion = string.Empty;
         private bool _showGitVersionWarning = false;
         private Models.GPGFormat _gpgFormat = Models.GPGFormat.Supported[0];

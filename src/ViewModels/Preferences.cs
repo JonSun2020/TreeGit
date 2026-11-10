@@ -9,7 +9,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace SourceGit.ViewModels
 {
-    public class Preferences : ObservableObject
+    public partial class Preferences : ObservableObject
     {
         [JsonIgnore]
         public static Preferences Instance
@@ -657,11 +657,13 @@ namespace SourceGit.ViewModels
         public void Save(bool requireSuccess = false)
         {
             if (requireSuccess && LoadRecovery == 2) throw new IOException("The original settings cannot be safely saved in this session.");
+            if (requireSuccess && (_isLoading || _isReadonly)) throw new IOException("Preferences are read-only.");
             if (_isLoading || _isReadonly)
                 return;
 
             var tmpfile = Path.Combine(Native.OS.BasicDirectories.ConfigDir, "preference_tmp.json");
             var content = JsonSerializer.Serialize(this, JsonCodeGen.Default.Preferences);
+            if (_editSession != null) content = _editSession.PersistedContent(content);
             File.WriteAllText(tmpfile, content);
 
             var finalFile = Path.Combine(Native.OS.BasicDirectories.ConfigDir, "preference.json");

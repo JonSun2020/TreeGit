@@ -8,7 +8,7 @@
              x:Class="SourceGit.Views.GitFlowFinish"
              x:DataType="vm:GitFlowFinish">
   <StackPanel Orientation="Vertical" Margin="8,0">
-    <StackPanel Orientation="Horizontal">
+    <StackPanel Orientation="Horizontal" Classes="popup_heading">
       <Path Width="16" Height="16"
             Margin="0,0,8,0"
             Data="{StaticResource Icons.GitFlow.Finish}"/>

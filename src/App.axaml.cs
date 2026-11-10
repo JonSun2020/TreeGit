@@ -58,6 +58,11 @@ namespace SourceGit
             }
             Native.StartupTrace.Mark("directories");
 #if INTEGRATION_TESTS
+            if (args.Length == 3 && args[0] == "--integration-ui-consistency")
+            {
+                Environment.Exit(Tests.UiConsistencyProbe.RunAsync(args[1], args[2]).GetAwaiter().GetResult());
+                return;
+            }
             if (args.Length == 2 && args[0] == "--integration-preferences-load")
             {
                 Environment.Exit(Tests.PreferencesLoadProbe.Run(args[1]));

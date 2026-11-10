@@ -1,8 +1,8 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:vm="using:SourceGit.ViewModels" xmlns:v="using:SourceGit.Views" xmlns:c="using:SourceGit.Converters" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="600" x:Class="SourceGit.Views.WorkingCopy" x:DataType="vm:WorkingCopy">
   <v:SplitViewGrid x:Name="MainLayout" SizeChanged="OnMainLayoutSizeChanged" Background="{DynamicResource Brush.SubPanel}" >
     <v:SplitViewGrid.RowDefinitions>
-      <RowDefinition Height="*" MinHeight="237"/>
+      <RowDefinition Height="*" MinHeight="265"/>
       <RowDefinition Height="4"/>
       <RowDefinition Height="128" MinHeight="80"/>
       <RowDefinition Height="40"/>
@@ -16,7 +16,7 @@
     <!-- Left -->
     <Grid Grid.Column="0" Background="{DynamicResource Brush.Window}">
       <Grid.RowDefinitions>
-        <RowDefinition Height="36" MinHeight="36" MaxHeight="36"/>
+        <RowDefinition Height="Auto"/>
         <RowDefinition Height="*" MinHeight="100"/>
         <RowDefinition Height="1"/>
         <RowDefinition Height="*" MinHeight="100"/>
@@ -24,7 +24,9 @@
 
       <!-- Search Filter -->
       <Border Grid.Row="0" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Brush.Border0}">
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+        <StackPanel>
+        <Grid ColumnDefinitions="*,*" Margin="4,4,4,0"><ComboBox x:Name="ChangeStatusFilterBox" Grid.Column="0" Margin="0,0,3,0" Height="24" MinHeight="24" HorizontalAlignment="Stretch" SelectedIndex="{Binding ChangeStatusFilter, Mode=TwoWay}" ToolTip.Tip="{DynamicResource Text.UI.FilterStatus}"><TextBlock Text="{DynamicResource Text.UI.AllChanges}"/><TextBlock Text="{DynamicResource Text.UI.Conflicts}"/><TextBlock Text="{DynamicResource Text.UI.Modified}"/><TextBlock Text="{DynamicResource Text.UI.Untracked}"/></ComboBox><ComboBox x:Name="ChangeSortOrderBox" Grid.Column="1" Margin="3,0,0,0" Height="24" MinHeight="24" HorizontalAlignment="Stretch" SelectedIndex="{Binding ChangeSortOrder, Mode=TwoWay}" ToolTip.Tip="{DynamicResource Text.UI.SortOrder}"><TextBlock Text="{DynamicResource Text.UI.SortPath}"/><TextBlock Text="{DynamicResource Text.UI.SortName}"/><TextBlock Text="{DynamicResource Text.UI.SortStatus}"/></ComboBox></Grid>
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto" Height="32">
           <ToggleButton Grid.Column="0" Classes="sidebar_expander" Width="32" VerticalAlignment="Center" IsChecked="{Binding Source={x:Static vm:Preferences.Instance}, Path=Layout.IsSidebarCollapsedInLocalChanges, Mode=TwoWay}"/>
           
           <TextBox Grid.Column="1" x:Name="LocalChangesSearchBox" Height="24" Margin="4,0" BorderThickness="1" CornerRadius="2" Text="{Binding Filter, Mode=TwoWay}" BorderBrush="{DynamicResource Brush.Border2}" Watermark="{DynamicResource Text.WorkingCopy.FilterChanges}" VerticalContentAlignment="Center">
@@ -45,6 +47,7 @@
           
           <v:ChangeViewModeSwitcher Grid.Column="3" Width="26" VerticalAlignment="Center" ViewMode="{Binding Source={x:Static vm:Preferences.Instance}, Path=ChangeViewMode, Mode=TwoWay}"/>
         </Grid>
+        </StackPanel>
       </Border>
 
       <!-- Unstaged -->
@@ -86,7 +89,7 @@
             </v:RightAlignedWrapPanel></DockPanel></Border>
 
         <!-- Unstaged Changes -->
-        <v:ChangeCollectionView Grid.Row="1" x:Name="UnstagedChangesView" IsUnstagedChange="True" Background="{DynamicResource Brush.Contents}" ViewMode="{Binding Source={x:Static vm:Preferences.Instance}, Path=ChangeViewMode}" EnableCompactFolders="{Binding Source={x:Static vm:Preferences.Instance}, Path=EnableCompactFoldersInChangesTree}" Changes="{Binding VisibleUnstaged}" Selection="{Binding SelectedUnstaged, Mode=TwoWay}" ContextRequested="OnUnstagedContextRequested" ChangeDoubleTapped="OnUnstagedChangeDoubleTapped" KeyDown="OnUnstagedKeyDown"/>
+        <v:ChangeCollectionView Grid.Row="1" x:Name="UnstagedChangesView" PreserveChangeOrder="True" IsUnstagedChange="True" Background="{DynamicResource Brush.Contents}" ViewMode="{Binding Source={x:Static vm:Preferences.Instance}, Path=ChangeViewMode}" EnableCompactFolders="{Binding Source={x:Static vm:Preferences.Instance}, Path=EnableCompactFoldersInChangesTree}" Changes="{Binding VisibleUnstaged}" Selection="{Binding SelectedUnstaged, Mode=TwoWay}" ContextRequested="OnUnstagedContextRequested" ChangeDoubleTapped="OnUnstagedChangeDoubleTapped" KeyDown="OnUnstagedKeyDown"/>
       </Grid>
 
       <!-- Splitter -->
@@ -123,7 +126,7 @@
             </v:RightAlignedWrapPanel></DockPanel></Border>
 
         <!-- Staged Changes -->
-        <v:ChangeCollectionView Grid.Row="1" x:Name="StagedChangesView" IsUnstagedChange="False" Background="{DynamicResource Brush.Contents}" ViewMode="{Binding Source={x:Static vm:Preferences.Instance}, Path=ChangeViewMode}" EnableCompactFolders="{Binding Source={x:Static vm:Preferences.Instance}, Path=EnableCompactFoldersInChangesTree}" Changes="{Binding VisibleStaged}" Selection="{Binding SelectedStaged, Mode=TwoWay}" ContextRequested="OnStagedContextRequested" ChangeDoubleTapped="OnStagedChangeDoubleTapped" KeyDown="OnStagedKeyDown"/>
+        <v:ChangeCollectionView Grid.Row="1" x:Name="StagedChangesView" PreserveChangeOrder="True" IsUnstagedChange="False" Background="{DynamicResource Brush.Contents}" ViewMode="{Binding Source={x:Static vm:Preferences.Instance}, Path=ChangeViewMode}" EnableCompactFolders="{Binding Source={x:Static vm:Preferences.Instance}, Path=EnableCompactFoldersInChangesTree}" Changes="{Binding VisibleStaged}" Selection="{Binding SelectedStaged, Mode=TwoWay}" ContextRequested="OnStagedContextRequested" ChangeDoubleTapped="OnStagedChangeDoubleTapped" KeyDown="OnStagedKeyDown"/>
       </Grid>
     </Grid>
 
@@ -165,7 +168,10 @@
   <GridSplitter Grid.Row="1" MinHeight="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Transparent" Focusable="False" Grid.Column="0" Grid.ColumnSpan="3"/><v:CommitMessageToolBox Grid.Row="2" ShowAdvancedOptions="True" CommitMessage="{Binding CommitMessage, Mode=TwoWay}" Grid.Column="0" Grid.ColumnSpan="3" Margin="8,0,8,0"/><Grid Grid.Row="3" VerticalAlignment="Center" ColumnDefinitions="Auto,Auto,Auto,Auto,*,Auto,Auto,Auto" Grid.Column="0" Grid.ColumnSpan="3" Margin="8,0,8,0">
         <CheckBox Grid.Column="0" IsEnabled="{Binding CanChangeIndex}" Height="24" Margin="1,0,0,0" HorizontalAlignment="Left" IsChecked="{Binding EnableSignOff, Mode=TwoWay}" Content="{DynamicResource Text.WorkingCopy.SignOff}" ToolTip.Tip="--signoff" ToolTip.Placement="Top" ToolTip.VerticalOffset="0"/>
 
-        <CheckBox Grid.Column="1" IsEnabled="{Binding CanChangeIndex}" Height="24" Margin="12,0,0,0" HorizontalAlignment="Left" IsChecked="{Binding NoVerifyOnCommit, Mode=TwoWay}" Content="{DynamicResource Text.WorkingCopy.NoVerify}" ToolTip.Tip="--no-verify" ToolTip.Placement="Top" ToolTip.VerticalOffset="0"/>
+        <StackPanel Grid.Column="1" Margin="12,0,0,0" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+          <Button Classes="flat" Content="{DynamicResource Text.UI.AdvancedOptions}" IsEnabled="{Binding CanChangeIndex}"><Button.Flyout><Flyout><CheckBox IsChecked="{Binding NoVerifyOnCommit, Mode=TwoWay}" Content="{DynamicResource Text.WorkingCopy.NoVerify}"/></Flyout></Button.Flyout></Button>
+          <TextBlock Text="{DynamicResource Text.UI.SkipHooksShort}" IsVisible="{Binding NoVerifyOnCommit}" FontWeight="Bold" VerticalAlignment="Center"/>
+        </StackPanel>
 
         <CheckBox Grid.Column="2" IsEnabled="{Binding CanChangeIndex}" Height="24" Margin="12,0,0,0" HorizontalAlignment="Left" IsChecked="{Binding UseAmend, Mode=TwoWay}" Content="{DynamicResource Text.WorkingCopy.Amend}" ToolTip.Tip="--amend" ToolTip.Placement="Top" ToolTip.VerticalOffset="0"/>
 

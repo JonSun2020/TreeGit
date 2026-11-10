@@ -11,6 +11,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.VisualTree;
 
 namespace SourceGit.Views
@@ -55,7 +56,7 @@ namespace SourceGit.Views
             else if (node.Backend is Models.Branch branch)
             {
                 if (branch.IsCurrent)
-                    CreateContent(new Thickness(0, 0, 0, 0), "Icons.CheckCircled", Brushes.Green);
+                    Content = CreateCurrentMarker();
                 else if (branch.IsLocal && !string.IsNullOrEmpty(branch.WorktreePath))
                     CreateContent(new Thickness(2, 0, 0, 0), "Icons.Branch", Brushes.DarkCyan);
                 else
@@ -68,6 +69,14 @@ namespace SourceGit.Views
                 else
                     CreateContent(new Thickness(0, 2, 0, 0), "Icons.Folder");
             }
+        }
+
+        private Control CreateCurrentMarker()
+        {
+            var marker = new Ellipse { Width = 9, Height = 9, StrokeThickness = 2,
+                HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, 0, 0) };
+            marker.Bind(Ellipse.StrokeProperty, new DynamicResourceExtension("Brush.FG1"));
+            return marker;
         }
 
         private void CreateContent(Thickness margin, string iconKey, IBrush fill = null)

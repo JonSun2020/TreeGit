@@ -24,7 +24,7 @@ TreeGit 是一个 **MCP 服务端**。AI 客户端通过 stdio 连接，再由�
 | `ui_state` / `ui_screenshot` | 查看真实窗口、仓库标签、分支、图谱及弹窗状态；获取窗口图片 |
 | `ui_open_repository` | 打开或切换已有仓库 |
 | `ui_select_view` / `ui_select_commit` | 切换历史、工作副本、贮藏及提交详情 |
-| `ui_working_copy` | 打开工作区概览并筛选文件、编辑提交草稿；有更改时显示图谱顶部“未提交的更改”，不自动提交 |
+| `ui_working_copy` | 打开工作区概览；按路径和状态筛选，按路径、名称或状态排序，编辑提交草稿；不自动提交 |
 | `ui_search` | 打开搜索页，按提交信息、作者、SHA、路径或内容搜索并选择结果 |
 | `ui_tabs` | 列出标签及加载状态、打开仓库下拉列表、选择、移动或关闭标签 |
 | `ui_graph` | 显示当前分支/所有分支及对应远端；所有分支模式可跳到分支头，图谱主线始终跟随当前检出分支 |
@@ -34,7 +34,7 @@ TreeGit 是一个 **MCP 服务端**。AI 客户端通过 stdio 连接，再由�
 | `ui_refresh` / `ui_window` | 刷新、调整窗口尺寸、主题和侧栏 |
 | `ui_fonts` | 列出本机可选字体、设置界面或代码 / Diff 字体、恢复默认 |
 | `ui_update` | 检查更新、查询进度、下载、取消，以及准备好后的重启更新 |
-| `ui_command` | 打开关于、偏好、仓库设置、账号及原有 Git 操作对话框 |
+| `ui_command` | 打开关于、偏好、仓库设置、账号及原有 Git 操作对话框；`save_preferences` 保存当前偏好窗口，`close_dialog` 关闭并取消本次设置预览 |
 | `git_status` / `git_log` / `git_diff` / `git_refs` / `git_show` | 查询状态、历史、差异和引用 |
 | `git_clone` | 使用原有克隆流程；完成后打开仓库 |
 | `git_action` | 暂存、提交、推拉、检出、合并、变基、贮藏和冲突恢复等常用操作 |
@@ -76,7 +76,9 @@ MCP 的完整读写意味着 AI 可以修改甚至删除 Git 数据。应在 AI 
 
 `ui_layout` 先使用 `action=list` 取得当前窗口的分隔条和滚动区域索引，再使用 `drag`、`restore`、`resize` 或 `scroll`。`window` 可选 `main` 或 `active`；`drag` 使用 `splitter`、`dx` / `dy`，`scroll` 使用 `scroller`、`dx` / `dy`。索引随页面改变，切页后应重新查询。`twoColumnHistory` 和 `twoColumnDiff` 切换历史、文本差异的左右布局。这些操作只作用于本 TreeGit 进程的窗口，不修改 Git 数据。
 
-`ui_window` 的 `zoom` 支持 0.75 至 2.5。`ui_working_copy` 的可选 `filter` 按文件路径筛选；空字符串清除。`ui_state` 返回搜索结果的 `branch`、工作区操作状态和当前提交的已加载变更文件，读取异步视图前可据此确认内容就绪。
+`ui_window` 的 `zoom` 支持 0.75 至 2.5。`ui_working_copy` 的可选 `filter` 按文件路径筛选；空字符串清除。`status` 可选 `all`、`conflicts`、`modified`、`untracked`；`sort` 可选 `path`、`name`、`status`。返回每组的可见数量和最多 200 个路径；批量暂存、取消暂存遵循当前筛选。`ui_state` 返回搜索结果的 `branch`、工作区操作状态和当前提交的已加载变更文件，读取异步视图前可据此确认内容就绪。
+
+偏好窗口内的字体、主题等更改用于预览；`ui_fonts` 的后台保存不会提前持久化这些预览。使用 `ui_command` 的 `save_preferences` 确认保存，返回 `saved` 和失败时的 `message`；失败后窗口和填写内容保留。`restartRequired=true` 表示设置已保存，界面正在询问是否重启；MCP 仍可读取界面或用 `close_dialog` 选择稍后重启。直接关闭偏好窗口或点击取消可恢复未保存的预览。未打开偏好窗口时，`ui_fonts` 仍直接保存字体设置。
 
 `ui_command` 还可打开 SSH 密钥管理（`ssh_keys`）、文件 / 目录历史（`file_history` / `directory_history`，指定相对路径 `file`）、分支 / 提交比较（`compare_branches` / `compare_commits`，指定 `base` 和 `to`）、子模块版本比较（`submodule_compare`，先选中可比较的子模块变更），以及命令日志（`git_logs`）。`interactive_rebase` 仅打开配置页面，`commit_info` / `commit_changes` / `commit_files` 切换当前提交详情页。这些命令不自动提交 Git 操作。
 

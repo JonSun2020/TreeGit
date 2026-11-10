@@ -59,6 +59,13 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & "$env:RUNNER_TEMP/mode-probe/RepositoryModeProbe.exe" "$env:RUNNER_TEMP/mode-results" (Get-Command git.exe).Source
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify file filters and transactional global settings
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path "$env:RUNNER_TEMP/ui-consistency-results" -Force | Out-Null
+          New-Item -ItemType Directory -Path src/bin/Debug/net10.0/data -Force | Out-Null
+          & src/bin/Debug/net10.0/SourceGit.exe --integration-ui-consistency "$env:RUNNER_TEMP/ui-consistency-results/fixture" "$env:RUNNER_TEMP/ui-consistency-results/logic-report.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify incomplete-package startup guidance
         shell: pwsh
         run: |
@@ -147,6 +154,7 @@ jobs:
             ${{ runner.temp }}/commit-action-safety-results/*.json
             ${{ runner.temp }}/mode-results/repository-mode-results.json
             ${{ runner.temp }}/profile-safety-results/*.json
+            ${{ runner.temp }}/ui-consistency-results/*.json
             ${{ runner.temp }}/startup-results/ui-startup-results.json
             ${{ runner.temp }}/close-during-commit-results/close-during-commit-results.json
             ${{ runner.temp }}/preferences-schema-results/preferences-schema-results.json

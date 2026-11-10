@@ -27,7 +27,7 @@ namespace SourceGit.Views
             if (change.Property == IsOverviewProperty && MainLayout != null)
             {
                 MainLayout.RowDefinitions = new RowDefinitions(IsOverview ? "*,0,0,0" : "*,4,128,40");
-                MainLayout.RowDefinitions[0].MinHeight = 237;
+                MainLayout.RowDefinitions[0].MinHeight = 265;
                 if (!IsOverview) MainLayout.RowDefinitions[2].MinHeight = 80;
                 foreach (var child in MainLayout.Children)
                     if (Grid.GetRow(child) > 0) child.IsVisible = !IsOverview;

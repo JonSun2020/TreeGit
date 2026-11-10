@@ -57,15 +57,24 @@ namespace SourceGit.ViewModels
                     return;
 
                 if (SetProperty(ref _commit, value))
+                {
+                    FullMessage = null;
+                    OnPropertyChanged(nameof(DisplayMessage));
                     Refresh();
+                }
             }
         }
 
         public Models.CommitFullMessage FullMessage
         {
             get => _fullMessage;
-            private set => SetProperty(ref _fullMessage, value);
+            private set
+            {
+                if (SetProperty(ref _fullMessage, value)) OnPropertyChanged(nameof(DisplayMessage));
+            }
         }
+
+        public string DisplayMessage => string.IsNullOrEmpty(_fullMessage?.Message) ? _commit?.Subject ?? string.Empty : _fullMessage.Message;
 
         public Models.CommitSignInfo SignInfo
         {
@@ -478,9 +487,10 @@ namespace SourceGit.ViewModels
             _cancellationSource = new CancellationTokenSource();
             var token = _cancellationSource.Token;
 
+            var messageRevision = _commit.SHA;
             Task.Run(async () =>
             {
-                var message = await new Commands.QueryCommitFullMessage(_repo.FullPath, _commit.SHA)
+                var message = await new Commands.QueryCommitFullMessage(_repo.FullPath, messageRevision)
                     .GetResultAsync()
                     .ConfigureAwait(false);
                 var inlines = await ParseInlinesInMessageAsync(message).ConfigureAwait(false);
@@ -488,6 +498,7 @@ namespace SourceGit.ViewModels
                 if (!token.IsCancellationRequested)
                     Dispatcher.UIThread.Post(() =>
                     {
+                        if (token.IsCancellationRequested || _commit?.SHA != messageRevision) return;
                         FullMessage = new Models.CommitFullMessage
                         {
                             Message = message,

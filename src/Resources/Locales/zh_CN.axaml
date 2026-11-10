@@ -717,7 +717,7 @@
   <x:String x:Key="Text.Preferences.General.ShowChangesTabInCommitDetailByDefault" xml:space="preserve">在提交详情页默认打开【变更对比】标签页</x:String>
   <x:String x:Key="Text.Preferences.General.ShowRelativeTimeInGraph" xml:space="preserve">在提交图谱中显示相对时间</x:String>
   <x:String x:Key="Text.Preferences.General.ShowTagsInGraph" xml:space="preserve">在提交图谱中显示标签</x:String>
-  <x:String x:Key="Text.Preferences.General.SubjectGuideLength" xml:space="preserve">SUBJECT字数检测</x:String>
+  <x:String x:Key="Text.Preferences.General.SubjectGuideLength" xml:space="preserve">提交标题长度提示</x:String>
   <x:String x:Key="Text.Preferences.General.Use24Hours" xml:space="preserve">24小时制</x:String>
   <x:String x:Key="Text.Preferences.General.UseCompactBranchNames" xml:space="preserve">在提交图谱中使用精简分支名</x:String>
   <x:String x:Key="Text.Preferences.General.UseGitHubStyleAvatar" xml:space="preserve">生成GitHub风格的默认头像</x:String>
@@ -759,7 +759,7 @@
   <x:String x:Key="Text.Pull.Into" xml:space="preserve">本地分支 ：</x:String>
   <x:String x:Key="Text.Pull.LocalChanges" xml:space="preserve">未提交更改 ：</x:String>
   <x:String x:Key="Text.Pull.Remote" xml:space="preserve">远程 ：</x:String>
-  <x:String x:Key="Text.Pull.Title" xml:space="preserve">拉回（拉取并合并）</x:String>
+  <x:String x:Key="Text.Pull.Title" xml:space="preserve">拉取</x:String>
   <x:String x:Key="Text.Pull.UseRebase" xml:space="preserve">使用变基方式合并分支</x:String>
   <x:String x:Key="Text.Push" xml:space="preserve">推送(push)</x:String>
   <x:String x:Key="Text.Push.CheckSubmodules" xml:space="preserve">确保子模块变更已推送</x:String>
@@ -1096,7 +1096,7 @@
   <x:String x:Key="Text.WorkingCopy.AddToGitIgnore.InFolder" xml:space="preserve">忽略该目录下的新文件</x:String>
   <x:String x:Key="Text.WorkingCopy.AddToGitIgnore.SingleFile" xml:space="preserve">忽略本文件</x:String>
   <x:String x:Key="Text.WorkingCopy.AddToGitIgnore.UntrackedInSameFolder" xml:space="preserve">忽略同目录下所有新文件</x:String>
-  <x:String x:Key="Text.WorkingCopy.Amend" xml:space="preserve">修补</x:String>
+  <x:String x:Key="Text.WorkingCopy.Amend" xml:space="preserve">修改上次提交</x:String>
   <x:String x:Key="Text.WorkingCopy.CanStageTip" xml:space="preserve">现在您已可将其加入暂存区中</x:String>
   <x:String x:Key="Text.WorkingCopy.ClearCommitHistories" xml:space="preserve">清空历史提交信息</x:String>
   <x:String x:Key="Text.WorkingCopy.ClearCommitHistories.Confirm" xml:space="preserve">您确定要清空所有的历史提交信息记录吗（执行操作后无法撤回）？</x:String>
@@ -1333,4 +1333,45 @@
   <x:String x:Key="Text.CommitMenu.CherryPick">遴选…</x:String>
   <x:String x:Key="Text.CommitMenu.CopySHA">复制 SHA 到剪贴板</x:String>
   <x:String x:Key="Text.CommitMenu.Advanced">高级操作</x:String>
+
+  <!-- TreeGit consistent operation and preference controls -->
+  <x:String x:Key="Text.Stash.After.Remove" xml:space="preserve">贮藏后移除本地修改</x:String>
+  <x:String x:Key="Text.Stash.After.Remove.Description" xml:space="preserve">修改已保存到贮藏，本地恢复到修改前。</x:String>
+  <x:String x:Key="Text.Stash.After.KeepIndex" xml:space="preserve">保留已暂存修改</x:String>
+  <x:String x:Key="Text.Stash.After.KeepIndex.Description" xml:space="preserve">保存到贮藏后，本地保留已暂存的修改。</x:String>
+  <x:String x:Key="Text.Stash.After.KeepAll" xml:space="preserve">保留全部本地修改</x:String>
+  <x:String x:Key="Text.Stash.After.KeepAll.Description" xml:space="preserve">创建贮藏副本，本地仍保留相同的暂存和未暂存修改。</x:String>
+  <x:String x:Key="Text.UI.AdvancedOptions" xml:space="preserve">高级选项</x:String>
+  <x:String x:Key="Text.UI.ForcePushEnabled" xml:space="preserve">注意：已开启强制推送，可能改写远程提交历史。</x:String>
+  <x:String x:Key="Text.UI.SkipHooksEnabled" xml:space="preserve">注意：本次操作将跳过仓库钩子检查。</x:String>
+  <x:String x:Key="Text.UI.SkipHooksShort" xml:space="preserve">将跳过钩子检查</x:String>
+  <x:String x:Key="Text.UI.ResetBranchEnabled" xml:space="preserve">注意：允许将已有分支重置到所选提交。</x:String>
+  <x:String x:Key="Text.UI.FilterStatus" xml:space="preserve">按文件状态筛选</x:String>
+  <x:String x:Key="Text.UI.AllChanges" xml:space="preserve">全部变更</x:String>
+  <x:String x:Key="Text.UI.Conflicts" xml:space="preserve">仅显示冲突</x:String>
+  <x:String x:Key="Text.UI.Modified" xml:space="preserve">仅显示已修改</x:String>
+  <x:String x:Key="Text.UI.Untracked" xml:space="preserve">仅显示未跟踪</x:String>
+  <x:String x:Key="Text.UI.SortOrder" xml:space="preserve">文件排序</x:String>
+  <x:String x:Key="Text.UI.SortPath" xml:space="preserve">按路径排序</x:String>
+  <x:String x:Key="Text.UI.SortName" xml:space="preserve">按文件名排序</x:String>
+  <x:String x:Key="Text.UI.SortStatus" xml:space="preserve">按状态排序</x:String>
+  <x:String x:Key="Text.UI.DisplayOptions" xml:space="preserve">显示选项</x:String>
+  <x:String x:Key="Text.UI.MoreContext" xml:space="preserve">增加上下文</x:String>
+  <x:String x:Key="Text.UI.LessContext" xml:space="preserve">减少上下文</x:String>
+  <x:String x:Key="Text.Diff.Source.Old" xml:space="preserve">旧版本：{0}</x:String>
+  <x:String x:Key="Text.Diff.Source.New" xml:space="preserve">新版本：{0}</x:String>
+  <x:String x:Key="Text.Diff.Source.WorkingTree" xml:space="preserve">工作区</x:String>
+  <x:String x:Key="Text.Diff.Source.Index" xml:space="preserve">暂存区</x:String>
+  <x:String x:Key="Text.Diff.Source.Empty" xml:space="preserve">文件不存在</x:String>
+  <x:String x:Key="Text.Diff.Source.Head" xml:space="preserve">当前提交（HEAD）</x:String>
+  <x:String x:Key="Text.Preferences.Save.PreviewHint" xml:space="preserve">确定后保存；取消或关闭将恢复本次修改。</x:String>
+  <x:String x:Key="Text.Preferences.Save.ReadFailed" xml:space="preserve">无法读取 Git 设置。请选用有效的 Git，重新打开此窗口后再修改 Git 设置。</x:String>
+  <x:String x:Key="Text.Preferences.Save.Changed" xml:space="preserve">Git 设置已被其他程序修改，请重新打开此窗口后再保存。</x:String>
+  <x:String x:Key="Text.Preferences.Save.LinkedConfig" xml:space="preserve">Git 配置使用了链接，请在外部编辑器中修改；外观设置可单独保存。</x:String>
+  <x:String x:Key="Text.Preferences.Save.LargeConfig" xml:space="preserve">Git 配置文件较大，请通过外部编辑器修改 Git 设置。</x:String>
+  <x:String x:Key="Text.Preferences.Save.Failed" xml:space="preserve">设置未能保存，请检查文件权限和磁盘空间后重试；本次填写的内容仍保留在窗口中。</x:String>
+  <x:String x:Key="Text.Preferences.Save.Overridden" xml:space="preserve">此设置由关联配置文件覆盖，请在对应配置文件中修改；本次填写的内容仍保留在窗口中。</x:String>
+  <x:String x:Key="Text.Diff.Source.Parent" xml:space="preserve">父提交</x:String>
+  <x:String x:Key="Text.Diff.Source.Commit" xml:space="preserve">提交 {0}</x:String>
+  <x:String x:Key="Text.Preferences.Save.Locked" xml:space="preserve">Git 配置正被其他操作占用，请稍候重试。本次填写内容已保留。</x:String>
 </ResourceDictionary>

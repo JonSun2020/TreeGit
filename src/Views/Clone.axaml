@@ -9,7 +9,7 @@
              x:Class="SourceGit.Views.Clone"
              x:DataType="vm:Clone">
   <StackPanel Orientation="Vertical" Margin="8,0,0,0">
-    <StackPanel Orientation="Horizontal">
+    <StackPanel Orientation="Horizontal" Classes="popup_heading">
       <Path Width="16" Height="16"
             Margin="0,4,0,0"
             Data="{StaticResource Icons.Clone}"/>

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -84,7 +84,12 @@ namespace SourceGit.ViewModels
         public bool NoVerifyOnCommit
         {
             get => _repo.UIStates.NoVerifyOnCommit;
-            set => _repo.UIStates.NoVerifyOnCommit = value;
+            set
+            {
+                if (_repo.UIStates.NoVerifyOnCommit == value) return;
+                _repo.UIStates.NoVerifyOnCommit = value;
+                OnPropertyChanged();
+            }
         }
 
         public bool UseAmend
@@ -114,7 +119,7 @@ namespace SourceGit.ViewModels
                     }
 
                     Staged = GetStagedChanges(_cached);
-                    VisibleStaged = GetVisibleChanges(_staged);
+                    VisibleStaged = GetVisibleChanges(_staged, true);
                     SelectedStaged = new(null);
                 }
             }
@@ -137,11 +142,34 @@ namespace SourceGit.ViewModels
                         return;
 
                     VisibleUnstaged = GetVisibleChanges(_unstaged);
-                    VisibleStaged = GetVisibleChanges(_staged);
+                    VisibleStaged = GetVisibleChanges(_staged, true);
                     SelectedUnstaged = new(null);
                     SelectedStaged = new(null);
                 }
             }
+        }
+
+        public int ChangeStatusFilter
+        {
+            get => _changeStatusFilter;
+            set { if (SetProperty(ref _changeStatusFilter, Math.Clamp(value, 0, 3))) RefreshVisibleChanges(); }
+        }
+        public int ChangeSortOrder
+        {
+            get => _changeSortOrder;
+            set { if (SetProperty(ref _changeSortOrder, Math.Clamp(value, 0, 2))) RefreshVisibleChanges(); }
+        }
+        private void RefreshVisibleChanges()
+        {
+            if (_isLoadingData) return;
+            VisibleUnstaged = GetVisibleChanges(_unstaged);
+            VisibleStaged = GetVisibleChanges(_staged, true);
+            var unstagedSelection = _selectedUnstaged?.Changes.FindAll(c => _visibleUnstaged.Exists(v => v.Path == c.Path));
+            var stagedSelection = _selectedStaged?.Changes.FindAll(c => _visibleStaged.Exists(v => v.Path == c.Path));
+            SelectedUnstaged = new(unstagedSelection);
+            SelectedStaged = new(stagedSelection);
+            OnPropertyChanged(nameof(UnstagedCountInfo));
+            OnPropertyChanged(nameof(StagedCountInfo));
         }
 
         public List<Models.Change> Unstaged
@@ -186,12 +214,12 @@ namespace SourceGit.ViewModels
 
         public string UnstagedCountInfo
         {
-            get => string.IsNullOrEmpty(_filter) ? $"({_unstaged.Count})" : $"({_visibleUnstaged.Count}/{_unstaged.Count})";
+            get => string.IsNullOrEmpty(_filter) && _changeStatusFilter == 0 ? $"({_unstaged.Count})" : $"({_visibleUnstaged.Count}/{_unstaged.Count})";
         }
 
         public string StagedCountInfo
         {
-            get => string.IsNullOrEmpty(_filter) ? $"({_staged.Count})" : $"({_visibleStaged.Count}/{_staged.Count})";
+            get => string.IsNullOrEmpty(_filter) && _changeStatusFilter == 0 ? $"({_staged.Count})" : $"({_visibleStaged.Count}/{_staged.Count})";
         }
 
         public ChangeSelection SelectedUnstaged
@@ -268,7 +296,7 @@ namespace SourceGit.ViewModels
                     var testStaged = GetStagedChanges(_cached);
                     if (IsChanged(_staged, testStaged))
                     {
-                        var visibleStagedNew = GetVisibleChanges(testStaged);
+                        var visibleStagedNew = GetVisibleChanges(testStaged, true);
                         var selectedStagedNew = new List<Models.Change>();
 
                         if (_selectedStaged is { Count: > 0 })
@@ -338,8 +366,10 @@ namespace SourceGit.ViewModels
                 canSwitchDirectly = false;
             }
 
+            visibleUnstaged = GetVisibleChanges(unstaged);
+            selectedUnstaged = visibleUnstaged.FindAll(c => lastSelectedUnstaged.Contains(c.Path));
             var staged = GetStagedChanges(changes);
-            var visibleStaged = GetVisibleChanges(staged);
+            var visibleStaged = GetVisibleChanges(staged, true);
             var selectedStaged = new List<Models.Change>();
             if (_selectedStaged is { Count: > 0 })
             {
@@ -354,9 +384,9 @@ namespace SourceGit.ViewModels
                 }
             }
 
-            if (selectedUnstaged.Count == 0 && selectedStaged.Count == 0 && conflicts.Count > 0)
+            if (selectedUnstaged.Count == 0 && selectedStaged.Count == 0 && visibleUnstaged.Exists(c => c.IsConflicted))
             {
-                var firstConflict = FindFirstConflict(conflicts);
+                var firstConflict = FindFirstConflict(visibleUnstaged.FindAll(c => c.IsConflicted));
                 selectedUnstaged.Add(firstConflict);
             }
 
@@ -382,6 +412,7 @@ namespace SourceGit.ViewModels
         public void RequestConflictSelection()
         {
             Filter = string.Empty;
+            ChangeStatusFilter = 0;
             _selectConflictAfterRefresh = true;
             ApplyRequestedConflictSelection();
         }
@@ -404,6 +435,8 @@ namespace SourceGit.ViewModels
         {
             if (IsStaging || IsUnstaging) return false;
             var filter = _filter;
+            var statusFilter = _changeStatusFilter;
+            var sortOrder = _changeSortOrder;
             var includeUntracked = IncludeUntracked;
             var originalSelection = _selectedUnstaged;
             IsStaging = true;
@@ -419,7 +452,7 @@ namespace SourceGit.ViewModels
                     var query = new Commands.QueryLocalChanges(_repo.FullPath, includeUntracked);
                     var current = await query.GetResultAsync();
                     if (!query.Succeeded) { _repo.NotifyWorkingCopyStatusFailure(); return false; }
-                    changes = GetVisibleChanges(current.FindAll(c => c.WorkTree != Models.ChangeState.None), filter);
+                    changes = Models.ChangeListOptions.Apply(current.FindAll(c => c.WorkTree != Models.ChangeState.None), filter, statusFilter, sortOrder, false);
                 }
                 var canStage = await GetCanStageChangesAsync(changes);
                 if (canStage.Count == 0) return changes.Count == 0;
@@ -458,6 +491,8 @@ namespace SourceGit.ViewModels
         {
             if (IsStaging || IsUnstaging || IsCommitting) return;
             var filter = _filter;
+            var statusFilter = _changeStatusFilter;
+            var sortOrder = _changeSortOrder;
             var includeUntracked = IncludeUntracked;
             var useAmend = _useAmend;
             var originalSelection = _selectedStaged;
@@ -475,7 +510,7 @@ namespace SourceGit.ViewModels
                     var staged = useAmend
                         ? await Task.Run(() => new Commands.QueryStagedChangesWithAmend(_repo.FullPath).GetResult())
                         : current.FindAll(c => c.Index != Models.ChangeState.None);
-                    changes = GetVisibleChanges(staged, filter);
+                    changes = Models.ChangeListOptions.Apply(staged, filter, statusFilter, sortOrder, true);
                 }
                 if (changes.Count == 0) return;
                 log = _repo.CreateLog("Unstage");
@@ -740,7 +775,7 @@ namespace SourceGit.ViewModels
                     return;
             }
 
-            if (!string.IsNullOrEmpty(_filter) && _staged.Count > _visibleStaged.Count)
+            if ((!string.IsNullOrEmpty(_filter) || _changeStatusFilter != 0) && _staged.Count > _visibleStaged.Count)
             {
                 var msg = App.Text("WorkingCopy.ConfirmCommitWithFilter", _staged.Count, _visibleStaged.Count, _staged.Count - _visibleStaged.Count);
                 var sure = await App.AskConfirmAsync(msg);
@@ -771,7 +806,7 @@ namespace SourceGit.ViewModels
             {
                 _repo.UIStates.AddRecentCommitMessage(_commitMessage);
 
-                if (autoStage && _unstaged.Count > 0 && !await StageChangesAsync(_unstaged, null))
+                if (autoStage && _visibleUnstaged.Count > 0 && !await StageChangesAsync(_visibleUnstaged, null))
                     return;
 
                 log = _repo.CreateLog("Commit");
@@ -807,23 +842,8 @@ namespace SourceGit.ViewModels
             }
         }
 
-        private List<Models.Change> GetVisibleChanges(List<Models.Change> changes) => GetVisibleChanges(changes, _filter);
-
-        private static List<Models.Change> GetVisibleChanges(List<Models.Change> changes, string filter)
-        {
-            if (string.IsNullOrEmpty(filter))
-                return changes;
-
-            var visible = new List<Models.Change>();
-
-            foreach (var c in changes)
-            {
-                if (c.Path.Contains(filter, StringComparison.OrdinalIgnoreCase))
-                    visible.Add(c);
-            }
-
-            return visible;
-        }
+        private List<Models.Change> GetVisibleChanges(List<Models.Change> changes, bool staged = false)
+            => Models.ChangeListOptions.Apply(changes, _filter, _changeStatusFilter, _changeSortOrder, staged);
 
         private async Task<List<Models.Change>> GetCanStageChangesAsync(List<Models.Change> changes)
         {
@@ -1118,6 +1138,8 @@ namespace SourceGit.ViewModels
         private ChangeSelection _selectedUnstaged = new(null);
         private ChangeSelection _selectedStaged = new(null);
         private object _detailContext = null;
+        private int _changeStatusFilter;
+        private int _changeSortOrder;
         private string _filter = string.Empty;
         private string _commitMessage = string.Empty;
 

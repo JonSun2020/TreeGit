@@ -130,6 +130,15 @@ namespace SourceGit.Views
             set => SetAndRaise(EnableCompactFoldersProperty, ref _enableCompactFolders, value);
         }
 
+        public static readonly StyledProperty<bool> PreserveChangeOrderProperty =
+            AvaloniaProperty.Register<ChangeCollectionView, bool>(nameof(PreserveChangeOrder));
+
+        public bool PreserveChangeOrder
+        {
+            get => GetValue(PreserveChangeOrderProperty);
+            set => SetValue(PreserveChangeOrderProperty, value);
+        }
+
         public static readonly DirectProperty<ChangeCollectionView, List<Models.Change>> ChangesProperty =
             AvaloniaProperty.RegisterDirect<ChangeCollectionView, List<Models.Change>>(
                 nameof(Changes),
@@ -277,7 +286,7 @@ namespace SourceGit.Views
 
             if (change.Property == ViewModeProperty)
                 UpdateDataSource(true);
-            else if (change.Property == ChangesProperty)
+            else if (change.Property == ChangesProperty || change.Property == PreserveChangeOrderProperty)
                 UpdateDataSource(false);
             else if (change.Property == SelectionProperty)
                 UpdateSelection();
@@ -387,7 +396,7 @@ namespace SourceGit.Views
                 }
 
                 var tree = new ViewModels.ChangeCollectionAsTree();
-                tree.Tree = ViewModels.ChangeTreeNode.Build(changes, oldFolded, EnableCompactFolders);
+                tree.Tree = ViewModels.ChangeTreeNode.Build(changes, oldFolded, EnableCompactFolders, PreserveChangeOrder);
 
                 var rows = new List<ViewModels.ChangeTreeNode>();
                 MakeTreeRows(rows, tree.Tree);

@@ -55,7 +55,22 @@ namespace SourceGit.Automation
             }
 #if INTEGRATION_TESTS
             else if (action == "test_click")
+            {
                 UiLayoutProbe.ClickButton(window, args.GetProperty("button").GetString(), args.TryGetProperty("tempDirectory", out var blockedTemp) ? blockedTemp.GetString() : null);
+                if (!window.IsVisible) return new { closed = true };
+            }
+            else if (action == "test_set")
+            {
+                if (Environment.GetEnvironmentVariable("CI") != "true")
+                    throw new InvalidOperationException("Input fixtures are restricted to the isolated CI application.");
+                var target = window.GetVisualDescendants().OfType<Control>().Single(c => c.Name == args.GetProperty("button").GetString());
+                if (!target.IsEffectivelyVisible || !target.IsEnabled) throw new InvalidOperationException("The fixture control is unavailable.");
+                if (target is TextBox text) text.SetCurrentValue(TextBox.TextProperty, args.GetProperty("text").GetString());
+                else if (target is Expander expander) expander.SetCurrentValue(Expander.IsExpandedProperty, args.GetProperty("value").GetDouble() != 0);
+                else if (target is ToggleButton toggle) toggle.SetCurrentValue(ToggleButton.IsCheckedProperty, args.GetProperty("value").GetDouble() != 0);
+                else if (target is ComboBox combo) combo.SetCurrentValue(ComboBox.SelectedIndexProperty, args.GetProperty("value").GetInt32());
+                else throw new ArgumentException("Unsupported fixture control.");
+            }
 #endif
             else if (action is "drag" or "restore")
             {
@@ -121,6 +136,19 @@ namespace SourceGit.Automation
                 var point = control.PointToScreen(new Point(grip ? Math.Max(1, control.Bounds.Width - 2) : control.Bounds.Width / 2, control.Bounds.Height / 2));
                 return new { x = point.X, y = point.Y };
             }
+#if INTEGRATION_TESTS
+            double VisibleHeight(Control control)
+            {
+                var top = control.TranslatePoint(default, window)?.Y ?? 0;
+                var bottom = control.TranslatePoint(new Point(0, control.Bounds.Height), window)?.Y ?? top;
+                foreach (var scroll in control.GetVisualAncestors().OfType<ScrollViewer>())
+                {
+                    top = Math.Max(top, scroll.TranslatePoint(default, window)?.Y ?? top);
+                    bottom = Math.Min(bottom, scroll.TranslatePoint(new Point(0, scroll.Bounds.Height), window)?.Y ?? bottom);
+                }
+                return Math.Max(0, bottom - top);
+            }
+#endif
             return new
             {
                 window = new { title = window.Title, width = window.Bounds.Width, height = window.Bounds.Height, minWidth = window.MinWidth, minHeight = window.MinHeight,
@@ -143,6 +171,8 @@ namespace SourceGit.Automation
                         minColumns = grid?.ColumnDefinitions.Select(d => d.MinWidth).ToArray(), minRows = grid?.RowDefinitions.Select(d => d.MinHeight).ToArray() };
                 }).ToArray(),
 #if INTEGRATION_TESTS
+                labels = controls.OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && !string.IsNullOrEmpty(t.Text)).Take(500)
+                    .Select(t => new { text = t.Text, bounds = Bounds(t), visibleHeight = VisibleHeight(t) }).ToArray(),
                 columnHeaders = controls.OfType<DataGridColumnHeader>().Where(h => h.IsEffectivelyVisible && h.Bounds.Width > 0)
                     .Select(h => new { text = string.Join("", h.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text)),
                         bounds = Bounds(h), screen = ScreenPoint(h, true) }).ToArray(),

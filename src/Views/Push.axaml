@@ -9,7 +9,7 @@
              x:Class="SourceGit.Views.Push"
              x:DataType="vm:Push">
   <StackPanel Orientation="Vertical" Margin="8,0">
-    <StackPanel Orientation="Horizontal">
+    <StackPanel Orientation="Horizontal" Classes="popup_heading">
       <Path Width="16" Height="16"
             Data="{StaticResource Icons.Push}"/>
 
@@ -19,7 +19,7 @@
                  Text="{DynamicResource Text.Push.Title}"/>
     </StackPanel>
 
-    <Grid Margin="0,16,0,0" RowDefinitions="32,32,32,Auto,Auto,Auto,32,32" ColumnDefinitions="130,*">
+    <Grid Margin="0,16,0,0" RowDefinitions="32,32,32,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="130,*">
       <TextBlock Grid.Row="0" Grid.Column="0"
                  HorizontalAlignment="Right" VerticalAlignment="Center"
                  Margin="0,0,8,0"
@@ -91,15 +91,13 @@
                 IsVisible="{Binding SelectedRemote?.URL, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                 ToolTip.Tip="--tags"/>
 
-      <CheckBox Grid.Row="6" Grid.Column="1"
-                Content="{DynamicResource Text.Push.NoVerify}"
-                IsChecked="{Binding NoVerify, Mode=TwoWay}"
-                ToolTip.Tip="--no-verify"/>
-
-      <CheckBox Grid.Row="7" Grid.Column="1"
-                Content="{DynamicResource Text.Push.Force}"
-                IsChecked="{Binding ForcePush, Mode=TwoWay}"
-                ToolTip.Tip="--force-with-lease"/>
+      <Expander x:Name="PushAdvancedOptions" Grid.Row="6" Grid.ColumnSpan="2" Header="{DynamicResource Text.UI.AdvancedOptions}" Margin="0,8,0,0" HorizontalAlignment="Stretch">
+        <StackPanel Spacing="6" Margin="8,4"><CheckBox x:Name="PushSkipHooks" Content="{DynamicResource Text.Push.NoVerify}" IsChecked="{Binding NoVerify, Mode=TwoWay}"/><CheckBox x:Name="PushForce" Content="{DynamicResource Text.Push.Force}" IsChecked="{Binding ForcePush, Mode=TwoWay}"/></StackPanel>
+      </Expander>
+      <StackPanel Grid.Row="7" Grid.ColumnSpan="2" Spacing="4" Margin="0,4,0,0">
+        <TextBlock Text="{DynamicResource Text.UI.ForcePushEnabled}" IsVisible="{Binding ForcePush}" Foreground="{DynamicResource Brush.FG1}" TextWrapping="Wrap" FontWeight="Bold"/>
+        <TextBlock Text="{DynamicResource Text.UI.SkipHooksEnabled}" IsVisible="{Binding NoVerify}" Foreground="{DynamicResource Brush.FG1}" TextWrapping="Wrap" FontWeight="Bold"/>
+      </StackPanel>
     </Grid>
   </StackPanel>
 </UserControl>

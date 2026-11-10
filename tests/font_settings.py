@@ -59,7 +59,7 @@ try:
     (out/'selected-fonts.png').write_bytes(c.tool('ui_screenshot',{'window':'active'}))
     error=c.rpc('tools/call',{'name':'ui_fonts','arguments':{'action':'set','kind':'code','font':'Nonexistent QA Font 123456'}})
     check('unlisted font is rejected without changing selection',bool(error.get('isError')) and c.tool('ui_fonts',{'action':'state'})['codeFont']==code)
-    c.tool('ui_command',{'command':'close_dialog'})
+    check('explicitly save font preferences', c.tool('ui_command',{'command':'save_preferences'})['saved'])
 finally:c.close()
 c=Client()
 try:
@@ -70,7 +70,7 @@ try:
         state=c.tool('ui_fonts',{'action':'set','kind':kind,'font':''})
         check('restore '+kind+' default through the actual dropdown',state['controls'][kind+'Value']=='' and state[kind+'Font']=='')
     check('restoring both defaults restores bundled code font', 'JetBrains Mono' in state['renderedCodeFont'] and 'Segoe UI' in state['renderedInterfaceFont'])
-    c.tool('ui_command',{'command':'close_dialog'})
+    check('explicitly save font preferences', c.tool('ui_command',{'command':'save_preferences'})['saved'])
 finally:c.close()
 preference=json.loads(config.read_text('utf-8-sig'));preference['DefaultFontFamily']='Segoe UI, Microsoft YaHei UI';config.write_text(json.dumps(preference),'utf-8')
 c=Client()

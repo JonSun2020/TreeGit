@@ -363,6 +363,23 @@ namespace SourceGit.Automation
             if (name == "ui_command")
             {
                 var uiCommand = Text(args, "command");
+                if (uiCommand == "save_preferences")
+                {
+                    Task<bool> save = null;
+                    Views.Preferences editor = null;
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        var lifetime = (IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime;
+                        if (lifetime.Windows.LastOrDefault(w => w.IsVisible && w != lifetime.MainWindow) is not Views.Preferences activeEditor)
+                            throw new InvalidOperationException("Open the preferences dialog first.");
+                        editor = activeEditor;
+                        save = editor.SaveChangesAsync();
+                    });
+                    var saved = await save;
+                    var message = await Dispatcher.UIThread.InvokeAsync(() => editor.SaveError);
+                    var restartRequired = await Dispatcher.UIThread.InvokeAsync(() => saved && editor.RestartRequired);
+                    return new { saved, message, restartRequired };
+                }
                 var globalResult = await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     var lifetime = (IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime;
@@ -772,8 +789,28 @@ namespace SourceGit.Automation
                     if (repo.IsBare) throw new ArgumentException("Bare repositories have no working copy.");
                     repo.ShowWorkingCopyOverview();
                     if (args.TryGetProperty("filter", out var filter)) repo.WorkingCopy.Filter = filter.GetString() ?? string.Empty;
+                    if (args.TryGetProperty("status", out var status))
+                        repo.WorkingCopy.ChangeStatusFilter = status.GetString() switch
+                        {
+                            "all" => 0, "conflicts" => 1, "modified" => 2, "untracked" => 3,
+                            _ => throw new ArgumentException("Unknown file-status filter."),
+                        };
+                    if (args.TryGetProperty("sort", out var sort))
+                        repo.WorkingCopy.ChangeSortOrder = sort.GetString() switch
+                        {
+                            "path" => 0, "name" => 1, "status" => 2,
+                            _ => throw new ArgumentException("Unknown file sort order."),
+                        };
                     if (args.TryGetProperty("message", out var message)) repo.WorkingCopy.CommitMessage = message.GetString() ?? string.Empty;
-                    return (object)new { selected = "uncommitted_changes", repo = path, filter = repo.WorkingCopy.Filter };
+                    return (object)new
+                    {
+                        selected = "uncommitted_changes", repo = path, filter = repo.WorkingCopy.Filter,
+                        status = new[] { "all", "conflicts", "modified", "untracked" }[repo.WorkingCopy.ChangeStatusFilter],
+                        sort = new[] { "path", "name", "status" }[repo.WorkingCopy.ChangeSortOrder],
+                        unstagedCount = repo.WorkingCopy.VisibleUnstaged.Count, stagedCount = repo.WorkingCopy.VisibleStaged.Count,
+                        unstaged = repo.WorkingCopy.VisibleUnstaged.Take(200).Select(c => c.Path).ToArray(),
+                        staged = repo.WorkingCopy.VisibleStaged.Take(200).Select(c => c.Path).ToArray(),
+                    };
                 });
 
             if (name == "ui_search")

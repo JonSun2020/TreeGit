@@ -7,7 +7,7 @@
              x:Class="SourceGit.Views.ApplyStash"
              x:DataType="vm:ApplyStash">
   <StackPanel Orientation="Vertical" Margin="8,0,0,0">
-    <StackPanel Orientation="Horizontal">
+    <StackPanel Orientation="Horizontal" Classes="popup_heading">
       <Path Width="16" Height="16"
             Data="{StaticResource Icons.CheckCircled}"/>
 

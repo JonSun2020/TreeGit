@@ -53,6 +53,7 @@
     <Compile Include="../tests/DataSafetyProbe.cs" />
     <Compile Include="../tests/PullSafetyProbe.cs" />
     <Compile Include="../tests/PreferencesLoadProbe.cs" />
+    <Compile Include="../tests/UiConsistencyProbe.cs" />
   </ItemGroup>
 
   <ItemGroup>

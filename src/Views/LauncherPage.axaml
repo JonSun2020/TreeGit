@@ -1,4 +1,4 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:m="using:SourceGit.Models" xmlns:v="using:SourceGit.Views" xmlns:vm="using:SourceGit.ViewModels" xmlns:c="using:SourceGit.Converters" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SourceGit.Views.LauncherPage" x:DataType="vm:LauncherPage">
   <Grid RowDefinitions="60,*" Background="{DynamicResource Brush.ToolBar}">
     <!-- ToolBar -->
@@ -54,20 +54,26 @@
         </MultiBinding>
       </Grid.IsVisible>
 
-      <Border Background="Transparent" PointerPressed="OnMaskClicked" IsVisible="{Binding Popup, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+      <Border Background="#66000000" PointerPressed="OnMaskClicked" IsVisible="{Binding Popup, Converter={x:Static ObjectConverters.IsNotNull}}"/>
 
-      <Grid RowDefinitions="*,Auto" MaxWidth="560" MaxHeight="{Binding #PopupArea.Bounds.Height}" HorizontalAlignment="Stretch" VerticalAlignment="Top">
+      <Grid RowDefinitions="*,Auto,Auto" Classes="popup_frame" Classes.dialog_open="{Binding Popup, Converter={x:Static ObjectConverters.IsNotNull}}" MaxWidth="560" MaxHeight="{Binding #PopupArea.Bounds.Height}" HorizontalAlignment="Stretch">
+        <Grid.Styles>
+          <Style Selector="Grid.popup_frame"><Setter Property="VerticalAlignment" Value="Top"/></Style>
+          <Style Selector="Grid.popup_frame.dialog_open"><Setter Property="VerticalAlignment" Value="Center"/></Style>
+        </Grid.Styles>
         <!-- Popup -->
-        <Grid Grid.Row="0" Margin="6,0,6,6">
+        <Grid Grid.Row="0" Margin="6,8,6,8">
           <Border Background="Transparent" Effect="drop-shadow(0 0 8 #8F000000)" IsVisible="{Binding Popup, Converter={x:Static ObjectConverters.IsNotNull}}">
-            <Border Background="{DynamicResource Brush.Popup}" BorderThickness="1,0,1,1" BorderBrush="{DynamicResource Brush.PopupBorder}" CornerRadius="0,0,8,8">
+            <Border Background="{DynamicResource Brush.Popup}" BorderThickness="1" BorderBrush="{DynamicResource Brush.PopupBorder}" CornerRadius="0">
               <ContentControl x:Name="PopupPanel" Content="{Binding Popup}" KeyboardNavigation.TabNavigation="Cycle">
                 <ContentControl.DataTemplates>
                   <DataTemplate DataType="vm:Popup">
-                    <Grid RowDefinitions="*,Auto,Auto,Auto">
+                    <Grid RowDefinitions="Auto,*,Auto,Auto,Auto">
+                      <Border Grid.Row="0" Margin="8,8,8,0" Height="26" Background="#A0A0A0" IsVisible="{Binding UsesDialogTitle}"><TextBlock Text="{Binding DialogTitle}" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
                       <!-- Popup Widget -->
-                      <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-                      <ContentControl Margin="8,16,8,8" Content="{Binding}" IsHitTestVisible="{Binding InProgress, Converter={x:Static BoolConverters.Not}}">
+                      <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                      <ContentControl Classes.captioned="{Binding UsesDialogTitle}" Margin="8,8,8,8" Content="{Binding}" IsHitTestVisible="{Binding InProgress, Converter={x:Static BoolConverters.Not}}">
+                        <ContentControl.Styles><Style Selector="ContentControl.captioned StackPanel.popup_heading, ContentControl.captioned TextBlock.popup_heading"><Setter Property="IsVisible" Value="False"/></Style></ContentControl.Styles>
                         <ContentControl.DataTemplates>
                           <v:PopupDataTemplates/>
                         </ContentControl.DataTemplates>
@@ -75,17 +81,17 @@
                       </ScrollViewer>
 
                       <!-- Options -->
-                      <StackPanel Grid.Row="1" Margin="8,4,8,8" Height="32" Orientation="Horizontal" HorizontalAlignment="Right" IsVisible="{Binding InProgress, Converter={x:Static BoolConverters.Not}}">
+                      <StackPanel Grid.Row="2" Margin="8,8,8,8" Height="32" Orientation="Horizontal" HorizontalAlignment="Right" IsVisible="{Binding InProgress, Converter={x:Static BoolConverters.Not}}">
                         <Button Width="0" Height="0" Click="OnPopupSureByHotKey" HotKey="Enter" Focusable="False"/>
                         <Button x:Name="ConfirmPopup" Classes="flat primary" Width="100" Height="28" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="{DynamicResource Text.Sure}" Click="OnPopupSure" ToolTip.Tip="Enter"/>
                         <Button x:Name="CancelPopup" Classes="flat" Width="100" Height="28" Margin="8,0,0,0" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="{DynamicResource Text.Cancel}" Click="OnPopupCancel" ToolTip.Tip="ESC"/>
                       </StackPanel>
 
                       <!-- Running -->
-                      <v:PopupRunningStatus Grid.Row="2" Margin="12,8" Focusable="False" Description="{Binding ProgressDescription}" IsVisible="{Binding InProgress}" IsHitTestVisible="False"/>
+                      <v:PopupRunningStatus Grid.Row="3" Margin="12,8" Focusable="False" Description="{Binding ProgressDescription}" IsVisible="{Binding InProgress}" IsHitTestVisible="False"/>
 
                       <!-- Terminate -->
-                      <Button Grid.Row="3" Classes="flat" Height="28" Margin="0,0,0,8" Padding="16,0" HorizontalAlignment="Center" Content="{DynamicResource Text.Terminate}" Click="OnPopupTerminate">
+                      <Button Grid.Row="4" Classes="flat" Height="28" Margin="0,0,0,8" Padding="16,0" HorizontalAlignment="Center" Content="{DynamicResource Text.Terminate}" Click="OnPopupTerminate">
                         <Button.IsVisible>
                           <MultiBinding Converter="{x:Static BoolConverters.And}">
                             <Binding Path="InProgress" Mode="OneWay"/>

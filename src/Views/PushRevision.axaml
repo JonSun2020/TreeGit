@@ -8,7 +8,7 @@
              x:Class="SourceGit.Views.PushRevision"
              x:DataType="vm:PushRevision">
   <StackPanel Orientation="Vertical" Margin="8,0">
-    <StackPanel Orientation="Horizontal">
+    <StackPanel Orientation="Horizontal" Classes="popup_heading">
       <Path Width="16" Height="16"
             Data="{StaticResource Icons.Push}"/>
 

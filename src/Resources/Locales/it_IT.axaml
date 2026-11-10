@@ -1122,4 +1122,45 @@ ${pure_files:N} Come ${files:N}, ma senza cartelle</x:String>
   <x:String x:Key="Text.CommitMenu.CherryPick">Cherry-pick…</x:String>
   <x:String x:Key="Text.CommitMenu.CopySHA">Copy SHA to clipboard</x:String>
   <x:String x:Key="Text.CommitMenu.Advanced">Advanced operations</x:String>
+
+  <!-- TreeGit consistent operation and preference controls -->
+  <x:String x:Key="Text.Stash.After.Remove" xml:space="preserve">Remove saved changes locally</x:String>
+  <x:String x:Key="Text.Stash.After.Remove.Description" xml:space="preserve">Save changes in the stash, then remove those changes from the working tree.</x:String>
+  <x:String x:Key="Text.Stash.After.KeepIndex" xml:space="preserve">Keep staged changes locally</x:String>
+  <x:String x:Key="Text.Stash.After.KeepIndex.Description" xml:space="preserve">Save changes in the stash and leave staged changes in the working tree.</x:String>
+  <x:String x:Key="Text.Stash.After.KeepAll" xml:space="preserve">Keep all saved changes locally</x:String>
+  <x:String x:Key="Text.Stash.After.KeepAll.Description" xml:space="preserve">Save a stash copy and restore the same staged and unstaged changes locally.</x:String>
+  <x:String x:Key="Text.UI.AdvancedOptions" xml:space="preserve">Advanced options</x:String>
+  <x:String x:Key="Text.UI.ForcePushEnabled" xml:space="preserve">Warning: force push is enabled; remote history may be rewritten.</x:String>
+  <x:String x:Key="Text.UI.SkipHooksEnabled" xml:space="preserve">Warning: repository checks will be skipped.</x:String>
+  <x:String x:Key="Text.UI.SkipHooksShort" xml:space="preserve">Checks skipped</x:String>
+  <x:String x:Key="Text.UI.ResetBranchEnabled" xml:space="preserve">Warning: an existing branch may be reset to the selected commit.</x:String>
+  <x:String x:Key="Text.UI.FilterStatus" xml:space="preserve">Filter changes by status</x:String>
+  <x:String x:Key="Text.UI.AllChanges" xml:space="preserve">All changes</x:String>
+  <x:String x:Key="Text.UI.Conflicts" xml:space="preserve">Conflicts only</x:String>
+  <x:String x:Key="Text.UI.Modified" xml:space="preserve">Modified only</x:String>
+  <x:String x:Key="Text.UI.Untracked" xml:space="preserve">Untracked only</x:String>
+  <x:String x:Key="Text.UI.SortOrder" xml:space="preserve">Sort changes</x:String>
+  <x:String x:Key="Text.UI.SortPath" xml:space="preserve">Sort by path</x:String>
+  <x:String x:Key="Text.UI.SortName" xml:space="preserve">Sort by filename</x:String>
+  <x:String x:Key="Text.UI.SortStatus" xml:space="preserve">Sort by status</x:String>
+  <x:String x:Key="Text.UI.DisplayOptions" xml:space="preserve">Display options</x:String>
+  <x:String x:Key="Text.UI.MoreContext" xml:space="preserve">More context</x:String>
+  <x:String x:Key="Text.UI.LessContext" xml:space="preserve">Less context</x:String>
+  <x:String x:Key="Text.Diff.Source.Old" xml:space="preserve">Old: {0}</x:String>
+  <x:String x:Key="Text.Diff.Source.New" xml:space="preserve">New: {0}</x:String>
+  <x:String x:Key="Text.Diff.Source.WorkingTree" xml:space="preserve">Working tree</x:String>
+  <x:String x:Key="Text.Diff.Source.Index" xml:space="preserve">Staging area</x:String>
+  <x:String x:Key="Text.Diff.Source.Empty" xml:space="preserve">File does not exist</x:String>
+  <x:String x:Key="Text.Diff.Source.Head" xml:space="preserve">Current commit (HEAD)</x:String>
+  <x:String x:Key="Text.Preferences.Save.PreviewHint" xml:space="preserve">Preview changes; OK saves, Cancel or Close restores.</x:String>
+  <x:String x:Key="Text.Preferences.Save.ReadFailed" xml:space="preserve">Git settings could not be read. Select a valid Git and reopen this window before changing Git settings.</x:String>
+  <x:String x:Key="Text.Preferences.Save.Changed" xml:space="preserve">Git settings changed in another program. Reopen this window and try again.</x:String>
+  <x:String x:Key="Text.Preferences.Save.LinkedConfig" xml:space="preserve">Git settings use a linked file. Please edit that file in your editor; appearance settings can be saved separately.</x:String>
+  <x:String x:Key="Text.Preferences.Save.LargeConfig" xml:space="preserve">The Git configuration is too large to edit here safely. Please use an external editor.</x:String>
+  <x:String x:Key="Text.Preferences.Save.Failed" xml:space="preserve">Settings were not saved. Check file access and free space, then retry; your draft remains here.</x:String>
+  <x:String x:Key="Text.Preferences.Save.Overridden" xml:space="preserve">An included configuration file overrides this setting. Edit it in that file; your entries remain in this window.</x:String>
+  <x:String x:Key="Text.Diff.Source.Parent" xml:space="preserve">Parent commit</x:String>
+  <x:String x:Key="Text.Diff.Source.Commit" xml:space="preserve">Commit {0}</x:String>
+  <x:String x:Key="Text.Preferences.Save.Locked" xml:space="preserve">Another operation is using Git settings. Try again shortly; your entries remain in this window.</x:String>
 </ResourceDictionary>
