@@ -31,5 +31,5 @@ $config=@{mcpServers=@{treegit=@{command='C:\Tools\TreeGit\TreeGit.exe';args=@('
 $config | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 (Join-Path $Destination 'mcp-readonly.json')
 $config.mcpServers.treegit.args=@('--mcp')
 $config | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 (Join-Path $Destination 'mcp-readwrite.json')
-@{product='TreeGit';version=$treeGitVersion;sourceCommit=$treeGitSourceCommit;upstreamCommit='c0f40a2e78d81a7474628847727644fc0c56f558';integrationTests=$IntegrationTests.IsPresent;selfContained=$true;trimmed=$true;singleFileCompression=$true;bundledGit=$true;gitVersion=$treeGitRuntime.gitVersion;lfsVersion=$treeGitRuntime.lfsVersion;flowVersion=$treeGitRuntime.flowVersion} | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $Destination 'build-info.json')
+@{product='TreeGit';version=$treeGitVersion;sourceCommit=$treeGitSourceCommit;upstreamCommit='2735a8ad80c2443bc736b7e6e501f1052b61d940';integrationTests=$IntegrationTests.IsPresent;selfContained=$true;trimmed=$true;singleFileCompression=$true;bundledGit=$true;gitVersion=$treeGitRuntime.gitVersion;lfsVersion=$treeGitRuntime.lfsVersion;flowVersion=$treeGitRuntime.flowVersion} | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $Destination 'build-info.json')
 Write-Output ('TreeGit portable program: '+$Destination)

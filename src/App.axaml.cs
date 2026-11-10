@@ -629,7 +629,6 @@ namespace SourceGit
 
             var pref = ViewModels.Preferences.Instance;
             pref.SetCanModify();
-            pref.UpdateAvailableAIModels();
 
             _launcher = new ViewModels.Launcher(startupRepo);
             Native.StartupTrace.Mark("launcher-model");

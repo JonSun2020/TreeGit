@@ -6,11 +6,15 @@ TreeGit 的目标是保持 SourceGit 的 Git 工作流，持续维护独立的�
 
 - 仓库：https://github.com/sourcegit-scm/sourcegit
 - 分支：`master`
-- 版本：`2026.23`
-- 提交：`c0f40a2e78d81a7474628847727644fc0c56f558`
+- 版本：`2026.24`，正式标签 `v2026.24`
+- 提交：`2735a8ad80c2443bc736b7e6e501f1052b61d940`（master 上的发布合并提交）
 - AvaloniaEdit 基线：`ddf00a91dc0da29b85c79b85c9583860213a99ff`
 
-原始提交历史和 `upstream` 远端可以用于后续合并。`VERSION` 保留 SourceGit 基线版本；TreeGit 发布使用 `treegit-v...` 标签，避免混淆双方版本。实际已合并的上游提交应记录在本文件，而不能只修改版本号。
+`VERSION` 保留 SourceGit 基线版本；TreeGit 发布使用 `treegit-v...` 标签，避免混淆双方版本。实际已合并的上游提交应记录在本文件，而不能只修改版本号。
+
+2026.24 同步时核实：TreeGit 最初导入的是 2026.23 源码快照，历史未与上游提交连接。此次先记录该快照的原始基线祖先 `c0f40a2e78d81a7474628847727644fc0c56f558`，保持工作树不变，再进行真实的 2026.24 三方合并；没有重写已发布的 TreeGit 历史。后续可直接基于上游祖先继续合并。
+
+上游在 develop 开发，发布后将 release 分支合入 master，再将 master 合回 develop。同步正式标签对应的 master 发布点，不把 develop 的回合并提交或未发布功能当作正式版本。
 
 ## 每次更新
 
@@ -19,12 +23,14 @@ TreeGit 的目标是保持 SourceGit 的 Git 工作流，持续维护独立的�
 
    ```powershell
    git remote add upstream https://github.com/sourcegit-scm/sourcegit.git
-   git fetch upstream master --tags
+   git fetch upstream master develop --tags
    git switch -c sync/sourcegit-YYYYMMDD
-   git merge --no-ff upstream/master
+   git merge --no-ff vYYYY.NN
    ```
 
    已存在 `upstream` 时跳过添加。冲突未解决时先修复并编译；不要用上游整目录覆盖 TreeGit。
+
+   用户明确要求：所有 TreeGit 自行开发的功能、交互和数据保护都必须保留，只更新复用 SourceGit 的部分。分支筛选沿用 TreeGit 当前/所有分支及远程分支逻辑；不恢复已删除的 AI、自定义操作等设置入口。图谱、搜索、二进制对比、凭据、冲突工具、在线更新和 MCP 专项必须复核。
 
 3. 重点审查：`src/Automation/`、Git 命令进程与认证、`Models/CommitGraph*`、主窗口/侧栏/历史/工作副本视图、主题和资源、依赖版本、构建脚本。
 4. 当前发布使用 Avalonia 11 的兼容组合；上游可能使用不同的大版本。升级 UI 框架时须一并验证 DataGrid、编辑器、主题和剪裁发布。不要仅合并包版本号。

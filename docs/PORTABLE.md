@@ -21,7 +21,7 @@
 
 项目及更新：https://github.com/JonSun2020/TreeGit
 
-基于 SourceGit 2026.23，保留原版权及 MIT 许可证；界面、品牌及 MCP 为 TreeGit 的改动。内置 Git、LFS、Git Flow 和配套组件遵循各自许可证，见 `git/COMPONENTS.md`。当前主要验证平台为 Windows x64。
+基于 SourceGit 2026.24，保留原版权及 MIT 许可证；界面、品牌及 MCP 为 TreeGit 的改动。内置 Git、LFS、Git Flow 和配套组件遵循各自许可证，见 `git/COMPONENTS.md`。当前主要验证平台为 Windows x64。
 
 二进制文件变更直接显示左右十六进制 / ASCII 差异，支持首个、上一个、下一个、末个差异、地址跳转及独立窗口；按相同字节偏移比较，插入 / 删除后不自动重新对齐。图片与 LFS 使用原有专用视图。
 “使用外部合并程序查看”目前仍显示“暂未支持”的信息提示；二进制对比直接使用内置视图即可。

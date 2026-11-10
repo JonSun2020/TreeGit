@@ -122,6 +122,8 @@ namespace SourceGit.Tests
                 var failedRead = false;
                 try { Commands.GlobalConfigEdit.ReadEffective(); } catch { failedRead = true; }
                 Check("malformed configuration is a read failure", failedRead);
+                File.WriteAllText(global, "[user]\nname = Upstream QA\nemail = upstream@example.invalid\n");
+                await Upstream24Checks.RunAsync(root, Check);
                 File.WriteAllText(report, JsonSerializer.Serialize(new { passed = checks.Count, checks }));
                 return 0;
             }

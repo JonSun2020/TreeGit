@@ -235,6 +235,7 @@ namespace SourceGit.ViewModels
         public string Subject { get; }
         public string Step { get; }
         public string MessageFile { get; }
+        public string Progress { get; }
 
         public PatchInProgress(Repository repo)
         {
@@ -243,6 +244,8 @@ namespace SourceGit.ViewModels
             MessageFile = Path.Combine(_stateDirectory, "final-commit");
             Subject = ReadStateFile(MessageFile).Split('\n')[0];
             Step = ReadStateFile(Path.Combine(_stateDirectory, "next"));
+            if (int.TryParse(Step, out var next) && int.TryParse(ReadStateFile(Path.Combine(_stateDirectory, "last")), out var total))
+                Progress = $"({Math.Max(0, next - 1)}/{total})";
             _continueCmd = new Commands.Command { WorkingDirectory = repo.FullPath, Context = repo.FullPath, Args = "am --continue" };
             _skipCmd = new Commands.Command { WorkingDirectory = repo.FullPath, Context = repo.FullPath, Args = "am --skip" };
             _abortCmd = new Commands.Command { WorkingDirectory = repo.FullPath, Context = repo.FullPath, Args = "am --abort" };

@@ -54,6 +54,7 @@
     <Compile Include="../tests/PullSafetyProbe.cs" />
     <Compile Include="../tests/PreferencesLoadProbe.cs" />
     <Compile Include="../tests/UiConsistencyProbe.cs" />
+    <Compile Include="../tests/Upstream24Checks.cs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -82,7 +83,7 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="OpenAI" Version="2.10.0" />
     <PackageReference Include="Pfim" Version="0.11.4" />
-    <PackageReference Include="StbImageSharp" Version="2.30.15" />
+    <PackageReference Include="StbImageSharp" Version="2.30.16" />
 
     <ProjectReference Include="../depends/AvaloniaEdit/src/AvaloniaEdit.TextMate/AvaloniaEdit.TextMate.csproj" />
   </ItemGroup>

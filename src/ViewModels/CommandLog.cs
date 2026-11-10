@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -58,7 +59,14 @@ namespace SourceGit.ViewModels
         {
             if (!Dispatcher.UIThread.CheckAccess())
             {
-                Dispatcher.UIThread.Invoke(() => AppendLine(line));
+                try
+                {
+                    Dispatcher.UIThread.Invoke(() => AppendLine(line));
+                }
+                catch (TaskCanceledException)
+                {
+                    // Pending UI updates are canceled when the application exits.
+                }
             }
             else
             {
@@ -83,7 +91,15 @@ namespace SourceGit.ViewModels
         {
             if (!Dispatcher.UIThread.CheckAccess())
             {
-                Dispatcher.UIThread.Invoke(Complete);
+                try
+                {
+                    Dispatcher.UIThread.Invoke(Complete);
+                }
+                catch (TaskCanceledException)
+                {
+                    // Pending UI updates are canceled when the application exits.
+                }
+
                 return;
             }
 
