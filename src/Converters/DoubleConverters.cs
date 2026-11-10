@@ -1,3 +1,7 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+
 using Avalonia;
 using Avalonia.Data.Converters;
 
@@ -5,6 +9,20 @@ namespace SourceGit.Converters
 {
     public static class DoubleConverters
     {
+        public sealed class NotificationAreaHeightConverter : IMultiValueConverter
+        {
+            public object Convert(IList<object> values, Type targetType, object parameter, CultureInfo culture)
+            {
+                if (values is not [double height, bool hasPopup])
+                    return 0.0;
+
+                // Retain space for the modal form and its fixed footer even when errors accumulate.
+                return Math.Max(0, hasPopup ? Math.Min(240, height * .35) : height - 64);
+            }
+        }
+
+        public static readonly NotificationAreaHeightConverter NotificationAreaHeight = new();
+
         public static readonly FuncValueConverter<double, double> CommitSummaryHeight = new(v => System.Math.Min(240, System.Math.Max(0, v * .65)));
 
         public static readonly FuncValueConverter<double, double> Increase =

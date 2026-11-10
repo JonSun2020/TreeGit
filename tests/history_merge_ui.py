@@ -542,7 +542,12 @@ try:
     cancel(); git('remote', 'set-url', 'origin', str(remote)); reset()
 
     write('draft.txt', 'preserved on successful pull\n'); git('add', 'draft.txt'); refresh()
-    command('pull_dialog'); confirm(); completed()
+    command('pull_dialog')
+    check('earlier error notices remain available before retrying the pull', tool('ui_state')['activePage']['notifications'] >= 4)
+    wait_for(lambda: len(buttons := [b for b in layout()['buttons'] if b['name'] in ['ConfirmPopup', 'CancelPopup']]) == 2 and
+             all(not b['outsideParentBorder'] and b['parentBorderHeight'] >= 150 for b in buttons))
+    shot('pull-with-error-notices')
+    confirm(); completed()
     check('successful pull integrates the fetched update and restores staged work', git('rev-parse', 'HEAD').stdout.strip() == pulled_head and (repo / 'draft.txt').read_text() == 'preserved on successful pull\n' and 'draft.txt' in git('diff', '--cached', '--name-only').stdout.splitlines() and not git('stash', 'list').stdout)
     check('successful pull leaves no private snapshot or message files', not list((repo / '.git').glob('treegit-pull-*')))
     reset(); git('push', '--force', 'origin', main + ':refs/heads/main'); git('update-ref', 'refs/remotes/origin/main', main); refresh()

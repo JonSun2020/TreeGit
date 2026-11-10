@@ -119,6 +119,12 @@
 
         <!-- Notifications -->
         <ScrollViewer Grid.Row="2" VerticalAlignment="Top" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+          <ScrollViewer.MaxHeight>
+            <MultiBinding Converter="{x:Static c:DoubleConverters.NotificationAreaHeight}">
+              <Binding Path="#PopupArea.Bounds.Height"/>
+              <Binding Path="Popup" Converter="{x:Static ObjectConverters.IsNotNull}"/>
+            </MultiBinding>
+          </ScrollViewer.MaxHeight>
           <ItemsControl ItemsSource="{Binding Notifications}">
             <ItemsControl.ItemTemplate>
               <DataTemplate DataType="m:Notification">
