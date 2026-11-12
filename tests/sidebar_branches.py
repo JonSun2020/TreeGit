@@ -125,10 +125,17 @@ def branch_click(reference, source='history', double=False):
     wait_for(lambda: state()['view']==0 and not state()['searchActive'] and not state()['workingCopySelected'])
 def button(name):
     b = wait_for(lambda: next((b for b in tool('ui_layout')['buttons'] if b['name']==name and b['enabled']), None))
-    hwnd = api.GetAncestor(api.GetForegroundWindow(), 2)
-    assert owner(hwnd)==pid
-    origin = wintypes.POINT(); assert api.ClientToScreen(hwnd, ctypes.byref(origin))
-    bounds = b['bounds']; click(origin.x+(bounds['x']+bounds['width']/2), origin.y+(bounds['y']+bounds['height']/2))
+    stable = 0
+    for _ in range(100):
+        time.sleep(.06)
+        current = next((v for v in tool('ui_layout')['buttons'] if v['name']==name and v['enabled']), None)
+        stable = stable + 1 if current and current['bounds']==b['bounds'] and current['screen']==b['screen'] else 0
+        if current: b = current
+        if stable >= 3: break
+    assert stable >= 3, 'Button did not settle: '+name
+    # A popup can still own native focus after a repository tab changes.
+    # Use the actual button's screen coordinate, never that popup's origin.
+    click(b['screen']['x'], b['screen']['y'])
 def cancel():
     button('CancelPopup'); wait_for(lambda: page()['pendingDialog'] is None)
 def confirm(branch):
