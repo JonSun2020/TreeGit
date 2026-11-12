@@ -222,6 +222,11 @@ try:
                 key(0x43, ctrl=True)
                 until(lambda: clipboard() == text)
                 check(object_format + ': native select-all and Ctrl+C copies ' + name, clipboard() == text)
+                if name == 'CommitMetadataParent':
+                    refresh_version = state()['workingCopyRefreshVersion']
+                    tool('ui_refresh', repo=str(repo))
+                    until(lambda: state()['workingCopyRefreshVersion'] > refresh_version and not state()['graphLoading'])
+                    check(object_format + ': refreshing the same commit preserves selected parent text', field(name, text)['selected'] == text and state()['detailCommit'] == head)
                 copy_menu(name, text, 'CopyMetadataAll')
                 until(lambda: clipboard() == text)
                 check(object_format + ': metadata right-click copies the entire ' + name, clipboard() == text)

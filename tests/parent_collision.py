@@ -1,7 +1,7 @@
 """Create two valid Git commits with the same ten hexadecimal prefix characters.
 
-Only three commit objects and an empty tree are written. The birthday search is
-restricted to a cloud runner and released before the GUI starts.
+Only three commit objects and an empty tree are written. The colliding nonces
+were determined once in cloud QA; no repeated search or large dictionary is used.
 """
 import hashlib
 import os
@@ -15,22 +15,7 @@ def create_fixture(repo, object_format, env):
               'committer Prefix QA <qa@example.invalid> 1700000000 +0000\n\nParent prefix collision ').encode('ascii')
 
     def content(nonce): return prefix + str(nonce).encode('ascii') + b'\n'
-    def oid(data): return hashlib.new(object_format, b'commit ' + str(len(data)).encode('ascii') + b'\0' + data).digest()
-
-    pair = {'sha1': (1693600, 1830326)}.get(object_format)
-    for seed in range(0 if pair is not None else 2):
-        seen = {}
-        for nonce in range(seed * 4_000_000, (seed + 1) * 4_000_000):
-            key = oid(content(nonce))[:5]
-            previous = seen.get(key)
-            if previous is not None:
-                pair = (previous, nonce)
-                break
-            seen[key] = nonce
-        seen.clear()
-        del seen
-        if pair is not None: break
-    assert pair is not None, 'The bounded collision fixture search did not finish'
+    pair = {'sha1': (1693600, 1830326), 'sha256': (682213, 1248445)}[object_format]
 
     def write(kind, data):
         result = subprocess.run(['git', '-C', str(repo), 'hash-object', '-w', '-t', kind, '--stdin'],
