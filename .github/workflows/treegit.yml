@@ -64,7 +64,7 @@ jobs:
         run: |
           New-Item -ItemType Directory -Path "$env:RUNNER_TEMP/ui-consistency-results" -Force | Out-Null
           New-Item -ItemType Directory -Path src/bin/Debug/net10.0/data -Force | Out-Null
-          & src/bin/Debug/net10.0/SourceGit.exe --integration-ui-consistency "$env:RUNNER_TEMP/ui-consistency-results/fixture" "$env:RUNNER_TEMP/ui-consistency-results/logic-report.json"
+          python tests/ui_models.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/ui-consistency-results/fixture" "$env:RUNNER_TEMP/ui-consistency-results/logic-report.json"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify incomplete-package startup guidance
         shell: pwsh
@@ -137,6 +137,7 @@ jobs:
           name: TreeGit-cancellation-results
           path: |
             ${{ runner.temp }}/cancellation-results
+            ${{ runner.temp }}/ui-consistency-results/logic-report.json
             ${{ runner.temp }}/runtime-ui-results
             ${{ runner.temp }}/command-pipes-results
             ${{ runner.temp }}/streaming-query-results/command-pipes-results.json

@@ -75,6 +75,8 @@ jobs:
         run: |
           if ($env:SOURCE -notmatch '^[0-9a-f]{40}$') { throw 'Invalid source commit' }
           Copy-Item tests/update_ui.py "$env:RUNNER_TEMP/update_ui.py"
+          Copy-Item tests/ui_models.py "$env:RUNNER_TEMP/ui_models.py"
+          Copy-Item tests/qa_cleanup.py "$env:RUNNER_TEMP/qa_cleanup.py"
           git checkout --detach $env:SOURCE
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/setup-dotnet@v5
@@ -89,11 +91,15 @@ jobs:
       - name: Require completed update-window checks
         shell: pwsh
         run: |
+          if ((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory * 1024 -lt 4GB) { throw 'Insufficient memory for the isolated build' }
+          if ((Get-Item $env:GITHUB_WORKSPACE).PSDrive.Free -lt 10GB) { throw 'Insufficient workspace disk reserve' }
           dotnet build src/SourceGit.csproj -c Debug -p:EnableIntegrationTests=true -p:UseSharedCompilation=false -m:1 -v:q
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           New-Item -ItemType Directory -Path src/bin/Debug/net10.0/data -Force | Out-Null
           $archive = (Get-ChildItem update-fixture/TreeGit-*-Windows-x64.zip | Select-Object -First 1).FullName
           python "$env:RUNNER_TEMP/update_ui.py" src/bin/Debug/net10.0/SourceGit.exe $archive "$env:RUNNER_TEMP/strict-update-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python "$env:RUNNER_TEMP/ui_models.py" src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/strict-model-results/fixture" "$env:RUNNER_TEMP/strict-model-results/logic-report.json"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         if: always()
@@ -102,3 +108,4 @@ jobs:
           path: |
             ${{ runner.temp }}/strict-update-results/results.json
             ${{ runner.temp }}/strict-update-results/*.png
+            ${{ runner.temp }}/strict-model-results/*.json
