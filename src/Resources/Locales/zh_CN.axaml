@@ -916,6 +916,10 @@
   <x:String x:Key="Text.ScanRepositories.RootDir" xml:space="preserve">根路径 ：</x:String>
   <x:String x:Key="Text.ScanRepositories.UseCustomDir" xml:space="preserve">扫描其他自定义路径</x:String>
   <x:String x:Key="Text.SelfUpdate" xml:space="preserve">检测更新...</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Background">后台更新</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.CancelUpdate">取消更新</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.CloseChoice">更新尚未完成。取消更新，还是转到后台继续？下载完成或失败时会再次提示。</x:String>
+  <x:String x:Key="Text.CommitChanges.NavigateParent">定位此父提交</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.checking" xml:space="preserve">正在检查更新</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.available" xml:space="preserve">发现新版本</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.current" xml:space="preserve">当前已是最新版本</x:String>
@@ -938,7 +942,7 @@
   <x:String x:Key="Text.SelfUpdate.Flow.VerifyHint" xml:space="preserve">正在确认更新包完整，请稍候。</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.ReadyHint" xml:space="preserve">点击“重启完成更新”后，TreeGit 会保存设置、替换程序并重新打开。个人配置和仓库都会保留。AI 连接会暂时断开，更新后可重新连接。</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.CancelledHint" xml:space="preserve">已保留下载进度，下次可以继续。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.BusyHint" xml:space="preserve">更新已准备好，但仓库操作尚未结束。请完成当前操作后，再点击“重启完成更新”。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.BusyHint" xml:space="preserve">更新已准备好。请先完成当前操作，或关闭尚未处理完的设置及操作窗口，再点击“重启完成更新”。</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.ApplyingHint" xml:space="preserve">正在保存设置，即将重启 TreeGit。请稍候。</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.StartingHint" xml:space="preserve">正在启动新版 TreeGit，请稍候。</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.Error.network" xml:space="preserve">暂时无法连接更新服务。请检查网络后重试。</x:String>

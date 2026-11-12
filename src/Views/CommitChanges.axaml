@@ -13,15 +13,30 @@
           <v:CommitBranchHeader Margin="0,0,0,4"/>
         <ScrollViewer x:Name="CommitMetadataScroll" Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
         <StackPanel Spacing="1">
-          <TextBlock FontSize="12" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Commit.SHA}"><Run FontWeight="Bold" Text="{DynamicResource Text.CommitChanges.CommitLabel}"/><Run Text="{Binding Commit.SHA}"/></TextBlock>
+          <Grid ColumnDefinitions="Auto,*">
+            <TextBlock FontSize="12" FontWeight="Bold" Text="{DynamicResource Text.CommitChanges.CommitLabel}"/>
+            <SelectableTextBlock Grid.Column="1" x:Name="CommitMetadataSHA" Classes="commit_metadata" FontSize="12" TextWrapping="Wrap" Text="{Binding Commit.SHA, Converter={x:Static c:StringConverters.ToFullAndShortSHA}}" ContextRequested="OnMetadataContextRequested"/>
+          </Grid>
           <Grid ColumnDefinitions="Auto,*" IsVisible="{Binding Commit.Parents, Converter={x:Static c:ListConverters.IsNotNullOrEmpty}}">
             <TextBlock FontSize="12" FontWeight="Bold" Text="{DynamicResource Text.CommitDetail.Info.Parents}"/>
-            <ItemsControl Grid.Column="1" Margin="6,0,0,0" ItemsSource="{Binding Commit.Parents}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><Button Classes="icon_button" Foreground="{DynamicResource Brush.Link}" FontSize="12" Cursor="Hand" Padding="0" Margin="0,0,8,0" Content="{Binding Converter={x:Static c:StringConverters.ToShortSHA}}" ToolTip.Tip="{Binding}" Click="OnParentClicked"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
+            <ItemsControl Grid.Column="1" Margin="6,0,0,0" ItemsSource="{Binding Commit.Parents}">
+              <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String">
+                <Grid ColumnDefinitions="*,Auto">
+                  <SelectableTextBlock x:Name="CommitMetadataParent" Classes="commit_metadata" Foreground="{DynamicResource Brush.Link}" FontSize="12" TextWrapping="Wrap" Text="{Binding Converter={x:Static c:StringConverters.ToFullAndShortSHA}}" ContextRequested="OnMetadataContextRequested"/>
+                  <Button Grid.Column="1" x:Name="CommitMetadataNavigateParent" Classes="icon_button" Width="20" Height="20" Margin="4,0,0,0" VerticalAlignment="Top" ToolTip.Tip="{DynamicResource Text.CommitChanges.NavigateParent}" Click="OnParentClicked"><Path Width="12" Height="12" Data="{StaticResource Icons.GotoParent}"/></Button>
+                </Grid>
+              </DataTemplate></ItemsControl.ItemTemplate>
+            </ItemsControl>
           </Grid>
-          <TextBlock FontSize="12" TextWrapping="Wrap"><Run FontWeight="Bold" Text="{DynamicResource Text.CommitChanges.AuthorLabel}"/><Run Text="{Binding Commit.Author.Name}"/><Run Text=" &lt;"/><Run Text="{Binding Commit.Author.Email}"/><Run Text="&gt;"/></TextBlock>
-          <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock FontSize="12" FontWeight="Bold" Text="{DynamicResource Text.CommitChanges.DateLabel}"/><v:DateTimePresenter Timestamp="{Binding Commit.CommitterTime}" FontSize="12"/></StackPanel>
-          <TextBlock FontSize="12" TextWrapping="Wrap"><Run FontWeight="Bold" Text="{DynamicResource Text.CommitDetail.Info.Committer}"/><Run Text=" "/><Run Text="{Binding Commit.Committer.Name}"/><Run Text=" &lt;"/><Run Text="{Binding Commit.Committer.Email}"/><Run Text="&gt;"/></TextBlock>
-          <SelectableTextBlock Text="{Binding DisplayMessage}" Margin="0,3,0,1" TextWrapping="Wrap"/>
+          <Grid ColumnDefinitions="Auto,*"><TextBlock FontSize="12" FontWeight="Bold" Text="{DynamicResource Text.CommitChanges.AuthorLabel}"/><SelectableTextBlock Grid.Column="1" x:Name="CommitMetadataAuthor" Classes="commit_metadata" FontSize="12" TextWrapping="Wrap" Text="{Binding Commit.Author, Converter={x:Static c:StringConverters.ToCommitUser}}" ContextRequested="OnMetadataContextRequested"/></Grid>
+          <Grid ColumnDefinitions="Auto,*"><TextBlock FontSize="12" FontWeight="Bold" Text="{DynamicResource Text.CommitChanges.DateLabel}"/>
+            <SelectableTextBlock Grid.Column="1" x:Name="CommitMetadataDate" Classes="commit_metadata" FontSize="12" TextWrapping="Wrap" ContextRequested="OnMetadataContextRequested">
+              <SelectableTextBlock.Text><MultiBinding Converter="{x:Static c:StringConverters.ToCommitDateTime}"><Binding Path="Commit.CommitterTime"/><Binding Source="{x:Static vm:Preferences.Instance}" Path="DateTimeFormat"/><Binding Source="{x:Static vm:Preferences.Instance}" Path="Use24Hours"/></MultiBinding></SelectableTextBlock.Text>
+            </SelectableTextBlock>
+          </Grid>
+          <Grid ColumnDefinitions="Auto,*"><TextBlock FontSize="12" FontWeight="Bold" Text="{DynamicResource Text.CommitDetail.Info.Committer}"/><SelectableTextBlock Grid.Column="1" x:Name="CommitMetadataCommitter" Classes="commit_metadata" Margin="6,0,0,0" FontSize="12" TextWrapping="Wrap" Text="{Binding Commit.Committer, Converter={x:Static c:StringConverters.ToCommitUser}}" ContextRequested="OnMetadataContextRequested"/></Grid>
+          <SelectableTextBlock x:Name="CommitMetadataMessage" Classes="commit_metadata" Text="{Binding DisplayMessage}" Margin="0,3,0,1" TextWrapping="Wrap" ContextRequested="OnMetadataContextRequested"/>
 
         </StackPanel>
         </ScrollViewer>

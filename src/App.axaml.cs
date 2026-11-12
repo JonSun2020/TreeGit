@@ -669,6 +669,7 @@ namespace SourceGit
 
             desktop.Exit += (_, _) =>
             {
+                _startupUpdateCancellation.Cancel();
                 Automation.GuiBridge.Stop();
                 _ipcChannel?.Dispose();
                 _ipcChannel = null;
@@ -696,6 +697,7 @@ namespace SourceGit
         {
             if (manually)
             {
+                _startupUpdateCancellation.Cancel();
                 OpenUpdater();
                 return;
             }
@@ -708,10 +710,11 @@ namespace SourceGit
                 try
                 {
                     // Check quietly after the first window has had time to render.
-                    await Task.Delay(10000);
-                    if (Native.TreeGitUpdateInstaller.IsApplying) return;
+                    await Task.Delay(1000, _startupUpdateCancellation.Token);
+                    if (Native.TreeGitUpdateInstaller.IsApplying || _updateWindow != null) return;
                     using var updater = new Native.TreeGitUpdater(AppContext.BaseDirectory);
-                    using var timeout = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(20));
+                    using var timeout = System.Threading.CancellationTokenSource.CreateLinkedTokenSource(_startupUpdateCancellation.Token);
+                    timeout.CancelAfter(TimeSpan.FromSeconds(20));
                     var ver = await updater.CheckAsync(timeout.Token);
                     if (ver == null)
                         return;
@@ -721,28 +724,32 @@ namespace SourceGit
                         if (!ver.IsNewVersion || ver.TagName == ViewModels.Preferences.Instance.IgnoreUpdateTag)
                             return;
 
-                        Dispatcher.UIThread.Post(() => { if (_launcher != null) _launcher.NewVersion = ver; });
+                        Dispatcher.UIThread.Post(() =>
+                        {
+                            if (_startupUpdateCancellation.IsCancellationRequested || _launcher == null) return;
+                            _launcher.NewVersion = ver;
+                            if (_updateWindow == null) OpenUpdater(release: ver);
+                        });
                     }
                 }
                 catch { } // Automatic checks stay quiet when the update service is unavailable.
             });
         }
 
-        private void OpenUpdater(bool bootstrap = false)
+        private void OpenUpdater(bool bootstrap = false, Models.Version release = null)
         {
             Dispatcher.UIThread.Post(async () =>
             {
                 if (ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime { MainWindow: { } owner }) return;
-                if (_updateWindow is { IsVisible: true }) { _updateWindow.Activate(); return; }
+                if (_updateWindow != null) { _updateWindow.Present(owner); return; }
                 foreach (var existing in ((IClassicDesktopStyleApplicationLifetime)ApplicationLifetime).Windows)
                     if (existing is Views.SelfUpdate { IsVisible: true }) { existing.Activate(); return; }
                 var model = new ViewModels.SelfUpdate();
                 var window = new Views.SelfUpdate { DataContext = model };
                 _updateWindow = window;
-                var operation = bootstrap ? model.FinishBootstrapAsync() : model.CheckAsync();
-                await window.ShowDialog(owner);
-                await operation;
-                if (_updateWindow == window) _updateWindow = null;
+                window.Closed += (_, _) => { if (_updateWindow == window) _updateWindow = null; };
+                window.Present(owner);
+                await (bootstrap ? model.FinishBootstrapAsync() : model.CheckAsync(release));
                 if (bootstrap) await ReportUpdateResultAsync();
             });
         }
@@ -772,6 +779,8 @@ namespace SourceGit
 
         private Models.IpcChannel _ipcChannel = null;
         private Views.SelfUpdate _updateWindow;
+        internal Views.SelfUpdate UpdateWindow => _updateWindow;
+        private readonly System.Threading.CancellationTokenSource _startupUpdateCancellation = new();
         private ViewModels.Launcher _launcher = null;
         private ResourceDictionary _activeLocale = null;
         private ResourceDictionary _themeOverrides = null;

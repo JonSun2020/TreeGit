@@ -54,6 +54,14 @@ namespace SourceGit.Automation
                     args.TryGetProperty("dy", out _) ? Change(args, "dy") : scroller.Offset.Y);
             }
 #if INTEGRATION_TESTS
+            else if (action == "test_reveal")
+            {
+                if (Environment.GetEnvironmentVariable("CI") != "true") throw new InvalidOperationException("An owned CI fixture is required.");
+                var name = args.GetProperty("button").GetString();
+                var expected = args.TryGetProperty("text", out var match) ? match.GetString() : null;
+                var target = window.GetVisualDescendants().OfType<Control>().First(c => c.Name == name && c.IsEffectivelyVisible && (expected == null || c is TextBlock t && t.Text == expected));
+                target.BringIntoView();
+            }
             else if (action == "test_click")
             {
                 UiLayoutProbe.ClickButton(window, args.GetProperty("button").GetString(), args.TryGetProperty("tempDirectory", out var blockedTemp) ? blockedTemp.GetString() : null);
@@ -171,6 +179,11 @@ namespace SourceGit.Automation
                         minColumns = grid?.ColumnDefinitions.Select(d => d.MinWidth).ToArray(), minRows = grid?.RowDefinitions.Select(d => d.MinHeight).ToArray() };
                 }).ToArray(),
 #if INTEGRATION_TESTS
+                metadataFields = controls.OfType<SelectableTextBlock>().Where(t => t.Classes.Contains("commit_metadata") && t.IsEffectivelyVisible)
+                    .Select(t => new { name = t.Name, text = t.Text, selected = t.SelectedText, bounds = Bounds(t), visibleHeight = VisibleHeight(t), screen = ScreenPoint(t),
+                        menu = t.ContextMenu is { IsOpen: true } menu ? menu.Items.OfType<MenuItem>().Select(i => new { name = i.Name, text = i.Header?.ToString(), enabled = i.IsEnabled, screen = ScreenPoint(i) }).ToArray() : null }).ToArray(),
+                metadataParentButtons = controls.OfType<Button>().Where(b => b.Name == "CommitMetadataNavigateParent" && b.IsEffectivelyVisible)
+                    .Select(b => new { sha = b.DataContext as string, screen = ScreenPoint(b), bounds = Bounds(b) }).ToArray(),
                 labels = controls.OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && !string.IsNullOrEmpty(t.Text)).Take(500)
                     .Select(t => new { text = t.Text, bounds = Bounds(t), visibleHeight = VisibleHeight(t) }).ToArray(),
                 sidebarCommitTints = controls.OfType<Border>().Where(b => b.Name == "CommitCoverageBackground" && b.IsEffectivelyVisible && b.DataContext is ViewModels.BranchTreeNode { Backend: Models.Branch })

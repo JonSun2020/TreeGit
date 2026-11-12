@@ -72,6 +72,19 @@ namespace SourceGit.Converters
         public static readonly FuncValueConverter<string, string> ToShortSHA =
             new FuncValueConverter<string, string>(v => v == null ? string.Empty : (v.Length > 10 ? v.Substring(0, 10) : v));
 
+        public static readonly FuncValueConverter<string, string> ToFullAndShortSHA =
+            new(v => string.IsNullOrEmpty(v) ? string.Empty : $"{v} [{(v.Length > 10 ? v[..10] : v)}]");
+
+        public static readonly FuncValueConverter<Models.User, string> ToCommitUser = new(v => v?.ToString() ?? string.Empty);
+
+        public sealed class CommitDateTimeConverter : IMultiValueConverter
+        {
+            public object Convert(IList<object> values, Type targetType, object parameter, CultureInfo culture)
+                => values.Count > 0 && values[0] is ulong timestamp ? Models.DateTimeFormat.Format(timestamp) : string.Empty;
+        }
+
+        public static readonly CommitDateTimeConverter ToCommitDateTime = new();
+
         public static readonly FuncValueConverter<string, string> TrimRefsPrefix =
             new FuncValueConverter<string, string>(v =>
             {

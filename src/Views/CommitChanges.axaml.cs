@@ -23,6 +23,18 @@ namespace SourceGit.Views
             e.Handled = true;
         }
 
+        private void OnMetadataContextRequested(object sender, ContextRequestedEventArgs e)
+        {
+            if (sender is not SelectableTextBlock text) return;
+            e.Handled = true;
+            var copy = new MenuItem { Name = "CopyMetadataSelection", Header = App.Text("Copy"), IsEnabled = text.CanCopy, InputGesture = TextBox.CopyGesture };
+            copy.Click += async (_, ev) => { await this.CopyTextAsync(text.SelectedText); ev.Handled = true; };
+            var all = new MenuItem { Name = "CopyMetadataAll", Header = App.Text("CopyAllText") };
+            all.Click += async (_, ev) => { await this.CopyTextAsync(text.Text ?? string.Empty); ev.Handled = true; };
+            text.ContextMenu = new ContextMenu { ItemsSource = new[] { copy, all } };
+            text.ContextMenu.Open(text);
+        }
+
         private void OnChangeContextRequested(object sender, ContextRequestedEventArgs e)
         {
             e.Handled = true;

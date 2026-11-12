@@ -314,6 +314,13 @@ jobs:
       - name: Verify splitter extremes, native staging buttons and saved layouts
         shell: pwsh
         run: python tests/layout_audit.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/layout-audit-results"
+      - name: Verify startup update preference and metadata copying
+        shell: pwsh
+        run: |
+          python tests/startup_update.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/startup-update-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/metadata_copy.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/metadata-copy-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify configuration and operation dialogs at multiple zoom levels
         shell: pwsh
         run: python tests/dialog_audit.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/dialog-audit-results"
@@ -324,6 +331,11 @@ jobs:
           path: |
             ${{ runner.temp }}/updater-ui-results/results.json
             ${{ runner.temp }}/updater-ui-results/*.png
+            ${{ runner.temp }}/startup-update-results/*.json
+            ${{ runner.temp }}/startup-update-results/*.log
+            ${{ runner.temp }}/metadata-copy-results/*.json
+            ${{ runner.temp }}/metadata-copy-results/*.png
+            ${{ runner.temp }}/metadata-copy-results/*.log
             ${{ runner.temp }}/layout-audit-results/*.json
             ${{ runner.temp }}/layout-audit-results/*.png
             ${{ runner.temp }}/dialog-audit-results/*.json

@@ -124,6 +124,19 @@ namespace SourceGit.Tests
                 Check("malformed configuration is a read failure", failedRead);
                 File.WriteAllText(global, "[user]\nname = Upstream QA\nemail = upstream@example.invalid\n");
                 await Upstream24Checks.RunAsync(root, Check);
+                var preferences = ViewModels.Preferences.Instance;
+                var savedCheck = preferences.Check4UpdatesOnStartup;
+                var savedTime = preferences.LastCheckUpdateTime;
+                try
+                {
+                    preferences.Check4UpdatesOnStartup = true;
+                    preferences.LastCheckUpdateTime = DateTimeOffset.Now.ToUnixTimeSeconds();
+                    Check("enabled startup update checks run even after checking earlier today", preferences.ShouldCheck4UpdateOnStartup());
+                    Check("every enabled startup checks again without a daily suppression", preferences.ShouldCheck4UpdateOnStartup());
+                    preferences.Check4UpdatesOnStartup = false;
+                    Check("disabled startup update checks stay disabled", !preferences.ShouldCheck4UpdateOnStartup());
+                }
+                finally { preferences.Check4UpdatesOnStartup = savedCheck; preferences.LastCheckUpdateTime = savedTime; }
                 File.WriteAllText(report, JsonSerializer.Serialize(new { passed = checks.Count, checks }));
                 return 0;
             }
