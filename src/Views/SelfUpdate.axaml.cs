@@ -39,6 +39,7 @@ namespace SourceGit.Views
 
         public void Present(Window owner)
         {
+            if (owner.PlatformImpl == null) return;
             if (_presentationOwner != owner)
             {
                 if (_presentationOwner != null) _presentationOwner.Closed -= OnOwnerClosed;
@@ -46,6 +47,7 @@ namespace SourceGit.Views
                 owner.Closed += OnOwnerClosed;
             }
             _model?.EnterForeground();
+            if (!owner.IsVisible) owner.Show();
             if (owner.WindowState == WindowState.Minimized) owner.WindowState = WindowState.Normal;
             if (!IsVisible) _ = ShowDialog(owner);
             if (WindowState == WindowState.Minimized) WindowState = WindowState.Normal;

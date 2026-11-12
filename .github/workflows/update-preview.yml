@@ -18,6 +18,7 @@ jobs:
         with:
           dotnet-version: 10.0.x
       - name: Check reserves and build one isolated application
+        id: build
         shell: pwsh
         run: |
           if ((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory * 1024 -lt 4GB) { throw 'Insufficient memory for the isolated build' }
@@ -35,18 +36,23 @@ jobs:
         shell: pwsh
         run: python tests/update_ui.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/update-fixture.zip" "$env:RUNNER_TEMP/update-flow-results"
       - name: Verify startup detection and its preference
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         shell: pwsh
         run: python tests/startup_update.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/startup-update-results"
       - name: Verify native metadata selection and clipboard in both Git object formats
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         shell: pwsh
         run: python tests/metadata_copy.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/metadata-copy-results"
       - name: Verify models and configuration transactions
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         shell: pwsh
         run: python tests/ui_models.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/model-results/fixture" "$env:RUNNER_TEMP/model-results/logic-report.json"
       - name: Recheck history pixel stability and merge operations
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         shell: pwsh
         run: python tests/history_merge_ui.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/history-results"
       - name: Recheck resizable panels and dialogs
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         shell: pwsh
         run: |
           python tests/layout_audit.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/layout-results"

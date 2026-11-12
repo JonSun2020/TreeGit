@@ -11,9 +11,9 @@
     <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
       <TextBlock Margin="20,18" Text="{DynamicResource Text.SelfUpdate.Flow.CloseChoice}" TextWrapping="Wrap"/>
     </ScrollViewer>
-    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center" Margin="16,8,16,16" Spacing="8">
-      <Button x:Name="CancelUpdate" Classes="flat" MinWidth="105" Height="32" Padding="12,0" Content="{DynamicResource Text.SelfUpdate.Flow.CancelUpdate}" Click="OnCancelUpdate"/>
-      <Button x:Name="ContinueBackgroundUpdate" Classes="flat primary" MinWidth="105" Height="32" Padding="12,0" Content="{DynamicResource Text.SelfUpdate.Flow.Background}" Click="OnBackground"/>
-    </StackPanel>
+    <WrapPanel Grid.Row="2" HorizontalAlignment="Center" Margin="16,8,16,12">
+      <Button x:Name="CancelUpdate" Classes="flat" MinWidth="105" Height="32" Padding="12,0" Margin="4,0,4,4" Content="{DynamicResource Text.SelfUpdate.Flow.CancelUpdate}" Click="OnCancelUpdate"/>
+      <Button x:Name="ContinueBackgroundUpdate" Classes="flat primary" MinWidth="105" Height="32" Padding="12,0" Margin="4,0,4,4" Content="{DynamicResource Text.SelfUpdate.Flow.Background}" Click="OnBackground"/>
+    </WrapPanel>
   </Grid>
 </v:ChromelessWindow>

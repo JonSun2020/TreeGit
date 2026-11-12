@@ -740,6 +740,7 @@ namespace SourceGit
         {
             Dispatcher.UIThread.Post(async () =>
             {
+                if (release != null && _startupUpdateCancellation.IsCancellationRequested) return;
                 if (ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime { MainWindow: { } owner }) return;
                 if (_updateWindow != null) { _updateWindow.Present(owner); return; }
                 foreach (var existing in ((IClassicDesktopStyleApplicationLifetime)ApplicationLifetime).Windows)
