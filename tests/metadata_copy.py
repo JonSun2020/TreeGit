@@ -245,8 +245,12 @@ try:
                 parent = settled_field('CommitMetadataParent', short)
                 api.SetCursorPos(round(parent['screen']['x']), round(parent['screen']['y']))
                 until(lambda: field('CommitMetadataParent', short)['tooltipOpen'])
-                until(lambda: (v := native_cursor())['handle'] == v['hand'])
-                check(object_format + ': hovering a parent shows the full ID and hand cursor', field('CommitMetadataParent', short)['tooltip'] == parent_sha and field('CommitMetadataParent', short)['cursor'] == 'Hand')
+                # Windows cloud desktops may report CURSOR_SUPPRESSED with no
+                # drawable cursor. Verify the real handle when visible; record
+                # that limitation while still requiring the control's Hand.
+                cursor = until(lambda: v if (v := native_cursor())['handle'] == v['hand'] or v['flags'] & 2 else None)
+                (out / (object_format + '-cursor.json')).write_text(json.dumps(cursor, indent=2), encoding='utf-8')
+                check(object_format + ': hovering exposes the full ID and requests the Hand cursor', field('CommitMetadataParent', short)['tooltip'] == parent_sha and field('CommitMetadataParent', short)['cursor'] == 'Hand')
                 pointer(parent['screen']); until(lambda: state()['detailCommit'] == parent_sha)
                 check(object_format + ': clicking the parent SHA itself navigates', state()['detailCommit'] == parent_sha)
             tool('ui_select_commit', repo=str(repo), revision=collision['child'])
