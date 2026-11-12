@@ -145,6 +145,7 @@ namespace SourceGit.Views
             _historySelectionSource = IsLoaded ? DataContext as ViewModels.Repository : null;
             if (_historySelectionSource != null)
             {
+                _navigationSurface = _historySelectionSource.IsSearchTabSelected ? 3 : _historySelectionSource.SelectedViewIndex;
                 _historySelectionSource.HistoryBranchSelectionRequested += OnHistoryBranchSelection;
                 _historySelectionSource.CommitBranchHighlightsRequested += OnCommitBranchHighlights;
                 _historySelectionSource.PropertyChanged += OnNavigationPropertyChanged;
@@ -158,8 +159,21 @@ namespace SourceGit.Views
         {
             if (e.PropertyName is nameof(ViewModels.Repository.SelectedViewIndex) or nameof(ViewModels.Repository.IsFileStatusTabSelected)
                 or nameof(ViewModels.Repository.IsHistoryTabSelected) or nameof(ViewModels.Repository.IsSearchTabSelected))
+            {
+                if (sender is not ViewModels.Repository repo)
+                    return;
+
+                // History and its working-copy details share the same graph surface.
+                // Tab-state notifications alone must not reset the user's scroll position.
+                var surface = repo.IsSearchTabSelected ? 3 : repo.SelectedViewIndex;
+                if (_navigationSurface == surface)
+                    return;
+                _navigationSurface = surface;
                 PageViewport.Offset = default;
+            }
         }
+
+        private int _navigationSurface = -1;
 
         private void OnHistoryBranchSelection(Models.Branch branch)
         {

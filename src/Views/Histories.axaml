@@ -190,7 +190,7 @@
         </StackPanel>
       </Border>
 
-      <Button Grid.Row="1" x:Name="WorkingCopyRow" Focusable="False" RenderTransform="scale(1)" Transitions="{x:Null}" Height="19" Margin="0,24,16,0" Padding="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Top" Classes="working_copy_row" ClipToBounds="True" IsVisible="{Binding HasPendingChanges}" Click="OnWorkingCopyPressed">
+      <Button Grid.Row="1" x:Name="WorkingCopyRow" RenderTransform="scale(1)" Transitions="{x:Null}" Height="19" Margin="0,24,16,0" Padding="0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalAlignment="Top" Classes="working_copy_row" ClipToBounds="True" IsVisible="{Binding HasPendingChanges}" Click="OnWorkingCopyPressed">
         <Button.Styles>
           <Style Selector="Button.working_copy_row"><Setter Property="Background" Value="{DynamicResource Brush.Contents}"/><Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/><Setter Property="Template"><ControlTemplate><ContentPresenter Background="{TemplateBinding Background}" Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}" ClipToBounds="True"/></ControlTemplate></Setter></Style>
           <Style Selector="Button.working_copy_row.selected"><Setter Property="Background" Value="{DynamicResource Brush.Accent}"/><Setter Property="Foreground" Value="White"/></Style>
