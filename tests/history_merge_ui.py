@@ -161,7 +161,7 @@ def click_pending_and_measure(label):
         assert bitmap and bits.value
         old = gdi.SelectObject(memory, bitmap); pixels = (ctypes.c_uint32*(width*height)).from_address(bits.value)
         first_x = left - row['x']; top_y = top - row['y']; bottom_y = bottom - row['y']
-        ready.set()
+        baseline = []
         try:
             while not stopped.is_set():
                 assert gdi.BitBlt(memory, 0, 0, width, height, dc, row['x'], row['y'], 0x00CC0020)
@@ -170,7 +170,17 @@ def click_pending_and_measure(label):
                 for x in range(first_x, first_x + round(120*scale)):
                     if sum(contrast(pixels[y*width+x], background) > 32 for y in range(top_y, bottom_y)) >= 2:
                         first = x + row['x']; break
-                samples.append({'dot': pixels[round(9.5*scale)*width + round(6*scale)] & 0xffffff, 'inkX': first})
+                frame = {'dot': pixels[round(9.5*scale)*width + round(6*scale)] & 0xffffff, 'inkX': first}
+                if not ready.is_set():
+                    # Geometry is updated before the compositor presents a zoom
+                    # change. Establish ten rendered baseline frames before
+                    # clicking, then require every selection frame to stay fixed.
+                    baseline.append(frame)
+                    baseline = baseline[-10:]
+                    if len(baseline) == 10 and all(p['dot'] == 0x8a8a8a and p['inkX'] is not None for p in baseline) and max(p['inkX'] for p in baseline) - min(p['inkX'] for p in baseline) <= 2:
+                        samples.extend(baseline); ready.set()
+                else:
+                    samples.append(frame)
                 time.sleep(.008)
         finally:
             gdi.SelectObject(memory, old); gdi.DeleteObject(bitmap); gdi.DeleteDC(memory); api.ReleaseDC(None, dc)

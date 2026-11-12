@@ -87,6 +87,38 @@ def clipboard():
     finally: api.CloseClipboard()
 
 
+def clear_clipboard():
+    until(lambda: api.OpenClipboard(None))
+    try: assert api.EmptyClipboard()
+    finally: api.CloseClipboard()
+
+
+def settled_field(name, text):
+    previous = None; stable = 0
+    for _ in range(100):
+        value = field(name, text)
+        geometry = (value['bounds'], value['screen'])
+        stable = stable + 1 if geometry == previous and value['visibleHeight'] >= min(12, value['bounds']['height']) else 0
+        if stable >= 3: return value
+        previous = geometry; time.sleep(.06)
+    raise AssertionError('Metadata field did not settle: ' + name)
+
+
+def copy_menu(name, text, item):
+    pointer(settled_field(name, text)['screen'], right=True)
+    previous = None; stable = 0
+    for _ in range(100):
+        menu = field(name, text)['menu']
+        target = next((v for v in (menu or []) if v['name'] == item and v['enabled']), None)
+        point = target['screen'] if target else None
+        stable = stable + 1 if point and point == previous else 0
+        if stable >= 3: break
+        previous = point; time.sleep(.06)
+    assert stable >= 3, 'Metadata menu did not settle: ' + item
+    clear_clipboard(); pointer(target['screen'])
+    until(lambda: field(name, text)['menu'] is None)
+
+
 try:
     for object_format in ['sha1', 'sha256']:
         profile.reset()
@@ -104,7 +136,9 @@ try:
         (repo / 'side.txt').write_text('side\n', encoding='utf-8'); git('add', '.'); git('commit', '-m', 'Other')
         git('checkout', 'main')
         (repo / 'local.txt').write_text('local\n', encoding='utf-8'); git('add', '.'); git('commit', '-m', 'Local')
+        env.update(GIT_AUTHOR_NAME='原始作者 QA', GIT_AUTHOR_EMAIL='author@example.invalid')
         git('merge', '--no-ff', 'other', '-m', '可复制的合并提交\n\n完整正文 / UTF-8')
+        env.pop('GIT_AUTHOR_NAME'); env.pop('GIT_AUTHOR_EMAIL')
         head = git('rev-parse', 'HEAD')
         before = git('rev-parse', 'HEAD'), git('status', '--porcelain'), (repo / '.git/index').read_bytes()
         (exe.parent / 'data/preference.json').write_text(json.dumps({'Locale': 'zh_CN', 'Theme': 'Blue', 'Check4UpdatesOnStartup': False,
@@ -139,22 +173,25 @@ try:
                   next(v['text'] for v in fields if v['name'] == 'CommitMetadataSHA') == head + ' [' + head[:10] + ']')
             check(object_format + ': all parent values retain complete hashes', len([v for v in fields if v['name'] == 'CommitMetadataParent']) == 2 and
                   all(len(v['text'].split()[0]) == len(head) for v in fields if v['name'] == 'CommitMetadataParent'))
+            check(object_format + ': author and committer preserve their distinct identities',
+                  next(v['text'] for v in fields if v['name'] == 'CommitMetadataAuthor') == git('show', '-s', '--format=%an <%ae>', head) and
+                  next(v['text'] for v in fields if v['name'] == 'CommitMetadataCommitter') == git('show', '-s', '--format=%cn <%ce>', head))
             for row in fields:
                 name, text = row['name'], row['text']
-                tool('ui_layout', action='test_reveal', button=name, text=text); time.sleep(.15)
-                current = until(lambda: (v if v['visibleHeight'] >= min(12, v['bounds']['height']) else None) if (v := field(name, text)) else None)
-                pointer(current['screen']); key(0x41, ctrl=True); key(0x43, ctrl=True)
+                tool('ui_layout', action='test_reveal', button=name, text=text)
+                current = settled_field(name, text)
+                clear_clipboard(); pointer(current['screen'])
+                until(lambda: field(name, text)['focused'])
+                key(0x41, ctrl=True)
+                until(lambda: field(name, text)['selected'] == text)
+                key(0x43, ctrl=True)
                 until(lambda: clipboard() == text)
                 check(object_format + ': native select-all and Ctrl+C copies ' + name, clipboard() == text)
-                pointer(current['screen'], right=True)
-                menu = until(lambda: field(name, text)['menu'])
-                pointer(next(v['screen'] for v in menu if v['name'] == 'CopyMetadataAll'))
+                copy_menu(name, text, 'CopyMetadataAll')
                 until(lambda: clipboard() == text)
                 check(object_format + ': metadata right-click copies the entire ' + name, clipboard() == text)
                 if name in ('CommitMetadataSHA', 'CommitMetadataParent'):
-                    pointer(current['screen'], right=True)
-                    menu = until(lambda: field(name, text)['menu'])
-                    pointer(next(v['screen'] for v in menu if v['name'] == 'CopyMetadataSHA'))
+                    copy_menu(name, text, 'CopyMetadataSHA')
                     until(lambda: clipboard() == text.split()[0])
                     check(object_format + ': full SHA copy excludes the display abbreviation ' + name, clipboard() == text.split()[0])
                 check(object_format + ': selecting metadata keeps the same commit ' + name, state()['detailCommit'] == head)
