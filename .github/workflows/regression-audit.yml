@@ -1,0 +1,52 @@
+name: TreeGit historical fix regressions
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Exact product source commit to verify
+        type: string
+        required: true
+permissions:
+  contents: read
+jobs:
+  regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Select the exact product source
+        env:
+          SOURCE: ${{ inputs.source }}
+        run: |
+          [[ "$SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          cp build/regression-audit.py "$RUNNER_TEMP/regression-audit.py"
+          git checkout --detach "$SOURCE"
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Prepare isolated desktop and pinned Git Flow
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y xvfb openbox xdotool wmctrl libice6 libsm6 libfontconfig1 libglib2.0-0 libfreetype6 libxrender1
+          mkdir -p "$RUNNER_TEMP/flow"
+          curl --fail --location --retry 3 https://github.com/gittower/git-flow-next/releases/download/v2.1.0/git-flow-next-v2.1.0-linux-amd64.tar.gz -o "$RUNNER_TEMP/flow.tar.gz"
+          echo "e335b5818f2b2f820c17844c194030d0db78f3cdfa9bb999fcb9ce092ba9ecd2  $RUNNER_TEMP/flow.tar.gz" | sha256sum --check
+          tar -xzf "$RUNNER_TEMP/flow.tar.gz" -C "$RUNNER_TEMP/flow"
+          find "$RUNNER_TEMP/flow" -name git-flow -type f -exec dirname {} \; >> "$GITHUB_PATH"
+          rm "$RUNNER_TEMP/flow.tar.gz"
+      - name: Check resources and build one integration application
+        run: |
+          python3 -c "import shutil; from pathlib import Path; assert shutil.disk_usage('.').free >= 10*2**30; assert next(int(l.split()[1])*1024 for l in Path('/proc/meminfo').read_text().splitlines() if l.startswith('MemAvailable:')) >= 4*2**30"
+          dotnet build src/SourceGit.csproj -c Debug -p:EnableIntegrationTests=true -p:DisableAOT=true -p:UseSharedCompilation=false -m:1 --nologo
+      - name: Recheck historical fixes with real Git and desktop input
+        run: xvfb-run -a -s '-screen 0 1600x1000x24' python3 "$RUNNER_TEMP/regression-audit.py" "$GITHUB_WORKSPACE" "$RUNNER_TEMP/historical-regressions"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TreeGit-historical-regressions
+          path: |
+            ${{ runner.temp }}/historical-regressions/**/*.json
+            ${{ runner.temp }}/historical-regressions/**/*.log
+            ${{ runner.temp }}/historical-regressions/**/*.png
