@@ -376,9 +376,22 @@ try:
     activate_main(); row = state()['pendingRow']; scale = row['scaling']; dc = api.GetDC(None)
     try:
         line_y = round(row['y'] + 21*scale)
+        stable = 0; rendered_samples = []
+        for _ in range(150):
+            samples = []
+            for parent in parents:
+                line_x = round(row['x'] + parent['x']*scale)
+                samples.append({'sha': parent['sha'], 'line': gdi.GetPixel(dc, line_x, line_y),
+                                'background': gdi.GetPixel(dc, line_x + round(4*scale), line_y)})
+            rendered_samples.append(samples)
+            visible = all(p['line'] != 0xffffffff and p['background'] != 0xffffffff and p['line'] != p['background'] for p in samples)
+            stable = stable + 1 if visible else 0
+            if stable >= 3: break
+            time.sleep(.03)
+        (out / 'pending-merge-render-samples.json').write_text(json.dumps({'row': row, 'frames': rendered_samples}, indent=2), encoding='utf-8')
         for parent in parents:
-            line_x = round(row['x'] + parent['x']*scale)
-            check('pending merge connection is actually painted for ' + parent['sha'][:8], gdi.GetPixel(dc, line_x, line_y) != gdi.GetPixel(dc, line_x + round(4*scale), line_y))
+            sample = next(p for p in samples if p['sha'] == parent['sha'])
+            check('pending merge connection is actually painted for ' + parent['sha'][:8], stable >= 3 and sample['line'] != sample['background'])
     finally: api.ReleaseDC(None, dc)
     shot('pending-merge-two-parents')
     items = open_commit_menu(main)
