@@ -14,6 +14,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media.Imaging;
 using Avalonia.VisualTree;
+using SourceGit.Automation;
 
 namespace SourceGit.Tests
 {
