@@ -180,13 +180,10 @@ namespace SourceGit.Automation
                 }).ToArray(),
 #if INTEGRATION_TESTS
                 metadataFields = controls.OfType<SelectableTextBlock>().Where(t => t.Classes.Contains("commit_metadata") && t.IsEffectivelyVisible)
-                    .Select(t => new { name = t.Name, text = t.Text, selected = t.SelectedText, focused = t.IsFocused, focusable = t.Focusable, enabled = t.IsEffectivelyEnabled,
+                    .Select(t => new { name = t.Name, text = t.Text, sha = t.Tag as string, tooltip = ToolTip.GetTip(t)?.ToString(), tooltipOpen = ToolTip.GetIsOpen(t), cursor = t.Cursor?.ToString(), selected = t.SelectedText, focused = t.IsFocused, focusable = t.Focusable, enabled = t.IsEffectivelyEnabled,
                         hit = t.TranslatePoint(new Point(t.Bounds.Width / 2, t.Bounds.Height / 2), window) is { } point ? window.InputHitTest(point)?.GetType().Name : null,
                         bounds = Bounds(t), visibleHeight = VisibleHeight(t), screen = ScreenPoint(t),
                         menu = t.ContextMenu is { IsOpen: true } menu ? menu.Items.OfType<MenuItem>().Select(i => new { name = i.Name, text = i.Header?.ToString(), enabled = i.IsEnabled, screen = ScreenPoint(i) }).ToArray() : null }).ToArray(),
-                metadataParentButtons = controls.OfType<Button>().Where(b => b.Name == "CommitMetadataNavigateParent" && b.IsEffectivelyVisible)
-                    .Select(b => new { sha = b.DataContext as string, screen = ScreenPoint(b), bounds = Bounds(b), visibleHeight = VisibleHeight(b),
-                        hit = b.TranslatePoint(new Point(b.Bounds.Width / 2, b.Bounds.Height / 2), window) is { } point ? window.InputHitTest(point)?.GetType().Name : null }).ToArray(),
                 labels = controls.OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && !string.IsNullOrEmpty(t.Text)).Take(500)
                     .Select(t => new { text = t.Text, bounds = Bounds(t), visibleHeight = VisibleHeight(t) }).ToArray(),
                 sidebarCommitTints = controls.OfType<Border>().Where(b => b.Name == "CommitCoverageBackground" && b.IsEffectivelyVisible && b.DataContext is ViewModels.BranchTreeNode { Backend: Models.Branch })

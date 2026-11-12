@@ -60,6 +60,7 @@ namespace SourceGit.ViewModels
                         _commit = value;
                         OnPropertyChanged(nameof(Commit));
                         RefreshBranchDetails(value, _cancellationSource?.Token ?? default);
+                        RefreshParentRevisions(value, _cancellationSource?.Token ?? default);
                     }
                     return;
                 }
@@ -484,6 +485,7 @@ namespace SourceGit.ViewModels
             if (_commit == null)
             {
                 RefreshBranchDetails(null, default);
+                RefreshParentRevisions(null, default);
                 Changes = [];
                 VisibleChanges = [];
                 ChangeSelection = new(null);
@@ -497,6 +499,7 @@ namespace SourceGit.ViewModels
             var token = _cancellationSource.Token;
 
             RefreshBranchDetails(_commit, token);
+            RefreshParentRevisions(_commit, token);
 
             var messageRevision = _commit.SHA;
             Task.Run(async () =>

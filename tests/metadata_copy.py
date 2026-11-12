@@ -15,6 +15,7 @@ import traceback
 from qa_cleanup import remove_fixture
 from qa_process import close_owned_gui
 from qa_profile import IsolatedProfile
+from parent_collision import create_fixture
 
 assert os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ.get('RUNNER_OS') == 'Windows'
 exe, out = (Path(arg).resolve() for arg in sys.argv[1:3])
@@ -31,6 +32,10 @@ api.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.
 api.GetAncestor.argtypes = [wintypes.HWND, wintypes.UINT]; api.GetAncestor.restype = wintypes.HWND
 api.SetForegroundWindow.argtypes = [wintypes.HWND]
 api.OpenClipboard.argtypes = [wintypes.HWND]; api.GetClipboardData.argtypes = [wintypes.UINT]; api.GetClipboardData.restype = wintypes.HANDLE
+class CursorInfo(ctypes.Structure):
+    _fields_ = [('size', wintypes.DWORD), ('flags', wintypes.DWORD), ('cursor', wintypes.HANDLE), ('point', wintypes.POINT)]
+api.GetCursorInfo.argtypes = [ctypes.POINTER(CursorInfo)]
+api.LoadCursorW.argtypes = [wintypes.HINSTANCE, ctypes.c_void_p]; api.LoadCursorW.restype = wintypes.HANDLE
 kernel = ctypes.WinDLL('kernel32', use_last_error=True)
 kernel.GlobalLock.argtypes = [wintypes.HANDLE]; kernel.GlobalLock.restype = ctypes.c_void_p
 kernel.GlobalUnlock.argtypes = [wintypes.HANDLE]
@@ -119,6 +124,16 @@ def copy_menu(name, text, item):
     until(lambda: field(name, text)['menu'] is None)
 
 
+def drag_field(value, scale):
+    x = round(value['screen']['x'] - value['bounds']['width'] * scale / 2 + 2 * scale)
+    y = round(value['screen']['y'] - value['bounds']['height'] * scale / 2 + 7 * scale)
+    distance = min(56, value['bounds']['width'] - 5) * scale
+    assert owner(api.WindowFromPoint(wintypes.POINT(x, y))) == pid
+    api.SetCursorPos(x, y); time.sleep(.1); api.mouse_event(2, 0, 0, 0, 0)
+    for step in range(1, 8): api.SetCursorPos(round(x + distance * step / 7), y); time.sleep(.025)
+    api.mouse_event(4, 0, 0, 0, 0); time.sleep(.1)
+
+
 try:
     for object_format in ['sha1', 'sha256']:
         profile.reset()
@@ -140,6 +155,11 @@ try:
         git('merge', '--no-ff', 'other', '-m', '可复制的合并提交\n\n完整正文 / UTF-8')
         env.pop('GIT_AUTHOR_NAME'); env.pop('GIT_AUTHOR_EMAIL')
         head = git('rev-parse', 'HEAD')
+        expected_parents = {sha: git('rev-parse', '--short=10', sha) for sha in git('show', '-s', '--format=%P', head).split()}
+        collision = create_fixture(repo, object_format, env)
+        (out / (object_format + '-collision.json')).write_text(json.dumps(collision, indent=2), encoding='utf-8')
+        collision_short = git('rev-parse', '--short=10', collision['first'])
+        check(object_format + ': the valid collision fixture needs more than ten characters', len(collision_short) > 10)
         before = git('rev-parse', 'HEAD'), git('status', '--porcelain'), (repo / '.git/index').read_bytes()
         (exe.parent / 'data/preference.json').write_text(json.dumps({'Locale': 'zh_CN', 'Theme': 'Blue', 'Check4UpdatesOnStartup': False,
             'EnableAutoFetch': False, 'ShowChangesInCommitDetailByDefault': True}), encoding='utf-8')
@@ -168,11 +188,15 @@ try:
             tool('ui_select_commit', repo=str(repo), revision=head)
             until(lambda: state()['detailCommit'] == head and not state()['detailBranchesLoading'])
             until(lambda: len(layout()['metadataFields']) >= 7 and any(v['name'] == 'CommitMetadataMessage' and '完整正文' in v['text'] for v in layout()['metadataFields']))
+            until(lambda: len(rows := [v for v in layout()['metadataFields'] if v['name'] == 'CommitMetadataParent']) == 2 and all(v['text'] == expected_parents.get(v['sha']) for v in rows))
             fields = layout()['metadataFields']
             check(object_format + ': full commit hash and ten-character abbreviation have the exact required separator',
                   next(v['text'] for v in fields if v['name'] == 'CommitMetadataSHA') == head + ' [' + head[:10] + ']')
-            check(object_format + ': all parent values retain complete hashes', len([v for v in fields if v['name'] == 'CommitMetadataParent']) == 2 and
-                  all(len(v['text'].split()[0]) == len(head) for v in fields if v['name'] == 'CommitMetadataParent'))
+            check(object_format + ': parent labels have colons and no extra jump buttons',
+                  {'父级：', '提交者：'} <= {v['text'] for v in layout()['labels']} and
+                  not any(v['name'] == 'CommitMetadataNavigateParent' for v in layout()['buttons']))
+            check(object_format + ': parents display unique ten-character prefixes with complete tooltip values',
+                  all(v['text'] == expected_parents[v['sha']] and len(v['text']) == 10 and v['tooltip'] == v['sha'] for v in fields if v['name'] == 'CommitMetadataParent'))
             check(object_format + ': author and committer preserve their distinct identities',
                   next(v['text'] for v in fields if v['name'] == 'CommitMetadataAuthor') == git('show', '-s', '--format=%an <%ae>', head) and
                   next(v['text'] for v in fields if v['name'] == 'CommitMetadataCommitter') == git('show', '-s', '--format=%cn <%ce>', head))
@@ -180,7 +204,11 @@ try:
                 name, text = row['name'], row['text']
                 tool('ui_layout', action='test_reveal', button=name, text=text)
                 current = settled_field(name, text)
-                clear_clipboard(); pointer(current['screen'])
+                clear_clipboard()
+                if name == 'CommitMetadataParent':
+                    drag_field(current, layout()['window']['scaling'])
+                    check(object_format + ': dragging parent text selects without navigating', state()['detailCommit'] == head and bool(field(name, text)['selected']))
+                else: pointer(current['screen'])
                 until(lambda: field(name, text)['focused'])
                 key(0x41, ctrl=True)
                 until(lambda: field(name, text)['selected'] == text)
@@ -192,36 +220,37 @@ try:
                 check(object_format + ': metadata right-click copies the entire ' + name, clipboard() == text)
                 if name in ('CommitMetadataSHA', 'CommitMetadataParent'):
                     copy_menu(name, text, 'CopyMetadataSHA')
-                    until(lambda: clipboard() == text.split()[0])
-                    check(object_format + ': full SHA copy excludes the display abbreviation ' + name, clipboard() == text.split()[0])
+                    until(lambda: clipboard() == row['sha'])
+                    check(object_format + ': full SHA copy preserves the complete object ID ' + name, clipboard() == row['sha'])
                 check(object_format + ': selecting metadata keeps the same commit ' + name, state()['detailCommit'] == head)
             sha_row = next(v for v in layout()['metadataFields'] if v['name'] == 'CommitMetadataSHA')
             tool('ui_layout', action='test_reveal', button=sha_row['name'], text=sha_row['text']); time.sleep(.15)
             sha_row = field(sha_row['name'], sha_row['text']); scale = layout()['window']['scaling']
-            x = round(sha_row['screen']['x'] - sha_row['bounds']['width'] * scale / 2 + 2 * scale)
-            y = round(sha_row['screen']['y'] - sha_row['bounds']['height'] * scale / 2 + 7 * scale)
-            assert owner(api.WindowFromPoint(wintypes.POINT(x, y))) == pid
-            api.SetCursorPos(x, y); time.sleep(.1); api.mouse_event(2, 0, 0, 0, 0)
-            for step in range(1, 8): api.SetCursorPos(x + step * 8, y); time.sleep(.025)
-            api.mouse_event(4, 0, 0, 0, 0); time.sleep(.1)
+            drag_field(sha_row, scale)
             selected = field(sha_row['name'], sha_row['text'])['selected']; key(0x43, ctrl=True)
             until(lambda: clipboard() == selected)
             check(object_format + ': dragging copies just the selected SHA fragment', 1 < len(selected) < len(head) and selected in head)
             (out / (object_format + '-selectable-metadata.png')).write_bytes(tool('ui_screenshot'))
-            parent_button = layout()['metadataParentButtons'][0]
-            tool('ui_layout', action='test_reveal', button='CommitMetadataNavigateParent')
-            previous = None; stable = 0
-            for _ in range(100):
-                current = next(v for v in layout()['metadataParentButtons'] if v['sha'] == parent_button['sha'])
-                geometry = (current['bounds'], current['screen'])
-                stable = stable + 1 if previous == geometry and current['visibleHeight'] >= 18 else 0
-                parent_button = current
-                if stable >= 3: break
-                previous = geometry; time.sleep(.06)
-            assert stable >= 3, 'Parent navigation button did not settle'
-            check(object_format + ': parent navigation stays clear of the metadata scrollbar', parent_button['hit'] not in ('ScrollBar', 'Thumb', 'RepeatButton', 'Track'))
-            pointer(parent_button['screen']); until(lambda: state()['detailCommit'] == parent_button['sha'])
-            check(object_format + ': the separate parent action still navigates', state()['detailCommit'] == parent_button['sha'])
+            for parent_sha, short in expected_parents.items():
+                tool('ui_select_commit', repo=str(repo), revision=head)
+                until(lambda: state()['detailCommit'] == head and any(v['name'] == 'CommitMetadataParent' and v['text'] == short for v in layout()['metadataFields']))
+                tool('ui_layout', action='test_reveal', button='CommitMetadataParent', text=short)
+                parent = settled_field('CommitMetadataParent', short)
+                api.SetCursorPos(round(parent['screen']['x']), round(parent['screen']['y']))
+                until(lambda: field('CommitMetadataParent', short)['tooltipOpen'])
+                cursor = CursorInfo(ctypes.sizeof(CursorInfo)); assert api.GetCursorInfo(ctypes.byref(cursor))
+                check(object_format + ': hovering a parent shows the full ID and hand cursor', field('CommitMetadataParent', short)['tooltip'] == parent_sha and cursor.cursor == api.LoadCursorW(None, ctypes.c_void_p(32649)))
+                pointer(parent['screen']); until(lambda: state()['detailCommit'] == parent_sha)
+                check(object_format + ': clicking the parent SHA itself navigates', state()['detailCommit'] == parent_sha)
+            tool('ui_select_commit', repo=str(repo), revision=collision['child'])
+            until(lambda: state()['detailCommit'] == collision['child'] and any(v['name'] == 'CommitMetadataParent' and v['text'] == collision_short for v in layout()['metadataFields']))
+            parent = field('CommitMetadataParent', collision_short)
+            check(object_format + ': a collision with an unreachable object automatically extends the displayed prefix', parent['sha'] == collision['first'] and len(parent['text']) > 10 and parent['tooltip'] == collision['first'])
+            (out / (object_format + '-extended-parent-prefix.png')).write_bytes(tool('ui_screenshot'))
+            tool('ui_layout', action='test_reveal', button='CommitMetadataParent', text=collision_short)
+            parent = settled_field('CommitMetadataParent', collision_short)
+            pointer(parent['screen']); until(lambda: state()['detailCommit'] == collision['first'])
+            check(object_format + ': extended parent links still navigate to the full ID', state()['detailCommit'] == collision['first'])
             check(object_format + ': metadata operations preserve Git HEAD index and worktree', before == (git('rev-parse', 'HEAD'), git('status', '--porcelain'), (repo / '.git/index').read_bytes()))
         except BaseException:
             evidence = {}

@@ -197,7 +197,7 @@
   <x:String x:Key="Text.CommitDetail.Files.Tips" xml:space="preserve">SELECT FILE TO VIEW CONTENT</x:String>
   <x:String x:Key="Text.CommitDetail.Info" xml:space="preserve">INFORMATION</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Author" xml:space="preserve">AUTHOR</x:String>
-  <x:String x:Key="Text.CommitDetail.Info.Committer" xml:space="preserve">COMMITTER</x:String>
+  <x:String x:Key="Text.CommitDetail.Info.Committer" xml:space="preserve">COMMITTER:</x:String>
   <x:String x:Key="Text.CommitDetail.Info.ContainsIn" xml:space="preserve">Check refs that contains this commit</x:String>
   <x:String x:Key="Text.CommitDetail.Info.ContainsIn.Title" xml:space="preserve">COMMIT IS CONTAINED BY</x:String>
   <x:String x:Key="Text.CommitDetail.Info.CopyEmail" xml:space="preserve">Copy Email</x:String>
@@ -206,7 +206,7 @@
   <x:String x:Key="Text.CommitDetail.Info.GotoChangesPage" xml:space="preserve">Shows only the first 100 changes. See all changes on the CHANGES tab.</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Key" xml:space="preserve">Key:</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Message" xml:space="preserve">MESSAGE</x:String>
-  <x:String x:Key="Text.CommitDetail.Info.Parents" xml:space="preserve">PARENTS</x:String>
+  <x:String x:Key="Text.CommitDetail.Info.Parents" xml:space="preserve">PARENTS:</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Refs" xml:space="preserve">REFS</x:String>
   <x:String x:Key="Text.CommitDetail.Info.SHA" xml:space="preserve">SHA</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Signer" xml:space="preserve">Signer:</x:String>
@@ -915,7 +915,6 @@ Manually add a branch/tag history filter will disable this feature automatically
   <x:String x:Key="Text.SelfUpdate.Flow.Background">Update in background</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.CancelUpdate">Cancel update</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.CloseChoice">The update is not finished. Cancel it or continue in the background? This window will return when the download finishes or fails.</x:String>
-  <x:String x:Key="Text.CommitChanges.NavigateParent">Go to this parent commit</x:String>
   <x:String x:Key="Text.CommitChanges.CopySHA">Copy full SHA</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.checking" xml:space="preserve">Checking for updates</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.available" xml:space="preserve">A new version is available</x:String>

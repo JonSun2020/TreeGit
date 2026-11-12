@@ -201,7 +201,7 @@
   <x:String x:Key="Text.CommitDetail.Files.Tips" xml:space="preserve">请选择查看的文件</x:String>
   <x:String x:Key="Text.CommitDetail.Info" xml:space="preserve">基本信息</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Author" xml:space="preserve">修改者</x:String>
-  <x:String x:Key="Text.CommitDetail.Info.Committer" xml:space="preserve">提交者</x:String>
+  <x:String x:Key="Text.CommitDetail.Info.Committer" xml:space="preserve">提交者：</x:String>
   <x:String x:Key="Text.CommitDetail.Info.ContainsIn" xml:space="preserve">查看包含此提交的分支/标签</x:String>
   <x:String x:Key="Text.CommitDetail.Info.ContainsIn.Title" xml:space="preserve">本提交已被以下分支/标签包含</x:String>
   <x:String x:Key="Text.CommitDetail.Info.CopyEmail" xml:space="preserve">复制电子邮箱</x:String>
@@ -210,7 +210,7 @@
   <x:String x:Key="Text.CommitDetail.Info.GotoChangesPage" xml:space="preserve">仅显示前100项变更。请前往【变更对比】页面查看全部。</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Key" xml:space="preserve">签名密钥 ：</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Message" xml:space="preserve">提交信息</x:String>
-  <x:String x:Key="Text.CommitDetail.Info.Parents" xml:space="preserve">父提交</x:String>
+  <x:String x:Key="Text.CommitDetail.Info.Parents" xml:space="preserve">父级：</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Refs" xml:space="preserve">相关引用</x:String>
   <x:String x:Key="Text.CommitDetail.Info.SHA" xml:space="preserve">提交指纹</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Signer" xml:space="preserve">签名者 ：</x:String>
@@ -919,7 +919,6 @@
   <x:String x:Key="Text.SelfUpdate.Flow.Background">后台更新</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.CancelUpdate">取消更新</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.CloseChoice">更新尚未完成。取消更新，还是转到后台继续？下载完成或失败时会再次提示。</x:String>
-  <x:String x:Key="Text.CommitChanges.NavigateParent">定位此父提交</x:String>
   <x:String x:Key="Text.CommitChanges.CopySHA">复制完整 SHA</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.checking" xml:space="preserve">正在检查更新</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.available" xml:space="preserve">发现新版本</x:String>

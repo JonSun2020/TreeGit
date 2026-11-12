@@ -17,9 +17,10 @@ namespace SourceGit.Views
             InitializeComponent();
         }
 
-        private void OnParentClicked(object sender, RoutedEventArgs e)
+        private void OnParentTapped(object sender, TappedEventArgs e)
         {
-            if (DataContext is ViewModels.CommitDetail vm && sender is Control { DataContext: string sha }) vm.NavigateTo(sha);
+            if (sender is not SelectableTextBlock { Tag: string sha } text || text.SelectionStart != text.SelectionEnd) return;
+            if (DataContext is ViewModels.CommitDetail vm) vm.NavigateTo(sha);
             e.Handled = true;
         }
 
