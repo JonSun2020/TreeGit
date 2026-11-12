@@ -8,6 +8,7 @@ namespace SourceGit.ViewModels
     public class Conflict : ObservableObject
     {
         public WorkingCopy WorkingCopy => _wc;
+        public string FilePath => _change.Path;
 
         public string Marker
         {
@@ -55,25 +56,35 @@ namespace SourceGit.ViewModels
         {
             _repo = repo;
             _wc = wc;
+            Refresh(change);
+        }
+
+        public void Refresh(Models.Change change)
+        {
             _change = change;
-            _isRebase = InProgressContext.IsRebasing(repo.GitDir);
+            _isRebase = InProgressContext.IsRebasing(_repo.GitDir);
+            OnPropertyChanged(nameof(Marker));
+            OnPropertyChanged(nameof(Description));
+
+            var version = ++_refreshVersion;
+            var inProgress = _wc.InProgressContext;
 
             Task.Run(async () =>
             {
-                _head = new Commands.QuerySingleCommit(repo.FullPath, "HEAD").GetResult();
+                var head = new Commands.QuerySingleCommit(_repo.FullPath, "HEAD").GetResult();
 
-                var (mine, theirs) = wc.InProgressContext switch
+                var (mine, theirs) = inProgress switch
                 {
-                    CherryPickInProgress cherryPick => (_head, cherryPick.Head),
-                    RebaseInProgress rebase => (rebase.StoppedAt, _head),
-                    RevertInProgress => (_head, (object)App.Text("Conflict.RevertVersion")),
-                    MergeInProgress merge => (_head, merge.Source),
-                    _ => (_head, (object)App.Text("Conflict.StashOrPatch")),
+                    CherryPickInProgress cherryPick => (head, cherryPick.Head),
+                    RebaseInProgress rebase => (rebase.StoppedAt, head),
+                    RevertInProgress => (head, (object)App.Text("Conflict.RevertVersion")),
+                    MergeInProgress merge => (head, merge.Source),
+                    _ => (head, (object)App.Text("Conflict.StashOrPatch")),
                 };
 
                 var state = Models.ConflictFileState.Unknown;
-                if ((_change.ConflictReason is Models.ConflictReason.BothAdded or Models.ConflictReason.BothModified) && !Directory.Exists(Path.Combine(_repo.FullPath, _change.Path)))
-                    state = await new Commands.QueryConflictFileState(repo.FullPath, change)
+                if ((change.ConflictReason is Models.ConflictReason.BothAdded or Models.ConflictReason.BothModified) && !Directory.Exists(Path.Combine(_repo.FullPath, change.Path)))
+                    state = await new Commands.QueryConflictFileState(_repo.FullPath, change)
                         .GetResultAsync()
                         .ConfigureAwait(false);
 
@@ -82,7 +93,7 @@ namespace SourceGit.ViewModels
                 {
                     try
                     {
-                        var path = Path.Combine(repo.FullPath, change.Path);
+                        var path = Path.Combine(_repo.FullPath, change.Path);
                         if (File.Exists(path) && (File.GetAttributes(path) & FileAttributes.ReparsePoint) == 0 && new FileInfo(path).Length <= Models.MergeConflictTextFile.MaxBytes)
                         {
                             Models.MergeConflictTextFile.Read(await File.ReadAllBytesAsync(path).ConfigureAwait(false));
@@ -94,6 +105,10 @@ namespace SourceGit.ViewModels
 
                 Dispatcher.UIThread.Post(() =>
                 {
+                    if (version != _refreshVersion)
+                        return;
+
+                    _head = head;
                     _canEditStructuralConflict = canEditStructural;
                     State = state;
                     OnPropertyChanged(nameof(CanOpenMergeEditor));
@@ -134,6 +149,7 @@ namespace SourceGit.ViewModels
         private bool _canEditStructuralConflict;
         private object _mine = null;
         private object _theirs = null;
-        private readonly bool _isRebase;
+        private bool _isRebase;
+        private int _refreshVersion;
     }
 }

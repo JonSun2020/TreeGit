@@ -149,7 +149,7 @@ def source_block(index,click=False,side='left',right=False):
     pointer(target['x'],target['y'],click or right,right)
 
 def press_text(text):
-    item=next(b for b in layout()['buttons'] if b['text']==text)
+    item=wait_for(lambda:next((b for b in layout()['buttons'] if b['text']==text and b['enabled']),None))
     press_button(item)
 def menu_items():
     return (dialog()['merge']['contextMenu'] or {}).get('items',[]) if dialog() else []
@@ -200,6 +200,10 @@ try:
         check('overview choice selects the correct complete version '+name,path.read_bytes()==b'\xef\xbb\xbf'+base.replace('first = 0','first = '+str(value)).replace('last = 0','last = '+str(value)).replace('\n','\r\n').encode('utf-8'))
         time.sleep(.3);conflict()
     select_conflicted_file()
+    for _ in range(6):
+        tool('ui_refresh',{'repo':str(repo)})
+        check('refresh keeps the selected conflict editor entry visible '+str(_),any(b['text']=='用合并工具编辑' and b['enabled'] for b in layout()['buttons']))
+        time.sleep(.1)
     original=path.read_bytes();text=open_editor(use_button=True)
     check('overview merge-tool button opens the editable conflict window',dialog() is not None)
     press('CancelMergeEditor');wait_for(lambda:dialog() is None)

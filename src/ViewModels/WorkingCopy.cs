@@ -1041,7 +1041,14 @@ namespace SourceGit.ViewModels
             if (change == null)
                 DetailContext = null;
             else if (change.IsConflicted)
-                DetailContext = new Conflict(_repo, this, change);
+            {
+                // Keep the selected conflict's controls alive during watcher/status refreshes.
+                // Replacing the view here can swallow a click between pointer press and release.
+                if (_detailContext is Conflict conflict && conflict.FilePath == change.Path)
+                    conflict.Refresh(change);
+                else
+                    DetailContext = new Conflict(_repo, this, change);
+            }
             else
                 DetailContext = new DiffContext(_repo.FullPath, new Models.DiffOption(change, isUnstaged), _detailContext as DiffContext);
         }
