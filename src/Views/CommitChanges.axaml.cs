@@ -15,13 +15,6 @@ namespace SourceGit.Views
         public CommitChanges()
         {
             InitializeComponent();
-            AddHandler(PointerPressedEvent, OnMetadataPointerPressed, RoutingStrategies.Tunnel);
-        }
-
-        private void OnMetadataPointerPressed(object sender, PointerPressedEventArgs e)
-        {
-            if (e.Source is SelectableTextBlock text && text.Classes.Contains("commit_metadata") && e.GetCurrentPoint(text).Properties.IsLeftButtonPressed)
-                text.Focus(NavigationMethod.Pointer);
         }
 
         private void OnParentClicked(object sender, RoutedEventArgs e)
