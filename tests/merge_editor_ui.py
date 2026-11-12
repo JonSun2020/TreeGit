@@ -18,7 +18,7 @@ assert os.environ.get('GITHUB_ACTIONS')=='true' and os.environ.get('RUNNER_OS')=
 exe=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
 root=Path(tempfile.mkdtemp(prefix='TreeGit merge QA ')).resolve();repo=root/'repo';repo.mkdir()
 env=os.environ.copy();env.update(GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'),GIT_CONFIG_NOSYSTEM='1')
-checks=[];failure=None;pid=None;opened_text=None
+checks=[];failure=None;pid=None;opened_text=None;started=time.time()
 def git(*args,ok=True):
     result=subprocess.run(['git','-C',str(repo),*args],env=env,capture_output=True,text=True,encoding='utf-8')
     if ok:assert result.returncode==0,result.stderr
@@ -421,7 +421,12 @@ try:
     git('merge','--abort')
 except BaseException as error:
     failure=repr(error)
-    try:(out/'failure-state.json').write_text(json.dumps({'state':tool('ui_state'),'layout':layout(),'git':{'status':git('status','--porcelain').stdout,'unmerged':git('ls-files','-u').stdout,'head':git('rev-parse','HEAD').stdout}},ensure_ascii=False,indent=2),encoding='utf-8')
+    errors={}
+    for log in (exe.parent/'data/crashes').glob('*.log'):
+        if log.stat().st_mtime >= started - 1:
+            errors[log.name]=log.read_text(encoding='utf-8')[-12000:]
+    for name,message in errors.items():print('APPLICATION ERROR '+name+'\n'+message,flush=True)
+    try:(out/'failure-state.json').write_text(json.dumps({'state':tool('ui_state'),'layout':layout(),'applicationErrors':errors,'git':{'status':git('status','--porcelain').stdout,'unmerged':git('ls-files','-u').stdout,'head':git('rev-parse','HEAD').stdout}},ensure_ascii=False,indent=2),encoding='utf-8')
     except BaseException:pass
     try:shot('failure')
     except BaseException:pass
