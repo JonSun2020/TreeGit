@@ -6,10 +6,20 @@ on:
         description: Exact product source commit to verify
         type: string
         required: true
+      package_run:
+        description: Successful Windows artifact run for strict updater-window recheck
+        type: string
+        default: ''
+      windows_only:
+        description: Recheck only the strict Windows updater gate
+        type: boolean
+        default: false
 permissions:
   contents: read
+  actions: read
 jobs:
   regressions:
+    if: ${{ !inputs.windows_only }}
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:
@@ -50,3 +60,45 @@ jobs:
             ${{ runner.temp }}/historical-regressions/**/*.json
             ${{ runner.temp }}/historical-regressions/**/*.log
             ${{ runner.temp }}/historical-regressions/**/*.png
+  windows-update:
+    if: ${{ inputs.package_run != '' }}
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Preserve the strict harness and select exact product source
+        env:
+          SOURCE: ${{ inputs.source }}
+        shell: pwsh
+        run: |
+          if ($env:SOURCE -notmatch '^[0-9a-f]{40}$') { throw 'Invalid source commit' }
+          Copy-Item tests/update_ui.py "$env:RUNNER_TEMP/update_ui.py"
+          git checkout --detach $env:SOURCE
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/download-artifact@v4
+        with:
+          name: TreeGit-Windows-x64
+          path: update-fixture
+          run-id: ${{ inputs.package_run }}
+          github-token: ${{ github.token }}
+      - name: Require completed update-window checks
+        shell: pwsh
+        run: |
+          dotnet build src/SourceGit.csproj -c Debug -p:EnableIntegrationTests=true -p:UseSharedCompilation=false -m:1 -v:q
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Path src/bin/Debug/net10.0/data -Force | Out-Null
+          $archive = (Get-ChildItem update-fixture/TreeGit-*-Windows-x64.zip | Select-Object -First 1).FullName
+          python "$env:RUNNER_TEMP/update_ui.py" src/bin/Debug/net10.0/SourceGit.exe $archive "$env:RUNNER_TEMP/strict-update-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TreeGit-strict-updater-results
+          path: |
+            ${{ runner.temp }}/strict-update-results/results.json
+            ${{ runner.temp }}/strict-update-results/*.png
