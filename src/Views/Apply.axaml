@@ -7,14 +7,28 @@
       <TextBlock FontSize="18" Margin="8,0,0,0" Classes="bold" Text="{DynamicResource Text.Apply.Title}"/>
     </StackPanel>
 
-    <Grid Margin="0,16,0,0" RowDefinitions="32,Auto,32,32,32" ColumnDefinitions="120,*">
-      <TextBlock Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" Text="{DynamicResource Text.Apply.Source}"/>
+    <Grid Margin="0,16,0,0" RowDefinitions="32,Auto,32,32,32,Auto" ColumnDefinitions="120,*">
+      <TextBlock Grid.Row="0" Grid.Column="0"
+                 HorizontalAlignment="Right" VerticalAlignment="Center"
+                 Margin="0,0,8,0"
+                 Text="{DynamicResource Text.Apply.Source}"/>
       <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal">
         <RadioButton Content="{DynamicResource Text.Apply.Source.File}" IsChecked="{Binding !FromClipboard, Mode=TwoWay}"/>
         <RadioButton Content="{DynamicResource Text.Apply.Source.Clipboard}" IsChecked="{Binding FromClipboard, Mode=TwoWay}" Margin="18,0,0,0"/>
       </StackPanel>
 
-      <TextBox Grid.Row="1" Grid.Column="1" x:Name="TxtPatchFile" Height="28" Margin="0,0,0,6" CornerRadius="3" Watermark="{DynamicResource Text.Apply.File.Placeholder}" IsEnabled="{Binding !FromClipboard, Mode=OneWay}" IsVisible="{Binding !FromClipboard, Mode=OneWay}" Text="{Binding PatchFile, Mode=TwoWay}">
+      <TextBox Grid.Row="1" Grid.Column="1"
+               x:Name="TxtPatchFile"
+               Height="28"
+               Margin="0,0,0,6"
+               CornerRadius="3"
+               Watermark="{DynamicResource Text.Apply.File.Placeholder}"
+               IsEnabled="{Binding !FromClipboard, Mode=OneWay}"
+               IsVisible="{Binding !FromClipboard, Mode=OneWay}"
+               Text="{Binding PatchFile, Mode=TwoWay}"
+               DragDrop.AllowDrop="True"
+               DragDrop.DragOver="DragOverPatchFileBox"
+               DragDrop.Drop="DropOnPatchFileBox">
         <TextBox.Styles>
           <Style Selector="TextBox:disabled Path">
             <Setter Property="Opacity" Value=".6"/>
@@ -57,7 +71,24 @@
 
       <CheckBox Grid.Row="3" Grid.Column="1" Content="{DynamicResource Text.Apply.IgnoreWS}" IsChecked="{Binding IgnoreWhiteSpace, Mode=TwoWay}" ToolTip.Tip="--ignore-whitespace"/>
 
-      <CheckBox Grid.Row="4" Grid.Column="1" Content="{DynamicResource Text.Apply.3Way}" IsChecked="{Binding ThreeWayMerge, Mode=TwoWay}" ToolTip.Tip="--3way"/>
+      <CheckBox Grid.Row="4" Grid.Column="1"
+                Content="{DynamicResource Text.Apply.3Way}"
+                IsChecked="{Binding ThreeWayMerge, Mode=TwoWay}"
+                ToolTip.Tip="--3way"/>
+
+      <CheckBox Grid.Row="5" Grid.Column="1"
+                x:Name="CommitPatchChanges"
+                Height="32"
+                Content="{DynamicResource Text.Apply.CommitChanges}"
+                IsChecked="{Binding CommitChanges, Mode=TwoWay}"
+                ToolTip.Tip="{DynamicResource Text.Apply.CommitChanges.Tip}">
+        <CheckBox.IsVisible>
+          <MultiBinding Converter="{x:Static BoolConverters.And}">
+            <Binding Path="FromClipboard" Mode="OneWay" Converter="{x:Static BoolConverters.Not}"/>
+            <Binding Path="CanCreateCommit" Mode="OneWay"/>
+          </MultiBinding>
+        </CheckBox.IsVisible>
+      </CheckBox>
     </Grid>
   </StackPanel>
 </UserControl>

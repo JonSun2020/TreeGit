@@ -8,8 +8,34 @@
     </ListBox.ItemsPanel>
 
     <ListBox.Styles>
-      <Style Selector="ListBoxItem" x:DataType="vm:BranchTreeNode">
+      <Style Selector="ListBox.repo_left_content_list ListBoxItem" x:DataType="vm:BranchTreeNode">
         <Setter Property="CornerRadius" Value="{Binding CornerRadius}"/>
+        <Setter Property="Template">
+          <ControlTemplate TargetType="ListBoxItem">
+            <Grid>
+              <Border Name="PART_Background" Background="Transparent" Opacity="0" CornerRadius="{TemplateBinding CornerRadius}" IsVisible="{Binding !IsCommitHighlightActive}"/>
+              <Grid x:Name="CommitBranchSelectedBackground" Opacity="0" IsVisible="{Binding !IsCommitHighlightActive}" IsHitTestVisible="False">
+                <Border Background="{DynamicResource Brush.Contents}" CornerRadius="{TemplateBinding CornerRadius}"/>
+                <Border Background="{DynamicResource Brush.Diff.AddedBG}" CornerRadius="{TemplateBinding CornerRadius}"/>
+                <Border Background="{DynamicResource Brush.Diff.AddedHighlight}" CornerRadius="{TemplateBinding CornerRadius}"/>
+              </Grid>
+              <Border Background="{DynamicResource Brush.Contents}" CornerRadius="{TemplateBinding CornerRadius}"
+                      Opacity="{Binding CommitHighlightLevel, Converter={x:Static c:IntConverters.CommitBranchHighlightOpacity}}" IsHitTestVisible="False"/>
+              <Border x:Name="CommitCoverageBackground" Background="{DynamicResource Brush.Diff.AddedBG}" CornerRadius="{TemplateBinding CornerRadius}"
+                      Opacity="{Binding CommitHighlightLevel, Converter={x:Static c:IntConverters.CommitBranchHighlightOpacity}}" IsHitTestVisible="False"/>
+              <Border x:Name="CommitCoverageTint" Background="{DynamicResource Brush.Diff.AddedHighlight}" CornerRadius="{TemplateBinding CornerRadius}"
+                      Opacity="{Binding CommitHighlightLevel, Converter={x:Static c:IntConverters.CommitBranchCoverageTintOpacity}}" IsHitTestVisible="False"/>
+              <Border x:Name="CommitPrimaryShade" Background="{DynamicResource Brush.Diff.AddedHighlight}" CornerRadius="{TemplateBinding CornerRadius}"
+                      Opacity="{Binding CommitHighlightLevel, Converter={x:Static c:IntConverters.CommitBranchPrimaryShadeOpacity}}" IsHitTestVisible="False"/>
+              <ContentPresenter ContentTemplate="{TemplateBinding ContentTemplate}" Content="{TemplateBinding Content}" Padding="{TemplateBinding Padding}"
+                                VerticalContentAlignment="Center" HorizontalContentAlignment="Stretch"/>
+            </Grid>
+          </ControlTemplate>
+        </Setter>
+      </Style>
+
+      <Style Selector="ListBox.repo_left_content_list ListBoxItem:selected /template/ Grid#CommitBranchSelectedBackground">
+        <Setter Property="Opacity" Value="1"/>
       </Style>
 
       <Style Selector="ListBoxItem:pointerover v|FilterModeSwitchButton">
@@ -19,8 +45,14 @@
 
     <ListBox.ItemTemplate>
       <DataTemplate DataType="vm:BranchTreeNode">
-        <Border Background="Transparent" PointerPressed="OnNodePointerPressed" ToolTip.Tip="{Binding Backend}" ToolTip.Placement="Right">
+        <Border Background="Transparent" PointerPressed="OnNodePointerPressed" ToolTip.Tip="{Binding}" ToolTip.Placement="Right">
           <Border.DataTemplates>
+            <DataTemplate DataType="vm:BranchTreeNode">
+              <StackPanel Spacing="6">
+                <TextBlock Text="{Binding CommitHighlightNote}" TextWrapping="Wrap" MaxWidth="420" IsVisible="{Binding CommitHighlightNote, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                <ContentControl Content="{Binding Backend}"/>
+              </StackPanel>
+            </DataTemplate>
             <DataTemplate DataType="m:Branch">
               <StackPanel Orientation="Vertical">
                 <StackPanel Orientation="Horizontal">

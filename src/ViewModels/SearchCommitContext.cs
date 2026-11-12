@@ -54,6 +54,12 @@ namespace SourceGit.ViewModels
             private set => SetProperty(ref _isQuerying, value);
         }
 
+        public bool HasError
+        {
+            get => _hasError;
+            private set => SetProperty(ref _hasError, value);
+        }
+
         public List<Models.Commit> Results
         {
             get => _results;
@@ -103,87 +109,130 @@ namespace SourceGit.ViewModels
             if (_cancellation is { IsCancellationRequested: false })
                 _cancellation.Cancel();
             IsQuerying = false;
-            Results = null;
-            Selected = null;
+            HasError = false;
             Suggestions = null;
 
             if (string.IsNullOrEmpty(_filter))
+            {
+                Results = null;
+                Selected = null;
                 return;
+            }
 
             IsQuerying = true;
 
-            _cancellation = new();
-            var token = _cancellation.Token;
+            var cancellation = new CancellationTokenSource();
+            _cancellation = cancellation;
+            var token = cancellation.Token;
+            var filter = _filter;
+            var method = (Models.CommitSearchMethod)_method;
+            var onlyCurrentBranch = _onlySearchCurrentBranch;
 
             Task.Run(async () =>
             {
-                var result = new List<Models.Commit>();
-                var method = (Models.CommitSearchMethod)_method;
-
-                if (method == Models.CommitSearchMethod.BySHA)
+                try
                 {
-                    var isCommitSHA = await new Commands.IsCommitSHA(_repo, _filter)
-                        .GetResultAsync()
-                        .ConfigureAwait(false);
+                    token.ThrowIfCancellationRequested();
+                    var result = new List<Models.Commit>();
 
-                    if (isCommitSHA)
+                    if (method == Models.CommitSearchMethod.BySHA)
                     {
-                        var commit = await new Commands.QuerySingleCommit(_repo, _filter)
+                        var check = new Commands.IsCommitSHA(_repo, filter) { CancellationToken = token };
+                        var isCommitSHA = await check
                             .GetResultAsync()
                             .ConfigureAwait(false);
+                        if (!check.Succeeded) throw new InvalidOperationException();
 
-                        commit.IsMerged = await new Commands.IsAncestor(_repo, commit.SHA, "HEAD")
-                            .GetResultAsync()
-                            .ConfigureAwait(false);
+                        if (isCommitSHA)
+                        {
+                            var commit = await new Commands.QuerySingleCommit(_repo, filter) { CancellationToken = token }
+                                .GetResultAsync()
+                                .ConfigureAwait(false);
+                            if (commit == null) throw new InvalidOperationException();
 
-                        result.Add(commit);
+                            var ancestry = new Commands.IsAncestor(_repo, commit.SHA, "HEAD") { CancellationToken = token };
+                            commit.IsMerged = await ancestry.GetResultAsync().ConfigureAwait(false);
+                            if (!ancestry.Succeeded) throw new InvalidOperationException();
+
+                            result.Add(commit);
+                        }
                     }
-                }
-                else if (_onlySearchCurrentBranch)
-                {
-                    result = await new Commands.QueryCommits(_repo, _filter, method, true)
-                        .GetResultAsync()
-                        .ConfigureAwait(false);
-
-                    foreach (var c in result)
-                        c.IsMerged = true;
-                }
-                else
-                {
-                    result = await new Commands.QueryCommits(_repo, _filter, method, false)
-                        .GetResultAsync()
-                        .ConfigureAwait(false);
-
-                    if (result.Count > 0)
+                    else if (onlyCurrentBranch)
                     {
-                        var set = await new Commands.QueryCurrentBranchCommitHashes(_repo, result[^1].CommitterTime)
+                        var query = new Commands.QueryCommits(_repo, filter, method, true) { CancellationToken = token };
+                        result = await query
                             .GetResultAsync()
                             .ConfigureAwait(false);
+                        if (!query.Succeeded) throw new InvalidOperationException();
 
                         foreach (var c in result)
-                            c.IsMerged = set.Contains(c.SHA);
+                            c.IsMerged = true;
                     }
-                }
-
-                if (token.IsCancellationRequested) return;
-                var branchNames = await new Commands.QuerySearchBranchNames(_repo) { CancellationToken = token }.GetResultAsync(result).ConfigureAwait(false);
-                foreach (var commit in result)
-                    if (branchNames.TryGetValue(commit.SHA, out var coverage)) commit.SearchBranches = coverage;
-
-                Dispatcher.UIThread.Post(() =>
-                {
-                    if (token.IsCancellationRequested)
-                        return;
-
-                    IsQuerying = false;
-                    if (_histories.IsSearchingCommits)
+                    else
                     {
-                        Results = result;
-                        if (method == Models.CommitSearchMethod.BySHA && result.Count == 1)
-                            Selected = result[0];
+                        var query = new Commands.QueryCommits(_repo, filter, method, false) { CancellationToken = token };
+                        result = await query
+                            .GetResultAsync()
+                            .ConfigureAwait(false);
+                        if (!query.Succeeded) throw new InvalidOperationException();
+
+                        if (result.Count > 0)
+                        {
+                            var ancestry = new Commands.QueryCurrentBranchCommitHashes(_repo, result[^1].CommitterTime) { CancellationToken = token };
+                            var set = await ancestry.GetResultAsync().ConfigureAwait(false);
+                            if (!ancestry.Succeeded) throw new InvalidOperationException();
+
+                            foreach (var c in result)
+                                c.IsMerged = set.Contains(c.SHA);
+                        }
                     }
-                });
-            }, token);
+
+                    if (token.IsCancellationRequested) return;
+                    var branchNames = await new Commands.QuerySearchBranchNames(_repo) { CancellationToken = token }.GetResultAsync(result).ConfigureAwait(false);
+                    if (branchNames.Count != result.Count) throw new InvalidOperationException();
+                    foreach (var commit in result)
+                        if (branchNames.TryGetValue(commit.SHA, out var coverage)) commit.SearchBranches = coverage;
+
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (token.IsCancellationRequested)
+                            return;
+
+                        IsQuerying = false;
+                        if (_histories.IsSearchingCommits)
+                        {
+                            var selectedSHA = Selected?.SHA;
+                            Results = result;
+                            if (method == Models.CommitSearchMethod.BySHA && result.Count == 1)
+                                Selected = result[0];
+                            else
+                                Selected = result.Find(c => c.SHA == selectedSHA);
+                        }
+                    });
+                }
+                catch (Exception) when (token.IsCancellationRequested) { }
+                catch (Exception)
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (token.IsCancellationRequested) return;
+                        HasError = true;
+                        Models.Notification.Send(_repo, App.Text("Repository.Search.Failed"), true);
+                    });
+                }
+                finally
+                {
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (ReferenceEquals(_cancellation, cancellation))
+                        {
+                            _cancellation = null;
+                            IsQuerying = false;
+                        }
+                        cancellation.Dispose();
+                    });
+                }
+            });
         }
 
         public void EndSearch()
@@ -195,6 +244,7 @@ namespace SourceGit.ViewModels
             _authors = null;
 
             IsQuerying = false;
+            HasError = false;
             Selected = null;
             Suggestions = null;
             Results = null;
@@ -308,6 +358,7 @@ namespace SourceGit.ViewModels
         private string _filter = string.Empty;
         private bool _onlySearchCurrentBranch = false;
         private bool _isQuerying = false;
+        private bool _hasError = false;
         private List<Models.Commit> _results = null;
         private Models.Commit _selected = null;
         private bool _requestingWorktreeFiles = false;

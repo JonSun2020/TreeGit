@@ -9,6 +9,16 @@ namespace SourceGit.Converters
 {
     public static class DoubleConverters
     {
+        public sealed class CommitBranchNameWidthConverter : IMultiValueConverter
+        {
+            public object Convert(IList<object> values, Type targetType, object parameter, CultureInfo culture)
+            {
+                if (values is not [double width, double buttonWidth, bool hasMore]) return 0.0;
+                return Math.Max(0, width - (hasMore ? Math.Max(34, buttonWidth) + 6 : 0));
+            }
+        }
+
+        public static readonly CommitBranchNameWidthConverter CommitBranchNameWidth = new();
         public sealed class NotificationAreaHeightConverter : IMultiValueConverter
         {
             public object Convert(IList<object> values, Type targetType, object parameter, CultureInfo culture)

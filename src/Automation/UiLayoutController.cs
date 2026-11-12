@@ -42,7 +42,7 @@ namespace SourceGit.Automation
                     if (!bar.IsEffectivelyVisible || !bar.IsEnabled) throw new InvalidOperationException("This scroll bar is hidden or unavailable.");
                     var value = args.GetProperty("value").GetDouble();
                     if (!double.IsFinite(value)) throw new ArgumentException("Scroll value must be finite.");
-                    bar.SetCurrentValue(RangeBase.ValueProperty, Math.Clamp(value, bar.Minimum, bar.Maximum));
+                    Views.DataGridScrolling.SetOffset(bar, value);
                     return Inspect(window);
                 }
                 var scrollers = window.GetVisualDescendants().OfType<ScrollViewer>().ToArray();
@@ -173,6 +173,33 @@ namespace SourceGit.Automation
 #if INTEGRATION_TESTS
                 labels = controls.OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && !string.IsNullOrEmpty(t.Text)).Take(500)
                     .Select(t => new { text = t.Text, bounds = Bounds(t), visibleHeight = VisibleHeight(t) }).ToArray(),
+                sidebarCommitTints = controls.OfType<Border>().Where(b => b.Name == "CommitCoverageBackground" && b.IsEffectivelyVisible && b.DataContext is ViewModels.BranchTreeNode { Backend: Models.Branch })
+                    .Select(b => new { reference = ((Models.Branch)((ViewModels.BranchTreeNode)b.DataContext).Backend).FullName,
+                        level = ((ViewModels.BranchTreeNode)b.DataContext).CommitHighlightLevel, opacity = b.Opacity,
+                        bounds = Bounds(b), color = b.Background?.ToString() }).ToArray(),
+                sidebarCommitShades = controls.OfType<Border>().Where(b => b.Name == "CommitPrimaryShade" && b.IsEffectivelyVisible && b.DataContext is ViewModels.BranchTreeNode { Backend: Models.Branch })
+                    .Select(b => new { reference = ((Models.Branch)((ViewModels.BranchTreeNode)b.DataContext).Backend).FullName, opacity = b.Opacity, color = b.Background?.ToString() }).ToArray(),
+                sidebarCoverageTints = controls.OfType<Border>().Where(b => b.Name == "CommitCoverageTint" && b.IsEffectivelyVisible && b.DataContext is ViewModels.BranchTreeNode { Backend: Models.Branch })
+                    .Select(b => new { reference = ((Models.Branch)((ViewModels.BranchTreeNode)b.DataContext).Backend).FullName, opacity = b.Opacity, color = b.Background?.ToString() }).ToArray(),
+                sidebarManualSelections = controls.OfType<Grid>().Where(g => g.Name == "CommitBranchSelectedBackground" && g.IsEffectivelyVisible && g.DataContext is ViewModels.BranchTreeNode { Backend: Models.Branch })
+                    .Select(g => new { reference = ((Models.Branch)((ViewModels.BranchTreeNode)g.DataContext).Backend).FullName, opacity = g.Opacity,
+                        selected = g.FindAncestorOfType<ListBoxItem>()?.IsSelected, colors = g.Children.OfType<Border>().Select(b => b.Background?.ToString()).ToArray() }).ToArray(),
+                searchRows = controls.OfType<DataGridRow>().Where(row => row.IsEffectivelyVisible && row.DataContext is Models.Commit && row.FindAncestorOfType<Views.CommitSearchView>() != null)
+                    .Select(row => new { sha = ((Models.Commit)row.DataContext).SHA, screen = ScreenPoint(row), bounds = Bounds(row) }).ToArray(),
+                selectedBranchBackground = window.FindResource("Brush.Diff.AddedBG")?.ToString(),
+                primaryBranchBackground = window.FindResource("Brush.Diff.AddedHighlight")?.ToString(),
+                commitBranchHeaders = controls.OfType<Views.CommitBranchHeader>().Where(h => h.IsEffectivelyVisible).Select(h =>
+                {
+                    var badge = h.GetVisualDescendants().OfType<Border>().First(b => b.Name == "OtherCommitBranchesBadge");
+                    var button = h.GetVisualDescendants().OfType<Button>().First(b => b.Name == "MoreCommitBranches");
+                    var primary = h.GetVisualDescendants().OfType<Views.CommitRefsPresenter>().First(p => p.Name == "CommitPrimaryBranch");
+                    var viewport = h.GetVisualDescendants().OfType<ScrollViewer>().First(p => p.Name == "PrimaryBranchScroll");
+                    return new { bounds = Bounds(h), badge = Bounds(badge), badgeVisible = badge.IsEffectivelyVisible,
+                        badgeVisibleHeight = VisibleHeight(badge), buttonVisible = button.IsEffectivelyVisible,
+                        buttonHasBorder = button.BorderThickness != default,
+                        primary = Bounds(primary), primaryDesiredWidth = primary.DesiredSize.Width,
+                        primaryDesiredHeight = primary.DesiredSize.Height, primaryViewport = Bounds(viewport) };
+                }).ToArray(),
                 columnHeaders = controls.OfType<DataGridColumnHeader>().Where(h => h.IsEffectivelyVisible && h.Bounds.Width > 0)
                     .Select(h => new { text = string.Join("", h.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible).Select(t => t.Text)),
                         bounds = Bounds(h), screen = ScreenPoint(h, true) }).ToArray(),

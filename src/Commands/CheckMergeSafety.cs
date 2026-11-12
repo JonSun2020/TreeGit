@@ -16,13 +16,14 @@ namespace SourceGit.Commands
         public string Obstruction { get; private set; }
 
         public CheckMergeSafety(string repo, IEnumerable<string> sources, string replayRange = null,
-            IEnumerable<(string Revision, int Parent)> patches = null)
+            IEnumerable<(string Revision, int Parent)> patches = null, string patchFile = null)
         {
             WorkingDirectory = repo;
             Context = repo;
             _sources = sources;
             _replayRange = replayRange;
             _patches = patches;
+            _patchFile = patchFile;
             _untracked = new HashSet<string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
         }
 
@@ -33,6 +34,19 @@ namespace SourceGit.Commands
             Args = "ls-files --others --directory -z";
             if (!await ReadRecordsAsync(path => { _untracked.Add(path); return true; }).ConfigureAwait(false)) return false;
             if (_untracked.Count == 0) return true;
+            if (!string.IsNullOrEmpty(_patchFile))
+            {
+                Args = $"apply --numstat -z -- {_patchFile.Quoted()}";
+                var renamedPaths = 0;
+                if (!await ReadRecordsAsync(record =>
+                {
+                    if (renamedPaths > 0) { renamedPaths--; return CheckPath(record); }
+                    var fields = record.Split('\t', 3);
+                    if (fields.Length != 3) return false;
+                    if (fields[2].Length == 0) { renamedPaths = 2; return true; }
+                    return CheckPath(fields[2]);
+                }).ConfigureAwait(false) || renamedPaths != 0) return false;
+            }
             foreach (var source in _sources)
             {
                 Args = $"ls-tree -rz {source.Quoted()}";
@@ -152,6 +166,7 @@ namespace SourceGit.Commands
         private readonly IEnumerable<string> _sources;
         private readonly string _replayRange;
         private readonly IEnumerable<(string Revision, int Parent)> _patches;
+        private readonly string _patchFile;
         private readonly HashSet<string> _untracked;
     }
 }

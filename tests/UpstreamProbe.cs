@@ -46,7 +46,8 @@ namespace SourceGit.Tests
                     Check("valid SSH repository address " + url, Models.Remote.IsSSH(url) && Models.Remote.IsValidURL(url));
                 foreach (var url in new[] { "ssh:///repo.git", "ssh://host/", "ssh://host", "ssh://host/\nrepo.git", "ssh://user:secret@host/repo.git", "ssh://host/repo.git?query=1" })
                     Check("invalid SSH repository address rejected", !Models.Remote.IsValidURL(url));
-                Check("Windows drive paths are not mistaken for SSH aliases", !Models.Remote.IsSSH("C:/repo.git") && !Models.Remote.IsSSH("D:\\repo.git"));
+                if (OperatingSystem.IsWindows())
+                    Check("Windows drive paths are not mistaken for SSH aliases", !Models.Remote.IsSSH("C:/repo.git") && !Models.Remote.IsSSH("D:\\repo.git"));
                 // Exercise branch pinning with crossing/merging histories, multiple
                 // roots and a preferred head below newer unrelated commits.
                 var random = new Random(7319);
@@ -157,6 +158,7 @@ namespace SourceGit.Tests
                 }
                 finally { Environment.SetEnvironmentVariable("GIT_LFS_SKIP_SMUDGE", skipSmudge); }
                 var transferredLfs = Prepare(new Commands.LFS(lfsClonePath));
+                Check("LFS clone initialization is independent of global filter configuration", await transferredLfs.InstallAsync());
                 await transferredLfs.FetchAsync("origin");
                 Check("LFS fetch restores the exact cached object", Directory.EnumerateFiles(Path.Combine(lfsClonePath, ".git", "lfs", "objects"), objectName, SearchOption.AllDirectories).Any(f => File.ReadAllBytes(f).SequenceEqual(new byte[] { 1, 2, 3, 4, 5, 6 })));
                 await transferredLfs.PullAsync("origin");

@@ -41,7 +41,11 @@ namespace SourceGit
                 return;
             }
             if (Native.TreeGitUpdateInstaller.HandleBootstrap(args)) return;
+            if (args.Length == 0 || args.Length == 1 && !args[0].StartsWith("--", StringComparison.Ordinal))
+                Automation.McpServer.BeginDesktopStartup();
 #if INTEGRATION_TESTS
+            if (int.TryParse(Environment.GetEnvironmentVariable("TREEGIT_TEST_DESKTOP_STARTUP_DELAY_MS"), out var startupDelay) && startupDelay is > 0 and <= 5000)
+                System.Threading.Thread.Sleep(startupDelay);
             if (args.Length > 0 && args[0].StartsWith("--integration-", StringComparison.Ordinal) && !Directory.Exists(Path.Combine(AppContext.BaseDirectory, "data")))
             {
                 Console.Error.WriteLine("Integration tests require an isolated portable data directory next to the test executable.");
@@ -76,6 +80,11 @@ namespace SourceGit
             if (args.Length > 2 && args[0] == "--integration-cancel-git")
             {
                 Environment.Exit(Tests.ProcessCancellationProbe.RunGitAsync(args[1], args[2]).GetAwaiter().GetResult());
+                return;
+            }
+            if (args.Length == 3 && args[0] == "--integration-cancel-read")
+            {
+                Environment.Exit(Tests.ProcessCancellationProbe.RunReadAsync(args[1], args[2]).GetAwaiter().GetResult());
                 return;
             }
             if (args.Length > 4 && args[0] == "--integration-cancel-process")
@@ -133,6 +142,7 @@ namespace SourceGit
                 if (Native.TreeGitUpdateInstaller.BootstrapPlan == null) Native.UiStartup.Show(AppContext.BaseDirectory, !Native.UiStartup.IsComplete(AppContext.BaseDirectory), ex);
                 Environment.Exit(1);
             }
+            finally { Automation.McpServer.EndDesktopStartup(); }
         }
 
         public static AppBuilder BuildAvaloniaApp()
@@ -629,11 +639,13 @@ namespace SourceGit
 
             var pref = ViewModels.Preferences.Instance;
             pref.SetCanModify();
-            pref.UpdateAvailableAIModels();
 
             _launcher = new ViewModels.Launcher(startupRepo);
             Native.StartupTrace.Mark("launcher-model");
             desktop.MainWindow = new Views.Launcher() { DataContext = _launcher };
+#if INTEGRATION_TESTS
+            Automation.UiLayoutProbe.AttachPointerTrace(desktop.MainWindow);
+#endif
             Native.StartupTrace.Mark("launcher-window");
             if (pref.LoadRecovery != 0)
                 desktop.MainWindow.Opened += (_, _) => Models.Notification.Send(string.Empty, App.Text(pref.LoadRecovery == 1 ? "PreferenceRecovery.Backup" : "PreferenceRecovery.Readonly"), true);
@@ -642,6 +654,7 @@ namespace SourceGit
             else
                 desktop.MainWindow.Opened += async (_, _) => await ReportUpdateResultAsync();
             Automation.GuiBridge.Start();
+            Automation.McpServer.EndDesktopStartup();
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
             // Fix macOS crash when quiting from Dock

@@ -63,7 +63,8 @@ def refresh():
     wait(lambda:any(b['reference']=='refs/heads/main' and b['head']==actual for b in state()['loadedBranches']))
 
 def prepare():
-    if (repo/'.git/rebase-merge').exists() or (repo/'.git/rebase-apply').exists(): git('rebase','--abort')
+    if (repo/'.git/rebase-apply/applying').exists(): git('am','--abort')
+    elif (repo/'.git/rebase-merge').exists() or (repo/'.git/rebase-apply').exists(): git('rebase','--abort')
     if (repo/'.git/MERGE_HEAD').exists(): git('merge','--abort')
     git('checkout','main'); git('reset','--hard',main); git('clean','-fdx'); git('stash','clear')
     git('config','--unset-all','rebase.autoStash',ok=False)
@@ -105,6 +106,26 @@ try:
     check('a changed destination cannot rebase a different branch',not result['succeeded'] and result['error'] and git('symbolic-ref','--short','HEAD')=='safe' and git('rev-parse','HEAD')==safe and result['draft']=='Keep destination-change draft')
     prepare(); git('merge','--no-commit','incoming',ok=False); refresh(); result = probe(safe,'Keep existing-operation draft')
     check('an existing operation is revealed without starting a second one',result['succeeded'] and result['selectedWorkingCopy'] and (repo/'.git/MERGE_HEAD').exists() and not (repo/'.git/rebase-merge').exists() and result['draft']=='Keep existing-operation draft' and not result['activeLogs'])
+    def apply_mailbox(revision, draft):
+        patch = root/'incoming.PATCH'
+        patch.write_text(git('format-patch','--stdout','-1',revision)+'\n',encoding='utf-8')
+        tool('ui_working_copy',{'repo':str(repo),'message':draft})
+        tool('ui_command',{'repo':str(repo),'command':'apply_patch'})
+        tool('ui_layout',{'action':'test_set','button':'TxtPatchFile','text':str(patch)})
+        wait(lambda:any(b['name']=='CommitPatchChanges' for b in tool('ui_layout')['buttons']))
+        tool('ui_layout',{'action':'test_click','button':'ConfirmPopup'})
+        wait(lambda:not state()['pendingDialogInProgress'])
+    prepare(); apply_mailbox(safe,'Keep mailbox draft')
+    wait(lambda:state()['pendingDialog'] is None); refresh()
+    check('mailbox apply creates its commit through the actual dialog',git('log','-1','--format=%s')=='Safe addition' and (repo/'remote.txt').read_text()=='incoming addition\n')
+    check('mailbox apply preserves an unrelated commit draft',state()['workingCopyState']['message']=='Keep mailbox draft')
+    prepare(); apply_mailbox(incoming,'Keep conflicted mailbox draft')
+    wait(lambda:state()['pendingDialog'] is None); refresh()
+    check('mailbox conflicts reveal the existing TreeGit conflict workflow',bool(git('ls-files','-u')) and (repo/'.git/rebase-apply/applying').exists() and state()['workingCopySelected'])
+    check('conflicted mailbox apply preserves the typed draft',state()['workingCopyState']['message']=='Keep conflicted mailbox draft')
+    prepare(); write('ignored.data','protected ignored bytes\n'); refresh(); apply_mailbox(ignored,'Keep blocked mailbox draft')
+    check('mailbox ignored-file collision is blocked without changing local data',state()['pendingDialog']=='Apply' and git('rev-parse','HEAD')==main and (repo/'ignored.data').read_text()=='protected ignored bytes\n' and state()['workingCopyState']['message']=='Keep blocked mailbox draft' and not (repo/'.git/rebase-apply').exists())
+    tool('ui_command',{'repo':str(repo),'command':'cancel_popup'})
 except BaseException as error:
     failure = repr(error)
     try: (out/'failure-state.json').write_text(json.dumps(tool('ui_state'),ensure_ascii=False,indent=2),encoding='utf-8')

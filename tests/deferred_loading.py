@@ -1,12 +1,18 @@
 """Verify real GUI behavior using only disposable repositories and the owned test executable."""
-import base64, json, os, queue, subprocess, sys, threading, time
+import atexit, base64, json, os, queue, shutil, subprocess, sys, tempfile, threading, time
 from pathlib import Path
+from qa_cleanup import new_fixture, remove_fixture
+from qa_process import process_sample, close_owned_gui
+
+assert os.environ.get('CI') == 'true', 'Use only an owned CI application'
 
 base=Path(__file__).resolve().parent
 exe=Path(sys.argv[1]).resolve()
 out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
 config=exe.parent/'data/preference.json'
-repo=out/'temporary-repository';repo.mkdir(exist_ok=True)
+root_parent=Path(tempfile.gettempdir()).resolve();root=new_fixture(root_parent,'TreeGit l ')
+atexit.register(lambda:remove_fixture(root,root_parent,'TreeGit l '))
+repo=root/'temporary-repository';repo.mkdir()
 def git(*args):
     subprocess.run(['git','-C',str(repo),*args],check=True,capture_output=True)
 git('init','-b','main');git('config','user.name','Theme QA');git('config','user.email','theme@example.invalid')
@@ -34,14 +40,22 @@ class Client:
     def close(self):
         self.p.stdin.close();self.p.wait(timeout=15)
         if self.pid:
-            script="$p=Get-Process -Id "+str(self.pid)+" -ErrorAction SilentlyContinue; if($p){if($p.Path -ne '"+str(exe).replace("'","''")+"'){throw 'Wrong QA process'}; if(-not $p.CloseMainWindow()){throw 'QA window did not accept close'}; if(-not $p.WaitForExit(15000)){throw 'QA app did not exit'}}"
-            subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)
+            if os.name=='posix':
+                process_sample(exe,self.pid)
+                windows=subprocess.check_output(['wmctrl','-lp'],text=True).splitlines()
+                owned=[line.split()[0] for line in windows if int(line.split()[2])==self.pid]
+                assert len(owned)==1,('Unexpected owned CI windows',owned)
+                subprocess.run(['wmctrl','-i','-c',owned[0]],check=True,capture_output=True)
+                deadline=time.monotonic()+15
+                while Path(f'/proc/{self.pid}/exe').exists() and time.monotonic()<deadline:time.sleep(.05)
+                assert not Path(f'/proc/{self.pid}/exe').exists(),'Owned test window did not close normally'
+            else:close_owned_gui(exe,self.pid)
 
 
 os.environ['GIT_CONFIG_GLOBAL']=str(out/'isolated.gitconfig');os.environ['GIT_CONFIG_NOSYSTEM']='1';os.environ['TREEGIT_STARTUP_TRACE']=str(out/'startup-trace.json')
 paths=[]
 for i in range(8):
-    folder=out/('repository-'+str(i));folder.mkdir(exist_ok=True)
+    folder=root/('repository-'+str(i));folder.mkdir()
     def run(*args):
         subprocess.run(['git','-C',str(folder),*args],check=True,capture_output=True)
     run('init','-b','main');run('config','user.name','Deferred QA');run('config','user.email','deferred@example.invalid')
@@ -51,7 +65,7 @@ for i in range(8):
 saved_names={path:'已保存的仓库 '+str(index)+' 中文' for index,path in enumerate(paths)}
 def prefs(saved,active,aliases=False):
     nodes=[{'Id':path,'Name':saved_names[path],'IsRepository':True} for path in saved if path in saved_names] if aliases else []
-    config.write_text(json.dumps({'Locale':'zh_CN','Theme':'Light','GitInstallPath':r'C:\Program Files\Git\cmd\git.exe','RepositoryNodes':nodes,'Workspaces':[{'Name':'Startup QA','IsActive':True,'RestoreOnStartup':True,'Repositories':saved,'ActiveIdx':active}]}),'utf-8')
+    config.write_text(json.dumps({'Locale':'zh_CN','Theme':'Light','GitInstallPath':shutil.which('git'),'Check4UpdatesOnStartup':False,'EnableAutoFetch':False,'RepositoryNodes':nodes,'Workspaces':[{'Name':'Startup QA','IsActive':True,'RestoreOnStartup':True,'Repositories':saved,'ActiveIdx':active}]}),'utf-8')
 prefs(paths,6,aliases=True)
 c=Client()
 try:
@@ -89,7 +103,7 @@ try:
     tabs=c.tool('ui_tabs',{'action':'list'})['tabs']
     check('restart preserves selected tab and pending tabs in order',len(tabs)==7 and tabs[4]['selected'] and [t['repo'] for t in tabs]==expected)
 finally:c.close()
-missing=str(out/'missing-repository').replace('\\','/')
+missing=str(root/'missing-repository').replace('\\','/')
 prefs([paths[0],missing],0)
 c=Client()
 try:

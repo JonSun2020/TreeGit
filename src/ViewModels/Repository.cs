@@ -303,6 +303,17 @@ namespace SourceGit.ViewModels
             }
         }
 
+        public bool HasRepositoryRefreshError => _failedRefreshQueries.Count > 0;
+
+        private void SetRefreshFailure(string query, bool failed)
+        {
+            var hadFailure = HasRepositoryRefreshError;
+            var changed = failed ? _failedRefreshQueries.Add(query) : _failedRefreshQueries.Remove(query);
+            if (!changed) return;
+            OnPropertyChanged(nameof(HasRepositoryRefreshError));
+            if (failed && !hadFailure) SendNotification(App.Text("Repository.ReadMetadataFailed"), true);
+        }
+
         public bool WorkingCopyStatusKnown => _workingCopyStatusKnown && !_workingCopyStatusError;
         public long WorkingCopyRefreshVersion { get; private set; }
 
@@ -749,19 +760,25 @@ namespace SourceGit.ViewModels
 
             Task.Run(async () =>
             {
+                Native.RepositoryCredentials.InvalidateMode(FullPath);
+                var configQuery = new Commands.Config(FullPath);
+                var config = await configQuery.ReadAllAsync().ConfigureAwait(false);
+                if (!configQuery.ReadSucceeded)
+                {
+                    Dispatcher.UIThread.Post(() => SetRefreshFailure("config", true));
+                    return;
+                }
                 var issuetrackers = new List<Models.IssueTracker>();
                 await new Commands.IssueTracker(FullPath, true).ReadAllAsync(issuetrackers, true).ConfigureAwait(false);
                 await new Commands.IssueTracker(FullPath, false).ReadAllAsync(issuetrackers, false).ConfigureAwait(false);
                 Dispatcher.UIThread.Post(() =>
                 {
+                    SetRefreshFailure("config", false);
                     IssueTrackers.Clear();
                     IssueTrackers.AddRange(issuetrackers);
+                    _hasAllowedSignersFile = config.TryGetValue("gpg.ssh.allowedsignersfile", out var allowedSignersFile) && !string.IsNullOrEmpty(allowedSignersFile);
+                    GitFlow.Parse(config);
                 });
-
-                var config = await new Commands.Config(FullPath).ReadAllAsync().ConfigureAwait(false);
-                Native.RepositoryCredentials.InvalidateMode(FullPath);
-                _hasAllowedSignersFile = config.TryGetValue("gpg.ssh.allowedsignersfile", out var allowedSignersFile) && !string.IsNullOrEmpty(allowedSignersFile);
-                GitFlow.Parse(config);
             });
         }
 
@@ -786,6 +803,11 @@ namespace SourceGit.ViewModels
                 return false;
             }
             finally { _preparingRemoteAction = false; }
+            if (_failedRefreshQueries.Contains("branches") || _failedRefreshQueries.Contains("config"))
+            {
+                SendNotification(App.Text("Repository.ReadMetadataFailed"), true);
+                return false;
+            }
             return CanCreatePopup();
         }
 
@@ -1079,6 +1101,7 @@ namespace SourceGit.ViewModels
 
         public void CancelHistoryNavigation()
         {
+            _historySidebarSelectionCommit = string.Empty;
             if (!string.IsNullOrEmpty(_historyNavigationCommit) && _navigateToCommitDelayed == _historyNavigationCommit)
                 _navigateToCommitDelayed = string.Empty;
             _historyNavigationCommit = string.Empty;
@@ -1086,6 +1109,47 @@ namespace SourceGit.ViewModels
         }
 
         public event Action<Models.Branch> HistoryBranchSelectionRequested;
+        public event Action<Models.CommitBranchDetails> CommitBranchHighlightsRequested;
+        public Models.CommitBranchDetails SidebarCommitBranches { get; private set; }
+
+        public void ClearCommitBranchHighlights(string keepCommit = null)
+        {
+            // Clearing transient paint during a history refresh must not cancel
+            // the user's pending commit selection. Explicit navigation cancels it.
+            if (SidebarCommitBranches == null || SidebarCommitBranches.Commit.SHA == keepCommit) return;
+            SidebarCommitBranches = null;
+            CommitBranchHighlightsRequested?.Invoke(null);
+        }
+
+        public void RequestCommitBranchSelection(Models.Commit commit)
+        {
+            CancelHistoryNavigation();
+            ClearCommitBranchHighlights(commit?.SHA);
+            _historySidebarSelectionCommit = commit?.SHA ?? string.Empty;
+            if (commit != null && _histories?.DetailContext is CommitDetail { BranchDetails: { } details } detail && detail.Commit?.SHA == commit.SHA)
+                SynchronizeCommitBranchSelection(commit, details);
+        }
+
+        public void SynchronizeCommitBranchSelection(Models.Commit commit, Models.CommitBranchDetails details)
+        {
+            if (commit == null || details == null ||
+                (_historySidebarSelectionCommit != commit.SHA && _historyNavigationCommit != commit.SHA && SidebarCommitBranches?.Commit.SHA != commit.SHA) || SelectedViewIndex != 0 ||
+                _histories == null || _histories.IsWorkingCopySelected)
+                return;
+
+            var selected = _histories.IsSearchingCommits
+                ? _histories.SearchCommitContext.Selected?.SHA
+                : _histories.SelectedCommits is { Count: 1 } commits ? commits[0].SHA : null;
+            if (selected != commit.SHA) return;
+
+            var containing = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var branch in details.Coverage.Branches) containing.Add(branch.FullName);
+            var focus = _historyNavigationCommit == commit.SHA ? FindHistoryBranch(commit.SHA, containing) :
+                Models.BranchSelection.Choose(_branches, commit.SHA, containing, preferLocal: true);
+            HistoryBranchSelectionRequested?.Invoke(focus);
+            SidebarCommitBranches = details;
+            CommitBranchHighlightsRequested?.Invoke(details);
+        }
 
         private Models.Branch FindHistoryBranch(string sha, HashSet<string> containing)
         {
@@ -1102,6 +1166,8 @@ namespace SourceGit.ViewModels
         public void RevealCommitInHistory(Models.Commit commit, string branch = null)
         {
             if (commit == null) return;
+            ClearCommitBranchHighlights(commit.SHA);
+            _historySidebarSelectionCommit = string.Empty;
             Filter = string.Empty;
             ShowHistoryPage();
             if (_uiStates.HistoryFilters.Count > 0) ClearHistoryFilters();
@@ -1333,8 +1399,15 @@ namespace SourceGit.ViewModels
 
             _refreshBranchesTask = Task.Run(async () =>
             {
-                var branches = await new Commands.QueryBranches(FullPath).GetResultAsync().ConfigureAwait(false);
-                var remotes = await new Commands.QueryRemotes(FullPath).GetResultAsync().ConfigureAwait(false);
+                var branchQuery = new Commands.QueryBranches(FullPath) { CancellationToken = token };
+                var branches = await branchQuery.GetResultAsync().ConfigureAwait(false);
+                var remoteQuery = new Commands.QueryRemotes(FullPath) { CancellationToken = token };
+                var remotes = await remoteQuery.GetResultAsync().ConfigureAwait(false);
+                if (!branchQuery.Succeeded || !remoteQuery.Succeeded)
+                {
+                    Dispatcher.UIThread.Invoke(() => { if (!token.IsCancellationRequested) SetRefreshFailure("branches", true); });
+                    return;
+                }
                 var builder = BuildBranchTree(branches, remotes);
 
                 Dispatcher.UIThread.Invoke(() =>
@@ -1342,6 +1415,7 @@ namespace SourceGit.ViewModels
                     if (token.IsCancellationRequested)
                         return;
 
+                    SetRefreshFailure("branches", false);
                     Remotes = remotes;
                     Branches = branches;
                     CurrentBranch = branches.Find(x => x.IsCurrent);
@@ -1425,7 +1499,7 @@ namespace SourceGit.ViewModels
                 var builder = new StringBuilder();
                 builder
                     .Append('-').Append(Preferences.Instance.MaxHistoryCommits).Append(' ')
-                    .Append(_uiStates.BuildHistoryParams(GitDir, onlyGraphBranch: graphView.OnlyBranch));
+                    .Append(_uiStates.BuildHistoryParams(GitDir, onlyGraphBranch: graphView.OnlyBranch, includeHead: !string.IsNullOrEmpty(preferredHead)));
 
                 string upstreamName = null;
                 if (graphView.OnlyBranch && !string.IsNullOrEmpty(graphView.Upstream))
@@ -1444,9 +1518,18 @@ namespace SourceGit.ViewModels
                 var pendingMergeHeads = SourceGit.ViewModels.Histories.ReadPendingMergeHeads(GitDir);
                 foreach (var mergeHead in pendingMergeHeads) builder.Append(' ').Append(mergeHead.Quoted());
 
-                var commits = await new Commands.QueryCommits(FullPath, builder.ToString())
-                    .GetResultAsync()
-                    .ConfigureAwait(false);
+                var commitQuery = new Commands.QueryCommits(FullPath, builder.ToString()) { CancellationToken = token, RaiseError = false };
+                var commits = await commitQuery.GetResultAsync().ConfigureAwait(false);
+                if (!commitQuery.Succeeded)
+                {
+                    Dispatcher.UIThread.Invoke(() =>
+                    {
+                        if (token.IsCancellationRequested) return;
+                        if (_histories != null) _histories.IsLoading = false;
+                        SetRefreshFailure("history", true);
+                    });
+                    return;
+                }
 
                 if (!string.IsNullOrEmpty(graphView.NavigationCommit) && !commits.Exists(c => c.SHA == graphView.NavigationCommit))
                 {
@@ -1501,6 +1584,7 @@ namespace SourceGit.ViewModels
 
                     if (_histories != null)
                     {
+                        SetRefreshFailure("history", false);
                         _histories.IsLoading = false;
                         _histories.SetGraphCommits(commits, preferredHead);
                         BisectState = _histories.UpdateBisectInfo();
@@ -2240,6 +2324,7 @@ namespace SourceGit.ViewModels
         private List<Models.Submodule> _submodules = [];
         private object _visibleSubmodules = null;
         private string _navigateToCommitDelayed = string.Empty;
+        private string _historySidebarSelectionCommit = string.Empty;
         private string _historyNavigationCommit = string.Empty;
         private string _historyNavigationBranch = string.Empty;
 
@@ -2255,6 +2340,7 @@ namespace SourceGit.ViewModels
         private bool _preparingRemoteAction;
         private CancellationTokenSource _cancellationRefreshTags = null;
         private CancellationTokenSource _cancellationRefreshWorkingCopyChanges = null;
+        private readonly HashSet<string> _failedRefreshQueries = new(StringComparer.Ordinal);
         private bool _workingCopyStatusKnown;
         private bool _workingCopyStatusError;
         private CancellationTokenSource _cancellationRefreshCommits = null;

@@ -1,4 +1,5 @@
 """Exercise the shipped GUI's binary snapshots, navigation and information dialogs."""
+import atexit
 import base64
 import json
 import os
@@ -9,11 +10,16 @@ import sys
 import tempfile
 import time
 
+from qa_cleanup import new_fixture
+from qa_process import close_owned_gui
+assert os.environ.get('CI') == 'true', 'Run only in an owned CI application'
 exe = Path(sys.argv[1]).resolve()
 out = Path(sys.argv[2]).resolve(); out.mkdir(parents=True, exist_ok=True)
-repo = Path(tempfile.mkdtemp(prefix='TreeGit binary 中文 '))
+root_parent=Path(tempfile.gettempdir()).resolve()
+root=new_fixture(root_parent,'TreeGit d ')
+repo=root/'repo 中文';repo.mkdir()
 checks = []
-snapshot_root=Path(tempfile.mkdtemp(prefix='TreeGit isolated binary snapshots '))
+snapshot_root=root/'s';snapshot_root.mkdir()
 snapshot_baseline = set(snapshot_root.glob('TreeGit-binary-*'))
 owned_snapshots=set()
 
@@ -31,9 +37,17 @@ staged = bytearray(original); staged[23] ^= 0x40
 (repo/name).write_bytes(staged); git('add', '.')
 working = bytearray(staged); working[17] ^= 0x40; working[65533:65540] = b'abcdefg'; working.extend(b'\x00\xac\xff')
 (repo/name).write_bytes(working)
-env=os.environ.copy();env.update(TEMP=str(snapshot_root),TMP=str(snapshot_root))
+env=os.environ.copy();env.update(TMPDIR=str(snapshot_root),TEMP=str(snapshot_root),TMP=str(snapshot_root))
 p = subprocess.Popen([str(exe), '--mcp'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', env=env, creationflags=subprocess.CREATE_NO_WINDOW)
 seq = 0
+gui_pid = None
+def cleanup_application():
+    if p.poll() is None:
+        p.stdin.close()
+        try:p.wait(timeout=10)
+        except subprocess.TimeoutExpired:p.kill();p.wait()
+    if gui_pid:close_owned_gui(exe,gui_pid)
+atexit.register(cleanup_application)
 
 def rpc(method, params={}):
     global seq
@@ -202,11 +216,6 @@ check('closing the repository cleans its comparison snapshots', bool(owned_snaps
 p.stdin.close(); p.wait(timeout=10)
 # A following scenario uses a different isolated snapshot directory. Close only
 # this exact owned QA GUI so its old TEMP cannot leak into the next scenario.
-literal = str(exe).replace("'", "''")
-close_script = ("$p=Get-Process -Id " + str(gui_pid) + " -ErrorAction SilentlyContinue;"
-                "if($p){if($p.Path -ne '" + literal + "'){throw 'Wrong QA process'};"
-                "if(-not $p.CloseMainWindow()){throw 'QA window did not accept close'};"
-                "if(-not $p.WaitForExit(15000)){throw 'QA app did not exit'}};exit 0")
-subprocess.run(['powershell', '-NoProfile', '-Command', close_script], check=True, capture_output=True, timeout=30)
+close_owned_gui(exe,gui_pid)
 (out/'binary-results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'repo':str(repo),'exe':str(exe),'ownedSnapshotCount':len(owned_snapshots),'remainingSnapshots':[str(p) for p in owned_snapshots if p.exists()]},ensure_ascii=False,indent=2),encoding='utf-8')
 print('PASSED',len(checks))

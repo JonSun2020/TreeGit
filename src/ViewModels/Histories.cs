@@ -28,6 +28,7 @@ namespace SourceGit.ViewModels
                 if (value == _isSearchingCommits) return;
                 if (value)
                 {
+                    _repo.ClearCommitBranchHighlights();
                     _repo.CancelHistoryNavigation();
                     _repo.SelectedViewIndex = 0;
                 }
@@ -52,12 +53,16 @@ namespace SourceGit.ViewModels
 
         public void RevealSearchCommit(Models.Commit commit, string branch = null) => _repo.RevealCommitInHistory(commit, branch);
 
+        public void RevealSelectedCommitBranch() => _repo.RequestCommitBranchSelection(_selectedCommits.Count == 1 ? _selectedCommits[0] : null);
+        public void RequestCommitBranchSelection(Models.Commit commit) => _repo.RequestCommitBranchSelection(commit);
+
         public void ShowSearchCommit(Models.Commit commit)
         {
             _ignoreSelectionChange = true;
             SelectedCommits = [];
             _ignoreSelectionChange = false;
             IsWorkingCopySelected = false;
+            _repo.RequestCommitBranchSelection(commit);
             DetailContext = commit == null ? Models.Null.Instance : new CommitDetail(_repo, _commitDetailSharedData) { Commit = commit };
         }
 
@@ -72,6 +77,11 @@ namespace SourceGit.ViewModels
                     _repo.RefreshCommits();
                 }
             }
+        }
+
+        public bool CanToggleReflog
+        {
+            get => BranchDisplayMode == 0;
         }
 
         public bool IsAuthorColumnVisible
@@ -225,6 +235,7 @@ namespace SourceGit.ViewModels
         public void ShowWorkingCopyOverview()
         {
             if (!HasWorkingCopy) return;
+            _repo.ClearCommitBranchHighlights();
             if (!IsWorkingCopySelected)
             {
                 // Clear the grid selection without constructing an intermediate
@@ -268,6 +279,7 @@ namespace SourceGit.ViewModels
             if (branch == null || (BranchDisplayMode != 0 && !branch.IsCurrent))
                 return;
 
+            _repo.ClearCommitBranchHighlights();
             _repo.CancelHistoryNavigation();
             _repo.NavigateToCommit(branch.Head, IsLoading);
         }
@@ -461,12 +473,18 @@ namespace SourceGit.ViewModels
             return Models.BisectState.WaitingForMark;
         }
 
+        public event Action<string> CommitRevealRequested;
+
         public void NavigateTo(string commitSHA)
         {
             var commit = _commits.Find(x => x.SHA.StartsWith(commitSHA, StringComparison.Ordinal));
             if (commit != null)
             {
                 SelectedCommits = [commit];
+#if INTEGRATION_TESTS
+                Automation.UiLayoutProbe.TraceHistory("navigate", new { sha = commit.SHA, listeners = CommitRevealRequested?.GetInvocationList().Length });
+#endif
+                CommitRevealRequested?.Invoke(commit.SHA);
                 return;
             }
 
@@ -692,6 +710,7 @@ namespace SourceGit.ViewModels
                 return;
 
             IsWorkingCopySelected = false;
+            _repo.ClearCommitBranchHighlights(_selectedCommits.Count == 1 ? _selectedCommits[0].SHA : null);
 
             if (_selectedCommits.Count == 0)
             {

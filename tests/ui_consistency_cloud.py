@@ -54,8 +54,13 @@ def until(predicate, timeout=45):
 class Client:
     def __init__(self):
         self.error = (out / 'mcp-stderr.log').open('w')
+        gui_environment = environment.copy()
+        # Make an AI connection race a desktop that the user already opened.
+        # The endpoint must wait for that process, not open a competing window.
+        gui_environment['TREEGIT_TEST_DESKTOP_STARTUP_DELAY_MS'] = '3000'
+        gui_environment['TREEGIT_TEST_POINTER_TRACE'] = str(out / 'pointer-events.jsonl')
         self.gui_process = subprocess.Popen([str(exe)], stdin=subprocess.DEVNULL, stdout=self.error,
-                                            stderr=self.error, env=environment)
+                                            stderr=self.error, env=gui_environment)
         self.gui_pid = self.gui_process.pid
         self.process = subprocess.Popen([str(exe), '--mcp'], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                         stderr=self.error, text=True, encoding='utf-8', env=environment)
@@ -64,8 +69,16 @@ class Client:
         self.sequence = 0
         try:
             self.rpc('initialize', {'protocolVersion': '2025-11-25'})
-            time.sleep(1)
-            state = self.tool('ui_state')
+            deadline = time.monotonic() + 20
+            while True:
+                assert self.gui_process.poll() is None, 'Owned GUI exited during startup'
+                try:
+                    state = self.tool('ui_state')
+                    break
+                except AssertionError:
+                    if time.monotonic() >= deadline:
+                        raise
+                    time.sleep(.2)
             check('only the owned integration app receives UI events', state['processId'] == self.gui_pid and Path(f'/proc/{self.gui_pid}/exe').resolve() == exe)
         except Exception:
             self.close()
@@ -123,6 +136,11 @@ def labels(active=False):
 
 
 def capture(name, active=False):
+    if name == 'failure' or os.environ.get('TREEGIT_TEST_NATIVE_CAPTURE') == '1':
+        from PIL import ImageGrab
+        ImageGrab.grab(xdisplay=os.environ['DISPLAY']).save(out / (name + '-native.png'))
+    if os.environ.get('TREEGIT_TEST_NATIVE_CAPTURE') == '1':
+        return
     (out / (name + '.png')).write_bytes(client.tool('ui_screenshot', {'window': 'active' if active else 'main'}))
 
 
@@ -181,6 +199,7 @@ try:
     until(lambda: git('diff', '--cached', '--name-only') == 'src/added.txt')
     check('unstage all preserves hidden staged additions', git('diff', '--cached', '--name-only') == 'src/added.txt')
     client.tool('ui_working_copy', {'repo': str(repo), 'status': 'all', 'sort': 'status'})
+    until(lambda: 'src/file2.txt' in client.tool('ui_working_copy', {'repo': str(repo)})['unstaged'])
     client.tool('ui_diff', {'repo': str(repo), 'action': 'select', 'source': 'unstaged', 'file': 'src/file2.txt'})
     until(lambda: '暂存区' in labels() and '工作区' in labels())
     check('text diff displays the actual source pair', '暂存区' in labels() and '工作区' in labels())
@@ -194,7 +213,13 @@ try:
     (out / 'complete-commit-layout.json').write_text(json.dumps(layout(), ensure_ascii=False), encoding='utf-8')
     capture('complete-commit-detail')
     message = next(t for t in layout()['labels'] if '完整正文验证' in t['text'])
-    check('commit message is visible without scrolling metadata', message['visibleHeight'] >= message['bounds']['height'] * .9)
+    metadata_scroll = next(s for s in layout()['scrolls'] if s['name'] == 'CommitMetadataScroll')
+    header_before = layout()['commitBranchHeaders'][0]['bounds']
+    client.tool('ui_layout', {'action': 'scroll', 'scroller': metadata_scroll['index'], 'dy': metadata_scroll['extent']['height']})
+    until(lambda: next(t for t in layout()['labels'] if '完整正文验证' in t['text'])['visibleHeight'] >= message['bounds']['height'] * .9)
+    check('the complete commit message remains readable in the metadata scroll area', True)
+    check('reading a long message keeps the branch header fixed and visible', layout()['commitBranchHeaders'][0]['bounds'] == header_before)
+    client.tool('ui_layout', {'action': 'scroll', 'scroller': metadata_scroll['index'], 'dy': 0})
     check('history diff clearly identifies the parent commit', '父提交' in labels())
     capture('complete-commit-detail')
     before_popup = git('status', '--porcelain=v1'), git('show-ref')
@@ -294,8 +319,280 @@ try:
         result = command('save_preferences')
         check('MCP save releases its operation gate before restart confirmation ' + str(value), result['saved'] and result['restartRequired'] and any(d['type'] == 'ConfirmRestart' for d in client.tool('ui_state')['dialogs']))
         command('close_dialog'); preferences_closed()
+    # Branch headers use the real graph, local creation evidence and actual containment.
+    git('reset', '--hard', revision); git('clean', '-fdx')
+    git('switch', 'feature/ui')
+    middle = git('rev-parse', 'HEAD')
+    (repo / 'src/later.txt').write_text('later branch change\n', encoding='utf-8')
+    git('add', '.'); git('-c', 'commit.gpgsign=false', 'commit', '-m', 'Later branch commit')
+    feature_tip = git('rev-parse', 'HEAD')
+    git('switch', 'main')
+    (repo / 'src/main-only.txt').write_text('only on main\n', encoding='utf-8')
+    git('add', '.'); git('-c', 'commit.gpgsign=false', 'commit', '-m', 'Only main contains this commit')
+    unique = git('rev-parse', 'HEAD')
+    client.tool('ui_window', {'width': 1280, 'height': 800, 'zoom': 1, 'theme': 'Blue'})
+    def repository_state():
+        return next(r for r in client.tool('ui_state')['repositories'] if Path(r['repo']).resolve() == repo)
+    def refresh_header_repository():
+        client.tool('ui_refresh', {'repo': str(repo)})
+        until(lambda: not repository_state()['graphLoading'] and any(b['head'] == feature_tip for b in repository_state()['loadedBranches']))
+    def select_header(sha):
+        client.tool('ui_select_view', {'repo': str(repo), 'view': 'history'})
+        client.tool('ui_select_commit', {'repo': str(repo), 'revision': sha})
+        command('commit_changes')
+        def ready():
+            state = repository_state()
+            return state['detailBranches'] if state['detailCommit'] == sha and not state['detailBranchesLoading'] else None
+        return until(ready)
+    refresh_header_repository()
+    info = select_header(middle)
+    check('an intermediate commit shows its recorded local branch', info['primary'] == 'refs/heads/feature/ui' and not info['inferred'])
+    check('branch badge counts other refs rather than the total', info['extraCount'] == 2 and info['total'] == 3)
+    more = next(b for b in layout()['buttons'] if b['name'] == 'MoreCommitBranches')
+    check('multiple containing branches enable the actual ellipsis button', more['enabled'] and not more['outsideParentBorder'])
+    time.sleep(.25); capture('commit-branch-header')
+    def header_ready():
+        current = layout()
+        return current if any(b['name'] == 'MoreCommitBranches' and b['enabled'] for b in current['buttons']) else None
+    header_layout = until(header_ready)
+    (out / 'branch-header-layout.json').write_text(json.dumps(header_layout, ensure_ascii=False), encoding='utf-8')
+    header = header_layout['commitBranchHeaders'][0]
+    more = next(b for b in header_layout['buttons'] if b['name'] == 'MoreCommitBranches')
+    changes_pane = next(p for p in header_layout['panes'] if p['type'] == 'CommitChanges')['bounds']
+    diff_pane = next(p for p in header_layout['panes'] if p['type'] == 'DiffView')['bounds']
+    check('branch header belongs to the lower commit metadata area', header['bounds']['y'] >= changes_pane['y'] and more['bounds']['x'] + more['bounds']['width'] <= diff_pane['x'])
+    check('branch count badge is fully inside the button and viewport', header['badgeVisible'] and header['badgeVisibleHeight'] >= header['badge']['height'] * .99 and header['badge']['x'] >= more['bounds']['x'] and header['badge']['x'] + header['badge']['width'] <= more['bounds']['x'] + more['bounds']['width'] and header['badge']['y'] >= more['bounds']['y'] and header['badge']['y'] + header['badge']['height'] <= more['bounds']['y'] + more['bounds']['height'])
+    check('branch action has no outer frame and a smaller contained badge', not header['buttonHasBorder'] and header['badge']['height'] == 14)
+    command('commit_branches')
+    popup = until(lambda: repository_state()['detailBranchPopup'])
+    check('branch dropdown contains exactly the refs represented by the badge', popup['total'] == 3 and set(popup['rows']) == set(info['branches']))
+    capture('commit-branches-main-window')
+    capture('commit-branches-dropdown', active=True)
+    info = select_header(unique)
+    check('changing commits closes the old containing-branches dropdown', repository_state()['detailBranchPopup'] is None)
+    single_layout = layout()
+    check('a commit contained in one branch hides the ellipsis button', info['extraCount'] == 0 and info['total'] == 1 and not any(b['name'] == 'MoreCommitBranches' for b in single_layout['buttons']))
+    check('single-branch metadata releases the unused action space', not single_layout['commitBranchHeaders'][0]['buttonVisible'])
+    capture('commit-branch-single')
+    for number in range(10):
+        git('branch', f'badge-check-{number}', middle)
+    refresh_header_repository(); many = select_header(middle)
+    header = layout()['commitBranchHeaders'][0]
+    check('two-digit branch badge stays completely visible', many['extraCount'] == 12 and header['badgeVisibleHeight'] >= header['badge']['height'] * .99)
+    capture('commit-branch-two-digits')
+    for number in range(10):
+        git('branch', '-D', f'badge-check-{number}')
+    refresh_header_repository(); select_header(unique)
+    for sha in [middle, unique, feature_tip, middle, unique]:
+        client.tool('ui_select_commit', {'repo': str(repo), 'revision': sha})
+    until(lambda: not repository_state()['detailBranchesLoading'] and (repository_state()['detailBranches'] or {}).get('total') == 1)
+    check('rapid commit selection cannot restore stale branch counts', repository_state()['detailCommit'] == unique and repository_state()['detailBranches']['extraCount'] == 0)
+    git('reflog', 'expire', '--expire=now', '--all')
+    client.close(); client = Client()
+    client.tool('ui_window', {'width': 1280, 'height': 800, 'zoom': 1, 'theme': 'Blue'})
+    client.tool('ui_open_repository', {'repo': str(repo)}); refresh_header_repository()
+    info = select_header(middle)
+    check('missing origin evidence falls back to the corresponding side graph line', info['primary'] == 'refs/heads/feature/ui' and info['inferred'] and info['extraCount'] == 2)
+    capture('commit-branch-inferred')
+    long_name = 'feature/用于验证窗口缩小后分支框和省略按钮仍保持可见的长分支名'
+    git('branch', '-m', 'feature/ui', long_name)
+    refresh_header_repository(); info = select_header(middle)
+    until(lambda: (repository_state()['detailBranches'] or {}).get('primary') == 'refs/heads/' + long_name)
+    split = next(t for t in layout()['splitters'] if t['owner'] == 'CommitChanges')
+    client.tool('ui_layout', {'action': 'drag', 'splitter': split['index'], 'dx': -900})
+    for theme in ['Blue', 'Light', 'Dark']:
+        client.tool('ui_window', {'theme': theme}); time.sleep(.3)
+        def narrow_ready():
+            current = layout()
+            state = repository_state()
+            return current if not state['detailBranchesLoading'] and any(b['name'] == 'MoreCommitBranches' and b['enabled'] for b in current['buttons']) else None
+        narrow_layout = until(narrow_ready)
+        more = next(b for b in narrow_layout['buttons'] if b['name'] == 'MoreCommitBranches')
+        (out / 'branch-narrow-layout.json').write_text(json.dumps({'layout': narrow_layout, 'state': repository_state()}, ensure_ascii=False), encoding='utf-8')
+        capture('branch-narrow-current')
+        header = narrow_layout['commitBranchHeaders'][0]
+        check('narrow commit branch header keeps its action visible ' + theme, more['enabled'] and not more['outsideParentBorder'] and header['badgeVisibleHeight'] >= header['badge']['height'] * .99)
+        check('long branch label wraps with its entire frame inside the viewport ' + theme, header['primaryDesiredHeight'] > 35 and header['primaryDesiredWidth'] <= header['primaryViewport']['width'] + .5 and header['primaryDesiredHeight'] <= header['primaryViewport']['height'] + .5)
+        capture('commit-branch-narrow-' + theme.lower())
+    def verify_scope(sha):
+        current = until(lambda: repository_state() if (repository_state().get('commitBranchHighlights') or {}).get('sha') == sha and not repository_state()['detailBranchesLoading'] else None)
+        scope = current['commitBranchHighlights']
+        rows = (scope['local'] or []) + (scope['remote'] or [])
+        actual = set(git('for-each-ref', '--contains=' + sha, '--format=%(refname)', 'refs/heads/', 'refs/remotes/').splitlines())
+        assert {r['reference'] for r in rows} == actual, (scope, actual)
+        assert all(r['level'] == (2 if r['reference'] == current['detailBranches']['primary'] else 1) for r in rows), scope
+        return current, scope, rows
+    select_header(middle)
+    current, scope, rows = verify_scope(middle)
+    check('all containing local and remote branches receive a background highlight', len(rows) == 3 and len(scope['local']) == 2 and len(scope['remote']) == 1)
+    check('the darker sidebar branch matches the metadata primary branch', [r['reference'] for r in rows if r['level'] == 2] == [current['detailBranches']['primary']])
+    check('an inferred primary branch carries the inferred tooltip note', scope['inferred'] and any('推定' in r['note'] for r in rows if r['level'] == 2))
+    until(lambda: all(any(b['reference'] == r['reference'] for b in (repository_state()['localBranchTargets'] or []) + (repository_state()['remoteBranchTargets'] or [])) for r in rows))
+    check('all containing branch folders expand automatically', current['localBranchTreeVisible'] and current['remoteBranchTreeVisible'])
+    rendered = {t['reference']: t for t in until(lambda: layout() if len(layout().get('sidebarCommitTints', [])) >= 3 else None)['sidebarCommitTints']}
+    painted = layout()
+    shades = {t['reference']: t for t in painted['sidebarCommitShades']}
+    check('sidebar uses diff added-line and modified-field backgrounds', all(rendered[r['reference']]['opacity'] == 1 and rendered[r['reference']]['color'] == painted['selectedBranchBackground'] and shades[r['reference']]['color'] == painted['primaryBranchBackground'] and shades[r['reference']]['opacity'] == (1 if r['level'] == 2 else 0) for r in rows))
+    capture('commit-all-branch-highlights')
+    select_header(unique)
+    current, scope, rows = verify_scope(unique)
+    check('a new single-branch commit clears highlights from previously containing branches', len(rows) == 1 and rows[0]['reference'] == 'refs/heads/main' and rows[0]['level'] == 2)
+    # Exercise actual history-row mouse clicks; only the owned CI GUI receives input.
+    client.tool('ui_window', {'theme': 'Blue', 'width': 1280, 'height': 800, 'zoom': 1})
+    remote_ref = 'refs/remotes/origin/folder/selection'
+    local_ref = 'refs/heads/' + long_name
+    tree = git('rev-parse', feature_tip + '^{tree}')
+    local_new = git('commit-tree', tree, '-p', feature_tip, '-m', 'Local newer tip')
+    remote_middle = git('commit-tree', tree, '-p', feature_tip, '-m', 'Remote intermediate selection')
+    remote_new = git('commit-tree', tree, '-p', remote_middle, '-m', 'Remote newer tip')
+    git('update-ref', local_ref, local_new); git('update-ref', remote_ref, remote_new)
+    client.tool('ui_refresh', {'repo': str(repo)})
+    client.tool('ui_graph', {'repo': str(repo), 'mode': 'all', 'showRemotes': True})
+    until(lambda: not repository_state()['graphLoading'] and any(c['sha'] == remote_middle for c in repository_state()['graphCommits']))
+    before_navigation = git('rev-parse', 'HEAD'), git('status', '--porcelain=v1')
+    def native_click(target):
+        assert client.tool('ui_state')['processId'] == client.gui_pid and Path(f'/proc/{client.gui_pid}/exe').resolve() == exe
+        # Let pointer-enter/leave and tooltip dismissal reach the UI before the
+        # press, matching a real pointer move rather than an instantaneous jump.
+        subprocess.run(['xdotool', 'mousemove', '--sync', str(int(target['x'])), str(int(target['y'])), 'sleep', '.2'], check=True)
+        pointer = subprocess.check_output(['xdotool', 'getmouselocation', '--shell'], text=True)
+        subprocess.run(['xdotool', 'mousedown', '1'], check=True)
+        try:
+            time.sleep(.08)
+            pressed = repository_state()
+        finally:
+            subprocess.run(['xdotool', 'mouseup', '1'], check=True)
+        after = repository_state()
+        with (out / 'native-clicks.jsonl').open('a', encoding='utf-8') as log:
+            log.write(json.dumps({'time': time.time(), 'target': target, 'pointer': pointer, 'window': layout()['window'], 'pressed': pressed['historySelectedCommits'], 'after': after['historySelectedCommits'], 'pressedLocal': pressed['localBranchSelection'], 'afterLocal': after['localBranchSelection']}, ensure_ascii=False) + '\n')
+    def click_commit(sha):
+        # External ref changes can still be laying out a newer graph after the
+        # query completes. Click only a stable, actually painted row position.
+        previous = None
+        stable_since = time.monotonic()
+        def stable_row():
+            nonlocal previous, stable_since
+            current = repository_state()
+            row = next((r for r in current['historyRows'] if r['sha'] == sha), None)
+            key = None if current['graphLoading'] or row is None else (row['x'], row['y'], tuple(c['sha'] for c in current['graphCommits']))
+            if key != previous:
+                previous, stable_since = key, time.monotonic()
+                return None
+            return row if key is not None and time.monotonic() - stable_since >= .15 else None
+        native_click(until(stable_row))
+        until(lambda: repository_state()['historySelectedCommits'] == [sha], timeout=3)
+    def collapse_group(prefix, state_name):
+        if repository_state()[state_name]:
+            native_click(next(b['screen'] for b in layout()['buttons'] if 'group_expander' in b['classes'] and b['text'].startswith(prefix)))
+            until(lambda: not repository_state()[state_name])
+    def selected_branch(sha, reference, local):
+        current = repository_state()
+        expected = current['localBranchSelection'] if local else current['remoteBranchSelection']
+        return current if current['historySelectedCommits'] == [sha] and expected == [reference] and not current['detailBranchesLoading'] else None
+    select_header(unique)
+    collapse_group('分支', 'localBranchTreeVisible')
+    click_commit(feature_tip)
+    chosen = until(lambda: selected_branch(feature_tip, local_ref, True))
+    check('a real history-row click prefers an untracked local branch over a containing remote', chosen['localBranchSelection'] == [local_ref] and not chosen['remoteBranchSelection'])
+    until(lambda: any(b['reference'] == local_ref for b in repository_state()['localBranchTargets'] or []))
+    check('history-row selection expands the local group and nested branch folder', repository_state()['localBranchTreeVisible'])
+    check('sidebar highlighting keeps an intermediate commit selected instead of jumping to the branch tip', chosen['detailCommit'] == feature_tip and feature_tip != local_new)
+    capture('history-click-local-sidebar')
+    collapse_group('远程', 'remoteBranchTreeVisible')
+    click_commit(remote_middle)
+    chosen = until(lambda: selected_branch(remote_middle, remote_ref, False))
+    check('a real remote-only commit click selects its remote branch', chosen['remoteBranchSelection'] == [remote_ref] and not chosen['localBranchSelection'])
+    until(lambda: any(b['reference'] == remote_ref for b in repository_state()['remoteBranchTargets'] or []))
+    check('remote selection expands the group and ancestor folders', repository_state()['remoteBranchTreeVisible'])
+    check('remote sidebar highlighting also preserves the clicked intermediate commit', chosen['detailCommit'] == remote_middle and remote_middle != remote_new)
+    capture('history-click-remote-sidebar')
+    for sha in [feature_tip, remote_middle, unique, remote_middle, feature_tip]:
+        client.tool('ui_select_commit', {'repo': str(repo), 'revision': sha})
+    until(lambda: selected_branch(feature_tip, local_ref, True))
+    check('rapid commit selection cannot restore an older sidebar highlight', repository_state()['localBranchSelection'] == [local_ref])
+    exact_local = 'refs/heads/local/merged-tip'
+    git('branch', 'local/merged-tip', middle)
+    client.tool('ui_refresh', {'repo': str(repo)})
+    until(lambda: not repository_state()['graphLoading'] and any(b['reference'] == exact_local for b in repository_state()['loadedBranches']))
+    click_commit(middle)
+    until(lambda: selected_branch(middle, exact_local, True))
+    check('an exact local branch tip wins over another local branch merely containing the commit', repository_state()['localBranchSelection'] == [exact_local])
+    git('branch', '-D', 'local/merged-tip')
+    git('branch', 'tracking/remote', feature_tip)
+    git('config', 'branch.tracking/remote.remote', 'origin')
+    git('config', 'branch.tracking/remote.merge', 'refs/heads/folder/selection')
+    client.tool('ui_refresh', {'repo': str(repo)})
+    until(lambda: not repository_state()['graphLoading'] and any(b['reference'] == 'refs/heads/tracking/remote' and b['upstream'] == remote_ref for b in repository_state()['loadedBranches']))
+    click_commit(remote_middle)
+    chosen = until(lambda: selected_branch(remote_middle, 'refs/heads/tracking/remote', True))
+    check('a local tracking branch is preferred even when it has not fetched the clicked remote commit', chosen['localBranchSelection'] == ['refs/heads/tracking/remote'])
+    # Watcher refreshes replace branch-tree nodes independently of commit details.
+    # Selection must remain usable throughout, without waiting for another query.
+    for repeat in range(4):
+        client.tool('ui_refresh', {'repo': str(repo)})
+        deadline = time.monotonic() + .6
+        while time.monotonic() < deadline:
+            current = repository_state()
+            assert current['localBranchSelection'] == ['refs/heads/tracking/remote'] and not current['remoteBranchSelection'], current
+            assert current['historySelectedCommits'] == [remote_middle], current
+            time.sleep(.02)
+    check('branch-tree refresh retains the selected tracking branch and historical commit without flicker', True)
+    verify_scope(remote_middle)
+    check('background refresh restores the complete commit-branch scope without losing selection intent', True)
+    git('branch', '-D', 'tracking/remote')
+    client.tool('ui_refresh', {'repo': str(repo)})
+    until(lambda: not repository_state()['graphLoading'] and not any(b['reference'] in [exact_local, 'refs/heads/tracking/remote'] for b in repository_state()['loadedBranches']))
+    client.tool('ui_graph', {'repo': str(repo), 'mode': 'current', 'showRemotes': False})
+    until(lambda: not repository_state()['graphLoading'] and repository_state()['graphMode'] == 1)
+    shape = [(c['sha'], c['x']) for c in repository_state()['graphCommits']]
+    click_commit(middle)
+    until(lambda: selected_branch(middle, 'refs/heads/main', True))
+    check('commit-to-sidebar synchronization retains graph mode and remote visibility', repository_state()['graphMode'] == 1 and not repository_state()['graphShowRemotes'])
+    check('commit-to-sidebar synchronization retains the graph lanes and checked-out branch', shape == [(c['sha'], c['x']) for c in repository_state()['graphCommits']] and before_navigation == (git('rev-parse', 'HEAD'), git('status', '--porcelain=v1')))
+    client.tool('ui_select_view', {'repo': str(repo), 'view': 'search'})
+    client.tool('ui_search', {'repo': str(repo), 'method': 'sha', 'query': remote_middle})
+    until(lambda: not repository_state()['searchQuerying'] and repository_state()['searchResultCount'] > 0)
+    client.tool('ui_search', {'repo': str(repo), 'select': remote_middle, 'open': True})
+    until(lambda: selected_branch(remote_middle, remote_ref, False) if not repository_state()['graphLoading'] and not repository_state()['searchActive'] else None)
+    check('search-result navigation still selects and expands its matching branch', repository_state()['remoteBranchSelection'] == [remote_ref])
+    current, scope, rows = verify_scope(remote_middle)
+    check('search double-open applies the same complete branch-background logic', rows == scope['remote'] and len(rows) == 1 and rows[0]['reference'] == remote_ref and rows[0]['level'] == 2)
+    client.tool('ui_graph', {'repo': str(repo), 'mode': 'current', 'showRemotes': False})
+    until(lambda: not repository_state()['graphLoading'])
+    select_header(middle)
+    verify_scope(middle)
+    native_click(next(b for b in repository_state()['localBranchTargets'] if b['reference'] == local_ref))
+    until(lambda: repository_state()['commitBranchHighlights'] is None)
+    client.tool('ui_refresh', {'repo': str(repo)})
+    until(lambda: not repository_state()['graphLoading'] and not repository_state()['detailBranchesLoading'])
+    current = repository_state()
+    check('explicit sidebar selection cancels old branch coverage through subsequent refreshes', current['commitBranchHighlights'] is None)
+    check('clicking another sidebar branch in current-only mode preserves the selected historical commit', current['historySelectedCommits'] == [middle] and current['graphMode'] == 1)
+    check('sidebar synchronization performs no checkout, index write or working-tree edit', before_navigation == (git('rev-parse', 'HEAD'), git('status', '--porcelain=v1')))
+    before_failed_refresh = repository_state()
+    config = repo / '.git/config'
+    config_bytes = config.read_bytes()
+    try:
+        config.write_text('[broken\n', encoding='utf-8')
+        client.tool('ui_refresh', {'repo': str(repo)})
+        until(lambda: not repository_state()['workingCopyStatusKnown'])
+        time.sleep(.4)
+        failed_refresh = repository_state()
+        (out / 'failed-refresh-state.json').write_text(json.dumps(failed_refresh, ensure_ascii=False, indent=2), encoding='utf-8')
+        capture('failed-refresh')
+        check('a failed refresh preserves previously loaded branch references', failed_refresh['loadedBranches'] == before_failed_refresh['loadedBranches'])
+        check('a failed refresh preserves history and the selected commit', [c['sha'] for c in failed_refresh['graphCommits']] == [c['sha'] for c in before_failed_refresh['graphCommits']] and failed_refresh['historySelectedCommits'] == before_failed_refresh['historySelectedCommits'])
+    finally:
+        config.write_bytes(config_bytes)
+        client.tool('ui_refresh', {'repo': str(repo)})
+        until(lambda: repository_state()['workingCopyStatusKnown'] and not repository_state()['graphLoading'])
     (out / 'ui-report.json').write_text(json.dumps({'passed': len(checks), 'checks': checks}, ensure_ascii=False, indent=2), encoding='utf-8')
 except Exception as error:
+    try:
+        (out / 'failure-layout.json').write_text(json.dumps({'layout': layout(), 'state': client.tool('ui_state')}, ensure_ascii=False), encoding='utf-8')
+        capture('failure')
+    except Exception:
+        pass
     (out / 'ui-report.json').write_text(json.dumps({'passed': len(checks), 'checks': checks, 'error': repr(error)}, ensure_ascii=False, indent=2), encoding='utf-8')
     raise
 finally:

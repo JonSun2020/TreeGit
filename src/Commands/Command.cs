@@ -185,6 +185,7 @@ namespace SourceGit.Commands
 
         protected async Task<Result> ReadToEndAsync(bool retrySilentFailure = false)
         {
+            CancellationToken.ThrowIfCancellationRequested();
             using var proc = new Process();
             proc.StartInfo = CreateGitStartInfo(true);
 
@@ -197,13 +198,18 @@ namespace SourceGit.Commands
                 return Result.Failed(e.Message);
             }
 
+            using var cancellation = CancellationToken.Register(() =>
+            {
+                try { if (!proc.HasExited) Native.OS.TerminateProcess(proc); }
+                catch (InvalidOperationException) { /* The owned process already exited. */ }
+            });
             var rs = new Result() { IsSuccess = true };
             var output = proc.StandardOutput.ReadToEndAsync(CancellationToken);
             var error = proc.StandardError.ReadToEndAsync(CancellationToken);
-            await Task.WhenAll(output, error).ConfigureAwait(false);
-            rs.StdOut = output.GetAwaiter().GetResult();
-            rs.StdErr = error.GetAwaiter().GetResult();
-            await proc.WaitForExitAsync(CancellationToken).ConfigureAwait(false);
+            var exited = proc.WaitForExitAsync(CancellationToken);
+            await Task.WhenAll(output, error, exited).ConfigureAwait(false);
+            rs.StdOut = await output.ConfigureAwait(false);
+            rs.StdErr = await error.ConfigureAwait(false);
 
             rs.IsSuccess = proc.ExitCode == 0;
             rs.ExitCode = proc.ExitCode;

@@ -121,6 +121,8 @@ namespace SourceGit.Tests
             {
                 hook = Path.Combine(client, ".git/hooks/reference-transaction");
                 File.WriteAllText(hook, "#!/bin/sh\nif test \"$1\" = prepared; then\n echo invoked >> .git/fetch-hook-calls\n echo \"fatal: Authentication failed for 'https://example.invalid/qa'\" >&2\n exit 1\nfi\n", new UTF8Encoding(false));
+                if (!OperatingSystem.IsWindows())
+                    File.SetUnixFileMode(hook, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
             }
             var rebase = mode is "rebase" or "rewritten-upstream" or "rebase-history-ignored";
             using var cancel = new CancellationTokenSource();

@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Threading.Tasks;
@@ -38,7 +39,19 @@ namespace SourceGit.ViewModels
         {
             get;
             set;
+        } = true;
+
+        public bool CanCreateCommit
+        {
+            get => _canCreateCommit;
+            set => SetProperty(ref _canCreateCommit, value);
         }
+
+        public bool CommitChanges
+        {
+            get;
+            set;
+        } = true;
 
         public IClipboard Clipboard
         {
@@ -58,14 +71,24 @@ namespace SourceGit.ViewModels
                 return new ValidationResult("Invalid object instance!!!");
 
             if (apply.FromClipboard)
+            {
+                apply.CanCreateCommit = false;
                 return ValidationResult.Success;
+            }
 
             if (string.IsNullOrEmpty(file))
+            {
+                apply.CanCreateCommit = false;
                 return new ValidationResult("Please select a patch file!!!");
+            }
 
             if (!File.Exists(file))
+            {
+                apply.CanCreateCommit = false;
                 return new ValidationResult($"File '{file}' can NOT be found!!!");
+            }
 
+            apply.CheckPatchFileFormat(file);
             return ValidationResult.Success;
         }
 
@@ -73,46 +96,94 @@ namespace SourceGit.ViewModels
         {
             using var lockWatcher = _repo.LockWatcher();
             ProgressDescription = "Apply patch...";
-
             var finalPatchFile = _patchFile;
-            if (_fromClipboard)
+            CommandLog log = null;
+            try
             {
-                if (Clipboard == null)
+                if (InProgressContext.HasPendingOperation(_repo.GitDir))
                 {
-                    _repo.SendNotification("Clipboard service is not available!!!", true);
+                    _repo.SendNotification(App.Text("Rebase.FinishCurrent"), true);
                     return false;
                 }
-
-                var content = await Clipboard.TryGetTextAsync();
-                if (string.IsNullOrEmpty(content) || !content.StartsWith("diff --git ", StringComparison.Ordinal))
+                if (_fromClipboard)
                 {
-                    _repo.SendNotification("There's no valid patch content in clipboard!!!", true);
+                    if (Clipboard == null)
+                    {
+                        _repo.SendNotification("Clipboard service is not available.", true);
+                        return false;
+                    }
+                    var content = await Clipboard.TryGetTextAsync();
+                    if (string.IsNullOrEmpty(content) || !content.StartsWith("diff --git ", StringComparison.Ordinal))
+                    {
+                        _repo.SendNotification("There's no valid patch content in clipboard.", true);
+                        return false;
+                    }
+                    finalPatchFile = Path.GetTempFileName();
+                    await File.WriteAllTextAsync(finalPatchFile, content);
+                }
+                var safety = new Commands.CheckMergeSafety(_repo.FullPath, [], patchFile: finalPatchFile);
+                if (!await safety.GetResultAsync())
+                {
+                    _repo.SendNotification(App.Text(safety.Obstruction == null ? "WorkingCopy.RefreshFailed" : "Rebase.LocalFilesBlocked") +
+                        (safety.Obstruction == null ? string.Empty : "\n" + safety.Obstruction), true);
                     return false;
                 }
-
-                finalPatchFile = Path.GetTempFileName();
-                File.WriteAllText(finalPatchFile, content);
+                log = _repo.CreateLog("Apply Patch");
+                Use(log);
+                var extra = ThreeWayMerge ? "--3way" : string.Empty;
+                Commands.Command command = !_fromClipboard && _canCreateCommit && CommitChanges ?
+                    new Commands.Am(_repo.FullPath, finalPatchFile, _ignoreWhiteSpace, SelectedWhiteSpaceMode.Arg, extra) :
+                    new Commands.Apply(_repo.FullPath, finalPatchFile, _ignoreWhiteSpace, SelectedWhiteSpaceMode.Arg, extra);
+                // Applying a patch never consumes an unrelated typed commit-message draft.
+                var success = await command.Use(log).ExecAsync();
+                var conflicts = await new Commands.QueryConflictEntries(_repo.FullPath).GetResultAsync();
+                if (!string.IsNullOrEmpty(conflicts) || InProgressContext.HasPendingOperation(_repo.GitDir))
+                {
+                    _repo.WorkingCopy.RequestConflictSelection();
+                    _repo.ShowWorkingCopyOverview();
+                    return true;
+                }
+                if (conflicts == null) _repo.NotifyWorkingCopyStatusFailure();
+                return success;
             }
+            finally
+            {
+                log?.Complete();
+                if (_fromClipboard && finalPatchFile != _patchFile && File.Exists(finalPatchFile)) File.Delete(finalPatchFile);
+                _repo.RefreshBranches();
+                _repo.MarkWorkingCopyDirtyManually();
+            }
+        }
 
-            var log = _repo.CreateLog("Apply Patch");
-            Use(log);
+        private void CheckPatchFileFormat(string file)
+        {
+            try
+            {
+                using var reader = new StreamReader(file);
+                var lines = new List<string>();
+                for (int i = 0; i < 4; i++)
+                {
+                    if (reader.EndOfStream)
+                        break;
+                    lines.Add(reader.ReadLine());
+                }
 
-            var extra = ThreeWayMerge ? "--3way" : string.Empty;
-            var succ = await new Commands.Apply(_repo.FullPath, finalPatchFile, _ignoreWhiteSpace, SelectedWhiteSpaceMode.Arg, extra)
-                .Use(log)
-                .ExecAsync();
-
-            log.Complete();
-
-            if (_fromClipboard)
-                File.Delete(finalPatchFile);
-
-            return succ;
+                CanCreateCommit = lines.Count == 4 &&
+                    lines[0].StartsWith("From ", StringComparison.Ordinal) &&
+                    lines[1].StartsWith("From: ", StringComparison.Ordinal) &&
+                    lines[2].StartsWith("Date: ", StringComparison.Ordinal) &&
+                    lines[3].StartsWith("Subject: ", StringComparison.Ordinal);
+            }
+            catch
+            {
+                CanCreateCommit = false;
+            }
         }
 
         private readonly Repository _repo = null;
         private string _patchFile = string.Empty;
         private bool _fromClipboard = false;
         private bool _ignoreWhiteSpace = true;
+        private bool _canCreateCommit = false;
     }
 }

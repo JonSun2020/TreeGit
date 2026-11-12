@@ -2,11 +2,12 @@
 import json, os, queue, subprocess, sys, tempfile, threading, time
 from pathlib import Path
 from qa_cleanup import remove_fixture, new_fixture
-assert os.environ.get('GITHUB_ACTIONS')=='true' and os.environ.get('RUNNER_OS')=='Windows', 'Large binary tests require an owned CI runner'
+from qa_process import close_owned_gui
+assert os.environ.get('CI')=='true' and (os.name=='posix' or os.environ.get('RUNNER_OS')=='Windows'), 'Run only in an owned CI environment'
 
 exe=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
-root=new_fixture(out,'TreeGit large binary cancellation ');repo=root/'repo';repo.mkdir();snapshots=root/'snapshots';snapshots.mkdir()
-env=os.environ.copy();env.update(TEMP=str(snapshots),TMP=str(snapshots),GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'),GIT_CONFIG_NOSYSTEM='1')
+root_parent=Path(tempfile.gettempdir()).resolve();root=new_fixture(root_parent,'TreeGit c ');repo=root/'repo';repo.mkdir();snapshots=root/'s';snapshots.mkdir()
+env=os.environ.copy();env.update(TMPDIR=str(snapshots),TEMP=str(snapshots),TMP=str(snapshots),GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'),GIT_CONFIG_NOSYSTEM='1')
 def git(*args):
     result=subprocess.run(['git','-C',str(repo),*args],env=env,capture_output=True,text=True,encoding='utf-8',timeout=60,creationflags=subprocess.CREATE_NO_WINDOW)
     assert result.returncode==0,result.stderr
@@ -66,8 +67,5 @@ finally:
     p.stdin.close()
     try:p.wait(timeout=10)
     except subprocess.TimeoutExpired:p.kill();p.wait()
-    if pid:
-        literal=str(exe).replace("'","''")
-        script="$p=Get-Process -Id "+str(pid)+" -ErrorAction SilentlyContinue;if($p){if($p.Path -ne '"+literal+"'){throw 'Wrong owned process'};$null=$p.CloseMainWindow();if(-not $p.WaitForExit(15000)){$p.Kill();$p.WaitForExit();throw 'Owned QA app did not exit normally'}};exit 0"
-        subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)
-    remove_fixture(root,out,'TreeGit large binary cancellation ')
+    if pid:close_owned_gui(exe,pid)
+    remove_fixture(root,root_parent,'TreeGit c ')

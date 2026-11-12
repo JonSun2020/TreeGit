@@ -17,7 +17,7 @@ namespace SourceGit.Commands
 
         public async Task<Models.RepositoryStatus> GetResultAsync()
         {
-            Args = "status --porcelain=v2 -b -uall --ignore-submodules=dirty";
+            Args = "--no-optional-locks status --porcelain=v2 -b -uall --ignore-submodules=dirty";
             var rs = await ReadToEndAsync().ConfigureAwait(false);
             if (!rs.IsSuccess)
                 return null;
@@ -36,18 +36,22 @@ namespace SourceGit.Commands
             else
                 status.CurrentBranch = head;
 
-            if (count >= 4)
+            var localChanges = 0;
+            for (var i = 2; i < count; i++)
             {
-                var changesCount = count - 3;
-                if (lines[3].StartsWith("# branch.ab ", StringComparison.Ordinal))
+                var line = lines[i];
+                if (line.StartsWith("# ", StringComparison.Ordinal))
                 {
-                    ParseTrackStatus(status, lines[3].Substring(12).Trim());
-                    changesCount--;
+                    if (line.StartsWith("# branch.ab ", StringComparison.Ordinal))
+                        ParseTrackStatus(status, line.Substring(12).Trim());
                 }
-
-                status.LocalChanges = changesCount;
+                else
+                {
+                    localChanges++;
+                }
             }
 
+            status.LocalChanges = localChanges;
             return status;
         }
 

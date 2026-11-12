@@ -6,6 +6,7 @@ namespace SourceGit.Commands
 {
     public class QueryBranches : Command
     {
+        public bool Succeeded { get; private set; }
         private const string PREFIX_LOCAL = "refs/heads/";
         private const string PREFIX_REMOTE = "refs/remotes/";
         private const string PREFIX_DETACHED_AT = "(HEAD detached at";
@@ -20,6 +21,7 @@ namespace SourceGit.Commands
 
         public async Task<List<Models.Branch>> GetResultAsync()
         {
+            Succeeded = false;
             var branches = new List<Models.Branch>();
             var rs = await ReadToEndAsync().ConfigureAwait(false);
             if (!rs.IsSuccess)
@@ -48,7 +50,11 @@ namespace SourceGit.Commands
                         b.IsUpstreamGone = false;
 
                         if (mismatched.Contains(b.FullName))
-                            await new QueryTrackStatus(WorkingDirectory).GetResultAsync(b, upstream).ConfigureAwait(false);
+                        {
+                            var tracking = new QueryTrackStatus(WorkingDirectory) { CancellationToken = CancellationToken };
+                            await tracking.GetResultAsync(b, upstream).ConfigureAwait(false);
+                            if (!tracking.Succeeded) return branches;
+                        }
                     }
                     else
                     {
@@ -57,6 +63,7 @@ namespace SourceGit.Commands
                 }
             }
 
+            Succeeded = true;
             return branches;
         }
 
@@ -71,13 +78,11 @@ namespace SourceGit.Commands
             if (refName.EndsWith("/HEAD", StringComparison.Ordinal))
                 return null;
 
-            branch.IsDetachedHead = refName.StartsWith(PREFIX_DETACHED_AT, StringComparison.Ordinal) ||
-                refName.StartsWith(PREFIX_DETACHED_FROM, StringComparison.Ordinal);
-
             if (refName.StartsWith(PREFIX_LOCAL, StringComparison.Ordinal))
             {
                 branch.Name = refName.Substring(PREFIX_LOCAL.Length);
                 branch.IsLocal = true;
+                branch.IsDetachedHead = false;
             }
             else if (refName.StartsWith(PREFIX_REMOTE, StringComparison.Ordinal))
             {
@@ -89,11 +94,18 @@ namespace SourceGit.Commands
                 branch.Remote = nameParts[0];
                 branch.Name = nameParts[1];
                 branch.IsLocal = false;
+                branch.IsDetachedHead = false;
+            }
+            else if (refName.StartsWith(PREFIX_DETACHED_AT, StringComparison.Ordinal) ||
+                     refName.StartsWith(PREFIX_DETACHED_FROM, StringComparison.Ordinal))
+            {
+                branch.Name = "HEAD";
+                branch.IsLocal = true;
+                branch.IsDetachedHead = true;
             }
             else
             {
-                branch.Name = refName;
-                branch.IsLocal = true;
+                return null;
             }
 
             ulong.TryParse(parts[1], out var committerDate);

@@ -63,24 +63,36 @@ namespace SourceGit.Automation
 
         private static async Task ListenAsync(CancellationToken token)
         {
-            while (!token.IsCancellationRequested)
+            static NamedPipeServerStream Create() => new(McpServer.PipeName, PipeDirection.InOut, NamedPipeServerStream.MaxAllowedServerInstances,
+                PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+            NamedPipeServerStream pipe = null;
+            try
             {
-                NamedPipeServerStream pipe = null;
-                try
+                while (!token.IsCancellationRequested)
                 {
-                    pipe = new NamedPipeServerStream(McpServer.PipeName, PipeDirection.InOut, NamedPipeServerStream.MaxAllowedServerInstances,
-                        PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
-                    await pipe.WaitForConnectionAsync(token).ConfigureAwait(false);
-                    _ = HandleClientAsync(pipe, token);
-                }
-                catch (OperationCanceledException) { pipe?.Dispose(); break; }
-                catch (Exception ex)
-                {
-                    pipe?.Dispose();
-                    Native.OS.LogException(ex);
-                    await Task.Delay(500, token).ConfigureAwait(false);
+                    try
+                    {
+                        pipe ??= Create();
+                        await pipe.WaitForConnectionAsync(token).ConfigureAwait(false);
+                        var accepted = pipe;
+                        // Keep a listener alive before an empty startup probe can
+                        // complete synchronously and dispose the accepted instance.
+                        // Otherwise Unix removes the socket under the next client.
+                        pipe = Create();
+                        _ = HandleClientAsync(accepted, token);
+                    }
+                    catch (OperationCanceledException) { break; }
+                    catch (Exception ex)
+                    {
+                        pipe?.Dispose();
+                        pipe = null;
+                        Native.OS.LogException(ex);
+                        try { await Task.Delay(500, token).ConfigureAwait(false); }
+                        catch (OperationCanceledException) { break; }
+                    }
                 }
             }
+            finally { pipe?.Dispose(); }
         }
 
         private static async Task HandleClientAsync(NamedPipeServerStream pipe, CancellationToken token)
@@ -222,6 +234,7 @@ namespace SourceGit.Automation
                                 logs = new { retained = r.Logs.Count, active = r.Logs.Count(l => !l.IsComplete) },
                                 changes = r.LocalChangesCount,
                                 workingCopyStatusKnown = r.WorkingCopyStatusKnown,
+                                repositoryRefreshFailed = r.HasRepositoryRefreshError,
                                 workingCopyRefreshVersion = r.WorkingCopyRefreshVersion,
                                 hasPendingChanges = r.Histories?.HasPendingChanges,
                                 pendingRow = pendingRow == null ? null : new { visible = pendingRow.IsEffectivelyVisible,
@@ -250,6 +263,7 @@ namespace SourceGit.Automation
                                 workingCopySelected = r.Histories?.IsWorkingCopySelected,
                                 searchActive = r.Histories?.IsSearchingCommits,
                                 searchQuerying = r.Histories?.SearchCommitContext.IsQuerying,
+                                searchFailed = r.Histories?.SearchCommitContext.HasError,
                                 searchSelected = r.Histories?.SearchCommitContext.Selected?.SHA,
                                 searchResultCount = searchResults?.Count ?? 0,
                                 searchResultOffset = searchOffset,
@@ -270,6 +284,13 @@ namespace SourceGit.Automation
                                 historySelectedCommits = historyList?.SelectedItems.OfType<Models.Commit>().Select(c => c.SHA).ToArray(),
                                 historyVisible = historyList?.IsEffectivelyVisible,
                                 detailCommit = r.GetSelectedCommitInHistory()?.SHA,
+                                detailBranchesLoading = (r.Histories?.DetailContext as ViewModels.CommitDetail)?.IsBranchDetailsLoading,
+                                detailBranchesError = (r.Histories?.DetailContext as ViewModels.CommitDetail)?.HasBranchDetailsError,
+                                detailBranches = r.Histories?.DetailContext is ViewModels.CommitDetail branchDetail && branchDetail.BranchDetails is { } branchInfo
+                                    ? new { primary = branchInfo.Primary?.FullName, inferred = branchInfo.IsInferred, extraCount = branchInfo.ExtraCount, total = branchInfo.Coverage.Count,
+                                        branches = branchInfo.Coverage.Branches.Skip(branchOffset).Take(branchLimit).Select(b => b.FullName).ToArray(),
+                                        branchesTruncated = branchInfo.Coverage.Count > branchOffset + (long)branchLimit } : null,
+                                detailBranchPopup = repositoryView?.GetVisualDescendants().OfType<Views.CommitBranchHeader>().FirstOrDefault(v => v.IsEffectivelyVisible)?.BranchPopupState,
                                 loadedBranches = r.Branches.Select(b => new { reference = b.FullName, head = b.Head, upstream = b.Upstream }).ToArray(),
                                 localBranchTreeVisible = repositoryView?.LocalBranchTree.IsEffectivelyVisible,
                                 remoteBranchTreeVisible = repositoryView?.RemoteBranchTree.IsEffectivelyVisible,
@@ -277,6 +298,11 @@ namespace SourceGit.Automation
                                 remoteBranchTargets = repositoryView?.RemoteBranchTree.GetVisibleBranchTargets(),
                                 localBranchSelection = repositoryView?.LocalBranchTree.Rows.Where(n => n.IsSelected && n.Backend is Models.Branch).Select(n => ((Models.Branch)n.Backend).FullName).ToArray(),
                                 remoteBranchSelection = repositoryView?.RemoteBranchTree.Rows.Where(n => n.IsSelected && n.Backend is Models.Branch).Select(n => ((Models.Branch)n.Backend).FullName).ToArray(),
+                                commitBranchHighlights = r.SidebarCommitBranches is { } scope ? new {
+                                    sha = scope.Commit.SHA, primary = scope.Primary?.FullName, inferred = scope.IsInferred, total = scope.Coverage.Count,
+                                    local = repositoryView?.LocalBranchTree.Rows.Where(n => n.CommitHighlightLevel > 0 && n.Backend is Models.Branch).Skip(branchOffset).Take(branchLimit).Select(n => new { reference = ((Models.Branch)n.Backend).FullName, level = n.CommitHighlightLevel, note = n.CommitHighlightNote }).ToArray(),
+                                    remote = repositoryView?.RemoteBranchTree.Rows.Where(n => n.CommitHighlightLevel > 0 && n.Backend is Models.Branch).Skip(branchOffset).Take(branchLimit).Select(n => new { reference = ((Models.Branch)n.Backend).FullName, level = n.CommitHighlightLevel, note = n.CommitHighlightNote }).ToArray()
+                                } : null,
                                 graphBranch = r.Histories?.GraphBranchName,
                                 graphMode = r.Histories?.BranchDisplayMode,
                                 graphShowRemotes = r.Histories?.ShowRemoteBranches,
@@ -318,7 +344,10 @@ namespace SourceGit.Automation
                         lifetime.MainWindow.GetVisualDescendants().OfType<Views.LauncherTabBar>().FirstOrDefault()?.TabListMenu is { IsOpen: true } tabMenu)
                         surface = tabMenu;
                     if (args.TryGetProperty("window", out target) && target.GetString() == "active")
+                    {
                         surface = lifetime.MainWindow.GetVisualDescendants().OfType<Views.CommitSearchView>().Select(v => v.ContainingBranchesSurface).FirstOrDefault(v => v != null) ?? surface;
+                        surface = lifetime.MainWindow.GetVisualDescendants().OfType<Views.CommitBranchHeader>().Select(v => v.BranchesSurface).FirstOrDefault(v => v != null) ?? surface;
+                    }
                     if (args.TryGetProperty("window", out target) && target.GetString() == "active")
                         surface = lifetime.MainWindow.GetVisualDescendants().OfType<Views.Histories>().Select(v => v.OpenCommitMenu)
                             .FirstOrDefault(menu => menu?.IsOpen == true) ?? surface;
@@ -365,6 +394,8 @@ namespace SourceGit.Automation
                 var uiCommand = Text(args, "command");
                 if (uiCommand == "save_preferences")
                 {
+                    if (!request.TryGetProperty("allowWrite", out var preferencesPermission) || !preferencesPermission.GetBoolean())
+                        throw new InvalidOperationException("Writes are disabled.");
                     Task<bool> save = null;
                     Views.Preferences editor = null;
                     await Dispatcher.UIThread.InvokeAsync(() =>
@@ -643,6 +674,8 @@ namespace SourceGit.Automation
 
             if (name == "ui_merge_result")
             {
+                if (!request.TryGetProperty("allowWrite", out var mergePermission) || !mergePermission.GetBoolean())
+                    throw new InvalidOperationException("Writes are disabled.");
                 var file = Text(args, "file").Replace('\\', '/');
                 var action = Text(args, "action");
                 var editor = await Dispatcher.UIThread.InvokeAsync(() =>
@@ -801,7 +834,12 @@ namespace SourceGit.Automation
                             "path" => 0, "name" => 1, "status" => 2,
                             _ => throw new ArgumentException("Unknown file sort order."),
                         };
-                    if (args.TryGetProperty("message", out var message)) repo.WorkingCopy.CommitMessage = message.GetString() ?? string.Empty;
+                    if (args.TryGetProperty("message", out var message))
+                    {
+                        if (!request.TryGetProperty("allowWrite", out var draftPermission) || !draftPermission.GetBoolean())
+                            throw new InvalidOperationException("Writes are disabled.");
+                        repo.WorkingCopy.CommitMessage = message.GetString() ?? string.Empty;
+                    }
                     return (object)new
                     {
                         selected = "uncommitted_changes", repo = path, filter = repo.WorkingCopy.Filter,
@@ -1043,6 +1081,11 @@ namespace SourceGit.Automation
                         case "apply_patch":
                             repo.ApplyPatch();
                             break;
+                        case "commit_branches":
+                            var branchHeader = owner.GetVisualDescendants().OfType<Views.CommitBranchHeader>()
+                                .FirstOrDefault(v => v.IsEffectivelyVisible && v.DataContext is ViewModels.CommitDetail d && d.Repository == repo);
+                            if (branchHeader == null || !branchHeader.ShowBranches()) throw new InvalidOperationException("该提交没有可展开的其他包含分支。");
+                            break;
                         case "show_reflog":
                             repo.ShowReflog();
                             break;
@@ -1073,7 +1116,7 @@ namespace SourceGit.Automation
                 if (!resolved.IsSuccess)
                     throw new ArgumentException(Redact(resolved.StdErr));
                 var sha = resolved.StdOut.Trim();
-                await Dispatcher.UIThread.InvokeAsync(() => { repo.SelectedViewIndex = 0; repo.NavigateToCommit(sha); });
+                await Dispatcher.UIThread.InvokeAsync(() => { repo.SelectedViewIndex = 0; repo.NavigateToCommit(sha); repo.Histories.RevealSelectedCommitBranch(); });
                 return new { selected = sha, repo = path };
             }
             if (name == "ui_refresh")

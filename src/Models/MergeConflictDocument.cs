@@ -21,6 +21,7 @@ namespace SourceGit.Models
             public bool Mapped = true;
             public int MarkerSize;
             public bool FinalNewline;
+            public bool IsEndOfFile;
         }
 
         private readonly record struct AnchorPosition(int Region, int Start, int End, bool Mapped);
@@ -42,9 +43,11 @@ namespace SourceGit.Models
         public bool HasChanges { get; private set; }
         public event EventHandler Changed;
 
-        public MergeConflictDocument(string text)
+        public MergeConflictDocument(string text, bool? oursFinalNewline = null, bool? theirsFinalNewline = null)
         {
             _original = text;
+            _oursFinalNewline = oursFinalNewline;
+            _theirsFinalNewline = theirsFinalNewline;
             Document = new TextDocument(text);
             SourceLineCount = Document.LineCount;
             Document.UndoStack.SizeLimit = Math.Clamp(16 * 1024 * 1024 / Math.Max(1, text.Length * 2), 8, 256);
@@ -96,7 +99,20 @@ namespace SourceGit.Models
                 ConflictResolution.UseBothTheirsFirst => region.Theirs + region.Ours,
                 _ => region.Original,
             };
-            if (resolution != ConflictResolution.None && !region.FinalNewline)
+            var finalNewline = region.FinalNewline;
+            // Git adds a newline before EOF conflict markers even when neither
+            // source has one. Use index-stage evidence only for an EOF block
+            // that is still at EOF, leaving later manual edits untouched.
+            if (region.IsEndOfFile && region.End.Offset == Document.TextLength)
+                finalNewline = resolution switch
+                {
+                    ConflictResolution.UseOurs => _oursFinalNewline ?? finalNewline,
+                    ConflictResolution.UseTheirs => _theirsFinalNewline ?? finalNewline,
+                    ConflictResolution.UseBothMineFirst => (region.Theirs.Length > 0 ? _theirsFinalNewline : _oursFinalNewline) ?? finalNewline,
+                    ConflictResolution.UseBothTheirsFirst => (region.Ours.Length > 0 ? _oursFinalNewline : _theirsFinalNewline) ?? finalNewline,
+                    _ => finalNewline,
+                };
+            if (resolution != ConflictResolution.None && !finalNewline)
             {
                 if (result.EndsWith("\r\n", StringComparison.Ordinal)) result = result[..^2];
                 else if (result.EndsWith('\n') || result.EndsWith('\r')) result = result[..^1];
@@ -166,6 +182,7 @@ namespace SourceGit.Models
                     TheirsStartLine = separator.LineNumber,
                     MarkerSize = markerSize,
                     FinalNewline = end.DelimiterLength > 0 || offset < Document.TextLength,
+                    IsEndOfFile = offset == Document.TextLength,
                 };
                 Regions.Add(info); _regions.Add(region);
                 lineNumber = end.LineNumber;
@@ -297,6 +314,8 @@ namespace SourceGit.Models
         }
 
         private readonly string _original;
+        private readonly bool? _oursFinalNewline;
+        private readonly bool? _theirsFinalNewline;
         private readonly List<Region> _regions = [];
         private AnchorPosition[] _pending;
         private readonly List<int> _unresolvedOffsets = [];

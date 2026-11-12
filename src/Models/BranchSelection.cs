@@ -5,7 +5,7 @@ namespace SourceGit.Models
 {
     public static class BranchSelection
     {
-        public static Branch Choose(List<Branch> branches, string sha, HashSet<string> containing)
+        public static Branch Choose(List<Branch> branches, string sha, HashSet<string> containing, bool preferLocal = false)
         {
             var exactRemotes = new HashSet<string>(StringComparer.Ordinal);
             foreach (var branch in branches)
@@ -27,6 +27,12 @@ namespace SourceGit.Models
                 (containing.Contains(b.FullName) || containing.Contains(b.Upstream)));
             var remotes = branches.FindAll(b => !b.IsLocal && containing.Contains(b.FullName));
             var locals = branches.FindAll(b => b.IsLocal && !b.IsDetachedHead && containing.Contains(b.FullName));
+            if (preferLocal)
+            {
+                foreach (var branch in tracked)
+                    if (!containing.Contains(branch.FullName)) locals.Add(branch);
+                return Pick(locals) ?? Pick(remotes);
+            }
             return Pick(tracked) ?? Pick(remotes) ?? Pick(locals);
         }
 

@@ -1,10 +1,12 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Media;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 
@@ -12,6 +14,57 @@ namespace SourceGit.Automation
 {
     internal static class UiLayoutProbe
     {
+        public static void TraceHistory(string kind, object state)
+        {
+            var path = Environment.GetEnvironmentVariable("TREEGIT_TEST_POINTER_TRACE");
+            if (Environment.GetEnvironmentVariable("CI") == "true" && !string.IsNullOrEmpty(path) && Path.IsPathFullyQualified(path))
+                File.AppendAllText(path, JsonSerializer.Serialize(new { kind, state }) + "\n");
+        }
+
+        public static void AttachPointerTrace(Window window)
+        {
+            var path = Environment.GetEnvironmentVariable("TREEGIT_TEST_POINTER_TRACE");
+            if (Environment.GetEnvironmentVariable("CI") != "true" || string.IsNullOrEmpty(path) || !Path.IsPathFullyQualified(path)) return;
+            void Record(PointerEventArgs e, string kind)
+            {
+                var source = e.Source as Control;
+                var row = source as DataGridRow ?? source?.FindAncestorOfType<DataGridRow>();
+                var position = e.GetPosition(window);
+                File.AppendAllText(path, JsonSerializer.Serialize(new
+                {
+                    time = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(), kind,
+                    source = source?.GetType().Name, name = source?.Name,
+                    sourceContext = source?.DataContext?.GetType().Name,
+                    grid = source?.FindAncestorOfType<DataGrid>()?.Name,
+                    sourceAncestors = source?.GetVisualAncestors().OfType<Control>().Take(12).Select(p => new { type = p.GetType().Name, name = p.Name, context = p.DataContext?.GetType().Name, visible = p.IsVisible }).ToArray(),
+                    commit = (source?.DataContext as Models.Commit)?.SHA,
+                    rowCommit = (row?.DataContext as Models.Commit)?.SHA,
+                    captured = e.Pointer.Captured?.GetType().Name,
+                    x = position.X, y = position.Y,
+                    screenX = window.PointToScreen(position).X, screenY = window.PointToScreen(position).Y,
+                    rows = source is Avalonia.Controls.Primitives.DataGridRowsPresenter ? window.GetVisualDescendants().OfType<DataGridRow>()
+                        .Where(r => r.IsEffectivelyVisible).Select(r => new
+                        {
+                            sha = (r.DataContext as Models.Commit)?.SHA, r.Index, bounds = r.Bounds.ToString(), r.IsHitTestVisible, r.Opacity,
+                            position = r.TranslatePoint(default, window)?.ToString(),
+                            surfaces = r.GetVisualDescendants().OfType<Control>().Where(p => p.Name is "PART_Root" or "RowBorder").Select(p => new { name = p.Name, bounds = p.Bounds.ToString(), clip = (p.Clip as RectangleGeometry)?.Rect.ToString(), p.ClipToBounds, p.IsHitTestVisible, p.IsEnabled, p.Opacity }).ToArray(),
+                            clip = (r.Clip as RectangleGeometry)?.Rect.ToString(), r.IsEnabled,
+                            ancestors = r.GetVisualAncestors().OfType<Control>().Take(5).Select(p => new { type = p.GetType().Name, bounds = p.Bounds.ToString(), clip = (p.Clip as RectangleGeometry)?.Rect.ToString(), p.ClipToBounds, p.IsHitTestVisible, p.IsEnabled, p.Opacity }).ToArray(),
+                            presenters = r.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.DataGridCellsPresenter>().Select(p => new { bounds = p.Bounds.ToString(), position = p.TranslatePoint(default, window)?.ToString(), clip = (p.Clip as RectangleGeometry)?.Rect.ToString(), p.ClipToBounds, p.IsHitTestVisible, p.IsEnabled, p.Opacity }).ToArray(),
+                            cells = r.GetVisualDescendants().OfType<DataGridCell>().Select(c => new
+                            {
+                                bounds = c.Bounds.ToString(), c.IsHitTestVisible, c.IsEffectivelyVisible, c.Opacity,
+                                clip = (c.Clip as RectangleGeometry)?.Rect.ToString(),
+                                position = c.TranslatePoint(default, window)?.ToString(),
+                                children = c.GetVisualDescendants().OfType<Border>().Select(b => new { bounds = b.Bounds.ToString(), background = b.Background?.ToString(), b.IsHitTestVisible, b.IsEffectivelyVisible }).ToArray(),
+                            }).ToArray(),
+                        }).ToArray() : null,
+                }) + "\n");
+            }
+            window.AddHandler(InputElement.PointerPressedEvent, (_, e) => Record(e, "down"), RoutingStrategies.Tunnel, true);
+            window.AddHandler(InputElement.PointerReleasedEvent, (_, e) => Record(e, "up"), RoutingStrategies.Tunnel, true);
+        }
+
         public static void ClickButton(Window window, string name, string tempDirectory = null)
         {
             var button = window.GetVisualDescendants().OfType<Button>()

@@ -15,20 +15,20 @@
 - 主题提供“跟随系统”、`Light`、`Dark` 和 `Blue`。跟随系统时，系统浅色使用 Light，系统深色使用 Dark，并响应系统主题变化。Light 顶栏为已确认的深绿色 `#16836D`，Dark 顶栏为深灰色 `#1F1F1F`；Blue 保持蓝白配色。初次启动默认为 Light，升级保留现有选择。
 - 独立“图谱”列，当前检出分支的主线始终在最左侧。单击左栏分支先返回日志 / 历史；“所有分支”下定位对应最新提交，“当前分支”下点击其它分支不改变图谱。双击当前本地分支不切换，其他本地分支先确认；远程分支使用独立的检出弹框。
 - 分支显示提供“当前分支”和“所有分支”；勾选显示远程分支时包含对应上游历史。本地分支头加粗，并显示与拉取/推送一致的同步数量。
-- 图谱顶部为“未提交的更改”。选中后，下方显示已暂存、未暂存文件及差异，上方保留提交图谱。
+- 存在本地改动时，图谱顶部显示“未提交的更改”。选中后，下方显示已暂存、未暂存文件及差异，上方保留提交图谱。
 - 图谱、描述、日期、作者、提交等表头可拖动调整列宽，并按仓库保存。
 - 保留 SourceGit 的克隆、推拉、分支、标签、合并、变基、交互式变基、贮藏、冲突处理、补丁、文件历史、Blame、子模块、Worktree、GitFlow、LFS、Bisect和命令日志等功能。高级操作位于“操作 → 高级操作”、偏好设置及对应的上下文菜单。
 - 使用 TreeGit 自有图标，帮助/关于注明上游来源及 MCP 支持。
 
-当前正式版为 **2026.23.25（Windows x64）**。后续继续跟随 SourceGit 上游更新，维护独立的界面、便携构建与 MCP 控制。
+当前正式版为 **2026.24.1（Windows x64）**。后续继续跟随 SourceGit 上游更新，维护独立的界面、便携构建与 MCP 控制。
 
-本版统一常用操作窗口，偏好设置支持确定与取消、字体主题预览恢复；完善提交详情、文件状态筛选排序及文本对比来源说明。MCP 支持明确保存偏好与失败反馈。保留 Local / Base / Remote 合并工具、完整 Git 操作和内置二进制左右对比。具体改动见[发行说明](docs/RELEASE-2026.23.25.md)，验证记录见[验收记录](docs/VALIDATION-2026.23.25.md)，Git 功能入口见[功能对照](docs/FUNCTIONALITY.md)。
+本版同步 SourceGit 2026.24，增加提交分支名框和包含此提交的分支列表，统一历史、搜索和左栏分支的联动与底色。完善刷新定位、查询失败恢复、冲突末尾换行及 MCP 启动和只读隔离。保留 Local / Base / Remote 合并工具、完整 Git 操作和内置二进制左右对比。具体改动见[发行说明](docs/RELEASE-2026.24.1.md)，验证记录见[验收记录](docs/VALIDATION-2026.24.1.md)，Git 功能入口见[功能对照](docs/FUNCTIONALITY.md)。
 
 二进制变更提供旧版本 / 新版本左右对比，显示十六进制、ASCII、偏移与差异高亮，支持前后差异跳转及独立窗口。按相同偏移比较，插入 / 删除后的字节不自动重新对齐；图片和 LFS 保留原有专用视图。“使用外部合并程序查看”目前仍显示“暂未支持”。
 
 ## 下载安装
 
-从 [最新正式版](https://github.com/JonSun2020/TreeGit/releases/latest) 下载 [TreeGit-2026.23.25-Windows-x64.zip](https://github.com/JonSun2020/TreeGit/releases/download/treegit-v2026.23.25/TreeGit-2026.23.25-Windows-x64.zip)，完整解压后运行 `TreeGit/TreeGit.exe`。标准包含 Git，约 70 MB。校验值见同页的 `SHA256SUMS.txt`。2026.23.10 及更早版本需先手动升级一次，此后可使用“帮助 → 检查更新”。开发构建仍可从 **Actions → TreeGit Windows portable** 下载。
+从 [最新正式版](https://github.com/JonSun2020/TreeGit/releases/latest) 下载 [TreeGit-2026.24.1-Windows-x64.zip](https://github.com/JonSun2020/TreeGit/releases/download/treegit-v2026.24.1/TreeGit-2026.24.1-Windows-x64.zip)，完整解压后运行 `TreeGit/TreeGit.exe`。标准包含 Git，约 70 MB。校验值见同页的 `SHA256SUMS.txt`。2026.23.10 及更早版本需先手动升级一次，此后可使用“帮助 → 检查更新”。开发构建仍可从 **Actions → TreeGit Windows portable** 下载。
 
 - 自带裁剪和压缩后的 .NET 运行时，无需安装 .NET。
 - 自动优先使用电脑上已有且可用的 Git；没有安装、路径失效或版本不兼容时，自动使用随包的便携 Git，无需另行安装或联网下载。
@@ -84,7 +84,7 @@ dotnet build src/SourceGit.csproj -c Release -r win-x64 -p:PublishAot=false
 
 ## 跟随上游迭代
 
-当前基线为 SourceGit **2026.23**，提交 `c0f40a2e78d81a7474628847727644fc0c56f558`。保留上游提交历史，后续通过独立同步分支合并上游更新，再验证 TreeGit 的界面、认证和 MCP。
+当前基线为 SourceGit **2026.24**，正式标签 `v2026.24` 对应的 master 提交 `2735a8ad80c2443bc736b7e6e501f1052b61d940`。保留上游提交历史，后续通过独立同步分支合并上游更新，再验证 TreeGit 的界面、认证和 MCP。
 
 具体步骤、依赖兼容边界和需要审查的修改点见 [上游同步维护说明](docs/UPSTREAM.md)。TreeGit 发布使用 `treegit-v...` 标签，与 SourceGit 的版本区分。
 

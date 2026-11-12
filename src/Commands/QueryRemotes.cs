@@ -6,6 +6,8 @@ namespace SourceGit.Commands
 {
     public class QueryRemotes
     {
+        public bool Succeeded { get; private set; }
+        public System.Threading.CancellationToken CancellationToken { get; set; }
         public QueryRemotes(string repo)
         {
             _repo = repo;
@@ -13,11 +15,21 @@ namespace SourceGit.Commands
 
         public async Task<List<Models.Remote>> GetResultAsync()
         {
-            var config = await new Config(_repo).ReadAllAsync().ConfigureAwait(false);
+            Succeeded = false;
+            var query = new Config(_repo) { CancellationToken = CancellationToken };
+            var config = await query.ReadAllAsync().ConfigureAwait(false);
+            Succeeded = query.ReadSucceeded;
             return Parse(config);
         }
 
-        public List<Models.Remote> GetResult() => Parse(new Config(_repo).ReadAll());
+        public List<Models.Remote> GetResult()
+        {
+            Succeeded = false;
+            var query = new Config(_repo);
+            var config = query.ReadAll();
+            Succeeded = query.ReadSucceeded;
+            return Parse(config);
+        }
 
         internal static List<Models.Remote> Parse(Dictionary<string, string> config)
         {

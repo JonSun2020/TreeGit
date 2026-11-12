@@ -10,6 +10,39 @@ namespace SourceGit.Tests
 {
     internal static class ProcessCancellationProbe
     {
+        private sealed class ReadQuery : Commands.Command
+        {
+            public Task<Result> ReadAsync() => ReadToEndAsync();
+        }
+
+        public static async Task<int> RunReadAsync(string root, string report)
+        {
+            if (Environment.GetEnvironmentVariable("CI") != "true" || !Path.IsPathFullyQualified(root) || Directory.Exists(root))
+                throw new InvalidOperationException("Use a new, owned CI fixture for cancellation checks.");
+            Directory.CreateDirectory(root);
+            Native.OS.GitExecutable = Native.OS.FindGitExecutable();
+            using var cancellation = new CancellationTokenSource(500);
+            var clock = Stopwatch.StartNew();
+            var cancelledRead = false;
+            try
+            {
+                await new ReadQuery { WorkingDirectory = root, UseCredentialManager = false,
+                    Args = "-c alias.treegit-cancel-read=\"!printf started > started; sleep 2; printf leaked > leaked\" treegit-cancel-read",
+                    CancellationToken = cancellation.Token, RaiseError = false }.ReadAsync();
+            }
+            catch (OperationCanceledException) { cancelledRead = true; }
+            var elapsed = clock.Elapsed.TotalSeconds;
+            // The old reader cancels its await but leaves Git and the shell alive.
+            // Give that owned, short-lived child time to finish before cleanup.
+            await Task.Delay(2500);
+            var started = File.Exists(Path.Combine(root, "started"));
+            var leaked = File.Exists(Path.Combine(root, "leaked"));
+            var afterwards = await new Commands.Command { WorkingDirectory = root, Args = "--version", RaiseError = false }.ExecAsync();
+            var success = cancelledRead && elapsed < 3 && started && !leaked && afterwards;
+            File.WriteAllText(report, JsonSerializer.Serialize(new { success, cancelledRead, elapsed, started, leaked, subsequentGitCommand = afterwards }));
+            return success ? 0 : 1;
+        }
+
         public static int Run(int pid, int sentinelPid, string expectedExecutable, string report)
         {
             if (GetConsoleProcessList(new uint[32], 32) != 0)
