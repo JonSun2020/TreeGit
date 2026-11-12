@@ -135,8 +135,17 @@ namespace SourceGit.Tests
             finally
             {
                 foreach (var (name, value) in environment) Environment.SetEnvironmentVariable(name, value);
-                // The directory was newly created by this probe, with no links.
-                if (ownsRoot && Directory.Exists(root)) Directory.Delete(root, true);
+                if (ownsRoot && Directory.Exists(root))
+                {
+                    if ((File.GetAttributes(root) & FileAttributes.ReparsePoint) != 0)
+                        throw new IOException("The owned probe root was replaced by a link.");
+                    // Native Git objects are read-only on Windows. Do not follow links
+                    // or change their targets while releasing this disposable fixture.
+                    var options = new EnumerationOptions { RecurseSubdirectories = true, AttributesToSkip = FileAttributes.ReparsePoint };
+                    foreach (var file in Directory.EnumerateFiles(root, "*", options))
+                        File.SetAttributes(file, File.GetAttributes(file) & ~FileAttributes.ReadOnly);
+                    Directory.Delete(root, true);
+                }
             }
         }
     }

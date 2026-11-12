@@ -77,8 +77,12 @@ jobs:
           Copy-Item tests/update_ui.py "$env:RUNNER_TEMP/update_ui.py"
           Copy-Item tests/ui_models.py "$env:RUNNER_TEMP/ui_models.py"
           Copy-Item tests/qa_cleanup.py "$env:RUNNER_TEMP/qa_cleanup.py"
+          Copy-Item tests/UiConsistencyProbe.cs "$env:RUNNER_TEMP/UiConsistencyProbe.cs"
           git checkout --detach $env:SOURCE
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Copy-Item "$env:RUNNER_TEMP/UiConsistencyProbe.cs" tests/UiConsistencyProbe.cs
+          git diff --exit-code -- src
+          if ($LASTEXITCODE -ne 0) { throw 'Product source differs from the requested commit' }
       - uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x

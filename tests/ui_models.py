@@ -16,7 +16,7 @@ try:
     assert result.returncode == 0, (result.returncode, result.stderr.decode('utf-8', 'replace'))
     assert report.is_file(), 'The model probe exited without producing its required results'
     data = json.loads(report.read_text(encoding='utf-8-sig'))
-    assert data['passed'] >= 63 and len(data['checks']) == data['passed'], data
+    assert not data.get('error') and data['passed'] >= 63 and len(data['checks']) == data['passed'], data
     print('PASS verified UI-model results', data['passed'], flush=True)
 finally:
     remove_fixture(fixture, fixture.parent, fixture.name)
