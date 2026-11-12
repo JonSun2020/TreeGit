@@ -17,8 +17,8 @@ def create_fixture(repo, object_format, env):
     def content(nonce): return prefix + str(nonce).encode('ascii') + b'\n'
     def oid(data): return hashlib.new(object_format, b'commit ' + str(len(data)).encode('ascii') + b'\0' + data).digest()
 
-    pair = None
-    for seed in range(2):
+    pair = {'sha1': (1693600, 1830326)}.get(object_format)
+    for seed in range(0 if pair is not None else 2):
         seen = {}
         for nonce in range(seed * 4_000_000, (seed + 1) * 4_000_000):
             key = oid(content(nonce))[:5]

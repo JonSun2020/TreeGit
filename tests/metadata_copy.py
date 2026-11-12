@@ -134,6 +134,13 @@ def drag_field(value, scale):
     api.mouse_event(4, 0, 0, 0, 0); time.sleep(.1)
 
 
+def native_cursor():
+    cursor = CursorInfo(ctypes.sizeof(CursorInfo)); assert api.GetCursorInfo(ctypes.byref(cursor))
+    return {'handle': cursor.cursor, 'flags': cursor.flags, 'x': cursor.point.x, 'y': cursor.point.y,
+            'hand': api.LoadCursorW(None, ctypes.c_void_p(32649)), 'ibeam': api.LoadCursorW(None, ctypes.c_void_p(32513)),
+            'arrow': api.LoadCursorW(None, ctypes.c_void_p(32512))}
+
+
 try:
     for object_format in ['sha1', 'sha256']:
         profile.reset()
@@ -238,8 +245,8 @@ try:
                 parent = settled_field('CommitMetadataParent', short)
                 api.SetCursorPos(round(parent['screen']['x']), round(parent['screen']['y']))
                 until(lambda: field('CommitMetadataParent', short)['tooltipOpen'])
-                cursor = CursorInfo(ctypes.sizeof(CursorInfo)); assert api.GetCursorInfo(ctypes.byref(cursor))
-                check(object_format + ': hovering a parent shows the full ID and hand cursor', field('CommitMetadataParent', short)['tooltip'] == parent_sha and cursor.cursor == api.LoadCursorW(None, ctypes.c_void_p(32649)))
+                until(lambda: (v := native_cursor())['handle'] == v['hand'])
+                check(object_format + ': hovering a parent shows the full ID and hand cursor', field('CommitMetadataParent', short)['tooltip'] == parent_sha and field('CommitMetadataParent', short)['cursor'] == 'Hand')
                 pointer(parent['screen']); until(lambda: state()['detailCommit'] == parent_sha)
                 check(object_format + ': clicking the parent SHA itself navigates', state()['detailCommit'] == parent_sha)
             tool('ui_select_commit', repo=str(repo), revision=collision['child'])
@@ -253,7 +260,7 @@ try:
             check(object_format + ': extended parent links still navigate to the full ID', state()['detailCommit'] == collision['first'])
             check(object_format + ': metadata operations preserve Git HEAD index and worktree', before == (git('rev-parse', 'HEAD'), git('status', '--porcelain'), (repo / '.git/index').read_bytes()))
         except BaseException:
-            evidence = {}
+            evidence = {'nativeCursor': native_cursor()}
             for label, read in [('state', lambda: tool('ui_state')), ('layout', layout)]:
                 try: evidence[label] = read()
                 except Exception as error: evidence[label] = {'error': str(error)}
