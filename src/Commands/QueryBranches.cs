@@ -6,6 +6,7 @@ namespace SourceGit.Commands
 {
     public class QueryBranches : Command
     {
+        public bool Succeeded { get; private set; }
         private const string PREFIX_LOCAL = "refs/heads/";
         private const string PREFIX_REMOTE = "refs/remotes/";
         private const string PREFIX_DETACHED_AT = "(HEAD detached at";
@@ -20,6 +21,7 @@ namespace SourceGit.Commands
 
         public async Task<List<Models.Branch>> GetResultAsync()
         {
+            Succeeded = false;
             var branches = new List<Models.Branch>();
             var rs = await ReadToEndAsync().ConfigureAwait(false);
             if (!rs.IsSuccess)
@@ -48,7 +50,11 @@ namespace SourceGit.Commands
                         b.IsUpstreamGone = false;
 
                         if (mismatched.Contains(b.FullName))
-                            await new QueryTrackStatus(WorkingDirectory).GetResultAsync(b, upstream).ConfigureAwait(false);
+                        {
+                            var tracking = new QueryTrackStatus(WorkingDirectory) { CancellationToken = CancellationToken };
+                            await tracking.GetResultAsync(b, upstream).ConfigureAwait(false);
+                            if (!tracking.Succeeded) return branches;
+                        }
                     }
                     else
                     {
@@ -57,6 +63,7 @@ namespace SourceGit.Commands
                 }
             }
 
+            Succeeded = true;
             return branches;
         }
 

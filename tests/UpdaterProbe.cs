@@ -77,6 +77,20 @@ namespace SourceGit.Tests
             catch (Models.UpdateProblem error) { Check(name, error.Code == code); }
         }
 
+        private static async Task CheckMetadataAsync()
+        {
+            Check("path traversal and user-data writes are not program files", !Native.TreeGitUpdater.AllowedFile("../TreeGit.exe") && !Native.TreeGitUpdater.AllowedFile("data/preference.json") && !Native.TreeGitUpdater.AllowedFile("log/a.txt") && !Native.TreeGitUpdater.AllowedFile("git/../../data/a") && !Native.TreeGitUpdater.AllowedFile("data\\private.dll") && !Native.TreeGitUpdater.AllowedFile("git/../data/a.dll"));
+            Check("version tags are exact and do not accept paths", Native.TreeGitUpdater.TryVersion("treegit-v2026.23.12", out _) && !Native.TreeGitUpdater.TryVersion("treegit-v2026.23.12\n", out _) && !Native.TreeGitUpdater.TryVersion("treegit-v../../escape", out _));
+            await Reject("release URLs must belong to this repository", () => { Native.TreeGitUpdater.ValidateAssetUrl("https://github.com/other/repo/releases/download/treegit-v2026.23.11/TreeGit-2026.23.11-Windows-x64.zip", "treegit-v2026.23.11", "TreeGit-2026.23.11-Windows-x64.zip"); return Task.CompletedTask; });
+
+            using (var updater = new Native.TreeGitUpdater(NewRoot(), new HttpClient(new MetadataHandler(HttpStatusCode.TooManyRequests, ""))))
+                await Reject("rate limiting has a distinct retryable result", () => updater.CheckAsync(CancellationToken.None), "busy-service");
+            using (var updater = new Native.TreeGitUpdater(NewRoot(), new HttpClient(new MetadataHandler(HttpStatusCode.OK, new string(' ', 2 * 1024 * 1024 + 1)))))
+                await Reject("oversized metadata is bounded while reading", () => updater.CheckAsync(CancellationToken.None));
+            using (var updater = new Native.TreeGitUpdater(NewRoot(), new HttpClient(new MetadataHandler(HttpStatusCode.OK, "{\"tag_name\":\"treegit-v2026.23.12\",\"prerelease\":true}"))))
+                await Reject("pre-releases cannot replace a stable installation", () => updater.CheckAsync(CancellationToken.None));
+        }
+
         public static async Task<int> Main(string[] args)
         {
             if (args.Length >= 4 && args[0] == "--prepare")
@@ -98,11 +112,16 @@ namespace SourceGit.Tests
                 Native.TreeGitUpdateInstaller.Launch(plan, args[2], parentId: int.Parse(args[3]));
                 return 0;
             }
-            _out = Path.GetFullPath(args[0]);
+            _out = Path.GetFullPath(args[0] == "--metadata-only" ? args[1] : args[0]);
             Directory.CreateDirectory(_out);
             string failure = null;
             try
             {
+                if (args[0] == "--metadata-only")
+                {
+                    await CheckMetadataAsync();
+                    return 0;
+                }
                 var root = NewRoot();
                 var plan = SmallPlan(root);
                 var settings = Native.TreeGitUpdater.Hash(Path.Combine(root, "data/user.txt"));
@@ -154,16 +173,7 @@ namespace SourceGit.Tests
                 Native.TreeGitUpdateInstaller.Restore(plan);
                 Check("preflight rollback does not overwrite external changes", File.ReadAllText(Path.Combine(root, "TreeGit.exe")) == "changed elsewhere");
 
-                Check("path traversal and user-data writes are not program files", !Native.TreeGitUpdater.AllowedFile("../TreeGit.exe") && !Native.TreeGitUpdater.AllowedFile("data/preference.json") && !Native.TreeGitUpdater.AllowedFile("log/a.txt") && !Native.TreeGitUpdater.AllowedFile("git/../../data/a") && !Native.TreeGitUpdater.AllowedFile("data\\private.dll") && !Native.TreeGitUpdater.AllowedFile("git/../data/a.dll"));
-                Check("version tags are exact and do not accept paths", Native.TreeGitUpdater.TryVersion("treegit-v2026.23.12", out _) && !Native.TreeGitUpdater.TryVersion("treegit-v2026.23.12\n", out _) && !Native.TreeGitUpdater.TryVersion("treegit-v../../escape", out _));
-                await Reject("release URLs must belong to this repository", () => { Native.TreeGitUpdater.ValidateAssetUrl("https://github.com/other/repo/releases/download/treegit-v2026.23.11/TreeGit-2026.23.11-Windows-x64.zip", "treegit-v2026.23.11", "TreeGit-2026.23.11-Windows-x64.zip"); return Task.CompletedTask; });
-
-                using (var updater = new Native.TreeGitUpdater(NewRoot(), new HttpClient(new MetadataHandler(HttpStatusCode.TooManyRequests, ""))))
-                    await Reject("rate limiting has a distinct retryable result", () => updater.CheckAsync(CancellationToken.None), "busy-service");
-                using (var updater = new Native.TreeGitUpdater(NewRoot(), new HttpClient(new MetadataHandler(HttpStatusCode.OK, new string(' ', 2 * 1024 * 1024 + 1)))))
-                    await Reject("oversized metadata is bounded while reading", () => updater.CheckAsync(CancellationToken.None));
-                using (var updater = new Native.TreeGitUpdater(NewRoot(), new HttpClient(new MetadataHandler(HttpStatusCode.OK, "{\"tag_name\":\"treegit-v2026.23.12\",\"prerelease\":true}"))))
-                    await Reject("pre-releases cannot replace a stable installation", () => updater.CheckAsync(CancellationToken.None));
+                await CheckMetadataAsync();
 
                 foreach (var (entryName, symlink) in new[] { ("TreeGit/../../escape.dll", false), ("TreeGit/data/private.dll", false), ("TreeGit/link.dll", true) })
                 {

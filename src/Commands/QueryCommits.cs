@@ -8,6 +8,7 @@ namespace SourceGit.Commands
 {
     public class QueryCommits : Command
     {
+        public bool Succeeded { get; private set; }
         public QueryCommits(string repo, string limits, bool markMerged = true)
         {
             WorkingDirectory = repo;
@@ -52,12 +53,19 @@ namespace SourceGit.Commands
 
         public async Task<List<Models.Commit>> GetResultAsync()
         {
+            Succeeded = false;
             var commits = new List<Models.Commit>();
             try
             {
+                CancellationToken.ThrowIfCancellationRequested();
                 using var proc = new Process();
                 proc.StartInfo = CreateGitStartInfo(true);
                 Native.ProcessLauncher.Start(proc);
+                using var cancellation = CancellationToken.Register(() =>
+                {
+                    try { if (!proc.HasExited) Native.OS.TerminateProcess(proc); }
+                    catch (InvalidOperationException) { }
+                });
                 proc.BeginErrorReadLine();
 
                 var findHead = false;
@@ -82,12 +90,13 @@ namespace SourceGit.Commands
                 }
 
                 await proc.WaitForExitAsync().ConfigureAwait(false);
+                if (proc.ExitCode != 0 || CancellationToken.IsCancellationRequested) return [];
 
                 if (_markMerged && !findHead && commits.Count > 0)
                 {
-                    var set = await new QueryCurrentBranchCommitHashes(WorkingDirectory, commits[^1].CommitterTime)
-                        .GetResultAsync()
-                        .ConfigureAwait(false);
+                    var ancestry = new QueryCurrentBranchCommitHashes(WorkingDirectory, commits[^1].CommitterTime) { CancellationToken = CancellationToken };
+                    var set = await ancestry.GetResultAsync().ConfigureAwait(false);
+                    if (!ancestry.Succeeded) return [];
 
                     foreach (var c in commits)
                     {
@@ -98,13 +107,14 @@ namespace SourceGit.Commands
                         }
                     }
                 }
+                Succeeded = !CancellationToken.IsCancellationRequested;
             }
             catch (Exception e)
             {
-                RaiseException($"Failed to query commits. Reason: {e.Message}");
+                if (!CancellationToken.IsCancellationRequested) RaiseException($"Failed to query commits. Reason: {e.Message}");
             }
 
-            return commits;
+            return Succeeded ? commits : [];
         }
 
         private bool _markMerged = false;

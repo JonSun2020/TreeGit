@@ -7,14 +7,15 @@ namespace SourceGit.Commands
 {
     public sealed class QueryConflictBase : Command
     {
-        public QueryConflictBase(string repo, string indexEntries)
+        public QueryConflictBase(string repo, string indexEntries, int stage = 1)
         {
+            if (stage is < 1 or > 3) throw new ArgumentOutOfRangeException(nameof(stage));
             WorkingDirectory = repo;
             foreach (var line in indexEntries.Split('\n'))
             {
                 var tab = line.IndexOf('\t');
                 var fields = (tab >= 0 ? line[..tab] : line).Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                if (fields.Length != 3 || fields[2] != "1") continue;
+                if (fields.Length != 3 || fields[2] != stage.ToString(System.Globalization.CultureInfo.InvariantCulture)) continue;
                 var oid = fields[1];
                 if (oid.Length is not (40 or 64) || !oid.All(Uri.IsHexDigit)) throw new IOException("Invalid ancestor entry");
                 _oid = oid;

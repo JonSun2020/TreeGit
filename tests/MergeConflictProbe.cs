@@ -59,6 +59,41 @@ try
         Check("redo preserves mapping " + choice, model.Document.Text == expected && model.CanResolve(0));
     }
 
+    foreach (var eol in new[] { "\n", "\r\n" })
+    foreach (var oursNewline in new[] { false, true })
+    foreach (var theirsNewline in new[] { false, true })
+    foreach (var choice in new[] { ConflictResolution.UseOurs, ConflictResolution.UseTheirs, ConflictResolution.UseBothMineFirst, ConflictResolution.UseBothTheirsFirst })
+    {
+        var source = "common" + eol + Block("mine", "theirs", eol);
+        var model = new MergeConflictDocument(source, oursNewline, theirsNewline);
+        var body = choice switch
+        {
+            ConflictResolution.UseOurs => "mine", ConflictResolution.UseTheirs => "theirs",
+            ConflictResolution.UseBothMineFirst => "mine" + eol + "theirs", _ => "theirs" + eol + "mine",
+        };
+        var newline = choice is ConflictResolution.UseOurs or ConflictResolution.UseBothTheirsFirst ? oursNewline : theirsNewline;
+        var expected = "common" + eol + body + (newline ? eol : string.Empty);
+        var label = $"EOF source evidence {eol.Length}/{oursNewline}/{theirsNewline}/{choice}";
+        model.Resolve(0, choice);
+        Check(label, model.Document.Text == expected && model.UnsolvedCount == 0);
+        model.Document.UndoStack.Undo();
+        Check(label + " undo", model.Document.Text == source && model.UnsolvedCount == 1);
+        model.Document.UndoStack.Redo();
+        Check(label + " redo", model.Document.Text == expected && model.UnsolvedCount == 0);
+    }
+    {
+        var model = new MergeConflictDocument(Block("mine", "theirs") + "tail", false, false);
+        model.Resolve(0, ConflictResolution.UseOurs);
+        Check("EOF source evidence never strips a non-final block separator", model.Document.Text == "mine\ntail");
+        model = new MergeConflictDocument(Block("mine", "theirs"), false, false);
+        model.Document.Insert(model.Document.TextLength, "manual suffix\n");
+        model.Resolve(0, ConflictResolution.UseOurs);
+        Check("EOF source evidence preserves a later manually appended line", model.Document.Text == "mine\nmanual suffix\n");
+        model = new MergeConflictDocument("<<<<<<< HEAD\n=======\nremote\n>>>>>>> other\n", false, false);
+        model.Resolve(0, ConflictResolution.UseBothTheirsFirst);
+        Check("an empty final side keeps the last non-empty side EOF", model.Document.Text == "remote");
+    }
+
     {
         var source = "head\n" + Block("local", "remote") + "tail\n";
         var model = new MergeConflictDocument(source);

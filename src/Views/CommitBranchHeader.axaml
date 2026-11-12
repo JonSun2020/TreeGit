@@ -1,0 +1,50 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="using:SourceGit.Views" xmlns:vm="using:SourceGit.ViewModels" xmlns:c="using:SourceGit.Converters"
+             x:Class="SourceGit.Views.CommitBranchHeader" x:DataType="vm:CommitDetail" x:Name="HeaderControl">
+  <UserControl.Styles>
+    <Style Selector="Button.branch_more">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.Link}"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Template">
+        <ControlTemplate>
+          <ContentPresenter Content="{TemplateBinding Content}" Padding="{TemplateBinding Padding}" Background="Transparent"
+                            HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+        </ControlTemplate>
+      </Setter>
+    </Style>
+  </UserControl.Styles>
+  <Border MinHeight="30" Padding="0" Background="Transparent" BorderThickness="0">
+    <Grid HorizontalAlignment="Left">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+      <Grid VerticalAlignment="Center" ToolTip.Tip="{Binding BranchDisplayDescription}">
+        <ScrollViewer x:Name="PrimaryBranchScroll" MaxHeight="96" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+          <ScrollViewer.MaxWidth>
+            <MultiBinding Converter="{x:Static c:DoubleConverters.CommitBranchNameWidth}">
+              <Binding Path="#HeaderControl.Bounds.Width"/>
+              <Binding Path="#MoreCommitBranches.Bounds.Width"/>
+              <Binding Path="CanShowOtherBranches"/>
+            </MultiBinding>
+          </ScrollViewer.MaxWidth>
+          <v:CommitRefsPresenter MaxWidth="{Binding #PrimaryBranchScroll.MaxWidth}" x:Name="CommitPrimaryBranch" DataContext="{Binding BranchDetails.DisplayCommit}" WrapSingleLabel="True" UseGraphColor="True" Foreground="{DynamicResource Brush.FG1}" VerticalAlignment="Center"/>
+        </ScrollViewer>
+        <TextBlock x:Name="CommitBranchStatus" Text="{Binding BranchDisplayStatus}" IsVisible="{Binding BranchDisplayStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" Foreground="{DynamicResource Brush.FG2}" VerticalAlignment="Center"/>
+      </Grid>
+      <Button x:Name="MoreCommitBranches" Grid.Column="1" Classes="branch_more" MinWidth="30" Height="28" Margin="6,0,0,0" Padding="2" Background="Transparent" BorderThickness="0" VerticalAlignment="Center" IsVisible="{Binding CanShowOtherBranches}" IsEnabled="{Binding CanShowOtherBranches}" Click="OnShowContainingBranches" ToolTip.Tip="{DynamicResource Text.CommitBranches.More}">
+        <Grid ColumnDefinitions="18,Auto" RowDefinitions="14,10">
+          <StackPanel Grid.RowSpan="2" Orientation="Horizontal" Spacing="3" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <Ellipse Width="3" Height="3" Fill="{Binding $parent[Button].Foreground}"/>
+            <Ellipse Width="3" Height="3" Fill="{Binding $parent[Button].Foreground}"/>
+            <Ellipse Width="3" Height="3" Fill="{Binding $parent[Button].Foreground}"/>
+          </StackPanel>
+          <Border x:Name="OtherCommitBranchesBadge" Grid.Column="1" Background="{DynamicResource Brush.Badge}" CornerRadius="7" Padding="2,0" MinWidth="14" Height="14" VerticalAlignment="Top" Margin="2,0,0,0" IsVisible="{Binding CanShowOtherBranches}">
+            <TextBlock Text="{Binding BranchDetails.ExtraCount}" Foreground="{DynamicResource Brush.BadgeFG}" FontWeight="Normal" FontSize="9" LineHeight="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </Border>
+        </Grid>
+      </Button>
+    </Grid>
+  </Border>
+</UserControl>

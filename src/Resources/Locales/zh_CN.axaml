@@ -1388,4 +1388,11 @@
   <x:String x:Key="Text.Diff.Source.Commit" xml:space="preserve">提交 {0}</x:String>
   <x:String x:Key="Text.Preferences.Save.Locked" xml:space="preserve">Git 配置正被其他操作占用，请稍候重试。本次填写内容已保留。</x:String>
   <x:String x:Key="Text.Preferences.AI.ReadApiKeyFromEnv" xml:space="preserve">从环境变量（填写环境变量名）中读取API密钥</x:String>
+  <x:String x:Key="Text.CommitBranches.Loading" xml:space="preserve">正在读取分支信息…</x:String>
+  <x:String x:Key="Text.CommitBranches.Failed" xml:space="preserve">无法读取分支信息，请重新选择提交后重试。</x:String>
+  <x:String x:Key="Text.CommitBranches.Unknown" xml:space="preserve">原始分支未知</x:String>
+  <x:String x:Key="Text.CommitBranches.More" xml:space="preserve">查看所有包含此提交的分支</x:String>
+  <x:String x:Key="Text.CommitBranches.Estimated" xml:space="preserve">推定分支：{0}（根据当前图谱）</x:String>
+  <x:String x:Key="Text.CommitBranches.LocalRecord" xml:space="preserve">本机提交记录：{0}</x:String>
+  <x:String x:Key="Text.Repository.Search.Failed" xml:space="preserve">搜索未完成，请检查输入和仓库状态后重试。已保留上次的结果。</x:String>
 </ResourceDictionary>

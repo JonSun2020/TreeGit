@@ -16,6 +16,24 @@ namespace SourceGit.ViewModels
         public List<BranchTreeNode> Children { get; private set; } = new List<BranchTreeNode>();
         public int Counter { get; set; } = 0;
 
+        public bool IsCommitHighlightActive { get => _commitHighlightActive; private set => SetProperty(ref _commitHighlightActive, value); }
+        public int CommitHighlightLevel { get => _commitHighlightLevel; private set => SetProperty(ref _commitHighlightLevel, value); }
+        public string CommitHighlightNote { get => _commitHighlightNote; private set => SetProperty(ref _commitHighlightNote, value); }
+        public bool CommitHighlightIsInferred { get; private set; }
+
+        public void SetCommitHighlight(bool active, int level, bool inferred)
+        {
+            IsCommitHighlightActive = active;
+            CommitHighlightLevel = level;
+            CommitHighlightIsInferred = level == 2 && inferred;
+            CommitHighlightNote = level == 2 && Backend is Models.Branch branch
+                ? App.Text(inferred ? "CommitBranches.Estimated" : "CommitBranches.LocalRecord", branch.FriendlyName) : string.Empty;
+        }
+
+        private bool _commitHighlightActive;
+        private int _commitHighlightLevel;
+        private string _commitHighlightNote = string.Empty;
+
         public Models.FilterMode FilterMode
         {
             get => _filterMode;

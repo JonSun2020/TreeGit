@@ -185,6 +185,7 @@ namespace SourceGit.Commands
 
         protected async Task<Result> ReadToEndAsync(bool retrySilentFailure = false)
         {
+            CancellationToken.ThrowIfCancellationRequested();
             using var proc = new Process();
             proc.StartInfo = CreateGitStartInfo(true);
 
@@ -197,6 +198,11 @@ namespace SourceGit.Commands
                 return Result.Failed(e.Message);
             }
 
+            using var cancellation = CancellationToken.Register(() =>
+            {
+                try { if (!proc.HasExited) Native.OS.TerminateProcess(proc); }
+                catch (InvalidOperationException) { /* The owned process already exited. */ }
+            });
             var rs = new Result() { IsSuccess = true };
             var output = proc.StandardOutput.ReadToEndAsync(CancellationToken);
             var error = proc.StandardError.ReadToEndAsync(CancellationToken);

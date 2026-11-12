@@ -54,7 +54,15 @@ namespace SourceGit.ViewModels
             set
             {
                 if (_commit != null && value != null && _commit.SHA.Equals(value.SHA, StringComparison.Ordinal))
+                {
+                    if (!ReferenceEquals(_commit, value))
+                    {
+                        _commit = value;
+                        OnPropertyChanged(nameof(Commit));
+                        RefreshBranchDetails(value, _cancellationSource?.Token ?? default);
+                    }
                     return;
+                }
 
                 if (SetProperty(ref _commit, value))
                 {
@@ -475,6 +483,7 @@ namespace SourceGit.ViewModels
 
             if (_commit == null)
             {
+                RefreshBranchDetails(null, default);
                 Changes = [];
                 VisibleChanges = [];
                 ChangeSelection = new(null);
@@ -486,6 +495,8 @@ namespace SourceGit.ViewModels
 
             _cancellationSource = new CancellationTokenSource();
             var token = _cancellationSource.Token;
+
+            RefreshBranchDetails(_commit, token);
 
             var messageRevision = _commit.SHA;
             Task.Run(async () =>

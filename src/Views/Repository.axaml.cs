@@ -127,6 +127,7 @@ namespace SourceGit.Views
             if (_historySelectionSource != null)
             {
                 _historySelectionSource.HistoryBranchSelectionRequested -= OnHistoryBranchSelection;
+                _historySelectionSource.CommitBranchHighlightsRequested -= OnCommitBranchHighlights;
                 _historySelectionSource.PropertyChanged -= OnNavigationPropertyChanged;
             }
             _historySelectionSource = null;
@@ -138,13 +139,18 @@ namespace SourceGit.Views
             if (_historySelectionSource != null)
             {
                 _historySelectionSource.HistoryBranchSelectionRequested -= OnHistoryBranchSelection;
+                _historySelectionSource.CommitBranchHighlightsRequested -= OnCommitBranchHighlights;
                 _historySelectionSource.PropertyChanged -= OnNavigationPropertyChanged;
             }
             _historySelectionSource = IsLoaded ? DataContext as ViewModels.Repository : null;
             if (_historySelectionSource != null)
             {
                 _historySelectionSource.HistoryBranchSelectionRequested += OnHistoryBranchSelection;
+                _historySelectionSource.CommitBranchHighlightsRequested += OnCommitBranchHighlights;
                 _historySelectionSource.PropertyChanged += OnNavigationPropertyChanged;
+                if (_historySelectionSource.Histories?.DetailContext is ViewModels.CommitDetail { BranchDetails: { } details } detail)
+                    _historySelectionSource.SynchronizeCommitBranchSelection(detail.Commit, details);
+                OnCommitBranchHighlights(_historySelectionSource.SidebarCommitBranches);
             }
         }
 
@@ -171,6 +177,17 @@ namespace SourceGit.Views
                 repo.IsRemoteGroupExpanded = true;
                 RemoteBranchTree.Select(branch, false);
             }
+        }
+
+        private void OnCommitBranchHighlights(Models.CommitBranchDetails details)
+        {
+            if (details != null && DataContext is ViewModels.Repository repo)
+            {
+                if (details.Coverage.Branches.Exists(b => b.IsLocal)) repo.IsLocalBranchGroupExpanded = true;
+                if (details.Coverage.Branches.Exists(b => !b.IsLocal)) repo.IsRemoteGroupExpanded = true;
+            }
+            LocalBranchTree.SetCommitHighlights(details);
+            RemoteBranchTree.SetCommitHighlights(details);
         }
 
         private ViewModels.Repository _historySelectionSource;

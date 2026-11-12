@@ -97,6 +97,42 @@ namespace SourceGit.Views
             set => SetAndRaise(TotalCommitsProperty, ref _totalCommits, value);
         }
 
+        public static readonly DirectProperty<HistoriesCommitList, List<Models.Commit>> CommitItemsProperty =
+            AvaloniaProperty.RegisterDirect<HistoriesCommitList, List<Models.Commit>>(
+                nameof(CommitItems), static o => o.CommitItems, static (o, v) => o.CommitItems = v);
+
+        public List<Models.Commit> CommitItems
+        {
+            get => _commitItems;
+            set
+            {
+                if (ReferenceEquals(_commitItems, value)) return;
+                var version = ++_itemsSourceVersion;
+                _restoringItemsSourceSelection = true;
+                var previous = _ignoreSelectionChanged;
+                _ignoreSelectionChanged = true;
+                try
+                {
+                    SetAndRaise(CommitItemsProperty, ref _commitItems, value);
+                    ItemsSource = value;
+                }
+                finally { _ignoreSelectionChanged = previous; }
+                Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    if (version != _itemsSourceVersion) return;
+                    try
+                    {
+                        if (IsLoaded)
+                        {
+                            ApplySelection();
+                            RevealPendingSelection();
+                        }
+                    }
+                    finally { _restoringItemsSourceSelection = false; }
+                }, Avalonia.Threading.DispatcherPriority.Loaded);
+            }
+        }
+
         public static readonly DirectProperty<HistoriesCommitList, List<Models.Commit>> SelectedCommitsProperty =
             AvaloniaProperty.RegisterDirect<HistoriesCommitList, List<Models.Commit>>(
                 nameof(SelectedCommits),
@@ -124,32 +160,125 @@ namespace SourceGit.Views
             HorizontalScrollBarVisibility = ScrollBarVisibility.Auto;
             FrozenColumnCount = 1;
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
+            AddHandler(PointerPressedEvent, OnHistoryRowPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
         }
 
         protected override void OnLoaded(RoutedEventArgs e)
         {
             base.OnLoaded(e);
             ApplySelection();
+            if (SelectedCommits is { Count: 1 }) _pendingSelectionReveal = SelectedCommits[0].SHA;
+            RevealPendingSelection();
+        }
+
+        protected override void OnDataContextChanged(EventArgs e)
+        {
+            if (_navigationContext != null) _navigationContext.CommitRevealRequested -= RequestSelectionReveal;
+            base.OnDataContextChanged(e);
+            _navigationContext = DataContext as ViewModels.Histories;
+            if (_navigationContext != null) _navigationContext.CommitRevealRequested += RequestSelectionReveal;
+        }
+
+        private void RequestSelectionReveal(string sha)
+        {
+#if INTEGRATION_TESTS
+            Automation.UiLayoutProbe.TraceHistory("request-reveal", new { sha, IsLoaded, restoring = _restoringItemsSourceSelection, context = DataContext?.GetType().Name });
+#endif
+            _pendingSelectionReveal = sha;
+            if (IsLoaded && !_restoringItemsSourceSelection) RevealPendingSelection();
         }
 
         protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
         {
             base.OnPropertyChanged(change);
 
-            if (change.Property == SelectedCommitsProperty && IsLoaded && !_ignoreSelectionChanged)
+            if (change.Property == SelectedCommitsProperty && !_ignoreSelectionChanged)
             {
-                if (change.OldValue is List<Models.Commit> { Count: 1 } old &&
-                    change.NewValue is List<Models.Commit> { Count: 1 } cur &&
-                    old[0] == cur[0])
-                    ScrollIntoView(old[0], null);
+                // A new navigation must reveal its row. A watcher replacing the
+                // same SHA with a new model must preserve the user's viewport.
+                if (change.NewValue is List<Models.Commit> { Count: 1 } cur)
+                {
+                    if (change.OldValue is not List<Models.Commit> { Count: 1 } old ||
+                        old[0].SHA != cur[0].SHA)
+                        _pendingSelectionReveal = cur[0].SHA;
+                }
                 else
+                    _pendingSelectionReveal = null;
+
+                if (IsLoaded && !_restoringItemsSourceSelection)
+                {
                     ApplySelection();
+                    RevealPendingSelection();
+                }
+            }
+        }
+
+        private void RevealPendingSelection()
+        {
+            if (_pendingSelectionReveal == null || _commitItems == null) return;
+            var target = _commitItems.Find(c => c.SHA == _pendingSelectionReveal);
+            if (target == null) return;
+#if INTEGRATION_TESTS
+            Automation.UiLayoutProbe.TraceHistory("reveal", new { sha = target.SHA, selected = SelectedCommits is { Count: 1 } ? SelectedCommits[0].SHA : null, IsLoaded });
+#endif
+            _pendingSelectionReveal = null;
+            ScrollIntoView(target, null);
+            // Opening details can change the viewport or reveal its horizontal
+            // scrollbar. Recheck after layout so the selected row stays fully visible.
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                if (IsLoaded && SelectedCommits is { Count: 1 } && SelectedCommits[0].SHA == target.SHA)
+                {
+                    var current = _commitItems?.Find(c => c.SHA == target.SHA);
+                    if (current != null)
+                    {
+                        ScrollIntoView(current, null);
+                        Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                        {
+                            if (IsLoaded && SelectedCommits is { Count: 1 } && SelectedCommits[0].SHA == current.SHA)
+                                RevealCompleteRow(current);
+                        }, Avalonia.Threading.DispatcherPriority.Background);
+                    }
+                }
+            }, Avalonia.Threading.DispatcherPriority.Background);
+        }
+
+        private void RevealCompleteRow(Models.Commit commit, int attempt = 0)
+        {
+            DataGridRow selectedRow = null;
+            ScrollBar verticalBar = null;
+            foreach (var control in this.GetVisualDescendants())
+            {
+                if (control is DataGridRow row && ReferenceEquals(row.DataContext, commit)) selectedRow = row;
+                else if (control is ScrollBar { Name: "PART_VerticalScrollbar" } bar && bar.IsEffectivelyVisible) verticalBar = bar;
+            }
+            if (selectedRow == null || verticalBar == null) return;
+            var rowPosition = selectedRow.TranslatePoint(default, this);
+            var barPosition = verticalBar.TranslatePoint(default, this);
+            if (!rowPosition.HasValue || !barPosition.HasValue) return;
+            var top = rowPosition.Value.Y - barPosition.Value.Y;
+            var overflow = top < 0 ? top : Math.Max(0, top + selectedRow.Bounds.Height - verticalBar.Bounds.Height);
+#if INTEGRATION_TESTS
+            Automation.UiLayoutProbe.TraceHistory("row-overflow", new { sha = commit.SHA, top, height = selectedRow.Bounds.Height, viewport = verticalBar.Bounds.Height, overflow, value = verticalBar.Value });
+#endif
+            if (Math.Abs(overflow) > .5)
+            {
+                // DataGrid's thumb uses estimated row heights. Use its exact
+                // small-scroll path to uncover a partially clipped row.
+                DataGridScrolling.StepVertical(this, overflow > 0);
+                if (attempt < 2)
+                    Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    {
+                        if (IsLoaded && SelectedCommits is { Count: 1 } && SelectedCommits[0].SHA == commit.SHA)
+                            RevealCompleteRow(commit, attempt + 1);
+                    }, Avalonia.Threading.DispatcherPriority.Background);
             }
         }
 
         protected override void OnSelectionChanged(SelectionChangedEventArgs e)
         {
             base.OnSelectionChanged(e);
+            if (_ignoreSelectionChanged || _restoringItemsSourceSelection) return;
 
             if (ItemsSource is not IList<Models.Commit> items)
                 return;
@@ -211,6 +340,47 @@ namespace SourceGit.Views
             }
         }
 
+        private void OnHistoryRowPressed(object sender, PointerPressedEventArgs e)
+        {
+            if (e.Source is not Control source) return;
+            var properties = e.GetCurrentPoint(this).Properties;
+            if (!properties.IsLeftButtonPressed && !properties.IsRightButtonPressed) return;
+            var row = source as DataGridRow ?? source.FindAncestorOfType<DataGridRow>();
+            if (e.Pointer.Type == PointerType.Mouse && source is not DataGridCell && source.FindAncestorOfType<DataGridCell>() == null &&
+                (source is DataGridRowsPresenter || row != null))
+            {
+                // A recycled row's empty surface can hit the presenter instead
+                // of a cell. Forward only to a current, visible cell so the grid
+                // still owns Ctrl/Shift selection and context-menu behavior.
+                var presenter = this.FindDescendantOfType<DataGridRowsPresenter>();
+                if (presenter != null)
+                    foreach (var child in presenter.Children)
+                    {
+                        if (child is not DataGridRow candidate || !candidate.IsEffectivelyVisible || !candidate.IsEffectivelyEnabled || !candidate.IsHitTestVisible ||
+                            candidate.Index < 0 || candidate.Index >= (_commitItems?.Count ?? 0) ||
+                            !ReferenceEquals(candidate.DataContext, _commitItems[candidate.Index]) ||
+                            !new Rect(candidate.Bounds.Size).Contains(e.GetPosition(candidate))) continue;
+                        foreach (var visual in candidate.GetVisualDescendants())
+                        {
+                            if (visual is not DataGridCell cell || !cell.IsEffectivelyVisible || !cell.IsEffectivelyEnabled || !cell.IsHitTestVisible || cell.Content == null ||
+                                !new Rect(cell.Bounds.Size).Contains(e.GetPosition(cell)) ||
+                                (cell.Clip is RectangleGeometry clip && !clip.Rect.Contains(e.GetPosition(cell)))) continue;
+                            var root = TopLevel.GetTopLevel(this);
+                            if (root == null) return;
+                            e.Pointer.Capture(cell);
+                            cell.RaiseEvent(new PointerPressedEventArgs(cell, e.Pointer, root, e.GetPosition(root), e.Timestamp, properties, e.KeyModifiers, e.ClickCount));
+                            e.Handled = true;
+                            return;
+                        }
+                    }
+            }
+            if (e.KeyModifiers.HasFlag(KeyModifiers.Shift) || e.KeyModifiers.HasFlag(OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control)) return;
+            // A watcher can replace the pressed row before mouse-up. Record the
+            // user's target before the grid changes its selection or recycles it.
+            if (row?.DataContext is Models.Commit commit && (properties.IsLeftButtonPressed || !SelectedItems.Contains(commit)))
+                (DataContext as ViewModels.Histories)?.RequestCommitBranchSelection(commit);
+        }
+
         protected override async void OnKeyDown(KeyEventArgs e)
         {
             if (e.KeyModifiers == KeyModifiers.Alt)
@@ -245,30 +415,37 @@ namespace SourceGit.Views
 
             if (!e.Handled)
                 base.OnKeyDown(e);
+            if (e.KeyModifiers == KeyModifiers.None && e.Key is Key.Up or Key.Down or Key.Home or Key.End or Key.PageUp or Key.PageDown)
+                Avalonia.Threading.Dispatcher.UIThread.Post(() => (DataContext as ViewModels.Histories)?.RevealSelectedCommitBranch());
         }
 
         private void ApplySelection()
         {
+            var previous = _ignoreSelectionChanged;
             _ignoreSelectionChanged = true;
-
-            if (SelectedCommits == null || SelectedCommits.Count == 0)
+            try
             {
-                SelectedItems.Clear();
+                var wanted = new HashSet<string>(StringComparer.Ordinal);
+                if (SelectedCommits != null)
+                    foreach (var commit in SelectedCommits) wanted.Add(commit.SHA);
+                if (wanted.Count == 0)
+                    SelectedItems.Clear();
+                else if (_commitItems != null && wanted.Count == _commitItems.Count && _commitItems.TrueForAll(item => wanted.Contains(item.SHA)))
+                    SelectAll();
+                else
+                {
+                    IncrNoSelectionChangeCount();
+                    try
+                    {
+                        SelectedItems.Clear();
+                        if (_commitItems != null)
+                            foreach (var commit in _commitItems)
+                                if (wanted.Contains(commit.SHA)) SelectedItems.Add(commit);
+                    }
+                    finally { DecrNoSelectionChangeCount(); }
+                }
             }
-            else if (SelectedCommits.Count == TotalCommits)
-            {
-                SelectAll();
-            }
-            else
-            {
-                IncrNoSelectionChangeCount();
-                SelectedItems.Clear();
-                foreach (var c in SelectedCommits)
-                    SelectedItems.Add(c);
-                DecrNoSelectionChangeCount();
-            }
-
-            _ignoreSelectionChanged = false;
+            finally { _ignoreSelectionChanged = previous; }
         }
 
         private void IncrNoSelectionChangeCount()
@@ -293,6 +470,11 @@ namespace SourceGit.Views
 
         private bool _ignoreSelectionChanged = false;
         private int _totalCommits = 0;
+        private List<Models.Commit> _commitItems;
+        private int _itemsSourceVersion;
+        private bool _restoringItemsSourceSelection;
+        private string _pendingSelectionReveal;
+        private ViewModels.Histories _navigationContext;
         private List<Models.Commit> _selectedCommits = [];
     }
 
@@ -1017,7 +1199,7 @@ namespace SourceGit.Views
             copy.Items.Add(copySubjects);
             copy.Items.Add(copyMessage);
             menu.Items.Add(copy);
-            return menu;
+            return TrackCommitMenu(menu);
         }
 
         private ContextMenu CreateExtendedContextMenuForSingleCommit(ViewModels.Repository repo, Models.Commit commit)

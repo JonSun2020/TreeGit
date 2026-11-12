@@ -24,9 +24,9 @@
           <CheckBox Content="显示远程分支" Margin="12,0" IsChecked="{Binding ShowRemoteBranches, Mode=TwoWay}"/><ComboBox Width="136" MinWidth="136" Height="22" Padding="6,0" SelectedIndex="{Binding SortMode, Mode=TwoWay}"><ComboBoxItem Content="按日期排序"/><ComboBoxItem Content="按拓扑排序"/></ComboBox><TextBlock Margin="12,0,0,0" Foreground="{DynamicResource Brush.FG2}" MaxWidth="200" ToolTip.Tip="{Binding GraphBranchName}" Text="{Binding GraphBranchName}" FontSize="11" TextTrimming="CharacterEllipsis"/>
         </WrapPanel>
       </Border>
-      <v:HistoriesCommitList Grid.Row="1" x:Name="CommitListContainer" Classes="static_scrollbar" ScrollViewer.AllowAutoHide="False" Background="Transparent" ItemsSource="{Binding Commits, Mode=OneWay}" TotalCommits="{Binding Commits.Count, Mode=OneWay}" SelectedCommits="{Binding SelectedCommits, Mode=TwoWay}" ColumnHeaderHeight="24" RowHeight="19" LayoutUpdated="OnCommitListLayoutUpdated" ContextRequested="OnCommitListContextRequested" DoubleTapped="OnCommitListDoubleTapped">
+      <v:HistoriesCommitList Grid.Row="1" x:Name="CommitListContainer" Classes="static_scrollbar" ScrollViewer.AllowAutoHide="False" Background="Transparent" CommitItems="{Binding Commits, Mode=OneWay}" TotalCommits="{Binding Commits.Count, Mode=OneWay}" SelectedCommits="{Binding SelectedCommits, Mode=TwoWay}" ColumnHeaderHeight="24" RowHeight="19" LayoutUpdated="OnCommitListLayoutUpdated" ContextRequested="OnCommitListContextRequested" DoubleTapped="OnCommitListDoubleTapped">
         <DataGrid.Styles>
-          <Style Selector="DataGridRow"><Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/></Style>
+          <Style Selector="DataGridRow"><Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/></Style>
           <Style Selector="DataGridRow:selected"><Setter Property="Foreground" Value="White"/></Style>
           <Style Selector="DataGridRow:selected /template/ Rectangle#BackgroundRectangle"><Setter Property="Fill" Value="{DynamicResource Brush.Accent}"/><Setter Property="Opacity" Value="1"/></Style><Style Selector="DataGrid.static_scrollbar">
             <Style Selector="^ /template/ DataGridRowsPresenter#PART_RowsPresenter">
@@ -68,6 +68,7 @@
           </Style>
 
           <Style Selector="DataGridCell">
+            <Setter Property="MinHeight" Value="0"/>
             <Setter Property="Foreground" Value="{Binding $parent[DataGridRow].Foreground}"/>
             <Setter Property="Template">
               <ControlTemplate>

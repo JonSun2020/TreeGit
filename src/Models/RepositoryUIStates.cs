@@ -437,7 +437,7 @@ namespace SourceGit.Models
                 HistoryFilters.Remove(filter);
         }
 
-        public string BuildHistoryParams(string gitDir, string graphBranchRef = null, bool onlyGraphBranch = false, bool graphFirstParentOnly = false)
+        public string BuildHistoryParams(string gitDir, string graphBranchRef = null, bool onlyGraphBranch = false, bool graphFirstParentOnly = false, bool includeHead = true)
         {
             var builder = new StringBuilder();
 
@@ -457,13 +457,16 @@ namespace SourceGit.Models
 
             if (onlyGraphBranch)
             {
-                builder.Append((string.IsNullOrEmpty(graphBranchRef) ? "HEAD" : graphBranchRef).Quoted());
+                builder.Append(includeHead ? (string.IsNullOrEmpty(graphBranchRef) ? "HEAD" : graphBranchRef).Quoted() : "--max-count=0 --branches");
                 return builder.ToString();
             }
 
             var mode = GetHistoryFilterMode();
             if (mode == FilterMode.None)
-                builder.Append(ShowRemoteBranchesInHistory ? "--branches --remotes --tags HEAD" : "--branches --tags HEAD");
+            {
+                builder.Append(ShowRemoteBranchesInHistory ? "--branches --remotes --tags" : "--branches --tags");
+                if (includeHead) builder.Append(" HEAD");
+            }
             else if (mode == FilterMode.Included)
                 BuildHistoryParamsForIncluded(builder);
             else

@@ -1315,4 +1315,11 @@
   <x:String x:Key="Text.Diff.Source.Commit" xml:space="preserve">Commit {0}</x:String>
   <x:String x:Key="Text.Preferences.Save.Locked" xml:space="preserve">Another operation is using Git settings. Try again shortly; your entries remain in this window.</x:String>
   <x:String x:Key="Text.Preferences.AI.ReadApiKeyFromEnv" xml:space="preserve">この値を環境変数の名前とし、そこから API キーを読み込む</x:String>
+  <x:String x:Key="Text.CommitBranches.Loading" xml:space="preserve">Loading branch information...</x:String>
+  <x:String x:Key="Text.CommitBranches.Failed" xml:space="preserve">Unable to read branches. Select the commit again to retry.</x:String>
+  <x:String x:Key="Text.CommitBranches.Unknown" xml:space="preserve">Original branch unknown</x:String>
+  <x:String x:Key="Text.CommitBranches.More" xml:space="preserve">Show all branches containing this commit</x:String>
+  <x:String x:Key="Text.CommitBranches.Estimated" xml:space="preserve">Inferred from the current graph: {0}</x:String>
+  <x:String x:Key="Text.CommitBranches.LocalRecord" xml:space="preserve">Local commit record: {0}</x:String>
+  <x:String x:Key="Text.Repository.Search.Failed" xml:space="preserve">Search could not finish. Check the input and repository, then try again. Previous results have been kept.</x:String>
 </ResourceDictionary>

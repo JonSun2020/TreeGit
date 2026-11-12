@@ -59,6 +59,11 @@ namespace SourceGit.Views
                 advanced.Items.Add(item);
             }
             if (advanced.Items.Count > 0) { menu.Items.Add(new Separator()); menu.Items.Add(advanced); }
+            return TrackCommitMenu(menu);
+        }
+
+        private ContextMenu TrackCommitMenu(ContextMenu menu)
+        {
             OpenCommitMenu?.Close(); OpenCommitMenu = menu;
             menu.Closed += (_, _) => { if (OpenCommitMenu == menu) OpenCommitMenu = null; };
             return menu;

@@ -24,11 +24,13 @@ namespace SourceGit.ViewModels
         public List<SearchBranchRow> Rows { get => _rows; private set => SetProperty(ref _rows, value); }
         public bool IsEmpty => Rows.Count == 0;
         public string EmptyText => Commit.SearchBranches.Count == 0 ? "没有已知分支包含此提交" : "没有匹配的分支";
+        public string FooterText { get; }
         public event Action<Models.Branch> BranchChosen;
 
-        public SearchBranches(Models.Commit commit)
+        public SearchBranches(Models.Commit commit, bool copyNames = false)
         {
             Commit = commit;
+            FooterText = copyNames ? "点击分支名可复制。远程分支以最近一次获取为准。" : "远程分支以最近一次获取为准。";
             UpdateRows();
         }
 

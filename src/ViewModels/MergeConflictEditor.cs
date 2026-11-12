@@ -122,6 +122,8 @@ namespace SourceGit.ViewModels
                     Native.OS.LogException(ex);
                     _baseHint = App.Text("MergeConflictEditor.BaseUnavailable");
                 }
+                _oursFinalNewline = ReadFinalNewline(2);
+                _theirsFinalNewline = ReadFinalNewline(3);
                 Load(_expectedBytes);
             }
             catch (Exception ex)
@@ -246,7 +248,7 @@ namespace SourceGit.ViewModels
         private void Load(byte[] bytes, int? codePage = null)
         {
             var codec = Models.MergeConflictTextFile.Read(bytes, codePage);
-            var buffer = new Models.MergeConflictDocument(codec.Text);
+            var buffer = new Models.MergeConflictDocument(codec.Text, _oursFinalNewline, _theirsFinalNewline);
             if (_buffer != null) _buffer.Changed -= OnDocumentChanged;
             _inputCodec = _outputCodec = codec;
             _buffer = buffer;
@@ -257,6 +259,24 @@ namespace SourceGit.ViewModels
             _selectedEncoding = EncodingChoices.First(e => e.CodePage == codec.CodePage);
             foreach (var property in new[] { nameof(ResultDocument), nameof(OursLines), nameof(BaseLines), nameof(TheirsLines), nameof(BaseHint), nameof(ConflictRegions), nameof(MaxLineNumber), nameof(HasComparison), nameof(SelectedEncoding), nameof(TotalConflictCount), nameof(ActiveConflictIndex), nameof(ConflictPosition) }) OnPropertyChanged(property);
             NotifyState();
+        }
+
+        private bool? ReadFinalNewline(int stage)
+        {
+            try
+            {
+                var bytes = new Commands.QueryConflictBase(_repo.FullPath, _expectedIndex, stage).GetResult();
+                if (bytes == null) return null;
+                var text = Models.MergeConflictTextFile.Read(bytes).Text;
+                // A bare trailing CR is content, not enough evidence to remove
+                // the CRLF Git may have formed before its closing marker.
+                return text.EndsWith('\r') ? null : text.EndsWith('\n');
+            }
+            catch (Exception ex)
+            {
+                Native.OS.LogException(ex);
+                return null;
+            }
         }
 
         private void OnDocumentChanged(object sender, EventArgs e)
@@ -275,6 +295,7 @@ namespace SourceGit.ViewModels
         private Models.MergeConflictComparison _comparison;
         private string _baseText;
         private string _baseHint = string.Empty;
+        private bool? _oursFinalNewline, _theirsFinalNewline;
         private Models.MergeConflictTextFile _inputCodec, _outputCodec;
         private Models.MergeConflictEncoding _selectedEncoding;
         private byte[] _expectedBytes;

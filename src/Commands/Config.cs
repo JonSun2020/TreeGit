@@ -6,6 +6,7 @@ namespace SourceGit.Commands
 {
     public class Config : Command
     {
+        public bool ReadSucceeded { get; private set; }
         public Config(string repository, string file = null)
         {
             _file = file;
@@ -25,9 +26,11 @@ namespace SourceGit.Commands
 
         public Dictionary<string, string> ReadAll(bool localOnly)
         {
+            ReadSucceeded = false;
             Args = _file != null ? $"config --file {_file.Quoted()} -l" : localOnly ? "config --local -l" : "config -l";
 
             var output = ReadToEnd();
+            ReadSucceeded = output.IsSuccess;
             var rs = new Dictionary<string, string>();
             if (output.IsSuccess)
             {
@@ -45,10 +48,12 @@ namespace SourceGit.Commands
 
         public async Task<Dictionary<string, string>> ReadAllAsync(string globalOptions = null)
         {
+            ReadSucceeded = false;
             Args = _file != null ? $"config --file {_file.Quoted()} -l" : "config -l";
             if (!string.IsNullOrEmpty(globalOptions)) Args = globalOptions + " " + Args;
 
             var output = await ReadToEndAsync().ConfigureAwait(false);
+            ReadSucceeded = output.IsSuccess;
             var rs = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             if (output.IsSuccess)
             {

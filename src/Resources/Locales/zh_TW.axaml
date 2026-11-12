@@ -1373,4 +1373,11 @@
   <x:String x:Key="Text.Diff.Source.Commit" xml:space="preserve">提交 {0}</x:String>
   <x:String x:Key="Text.Preferences.Save.Locked" xml:space="preserve">Git 設定正被其他操作佔用，請稍後重試。本次填寫內容已保留。</x:String>
   <x:String x:Key="Text.Preferences.AI.ReadApiKeyFromEnv" xml:space="preserve">從環境變數中 (輸入環境變數名稱) 讀取 API 金鑰</x:String>
+  <x:String x:Key="Text.CommitBranches.Loading" xml:space="preserve">Loading branch information...</x:String>
+  <x:String x:Key="Text.CommitBranches.Failed" xml:space="preserve">Unable to read branches. Select the commit again to retry.</x:String>
+  <x:String x:Key="Text.CommitBranches.Unknown" xml:space="preserve">Original branch unknown</x:String>
+  <x:String x:Key="Text.CommitBranches.More" xml:space="preserve">Show all branches containing this commit</x:String>
+  <x:String x:Key="Text.CommitBranches.Estimated" xml:space="preserve">Inferred from the current graph: {0}</x:String>
+  <x:String x:Key="Text.CommitBranches.LocalRecord" xml:space="preserve">Local commit record: {0}</x:String>
+  <x:String x:Key="Text.Repository.Search.Failed" xml:space="preserve">搜尋未完成，請檢查輸入和倉庫狀態後重試。已保留上次的結果。</x:String>
 </ResourceDictionary>

@@ -376,6 +376,47 @@ namespace SourceGit.Views
             BranchesPresenter.SelectedItem = null;
         }
 
+        public void SetCommitHighlights(Models.CommitBranchDetails details)
+        {
+            if (_nodes == null) return;
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            if (details != null)
+                foreach (var branch in details.Coverage.Branches) names.Add(branch.FullName);
+            var expand = new List<ViewModels.BranchTreeNode>();
+            ViewModels.BranchTreeNode primary = null;
+            bool Update(ViewModels.BranchTreeNode node)
+            {
+                var level = node.Backend is Models.Branch branch && names.Contains(branch.FullName)
+                    ? branch.FullName == details?.Primary?.FullName ? 2 : 1 : 0;
+                node.SetCommitHighlight(details != null, level, details?.IsInferred == true);
+                if (level == 2) primary = node;
+                var covered = level > 0;
+                foreach (var child in node.Children) covered |= Update(child);
+                if (covered && node.Children.Count > 0 && !node.IsExpanded) expand.Add(node);
+                return covered;
+            }
+            foreach (var node in _nodes) Update(node);
+            var wasSuppressed = _suppressNavigation;
+            _suppressNavigation = true;
+            try
+            {
+                // Parents precede their children when the post-order list is reversed.
+                for (var i = expand.Count - 1; i >= 0; i--)
+                {
+                    var node = expand[i];
+                    node.IsExpanded = true;
+                    var index = Rows.IndexOf(node);
+                    if (index < 0) continue;
+                    var children = new List<ViewModels.BranchTreeNode>();
+                    MakeRows(children, node.Children, node.Depth + 1);
+                    Rows.InsertRange(index + 1, children);
+                }
+            }
+            finally { _suppressNavigation = wasSuppressed; }
+            if (expand.Count > 0) RaiseEvent(new RoutedEventArgs(RowsChangedEvent));
+            if (primary != null) BranchesPresenter.ScrollIntoView(primary);
+        }
+
         public void ToggleNodeIsExpanded(ViewModels.BranchTreeNode node)
         {
             _disableSelectionChangingEvent = true;
@@ -429,15 +470,37 @@ namespace SourceGit.Views
 
             if (change.Property == NodesProperty)
             {
-                Rows.Clear();
-
-                if (_nodes is { Count: > 0 })
+                // A watcher refresh replaces node instances. Retain the selected
+                // paths without treating the replacement as a user navigation.
+                var selectedPaths = new HashSet<(string Path, System.Type Kind)>();
+                static (string, System.Type) SelectionKey(ViewModels.BranchTreeNode node) => (node.Path, node.Backend?.GetType());
+                if (BranchesPresenter.SelectedItems != null)
+                    foreach (var item in BranchesPresenter.SelectedItems)
+                        if (item is ViewModels.BranchTreeNode node) selectedPaths.Add(SelectionKey(node));
+                bool ExpandSelectionPath(ViewModels.BranchTreeNode node)
                 {
-                    var rows = new List<ViewModels.BranchTreeNode>();
-                    MakeRows(rows, _nodes, 0);
-                    Rows.AddRange(rows);
+                    var contains = selectedPaths.Contains(SelectionKey(node));
+                    foreach (var child in node.Children) contains |= ExpandSelectionPath(child);
+                    if (contains && node.Children.Count > 0) node.IsExpanded = true;
+                    return contains;
                 }
-
+                var previous = _suppressNavigation;
+                _suppressNavigation = true;
+                try
+                {
+                    Rows.Clear();
+                    if (_nodes is { Count: > 0 })
+                    {
+                        foreach (var node in _nodes) ExpandSelectionPath(node);
+                        var rows = new List<ViewModels.BranchTreeNode>();
+                        MakeRows(rows, _nodes, 0);
+                        Rows.AddRange(rows);
+                    }
+                    if (DataContext is ViewModels.Repository repo) SetCommitHighlights(repo.SidebarCommitBranches);
+                    foreach (var row in Rows)
+                        if (selectedPaths.Contains(SelectionKey(row))) BranchesPresenter.SelectedItems?.Add(row);
+                }
+                finally { _suppressNavigation = previous; }
                 RaiseEvent(new RoutedEventArgs(RowsChangedEvent));
             }
             else if (change.Property == IsVisibleProperty)
@@ -448,6 +511,12 @@ namespace SourceGit.Views
 
         private void OnNodePointerPressed(object sender, PointerPressedEventArgs e)
         {
+            if (sender is Border { DataContext: ViewModels.BranchTreeNode { Backend: Models.Branch } } &&
+                DataContext is ViewModels.Repository owner && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            {
+                owner.CancelHistoryNavigation();
+                owner.ClearCommitBranchHighlights();
+            }
             var ctrl = OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control;
             if (e.KeyModifiers.HasFlag(ctrl) || e.KeyModifiers.HasFlag(KeyModifiers.Shift))
                 return;
@@ -493,8 +562,13 @@ namespace SourceGit.Views
             if (selected == null || selected.Count == 0)
                 return;
 
-            if (!_suppressNavigation && selected.Count == 1 && selected[0] is ViewModels.BranchTreeNode { Backend: Models.Branch branch })
-                repo.Histories.NavigateToBranch(branch);
+            if (!_suppressNavigation)
+            {
+                repo.CancelHistoryNavigation();
+                repo.ClearCommitBranchHighlights();
+                if (selected.Count == 1 && selected[0] is ViewModels.BranchTreeNode { Backend: Models.Branch branch })
+                    repo.Histories.NavigateToBranch(branch);
+            }
 
             ViewModels.BranchTreeNode prev = null;
             foreach (var row in Rows)

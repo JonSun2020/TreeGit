@@ -56,6 +56,6 @@
       </ListBox.ItemTemplate>
     </ListBox>
     <TextBlock Grid.Row="2" Text="{Binding EmptyText}" IsVisible="{Binding IsEmpty}" Margin="4,18" Foreground="{DynamicResource Brush.FG2}"/>
-    <TextBlock Grid.Row="3" Text="远程分支以最近一次获取为准。" FontSize="11" Foreground="{DynamicResource Brush.FG2}" Margin="0,4,0,0"/>
+    <TextBlock Grid.Row="3" Text="{Binding FooterText}" TextWrapping="Wrap" FontSize="11" Foreground="{DynamicResource Brush.FG2}" Margin="0,4,0,0"/>
   </Grid>
 </UserControl>

@@ -149,6 +149,15 @@ namespace SourceGit.Views
             set => SetValue(AllowWrapProperty, value);
         }
 
+        public static readonly StyledProperty<bool> WrapSingleLabelProperty =
+            AvaloniaProperty.Register<CommitRefsPresenter, bool>(nameof(WrapSingleLabel));
+
+        public bool WrapSingleLabel
+        {
+            get => GetValue(WrapSingleLabelProperty);
+            set => SetValue(WrapSingleLabelProperty, value);
+        }
+
         public static readonly StyledProperty<bool> ShowTagsProperty =
             AvaloniaProperty.Register<CommitRefsPresenter, bool>(nameof(ShowTags), true);
 
@@ -203,26 +212,27 @@ namespace SourceGit.Views
 
                 var itemX = x;
                 var frameWidth = item.Width;
+                var frameHeight = WrapSingleLabel && _items.Count == 1 ? Math.Max(16, item.Label.Height + 2) : 16;
                 if (item.HasLeadingHeadMarker)
                 {
-                    context.DrawEllipse(null, new Pen(fg, 2), new Rect(x + 2, y + 4.5, 7, 7));
+                    context.DrawEllipse(null, new Pen(fg, 2), new Rect(x + 2, y + (frameHeight - 7) / 2, 7, 7));
                     x += 14;
                     frameWidth -= 14;
                 }
 
-                var entireRect = new RoundedRect(new Rect(x, y, frameWidth, 16), new CornerRadius(4));
+                var entireRect = new RoundedRect(new Rect(x, y, frameWidth, frameHeight), new CornerRadius(4));
                 if (bg != null)
                     context.DrawRectangle(bg, null, entireRect);
 
-                var labelRect = new RoundedRect(new Rect(x + 16, y, frameWidth - 16, 16), new CornerRadius(0, 4, 4, 0));
+                var labelRect = new RoundedRect(new Rect(x + 16, y, frameWidth - 16, frameHeight), new CornerRadius(0, 4, 4, 0));
                 using (context.PushOpacity(.2))
                     context.DrawRectangle(item.Brush, null, labelRect);
 
-                var iconRect = new RoundedRect(new Rect(x, y, 16, 16), new CornerRadius(4, 0, 0, 4));
+                var iconRect = new RoundedRect(new Rect(x, y, 16, frameHeight), new CornerRadius(4, 0, 0, 4));
                 context.DrawRectangle(item.Brush, null, iconRect);
 
-                context.DrawLine(new Pen(item.Brush), new Point(x + 16, y), new Point(x + 16, y + 16));
-                context.DrawText(item.Label, new Point(x + 20, y + 8.0 - item.Label.Height * 0.5));
+                context.DrawLine(new Pen(item.Brush), new Point(x + 16, y), new Point(x + 16, y + frameHeight));
+                context.DrawText(item.Label, new Point(x + 20, y + (frameHeight - item.Label.Height) / 2));
 
                 var rx = x + 20 + item.Label.WidthIncludingTrailingWhitespace + 4;
                 if (item.Remotes.Count > 0)
@@ -271,7 +281,7 @@ namespace SourceGit.Views
                     ? item.Remotes.Count > 0 ? Models.DecoratorType.RemoteBranchHead : Models.DecoratorType.LocalBranchHead
                     : item.Decorator.Type;
                 var icon = CommitRefsIconCache.Instance.GetIcon(iconType);
-                using (context.PushTransform(Matrix.CreateTranslation(x + 3, y + 3)))
+                using (context.PushTransform(Matrix.CreateTranslation(x + 3, y + (frameHeight - 10) / 2)))
                     context.DrawGeometry(null, iconPen, icon);
 
                 x = itemX + item.Width + 4;
@@ -290,6 +300,8 @@ namespace SourceGit.Views
                 change.Property == HasSingleRemoteProperty ||
                 change.Property == BackgroundProperty ||
                 change.Property == ShowTagsProperty)
+                InvalidateMeasure();
+            if (change.Property == WrapSingleLabelProperty)
                 InvalidateMeasure();
         }
 
@@ -367,6 +379,14 @@ namespace SourceGit.Views
                         fg);
                 }
 
+                if (WrapSingleLabel && count == 1)
+                {
+                    // Include the icon, optional HEAD marker, outline and trailing drawing margin.
+                    var textWidth = Math.Max(1, availableSize.Width - 30 - (item.HasLeadingHeadMarker ? 14 : 0));
+                    if (double.IsFinite(textWidth) && item.Label.Width > textWidth)
+                        item.Label.MaxTextWidth = textWidth;
+                    requiredHeight = Math.Max(16, item.Label.Height + 2) + 2;
+                }
                 item.Width = item.Label.Width + 24;
                 if (!string.IsNullOrEmpty(decorator.TrackStatusDescription))
                 {
