@@ -210,7 +210,16 @@ try:
             (out / (object_format + '-selectable-metadata.png')).write_bytes(tool('ui_screenshot'))
             parent_button = layout()['metadataParentButtons'][0]
             tool('ui_layout', action='test_reveal', button='CommitMetadataNavigateParent')
-            parent_button = next(v for v in layout()['metadataParentButtons'] if v['sha'] == parent_button['sha'])
+            previous = None; stable = 0
+            for _ in range(100):
+                current = next(v for v in layout()['metadataParentButtons'] if v['sha'] == parent_button['sha'])
+                geometry = (current['bounds'], current['screen'])
+                stable = stable + 1 if previous == geometry and current['visibleHeight'] >= 18 else 0
+                parent_button = current
+                if stable >= 3: break
+                previous = geometry; time.sleep(.06)
+            assert stable >= 3, 'Parent navigation button did not settle'
+            check(object_format + ': parent navigation stays clear of the metadata scrollbar', parent_button['hit'] not in ('ScrollBar', 'Thumb', 'RepeatButton', 'Track'))
             pointer(parent_button['screen']); until(lambda: state()['detailCommit'] == parent_button['sha'])
             check(object_format + ': the separate parent action still navigates', state()['detailCommit'] == parent_button['sha'])
             check(object_format + ': metadata operations preserve Git HEAD index and worktree', before == (git('rev-parse', 'HEAD'), git('status', '--porcelain'), (repo / '.git/index').read_bytes()))
