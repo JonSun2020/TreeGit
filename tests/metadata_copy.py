@@ -132,6 +132,7 @@ try:
             rpc('initialize', {'protocolVersion': '2025-11-25'}); pid = tool('ui_state')['processId']
             tool('ui_open_repository', repo=str(repo)); tool('ui_window', state='maximized', zoom=1)
             tool('ui_select_commit', repo=str(repo), revision=head)
+            until(lambda: state()['detailCommit'] == head and not state()['detailBranchesLoading'])
             until(lambda: len(layout()['metadataFields']) >= 7 and any(v['name'] == 'CommitMetadataMessage' and '完整正文' in v['text'] for v in layout()['metadataFields']))
             fields = layout()['metadataFields']
             check(object_format + ': full commit hash and ten-character abbreviation have the exact required separator',
@@ -150,6 +151,12 @@ try:
                 pointer(next(v['screen'] for v in menu if v['name'] == 'CopyMetadataAll'))
                 until(lambda: clipboard() == text)
                 check(object_format + ': metadata right-click copies the entire ' + name, clipboard() == text)
+                if name in ('CommitMetadataSHA', 'CommitMetadataParent'):
+                    pointer(current['screen'], right=True)
+                    menu = until(lambda: field(name, text)['menu'])
+                    pointer(next(v['screen'] for v in menu if v['name'] == 'CopyMetadataSHA'))
+                    until(lambda: clipboard() == text.split()[0])
+                    check(object_format + ': full SHA copy excludes the display abbreviation ' + name, clipboard() == text.split()[0])
                 check(object_format + ': selecting metadata keeps the same commit ' + name, state()['detailCommit'] == head)
             sha_row = next(v for v in layout()['metadataFields'] if v['name'] == 'CommitMetadataSHA')
             tool('ui_layout', action='test_reveal', button=sha_row['name'], text=sha_row['text']); time.sleep(.15)
@@ -171,8 +178,13 @@ try:
             check(object_format + ': the separate parent action still navigates', state()['detailCommit'] == parent_button['sha'])
             check(object_format + ': metadata operations preserve Git HEAD index and worktree', before == (git('rev-parse', 'HEAD'), git('status', '--porcelain'), (repo / '.git/index').read_bytes()))
         except BaseException:
-            (out / (object_format + '-failure.json')).write_text(json.dumps({'state': tool('ui_state'), 'layout': layout()}, ensure_ascii=False), encoding='utf-8')
-            (out / (object_format + '-failure.png')).write_bytes(tool('ui_screenshot'))
+            evidence = {}
+            for label, read in [('state', lambda: tool('ui_state')), ('layout', layout)]:
+                try: evidence[label] = read()
+                except Exception as error: evidence[label] = {'error': str(error)}
+            (out / (object_format + '-failure.json')).write_text(json.dumps(evidence, ensure_ascii=False), encoding='utf-8')
+            try: (out / (object_format + '-failure.png')).write_bytes(tool('ui_screenshot'))
+            except Exception: pass
             raise
         finally:
             process.stdin.close()

@@ -22,7 +22,7 @@ namespace SourceGit.Views
             {
                 _model.CloseRequested -= CloseExplicitly;
                 _model.RestartRequested -= OnRestart;
-                _model.BackgroundRequested -= Hide;
+                _model.BackgroundRequested -= MoveToBackground;
                 _model.ForegroundRequested -= OnForeground;
                 _model.PropertyChanged -= OnUpdateStateChanged;
             }
@@ -31,7 +31,7 @@ namespace SourceGit.Views
             {
                 _model.CloseRequested += CloseExplicitly;
                 _model.RestartRequested += OnRestart;
-                _model.BackgroundRequested += Hide;
+                _model.BackgroundRequested += MoveToBackground;
                 _model.ForegroundRequested += OnForeground;
                 _model.PropertyChanged += OnUpdateStateChanged;
             }
@@ -92,6 +92,14 @@ namespace SourceGit.Views
                 _closeChoice.Close();
         }
 
+        private void MoveToBackground()
+        {
+            // A direct MCP background action can arrive while the X choice is open.
+            // Close that modal rather than leaving a hidden, unresolved choice alive.
+            if (_closeChoice is { IsVisible: true }) _closeChoice.Close();
+            Hide();
+        }
+
         private void OnForeground()
         {
             if (_presentationOwner is { PlatformImpl: not null } owner)
@@ -111,7 +119,7 @@ namespace SourceGit.Views
             {
                 _model.CloseRequested -= CloseExplicitly;
                 _model.RestartRequested -= OnRestart;
-                _model.BackgroundRequested -= Hide;
+                _model.BackgroundRequested -= MoveToBackground;
                 _model.ForegroundRequested -= OnForeground;
                 _model.PropertyChanged -= OnUpdateStateChanged;
             }

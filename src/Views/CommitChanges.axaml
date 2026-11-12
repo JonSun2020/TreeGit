@@ -15,7 +15,7 @@
         <StackPanel Spacing="1">
           <Grid ColumnDefinitions="Auto,*">
             <TextBlock FontSize="12" FontWeight="Bold" Text="{DynamicResource Text.CommitChanges.CommitLabel}"/>
-            <SelectableTextBlock Grid.Column="1" x:Name="CommitMetadataSHA" Classes="commit_metadata" FontSize="12" TextWrapping="Wrap" Text="{Binding Commit.SHA, Converter={x:Static c:StringConverters.ToFullAndShortSHA}}" ContextRequested="OnMetadataContextRequested"/>
+            <SelectableTextBlock Grid.Column="1" x:Name="CommitMetadataSHA" Classes="commit_metadata" FontSize="12" TextWrapping="Wrap" Tag="{Binding Commit.SHA}" Text="{Binding Commit.SHA, Converter={x:Static c:StringConverters.ToFullAndShortSHA}}" ContextRequested="OnMetadataContextRequested"/>
           </Grid>
           <Grid ColumnDefinitions="Auto,*" IsVisible="{Binding Commit.Parents, Converter={x:Static c:ListConverters.IsNotNullOrEmpty}}">
             <TextBlock FontSize="12" FontWeight="Bold" Text="{DynamicResource Text.CommitDetail.Info.Parents}"/>
@@ -23,7 +23,7 @@
               <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String">
                 <Grid ColumnDefinitions="*,Auto">
-                  <SelectableTextBlock x:Name="CommitMetadataParent" Classes="commit_metadata" Foreground="{DynamicResource Brush.Link}" FontSize="12" TextWrapping="Wrap" Text="{Binding Converter={x:Static c:StringConverters.ToFullAndShortSHA}}" ContextRequested="OnMetadataContextRequested"/>
+                  <SelectableTextBlock x:Name="CommitMetadataParent" Classes="commit_metadata" Foreground="{DynamicResource Brush.Link}" FontSize="12" TextWrapping="Wrap" Tag="{Binding}" Text="{Binding Converter={x:Static c:StringConverters.ToFullAndShortSHA}}" ContextRequested="OnMetadataContextRequested"/>
                   <Button Grid.Column="1" x:Name="CommitMetadataNavigateParent" Classes="icon_button" Width="20" Height="20" Margin="4,0,0,0" VerticalAlignment="Top" ToolTip.Tip="{DynamicResource Text.CommitChanges.NavigateParent}" Click="OnParentClicked"><Path Width="12" Height="12" Data="{StaticResource Icons.GotoParent}"/></Button>
                 </Grid>
               </DataTemplate></ItemsControl.ItemTemplate>

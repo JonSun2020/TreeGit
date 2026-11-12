@@ -201,7 +201,11 @@ namespace SourceGit.Automation
                     .Select(row => new { sha = ((Models.Commit)row.DataContext).SHA, screen = ScreenPoint(row), bounds = Bounds(row) }).ToArray(),
                 selectedBranchBackground = window.FindResource("Brush.Diff.AddedBG")?.ToString(),
                 primaryBranchBackground = window.FindResource("Brush.Diff.AddedHighlight")?.ToString(),
-                commitBranchHeaders = controls.OfType<Views.CommitBranchHeader>().Where(h => h.IsEffectivelyVisible).Select(h =>
+                commitBranchHeaders = controls.OfType<Views.CommitBranchHeader>().Where(h => h.IsEffectivelyVisible &&
+                    h.GetVisualDescendants().Any(c => c.Name == "OtherCommitBranchesBadge") &&
+                    h.GetVisualDescendants().Any(c => c.Name == "MoreCommitBranches") &&
+                    h.GetVisualDescendants().Any(c => c.Name == "CommitPrimaryBranch") &&
+                    h.GetVisualDescendants().Any(c => c.Name == "PrimaryBranchScroll")).Select(h =>
                 {
                     var badge = h.GetVisualDescendants().OfType<Border>().First(b => b.Name == "OtherCommitBranchesBadge");
                     var button = h.GetVisualDescendants().OfType<Button>().First(b => b.Name == "MoreCommitBranches");

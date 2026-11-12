@@ -47,6 +47,19 @@ jobs:
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         shell: pwsh
         run: python tests/ui_models.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/model-results/fixture" "$env:RUNNER_TEMP/model-results/logic-report.json"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        with:
+          name: TreeGit-update-metadata-core
+          path: |
+            ${{ runner.temp }}/update-flow-results/results.json
+            ${{ runner.temp }}/update-flow-results/*.png
+            ${{ runner.temp }}/startup-update-results/*.json
+            ${{ runner.temp }}/startup-update-results/*.log
+            ${{ runner.temp }}/metadata-copy-results/*.json
+            ${{ runner.temp }}/metadata-copy-results/*.png
+            ${{ runner.temp }}/metadata-copy-results/*.log
+            ${{ runner.temp }}/model-results/*.json
       - name: Recheck history pixel stability and merge operations
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         shell: pwsh
@@ -62,16 +75,8 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: TreeGit-update-metadata-preview
+          name: TreeGit-update-metadata-regressions
           path: |
-            ${{ runner.temp }}/update-flow-results/results.json
-            ${{ runner.temp }}/update-flow-results/*.png
-            ${{ runner.temp }}/startup-update-results/*.json
-            ${{ runner.temp }}/startup-update-results/*.log
-            ${{ runner.temp }}/metadata-copy-results/*.json
-            ${{ runner.temp }}/metadata-copy-results/*.png
-            ${{ runner.temp }}/metadata-copy-results/*.log
-            ${{ runner.temp }}/model-results/*.json
             ${{ runner.temp }}/history-results/*.json
             ${{ runner.temp }}/history-results/*.png
             ${{ runner.temp }}/layout-results/*.json

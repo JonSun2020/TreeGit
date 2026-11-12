@@ -31,7 +31,14 @@ namespace SourceGit.Views
             copy.Click += async (_, ev) => { await this.CopyTextAsync(text.SelectedText); ev.Handled = true; };
             var all = new MenuItem { Name = "CopyMetadataAll", Header = App.Text("CopyAllText") };
             all.Click += async (_, ev) => { await this.CopyTextAsync(text.Text ?? string.Empty); ev.Handled = true; };
-            text.ContextMenu = new ContextMenu { ItemsSource = new[] { copy, all } };
+            var items = new List<MenuItem> { copy, all };
+            if (text.Tag is string sha)
+            {
+                var copySHA = new MenuItem { Name = "CopyMetadataSHA", Header = App.Text("CommitChanges.CopySHA") };
+                copySHA.Click += async (_, ev) => { await this.CopyTextAsync(sha); ev.Handled = true; };
+                items.Add(copySHA);
+            }
+            text.ContextMenu = new ContextMenu { ItemsSource = items };
             text.ContextMenu.Open(text);
         }
 

@@ -124,6 +124,14 @@ namespace SourceGit.Tests
                 Check("malformed configuration is a read failure", failedRead);
                 File.WriteAllText(global, "[user]\nname = Upstream QA\nemail = upstream@example.invalid\n");
                 await Upstream24Checks.RunAsync(root, Check);
+                var shaConverter = (Avalonia.Data.Converters.IValueConverter)Converters.StringConverters.ToFullAndShortSHA;
+                foreach (var length in new[] { 40, 64 })
+                {
+                    var sha = new string('a', length);
+                    Check("metadata SHA retains its full hash and spaced ten-character suffix for length " + length,
+                        (string)shaConverter.Convert(sha, typeof(string), null, System.Globalization.CultureInfo.InvariantCulture) == sha + " [aaaaaaaaaa]");
+                }
+                Check("missing metadata SHA has no synthetic brackets", (string)shaConverter.Convert(null, typeof(string), null, System.Globalization.CultureInfo.InvariantCulture) == string.Empty);
                 var preferences = ViewModels.Preferences.Instance;
                 var savedCheck = preferences.Check4UpdatesOnStartup;
                 var savedTime = preferences.LastCheckUpdateTime;

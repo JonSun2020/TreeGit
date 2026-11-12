@@ -916,6 +916,7 @@ Manually add a branch/tag history filter will disable this feature automatically
   <x:String x:Key="Text.SelfUpdate.Flow.CancelUpdate">Cancel update</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.CloseChoice">The update is not finished. Cancel it or continue in the background? This window will return when the download finishes or fails.</x:String>
   <x:String x:Key="Text.CommitChanges.NavigateParent">Go to this parent commit</x:String>
+  <x:String x:Key="Text.CommitChanges.CopySHA">Copy full SHA</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.checking" xml:space="preserve">Checking for updates</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.available" xml:space="preserve">A new version is available</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.current" xml:space="preserve">You are up to date</x:String>

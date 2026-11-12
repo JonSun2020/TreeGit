@@ -920,6 +920,7 @@
   <x:String x:Key="Text.SelfUpdate.Flow.CancelUpdate">取消更新</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.CloseChoice">更新尚未完成。取消更新，还是转到后台继续？下载完成或失败时会再次提示。</x:String>
   <x:String x:Key="Text.CommitChanges.NavigateParent">定位此父提交</x:String>
+  <x:String x:Key="Text.CommitChanges.CopySHA">复制完整 SHA</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.checking" xml:space="preserve">正在检查更新</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.available" xml:space="preserve">发现新版本</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.current" xml:space="preserve">当前已是最新版本</x:String>

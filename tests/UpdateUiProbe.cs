@@ -206,6 +206,13 @@ namespace SourceGit.Tests
                     server.Slow = false; await finishDownload; await Until(() => Choice() == null);
                     Check("completion during a close choice dismisses that obsolete choice", window.IsVisible && model.State == "ready" && !model.Restarting); window.Close();
 
+                    ResetRoot(); model = NewModel(); window = new Views.SelfUpdate { DataContext = model }; window.Present(desktop.MainWindow); await model.CheckAsync();
+                    var aiDownload = model.ActAsync(); await Until(() => model.Progress > 0);
+                    window.Close(); await Until(() => Choice() != null);
+                    await model.RunInBackgroundAsync(); await Task.Delay(100);
+                    Check("a direct background action closes the outstanding X choice instead of hiding it", !window.IsVisible && !desktop.Windows.OfType<Views.UpdateCloseChoice>().Any());
+                    server.Slow = false; await aiDownload; await Until(() => window.IsVisible && model.State == "ready"); window.Close();
+
                     ResetRoot();
                     var temporaryOwner = new Window { Width = 800, Height = 600 }; temporaryOwner.Show(desktop.MainWindow);
                     model = NewModel(); window = new Views.SelfUpdate { DataContext = model }; window.Present(temporaryOwner); await model.CheckAsync();
