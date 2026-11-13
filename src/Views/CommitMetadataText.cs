@@ -35,6 +35,14 @@ namespace SourceGit.Views
         public IBrush LinkBrush { get => GetValue(LinkBrushProperty); set => SetValue(LinkBrushProperty, value); }
         public string PlainText => _plainText;
         public IReadOnlyList<CommitMetadataSpan> Spans => _spans;
+#if INTEGRATION_TESTS
+        public int MaxRenderedParentLength { get; private set; }
+        protected override void RenderTextLayout(DrawingContext context, Point origin)
+        {
+            base.RenderTextLayout(context, origin);
+            MaxRenderedParentLength = Math.Max(MaxRenderedParentLength, _spans.Where(s => s.IsParent).Select(s => s.Length).DefaultIfEmpty().Max());
+        }
+#endif
         public event EventHandler<CommitParentNavigationEventArgs> ParentNavigationRequested;
         protected override Type StyleKeyOverride => typeof(SelectableTextBlock);
 
@@ -141,6 +149,9 @@ namespace SourceGit.Views
             var start = SelectionStart; var end = SelectionEnd;
             var preserve = _revision == commit?.SHA && Math.Max(start, end) <= next.Length &&
                 Math.Max(start, end) <= _plainText.Length && next.AsSpan(0, Math.Max(start, end)).SequenceEqual(_plainText.AsSpan(0, Math.Max(start, end)));
+#if INTEGRATION_TESTS
+            if (_revision != commit?.SHA) MaxRenderedParentLength = 0;
+#endif
             _revision = commit?.SHA;
             _plainText = next;
             var runs = new List<Inline>(); var position = 0;

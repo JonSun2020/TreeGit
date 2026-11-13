@@ -224,6 +224,8 @@ try:
             tool('ui_open_repository', repo=str(repo)); tool('ui_window', state='maximized', zoom=1)
             tool('ui_select_commit', repo=str(repo), revision=head); ready(head, expected_parents)
             until(lambda: '完整正文' in document()['text'])
+            until(lambda: document()['maxRenderedParentLength'] > 0)
+            check(object_format + ': initial painted parent IDs never flash their complete length', document()['maxRenderedParentLength'] == 10)
             initial = document()['text']
             check(object_format + ': one selectable document contains every label value and full message',
                   {'CommitLabel', 'ParentLabel', 'AuthorLabel', 'DateLabel', 'CommitterLabel', 'CommitSHA', 'ParentSHA', 'Author', 'Date', 'Committer', 'Message'} <= {v['name'] for v in document()['spans']} and '完整正文 / UTF-8 🙂' in initial)
@@ -296,6 +298,8 @@ try:
             tool('ui_select_commit', repo=str(repo), revision=collision['child']); ready(collision['child'], {collision['first']: collision_short})
             parent = span('ParentSHA', collision['first'])
             check(object_format + ': unreachable-object collisions still extend the parent prefix', parent['text'] == collision_short and len(parent['text']) > 10)
+            until(lambda: document()['maxRenderedParentLength'] >= len(collision_short))
+            check(object_format + ': collision expansion never paints a complete parent ID first', document()['maxRenderedParentLength'] == len(collision_short))
             pointer(point(parent['start'] + 2, True)); until(lambda: state()['detailCommit'] == collision['first'])
             check(object_format + ': extended parent links navigate with the full ID', state()['detailCommit'] == collision['first'])
             check(object_format + ': selection and navigation preserve Git HEAD index and worktree', before == (git('rev-parse', 'HEAD'), git('status', '--porcelain'), (repo / '.git/index').read_bytes()))

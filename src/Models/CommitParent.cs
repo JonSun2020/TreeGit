@@ -14,8 +14,9 @@ namespace SourceGit.Models
         public CommitParent(string sha, string shortSHA = null)
         {
             SHA = sha;
-            // A complete ID remains safe if the repository cannot be queried.
-            _shortSHA = shortSHA ?? sha;
+            // Show the normal width immediately while Git checks uniqueness.
+            // Navigation and complete-SHA copying always use SHA, never this prefix.
+            _shortSHA = shortSHA ?? sha[..System.Math.Min(10, sha.Length)];
         }
 
         private string _shortSHA;
