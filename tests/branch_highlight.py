@@ -140,8 +140,9 @@ try:
         click(row)
         verify_priority(until(lambda: scope_ready(False)), theme + ' history click')
         layout = tool('ui_layout')
-        tints = {r['reference']: r['opacity'] for r in layout['sidebarCoverageTints']}
-        check(theme + ' secondary background gains a slight tint', tints['refs/remotes/origin/main'] == .12 and tints['refs/heads/main'] == 0)
+        shades = {r['reference']: r for r in layout['sidebarCommitShades']}
+        check(theme + ' primary selection uses the shared theme color', shades['refs/heads/main']['color'] == layout['primaryBranchBackground'] and shades['refs/heads/main']['opacity'] == 1)
+        check(theme + ' secondary selection uses a lighter related color', layout['selectedBranchBackground'] != layout['primaryBranchBackground'] and shades['refs/remotes/origin/main']['opacity'] == 0)
         (out / (theme + '-history.png')).write_bytes(tool('ui_screenshot'))
         tool('ui_select_view', repo=str(repo), view='search')
         tool('ui_search', repo=str(repo), method='sha', query=target)
@@ -159,7 +160,7 @@ try:
         until(lambda: state()['commitBranchHighlights'] is None and state()['localBranchSelection'] == ['refs/heads/main'])
         layout = tool('ui_layout')
         selected = next(r for r in layout['sidebarManualSelections'] if r['reference'] == 'refs/heads/main')
-        check(theme + ' manual branch selection uses the same dark layers', selected['selected'] and selected['opacity'] == 1 and selected['colors'][-2:] == [layout['selectedBranchBackground'], layout['primaryBranchBackground']])
+        check(theme + ' manual branch selection uses the same primary color', selected['selected'] and selected['opacity'] == 1 and selected['colors'] == [layout['primaryBranchBackground']])
         (out / (theme + '-manual.png')).write_bytes(tool('ui_screenshot'))
     check('all native selections preserve Git HEAD index and working files', before == (git('rev-parse', 'HEAD'), git('ls-files', '--stage'), git('status', '--porcelain')))
 except BaseException:

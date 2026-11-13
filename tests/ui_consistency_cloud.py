@@ -433,7 +433,7 @@ try:
     rendered = {t['reference']: t for t in until(lambda: layout() if len(layout().get('sidebarCommitTints', [])) >= 3 else None)['sidebarCommitTints']}
     painted = layout()
     shades = {t['reference']: t for t in painted['sidebarCommitShades']}
-    check('sidebar uses diff added-line and modified-field backgrounds', all(rendered[r['reference']]['opacity'] == 1 and rendered[r['reference']]['color'] == painted['selectedBranchBackground'] and shades[r['reference']]['color'] == painted['primaryBranchBackground'] and shades[r['reference']]['opacity'] == (1 if r['level'] == 2 else 0) for r in rows))
+    check('sidebar uses theme-related primary and lighter coverage backgrounds', all(rendered[r['reference']]['opacity'] == 1 and rendered[r['reference']]['color'] == painted['selectedBranchBackground'] and shades[r['reference']]['color'] == painted['primaryBranchBackground'] and shades[r['reference']]['opacity'] == (1 if r['level'] == 2 else 0) for r in rows))
     capture('commit-all-branch-highlights')
     select_header(unique)
     current, scope, rows = verify_scope(unique)

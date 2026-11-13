@@ -7,7 +7,7 @@ namespace SourceGit.Converters
     {
         public static readonly FuncValueConverter<int, double> CommitBranchHighlightOpacity = new(v => v > 0 ? 1 : 0);
         public static readonly FuncValueConverter<int, double> CommitBranchPrimaryShadeOpacity = new(v => v == 2 ? 1 : 0);
-        public static readonly FuncValueConverter<int, double> CommitBranchCoverageTintOpacity = new(v => v == 1 ? .12 : 0);
+        public static readonly FuncValueConverter<int, bool> IsPrimaryCommitBranch = new(v => v == 2);
         public static readonly FuncValueConverter<int, bool> IsGreaterThanZero =
             new(v => v > 0);
 

@@ -253,6 +253,9 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/repository_open_failures.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/repository-open-results" "$env:RUNNER_TEMP/git-delay-proxy/GitDelayProxy.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Capture public interface examples using fictional data only
+        shell: pwsh
+        run: python tests/selection_colors.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/public-gallery" --gallery
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -283,6 +286,9 @@ jobs:
             ${{ runner.temp }}/binary-cancellation-results/binary-cancellation-results.json
             ${{ runner.temp }}/cold-sync-results/cold-sync-results.json
             ${{ runner.temp }}/repository-open-results/repository-open-results.json
+            ${{ runner.temp }}/public-gallery/*.json
+            ${{ runner.temp }}/public-gallery/*.png
+            ${{ runner.temp }}/public-gallery/*.log
       - uses: actions/upload-artifact@v4
         with:
           name: TreeGit-Windows-x64
@@ -314,6 +320,9 @@ jobs:
       - name: Verify splitter extremes, native staging buttons and saved layouts
         shell: pwsh
         run: python tests/layout_audit.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/layout-audit-results"
+      - name: Verify selected and deselected unmerged text and theme branch priority
+        shell: pwsh
+        run: python tests/selection_colors.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/selection-colors-results"
       - name: Verify startup update preference and metadata copying
         shell: pwsh
         run: |
@@ -340,3 +349,6 @@ jobs:
             ${{ runner.temp }}/layout-audit-results/*.png
             ${{ runner.temp }}/dialog-audit-results/*.json
             ${{ runner.temp }}/dialog-audit-results/*.png
+            ${{ runner.temp }}/selection-colors-results/*.json
+            ${{ runner.temp }}/selection-colors-results/*.png
+            ${{ runner.temp }}/selection-colors-results/*.log

@@ -204,6 +204,10 @@ namespace SourceGit.Automation
                         minColumns = grid?.ColumnDefinitions.Select(d => d.MinWidth).ToArray(), minRows = grid?.RowDefinitions.Select(d => d.MinHeight).ToArray() };
                 }).ToArray(),
 #if INTEGRATION_TESTS
+                historySelectionText = controls.Where(c => c.Classes.Contains("history_commit_text") && c.IsEffectivelyVisible && c.DataContext is Models.Commit && c.FindAncestorOfType<DataGridRow>() != null)
+                    .Select(c => new { sha = ((Models.Commit)c.DataContext).SHA, merged = ((Models.Commit)c.DataContext).IsMerged,
+                        selected = c.FindAncestorOfType<DataGridRow>().IsSelected, opacity = c.Opacity, type = c.GetType().Name,
+                        foreground = c switch { Views.CommitSubjectPresenter subject => subject.Foreground?.ToString(), TextBlock text => text.Foreground?.ToString(), _ => null } }).ToArray(),
                 metadataDocuments = controls.OfType<Views.CommitMetadataText>().Where(t => t.IsEffectivelyVisible)
                     .Select(t => new { text = t.PlainText, selected = t.SelectedText, start = t.SelectionStart, end = t.SelectionEnd,
                         tooltip = ToolTip.GetTip(t)?.ToString(), tooltipOpen = ToolTip.GetIsOpen(t), cursor = t.Cursor?.ToString(), focused = t.IsFocused,
@@ -221,15 +225,13 @@ namespace SourceGit.Automation
                         bounds = Bounds(b), color = b.Background?.ToString() }).ToArray(),
                 sidebarCommitShades = controls.OfType<Border>().Where(b => b.Name == "CommitPrimaryShade" && b.IsEffectivelyVisible && b.DataContext is ViewModels.BranchTreeNode { Backend: Models.Branch })
                     .Select(b => new { reference = ((Models.Branch)((ViewModels.BranchTreeNode)b.DataContext).Backend).FullName, opacity = b.Opacity, color = b.Background?.ToString() }).ToArray(),
-                sidebarCoverageTints = controls.OfType<Border>().Where(b => b.Name == "CommitCoverageTint" && b.IsEffectivelyVisible && b.DataContext is ViewModels.BranchTreeNode { Backend: Models.Branch })
-                    .Select(b => new { reference = ((Models.Branch)((ViewModels.BranchTreeNode)b.DataContext).Backend).FullName, opacity = b.Opacity, color = b.Background?.ToString() }).ToArray(),
                 sidebarManualSelections = controls.OfType<Grid>().Where(g => g.Name == "CommitBranchSelectedBackground" && g.IsEffectivelyVisible && g.DataContext is ViewModels.BranchTreeNode { Backend: Models.Branch })
                     .Select(g => new { reference = ((Models.Branch)((ViewModels.BranchTreeNode)g.DataContext).Backend).FullName, opacity = g.Opacity,
                         selected = g.FindAncestorOfType<ListBoxItem>()?.IsSelected, colors = g.Children.OfType<Border>().Select(b => b.Background?.ToString()).ToArray() }).ToArray(),
                 searchRows = controls.OfType<DataGridRow>().Where(row => row.IsEffectivelyVisible && row.DataContext is Models.Commit && row.FindAncestorOfType<Views.CommitSearchView>() != null)
                     .Select(row => new { sha = ((Models.Commit)row.DataContext).SHA, screen = ScreenPoint(row), bounds = Bounds(row) }).ToArray(),
-                selectedBranchBackground = window.FindResource("Brush.Diff.AddedBG")?.ToString(),
-                primaryBranchBackground = window.FindResource("Brush.Diff.AddedHighlight")?.ToString(),
+                selectedBranchBackground = window.FindResource("Brush.TreeGit.SelectionSecondary")?.ToString(),
+                primaryBranchBackground = window.FindResource("Brush.TreeGit.Selection")?.ToString(),
                 commitBranchHeaders = controls.OfType<Views.CommitBranchHeader>().Where(h => h.IsEffectivelyVisible &&
                     h.GetVisualDescendants().Any(c => c.Name == "OtherCommitBranchesBadge") &&
                     h.GetVisualDescendants().Any(c => c.Name == "MoreCommitBranches") &&

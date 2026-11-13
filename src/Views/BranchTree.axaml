@@ -15,19 +15,16 @@
             <Grid>
               <Border Name="PART_Background" Background="Transparent" Opacity="0" CornerRadius="{TemplateBinding CornerRadius}" IsVisible="{Binding !IsCommitHighlightActive}"/>
               <Grid x:Name="CommitBranchSelectedBackground" Opacity="0" IsVisible="{Binding !IsCommitHighlightActive}" IsHitTestVisible="False">
-                <Border Background="{DynamicResource Brush.Contents}" CornerRadius="{TemplateBinding CornerRadius}"/>
-                <Border Background="{DynamicResource Brush.Diff.AddedBG}" CornerRadius="{TemplateBinding CornerRadius}"/>
-                <Border Background="{DynamicResource Brush.Diff.AddedHighlight}" CornerRadius="{TemplateBinding CornerRadius}"/>
+                <Border Background="{DynamicResource Brush.TreeGit.Selection}" CornerRadius="{TemplateBinding CornerRadius}"/>
               </Grid>
-              <Border Background="{DynamicResource Brush.Contents}" CornerRadius="{TemplateBinding CornerRadius}"
+              <Border x:Name="CommitCoverageBackground" Background="{DynamicResource Brush.TreeGit.SelectionSecondary}" CornerRadius="{TemplateBinding CornerRadius}"
                       Opacity="{Binding CommitHighlightLevel, Converter={x:Static c:IntConverters.CommitBranchHighlightOpacity}}" IsHitTestVisible="False"/>
-              <Border x:Name="CommitCoverageBackground" Background="{DynamicResource Brush.Diff.AddedBG}" CornerRadius="{TemplateBinding CornerRadius}"
-                      Opacity="{Binding CommitHighlightLevel, Converter={x:Static c:IntConverters.CommitBranchHighlightOpacity}}" IsHitTestVisible="False"/>
-              <Border x:Name="CommitCoverageTint" Background="{DynamicResource Brush.Diff.AddedHighlight}" CornerRadius="{TemplateBinding CornerRadius}"
-                      Opacity="{Binding CommitHighlightLevel, Converter={x:Static c:IntConverters.CommitBranchCoverageTintOpacity}}" IsHitTestVisible="False"/>
-              <Border x:Name="CommitPrimaryShade" Background="{DynamicResource Brush.Diff.AddedHighlight}" CornerRadius="{TemplateBinding CornerRadius}"
+              <Border x:Name="CommitPrimaryShade" Background="{DynamicResource Brush.TreeGit.Selection}" CornerRadius="{TemplateBinding CornerRadius}"
                       Opacity="{Binding CommitHighlightLevel, Converter={x:Static c:IntConverters.CommitBranchPrimaryShadeOpacity}}" IsHitTestVisible="False"/>
               <ContentPresenter ContentTemplate="{TemplateBinding ContentTemplate}" Content="{TemplateBinding Content}" Padding="{TemplateBinding Padding}"
+                                Classes.manual_branch="{Binding !IsCommitHighlightActive}"
+                                Classes.commit_covered="{Binding CommitHighlightLevel, Converter={x:Static c:IntConverters.IsGreaterThanZero}}"
+                                Classes.commit_primary="{Binding CommitHighlightLevel, Converter={x:Static c:IntConverters.IsPrimaryCommitBranch}}"
                                 VerticalContentAlignment="Center" HorizontalContentAlignment="Stretch"/>
             </Grid>
           </ControlTemplate>
@@ -36,6 +33,15 @@
 
       <Style Selector="ListBox.repo_left_content_list ListBoxItem:selected /template/ Grid#CommitBranchSelectedBackground">
         <Setter Property="Opacity" Value="1"/>
+      </Style>
+      <Style Selector="ListBox.repo_left_content_list ListBoxItem:selected /template/ ContentPresenter.manual_branch">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
+      </Style>
+      <Style Selector="ListBox.repo_left_content_list ListBoxItem /template/ ContentPresenter.commit_covered">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionSecondaryForeground}"/>
+      </Style>
+      <Style Selector="ListBox.repo_left_content_list ListBoxItem /template/ ContentPresenter.commit_primary">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
       </Style>
 
       <Style Selector="ListBoxItem:pointerover v|FilterModeSwitchButton">
@@ -117,10 +123,10 @@
             <Grid x:Name="BranchNodeContent" Grid.Column="1" Height="24" Background="Transparent" ColumnDefinitions="18,*,Auto,Auto,Auto" Tapped="OnTappedBranchNode" DoubleTapped="OnDoubleTappedBranchNode">
 
               <!-- Icon -->
-              <v:BranchTreeNodeIcon Grid.Column="0" Width="18" Height="18" VerticalAlignment="Center" IsExpanded="{Binding IsExpanded}"/>
+              <v:BranchTreeNodeIcon Grid.Column="0" Width="18" Height="18" VerticalAlignment="Center" IsExpanded="{Binding IsExpanded}" Foreground="{Binding $parent[ContentPresenter].Foreground}"/>
 
               <!-- Name -->
-              <TextBlock Grid.Column="1" FontWeight="{Binding IsCurrent, Converter={x:Static c:BoolConverters.IsBoldToFontWeight}}" TextTrimming="CharacterEllipsis">
+              <TextBlock Grid.Column="1" Foreground="{Binding $parent[ContentPresenter].Foreground}" FontWeight="{Binding IsCurrent, Converter={x:Static c:BoolConverters.IsBoldToFontWeight}}" TextTrimming="CharacterEllipsis">
                 <Run Text="{Binding Name}"/>
                 <Run Text="{Binding BranchesCount}" Foreground="{DynamicResource Brush.FG2}"/>
               </TextBlock>

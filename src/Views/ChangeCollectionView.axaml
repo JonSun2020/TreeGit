@@ -26,6 +26,20 @@
       <Setter Property="Margin" Value="0"/>
       <Setter Property="Padding" Value="0"/>
     </Style>
+    <Style Selector="ListBoxItem:selected">
+      <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.Selection}"/>
+      <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
+    </Style>
+    <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.Selection}"/>
+      <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
+    </Style>
+    <Style Selector="TextBlock.change_directory">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.FG2}"/>
+    </Style>
+    <Style Selector="ListBoxItem:selected TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
+    </Style>
   </UserControl.Styles>
 
   <UserControl.DataTemplates>
@@ -106,7 +120,7 @@
                          Margin="4,0,0,0"/>
 
               <TextBlock Text="{Binding Path, Converter={x:Static c:PathConverters.PureDirectoryName}}"
-                         Foreground="{DynamicResource Brush.FG2}"
+                         Classes="change_directory"
                          Margin="4,0,0,0"/>
             </StackPanel>
           </DataTemplate>

@@ -113,9 +113,9 @@
     <DataGrid x:Name="SearchResults" Grid.Row="1" ItemsSource="{Binding Results}" SelectedItem="{Binding Selected, Mode=TwoWay}" AutoGenerateColumns="False" IsReadOnly="True" CanUserResizeColumns="True" CanUserSortColumns="False" HeadersVisibility="Column" ColumnHeaderHeight="24" RowHeight="21" GridLinesVisibility="None" SelectionMode="Single" BorderThickness="0" Background="{DynamicResource Brush.Contents}" ContextRequested="OnResultsContextRequested" DoubleTapped="OnResultDoubleTapped" KeyDown="OnResultKeyDown">
       <DataGrid.Styles>
         <Style Selector="DataGridRow"><Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/></Style>
-        <Style Selector="DataGridRow:selected"><Setter Property="Foreground" Value="White"/></Style>
-        <Style Selector="DataGridRow:selected TextBlock, DataGridRow:selected v|CommitTimeTextBlock"><Setter Property="Foreground" Value="White"/></Style>
-        <Style Selector="DataGridRow:selected /template/ Rectangle#BackgroundRectangle"><Setter Property="Fill" Value="{DynamicResource Brush.Accent}"/><Setter Property="Opacity" Value="1"/></Style>
+        <Style Selector="DataGridRow:selected"><Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/></Style>
+        <Style Selector="DataGridRow:selected TextBlock, DataGridRow:selected v|CommitTimeTextBlock"><Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/></Style>
+        <Style Selector="DataGridRow:selected /template/ Rectangle#BackgroundRectangle"><Setter Property="Fill" Value="{DynamicResource Brush.TreeGit.Selection}"/><Setter Property="Opacity" Value="1"/></Style>
         <Style Selector="DataGridCell"><Setter Property="MinHeight" Value="0"/><Setter Property="Foreground" Value="{Binding $parent[DataGridRow].Foreground}"/></Style>
         <Style Selector="DataGridColumnHeader"><Setter Property="HorizontalContentAlignment" Value="Center"/></Style>
       </DataGrid.Styles>

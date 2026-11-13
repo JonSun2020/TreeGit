@@ -75,7 +75,7 @@ namespace SourceGit.Views
         {
             var marker = new Ellipse { Width = 9, Height = 9, StrokeThickness = 2,
                 HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(2, 0, 0, 0) };
-            marker.Bind(Ellipse.StrokeProperty, new DynamicResourceExtension("Brush.FG1"));
+            marker.Bind(Ellipse.StrokeProperty, this.GetObservable(ForegroundProperty));
             return marker;
         }
 
@@ -96,6 +96,8 @@ namespace SourceGit.Views
 
             if (fill != null)
                 path.Fill = fill;
+            else
+                path.Bind(Path.FillProperty, this.GetObservable(ForegroundProperty));
 
             Content = path;
         }

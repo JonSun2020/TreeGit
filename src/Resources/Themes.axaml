@@ -6,6 +6,10 @@
       <Color x:Key="SystemListLowColor">#FFDDECEF</Color>
       <Color x:Key="Color.TreeGit.Chrome">#FF16836D</Color>
       <Color x:Key="Color.TreeGit.ParentSHA">#FF16836D</Color>
+      <Color x:Key="Color.TreeGit.Selection">#FFA7E1A7</Color>
+      <Color x:Key="Color.TreeGit.SelectionSecondary">#FFD9F0DA</Color>
+      <Color x:Key="Color.TreeGit.SelectionForeground">#FF123E34</Color>
+      <Color x:Key="Color.TreeGit.SelectionSecondaryForeground">#FF184B41</Color>
       <Color x:Key="Color.TreeGit.ChromeHover">#FF126D5B</Color>
       <Color x:Key="Color.TreeGit.ToolbarIconTop">#FF50929B</Color>
       <Color x:Key="Color.TreeGit.ToolbarIconBottom">#FF195F69</Color>
@@ -48,6 +52,10 @@
       <Color x:Key="SystemListLowColor">#FF234249</Color>
       <Color x:Key="Color.TreeGit.Chrome">#FF1F1F1F</Color>
       <Color x:Key="Color.TreeGit.ParentSHA">#FF16836D</Color>
+      <Color x:Key="Color.TreeGit.Selection">#FF31743A</Color>
+      <Color x:Key="Color.TreeGit.SelectionSecondary">#FF6F9F76</Color>
+      <Color x:Key="Color.TreeGit.SelectionForeground">#FFFFFFFF</Color>
+      <Color x:Key="Color.TreeGit.SelectionSecondaryForeground">#FF102D16</Color>
       <Color x:Key="Color.TreeGit.ChromeHover">#FF333333</Color>
       <Color x:Key="Color.TreeGit.ToolbarIconTop">#FF93D1D8</Color>
       <Color x:Key="Color.TreeGit.ToolbarIconBottom">#FF5AAAB5</Color>
@@ -89,6 +97,10 @@
       <Color x:Key="SystemListLowColor">#FFDEEBFF</Color>
       <Color x:Key="Color.TreeGit.Chrome">#FF0747A6</Color>
       <Color x:Key="Color.TreeGit.ParentSHA">#FF0747A6</Color>
+      <Color x:Key="Color.TreeGit.Selection">#FF0078D7</Color>
+      <Color x:Key="Color.TreeGit.SelectionSecondary">#FFC6DDF1</Color>
+      <Color x:Key="Color.TreeGit.SelectionForeground">#FFFFFFFF</Color>
+      <Color x:Key="Color.TreeGit.SelectionSecondaryForeground">#FF193F77</Color>
       <Color x:Key="Color.TreeGit.ChromeHover">#FF0052CC</Color>
       <Color x:Key="Color.TreeGit.ToolbarIconTop">#FF709FE3</Color>
       <Color x:Key="Color.TreeGit.ToolbarIconBottom">#FF0052CC</Color>
@@ -130,6 +142,10 @@
 
   <SolidColorBrush x:Key="Brush.TreeGit.Chrome" Color="{DynamicResource Color.TreeGit.Chrome}"/>
   <SolidColorBrush x:Key="Brush.TreeGit.ParentSHA" Color="{DynamicResource Color.TreeGit.ParentSHA}"/>
+  <SolidColorBrush x:Key="Brush.TreeGit.Selection" Color="{DynamicResource Color.TreeGit.Selection}"/>
+  <SolidColorBrush x:Key="Brush.TreeGit.SelectionForeground" Color="{DynamicResource Color.TreeGit.SelectionForeground}"/>
+  <SolidColorBrush x:Key="Brush.TreeGit.SelectionSecondary" Color="{DynamicResource Color.TreeGit.SelectionSecondary}"/>
+  <SolidColorBrush x:Key="Brush.TreeGit.SelectionSecondaryForeground" Color="{DynamicResource Color.TreeGit.SelectionSecondaryForeground}"/>
   <SolidColorBrush x:Key="Brush.TreeGit.ChromeHover" Color="{DynamicResource Color.TreeGit.ChromeHover}"/>
   <SolidColorBrush x:Key="Brush.TreeGit.ToolbarLabel" Color="{DynamicResource Color.TreeGit.ToolbarLabel}"/>
   <LinearGradientBrush x:Key="Brush.TreeGit.ToolbarIcon" StartPoint="0%,0%" EndPoint="0%,100%">
