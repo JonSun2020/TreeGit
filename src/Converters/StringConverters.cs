@@ -72,8 +72,8 @@ namespace SourceGit.Converters
         public static readonly FuncValueConverter<string, string> ToShortSHA =
             new FuncValueConverter<string, string>(v => v == null ? string.Empty : (v.Length > 10 ? v.Substring(0, 10) : v));
 
-        public static readonly FuncValueConverter<string, string> ToFullAndShortSHA =
-            new(v => string.IsNullOrEmpty(v) ? string.Empty : $"{v} [{(v.Length > 10 ? v[..10] : v)}]");
+        public static string FormatFullAndShortSHA(string value) => string.IsNullOrEmpty(value) ? string.Empty : $"{value} [{(value.Length > 10 ? value[..10] : value)}]";
+        public static readonly FuncValueConverter<string, string> ToFullAndShortSHA = new(FormatFullAndShortSHA);
 
         public static readonly FuncValueConverter<Models.User, string> ToCommitUser = new(v => v?.ToString() ?? string.Empty);
 

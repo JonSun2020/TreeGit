@@ -1,9 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
-<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:c="using:SourceGit.Converters" xmlns:vm="using:SourceGit.ViewModels" xmlns:m="using:SourceGit.Models" xmlns:v="using:SourceGit.Views" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SourceGit.Views.CommitChanges" x:DataType="vm:CommitDetail">
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:c="using:SourceGit.Converters" xmlns:vm="using:SourceGit.ViewModels" xmlns:v="using:SourceGit.Views" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SourceGit.Views.CommitChanges" x:DataType="vm:CommitDetail">
   <UserControl.Styles>
-    <!-- Keep the whole metadata field selectable, including short lines and
-         the whitespace following a wrapped SHA. -->
-    <Style Selector="SelectableTextBlock.commit_metadata"><Setter Property="Background" Value="Transparent"/></Style>
     <Style Selector="ScrollViewer#CommitMetadataScroll /template/ ScrollContentPresenter#PART_ContentPresenter">
       <Setter Property="Grid.ColumnSpan" Value="1"/>
       <Setter Property="Grid.RowSpan" Value="1"/>
@@ -21,30 +18,7 @@
         <Grid RowDefinitions="Auto,*">
           <v:CommitBranchHeader Margin="0,0,0,4"/>
         <ScrollViewer x:Name="CommitMetadataScroll" Grid.Row="1" AllowAutoHide="False" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-        <StackPanel Spacing="1">
-          <Grid ColumnDefinitions="Auto,*">
-            <TextBlock FontSize="12" FontWeight="Bold" Text="{DynamicResource Text.CommitChanges.CommitLabel}"/>
-            <SelectableTextBlock Grid.Column="1" x:Name="CommitMetadataSHA" Classes="commit_metadata" FontSize="12" TextWrapping="Wrap" Tag="{Binding Commit.SHA}" Text="{Binding Commit.SHA, Converter={x:Static c:StringConverters.ToFullAndShortSHA}}" ContextRequested="OnMetadataContextRequested"/>
-          </Grid>
-          <Grid ColumnDefinitions="Auto,*" IsVisible="{Binding Commit.Parents, Converter={x:Static c:ListConverters.IsNotNullOrEmpty}}">
-            <TextBlock FontSize="12" FontWeight="Bold" Text="{DynamicResource Text.CommitDetail.Info.Parents}"/>
-            <ItemsControl Grid.Column="1" Margin="6,0,0,0" ItemsSource="{Binding ParentRevisions}">
-              <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel>
-              <ItemsControl.ItemTemplate><DataTemplate x:DataType="m:CommitParent">
-                <SelectableTextBlock x:Name="CommitMetadataParent" Classes="commit_metadata" Foreground="{DynamicResource Brush.Link}" FontSize="12" TextWrapping="Wrap" HorizontalAlignment="Left" Cursor="Hand" TextDecorations="Underline" Tag="{Binding SHA}" Text="{Binding ShortSHA}" ToolTip.Tip="{Binding SHA}" ToolTip.ShowDelay="0" Tapped="OnParentTapped" ContextRequested="OnMetadataContextRequested"/>
-              </DataTemplate></ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </Grid>
-          <Grid ColumnDefinitions="Auto,*"><TextBlock FontSize="12" FontWeight="Bold" Text="{DynamicResource Text.CommitChanges.AuthorLabel}"/><SelectableTextBlock Grid.Column="1" x:Name="CommitMetadataAuthor" Classes="commit_metadata" FontSize="12" TextWrapping="Wrap" Text="{Binding Commit.Author, Converter={x:Static c:StringConverters.ToCommitUser}}" ContextRequested="OnMetadataContextRequested"/></Grid>
-          <Grid ColumnDefinitions="Auto,*"><TextBlock FontSize="12" FontWeight="Bold" Text="{DynamicResource Text.CommitChanges.DateLabel}"/>
-            <SelectableTextBlock Grid.Column="1" x:Name="CommitMetadataDate" Classes="commit_metadata" FontSize="12" TextWrapping="Wrap" ContextRequested="OnMetadataContextRequested">
-              <SelectableTextBlock.Text><MultiBinding Converter="{x:Static c:StringConverters.ToCommitDateTime}"><Binding Path="Commit.CommitterTime"/><Binding Source="{x:Static vm:Preferences.Instance}" Path="DateTimeFormat"/><Binding Source="{x:Static vm:Preferences.Instance}" Path="Use24Hours"/></MultiBinding></SelectableTextBlock.Text>
-            </SelectableTextBlock>
-          </Grid>
-          <Grid ColumnDefinitions="Auto,*"><TextBlock FontSize="12" FontWeight="Bold" Text="{DynamicResource Text.CommitDetail.Info.Committer}"/><SelectableTextBlock Grid.Column="1" x:Name="CommitMetadataCommitter" Classes="commit_metadata" Margin="6,0,0,0" FontSize="12" TextWrapping="Wrap" Text="{Binding Commit.Committer, Converter={x:Static c:StringConverters.ToCommitUser}}" ContextRequested="OnMetadataContextRequested"/></Grid>
-          <SelectableTextBlock x:Name="CommitMetadataMessage" Classes="commit_metadata" Text="{Binding DisplayMessage}" Margin="0,3,0,1" TextWrapping="Wrap" ContextRequested="OnMetadataContextRequested"/>
-
-        </StackPanel>
+          <v:CommitMetadataText x:Name="CommitMetadataText" Background="Transparent" Foreground="{DynamicResource Brush.FG1}" LinkBrush="{DynamicResource Brush.Link}" FontSize="12" TextWrapping="Wrap" Cursor="Ibeam" ToolTip.ShowDelay="0" ToolTip.Placement="Pointer" ToolTip.HorizontalOffset="8" ToolTip.VerticalOffset="16" ParentNavigationRequested="OnParentNavigationRequested"/>
         </ScrollViewer>
         </Grid>
       </Border>

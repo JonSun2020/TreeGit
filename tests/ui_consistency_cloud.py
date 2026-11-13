@@ -132,7 +132,8 @@ def set_control(name, value=None, text=None, active=False):
 
 
 def labels(active=False):
-    return '\n'.join(item['text'] for item in layout(active)['labels'])
+    state = layout(active)
+    return '\n'.join([item['text'] for item in state['labels']] + [item['text'] for item in state.get('metadataDocuments', [])])
 
 
 def capture(name, active=False):
@@ -212,15 +213,15 @@ try:
     time.sleep(.5)  # Allow the text change to complete its normal layout pass.
     (out / 'complete-commit-layout.json').write_text(json.dumps(layout(), ensure_ascii=False), encoding='utf-8')
     capture('complete-commit-detail')
-    message = next(t for t in layout()['labels'] if '完整正文验证' in t['text'])
+    message = next(s for s in layout()['metadataDocuments'][0]['spans'] if s['name'] == 'Message')
     metadata_scroll = next(s for s in layout()['scrolls'] if s['name'] == 'CommitMetadataScroll')
     header_before = layout()['commitBranchHeaders'][0]['bounds']
     client.tool('ui_layout', {'action': 'scroll', 'scroller': metadata_scroll['index'], 'dy': metadata_scroll['extent']['height']})
-    until(lambda: next(t for t in layout()['labels'] if '完整正文验证' in t['text'])['visibleHeight'] >= message['bounds']['height'] * .9)
+    until(lambda: client.tool('ui_layout', {'action': 'test_metadata', 'value': message['start'] + message['length'] - 1})['visible'])
     check('the complete commit message remains readable in the metadata scroll area', True)
     check('reading a long message keeps the branch header fixed and visible', layout()['commitBranchHeaders'][0]['bounds'] == header_before)
     client.tool('ui_layout', {'action': 'scroll', 'scroller': metadata_scroll['index'], 'dy': 0})
-    check('history diff clearly identifies the parent commit', '父提交' in labels())
+    check('history diff clearly identifies the parent commit', '父级：' in labels())
     capture('complete-commit-detail')
     before_popup = git('status', '--porcelain=v1'), git('show-ref')
     for action in ['create_branch', 'pull_dialog', 'push_dialog', 'stash_dialog', 'reset_dialog']:

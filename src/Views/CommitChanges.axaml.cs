@@ -17,30 +17,9 @@ namespace SourceGit.Views
             InitializeComponent();
         }
 
-        private void OnParentTapped(object sender, TappedEventArgs e)
+        private void OnParentNavigationRequested(object sender, CommitParentNavigationEventArgs e)
         {
-            if (sender is not SelectableTextBlock { Tag: string sha } text || text.SelectionStart != text.SelectionEnd) return;
-            if (DataContext is ViewModels.CommitDetail vm) vm.NavigateTo(sha);
-            e.Handled = true;
-        }
-
-        private void OnMetadataContextRequested(object sender, ContextRequestedEventArgs e)
-        {
-            if (sender is not SelectableTextBlock text) return;
-            e.Handled = true;
-            var copy = new MenuItem { Name = "CopyMetadataSelection", Header = App.Text("Copy"), IsEnabled = text.CanCopy, InputGesture = TextBox.CopyGesture };
-            copy.Click += async (_, ev) => { await this.CopyTextAsync(text.SelectedText); ev.Handled = true; };
-            var all = new MenuItem { Name = "CopyMetadataAll", Header = App.Text("CopyAllText") };
-            all.Click += async (_, ev) => { await this.CopyTextAsync(text.Text ?? string.Empty); ev.Handled = true; };
-            var items = new List<MenuItem> { copy, all };
-            if (text.Tag is string sha)
-            {
-                var copySHA = new MenuItem { Name = "CopyMetadataSHA", Header = App.Text("CommitChanges.CopySHA") };
-                copySHA.Click += async (_, ev) => { await this.CopyTextAsync(sha); ev.Handled = true; };
-                items.Add(copySHA);
-            }
-            text.ContextMenu = new ContextMenu { ItemsSource = items };
-            text.ContextMenu.Open(text);
+            if (DataContext is ViewModels.CommitDetail vm) vm.NavigateTo(e.SHA);
         }
 
         private void OnChangeContextRequested(object sender, ContextRequestedEventArgs e)
