@@ -183,6 +183,7 @@ try:
             previous = None; stable = 0
             for _ in range(100):
                 result = tool('ui_layout', action='test_metadata', value=index)
+                assert result['hit'] == index, ('No physical caret hit', result)
                 stable = stable + 1 if result['visible'] and result['screen'] == previous else 0
                 if stable >= 3: return result['screen']
                 previous = result['screen']; time.sleep(.05)
@@ -204,7 +205,11 @@ try:
         def select(start, end, label):
             point(start, True); point(end, True)
             expected = substring(document()['text'], start, end)
-            clear_clipboard(); drag(point(start), point(end))
+            first = point(start); last = point(end)
+            clear_clipboard(); drag(first, last)
+            if document()['selected'] != expected:
+                (out / (object_format + '-drag-failure.json')).write_text(json.dumps({'expected': expected, 'start': start, 'end': end, 'first': first, 'last': last,
+                    'after': tool('ui_layout', action='test_metadata', value=end), 'document': document()}, ensure_ascii=False, indent=2), encoding='utf-8')
             check(object_format + ': ' + label + ' selects the exact text', document()['selected'] == expected and state()['detailCommit'] == head)
             key(0x43, ctrl=True); until(lambda: clipboard() == expected)
             check(object_format + ': ' + label + ' copies the actual selected range', clipboard() == expected)

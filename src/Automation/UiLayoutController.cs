@@ -65,9 +65,19 @@ namespace SourceGit.Automation
                 if (args.TryGetProperty("text", out var mode) && mode.GetString() == "reveal")
                     document.BringIntoView(new Rect(rect.X + document.Padding.Left, rect.Y + document.Padding.Top, Math.Max(1, rect.Width), rect.Height));
                 var point = document.PointToScreen(local);
+                var pixelHit = document.TextLayout.HitTestPoint(document.PointToClient(point) - new Point(document.Padding.Left, document.Padding.Top)).TextPosition;
+                // A rounded physical pixel at a formatting boundary can be on
+                // the previous character. Target a real hit for this caret.
+                for (var step = 1; pixelHit != index && step <= 24; step++)
+                {
+                    var delta = (step % 2 == 1 ? 1 : -1) * ((step + 1) / 2);
+                    point = document.PointToScreen(new Point(local.X + delta, local.Y));
+                    pixelHit = document.TextLayout.HitTestPoint(document.PointToClient(point) - new Point(document.Padding.Left, document.Padding.Top)).TextPosition;
+                }
+                local = document.PointToClient(point);
                 var visible = document.GetVisualAncestors().OfType<ScrollViewer>().All(scroll =>
                     document.TranslatePoint(local, scroll) is { } relative && relative.X >= 0 && relative.Y >= 0 && relative.X < scroll.Bounds.Width && relative.Y < scroll.Bounds.Height);
-                return new { index, screen = new { x = point.X, y = point.Y }, visible };
+                return new { index, hit = pixelHit, screen = new { x = point.X, y = point.Y }, visible };
             }
             else if (action == "test_reveal")
             {
@@ -197,6 +207,7 @@ namespace SourceGit.Automation
                 metadataDocuments = controls.OfType<Views.CommitMetadataText>().Where(t => t.IsEffectivelyVisible)
                     .Select(t => new { text = t.PlainText, selected = t.SelectedText, start = t.SelectionStart, end = t.SelectionEnd,
                         tooltip = ToolTip.GetTip(t)?.ToString(), tooltipOpen = ToolTip.GetIsOpen(t), cursor = t.Cursor?.ToString(), focused = t.IsFocused,
+                        fontSize = t.FontSize, runFontSizes = t.Inlines.OfType<Avalonia.Controls.Documents.Run>().Select(r => r.FontSize).Distinct().ToArray(),
                         bounds = Bounds(t), visibleHeight = VisibleHeight(t), spans = t.Spans.Select(s => new { name = s.Name, text = s.Text, start = s.Start, length = s.Length, sha = s.SHA, parent = s.IsParent, label = s.IsLabel }).ToArray(),
                         viewport = t.FindAncestorOfType<ScrollViewer>() is { } scroll ? new { bounds = Bounds(scroll), screen = ScreenPoint(scroll) } : null,
                         menu = t.ContextMenu is { IsOpen: true } menu ? menu.Items.OfType<MenuItem>().Select(i => new { name = i.Name, text = i.Header?.ToString(), enabled = i.IsEnabled, screen = ScreenPoint(i) }).ToArray() : null }).ToArray(),
