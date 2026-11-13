@@ -177,7 +177,7 @@ namespace SourceGit.Views
             if (e.Pointer.Captured == this && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
             {
                 var delta = e.GetPosition(this) - _pressPosition;
-                if (delta.Length > 3) _dragged = true;
+                if (delta.X * delta.X + delta.Y * delta.Y > 9) _dragged = true;
                 _dragEvent = e; _scrollTimer.Start();
                 SetHoveredParent(null);
             }
