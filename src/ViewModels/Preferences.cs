@@ -511,17 +511,7 @@ namespace SourceGit.ViewModels
 
         public bool ShouldCheck4UpdateOnStartup()
         {
-            if (!_check4UpdatesOnStartup)
-                return false;
-
-            var lastCheck = DateTime.UnixEpoch.AddSeconds(LastCheckUpdateTime).ToLocalTime();
-            var now = DateTime.Now;
-
-            if (lastCheck.Year == now.Year && lastCheck.Month == now.Month && lastCheck.Day == now.Day)
-                return false;
-
-            LastCheckUpdateTime = now.Subtract(DateTime.UnixEpoch.ToLocalTime()).TotalSeconds;
-            return true;
+            return _check4UpdatesOnStartup;
         }
 
         public Workspace GetActiveWorkspace()

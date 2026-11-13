@@ -54,6 +54,39 @@ namespace SourceGit.Automation
                     args.TryGetProperty("dy", out _) ? Change(args, "dy") : scroller.Offset.Y);
             }
 #if INTEGRATION_TESTS
+            else if (action == "test_metadata")
+            {
+                if (Environment.GetEnvironmentVariable("CI") != "true") throw new InvalidOperationException("An owned CI fixture is required.");
+                var document = window.GetVisualDescendants().OfType<Views.CommitMetadataText>().Single(d => d.IsEffectivelyVisible);
+                var index = args.GetProperty("value").GetInt32();
+                if (index < 0 || index > document.PlainText.Length) throw new ArgumentOutOfRangeException(nameof(index));
+                var rect = document.TextLayout.HitTestTextPosition(index);
+                var local = new Point(rect.X + document.Padding.Left + .5, rect.Y + document.Padding.Top + rect.Height / 2);
+                if (args.TryGetProperty("text", out var mode) && mode.GetString() == "reveal")
+                    document.BringIntoView(new Rect(rect.X + document.Padding.Left, rect.Y + document.Padding.Top, Math.Max(1, rect.Width), rect.Height));
+                var point = document.PointToScreen(local);
+                var pixelHit = document.TextLayout.HitTestPoint(document.PointToClient(point) - new Point(document.Padding.Left, document.Padding.Top)).TextPosition;
+                // A rounded physical pixel at a formatting boundary can be on
+                // the previous character. Target a real hit for this caret.
+                for (var step = 1; pixelHit != index && step <= 24; step++)
+                {
+                    var delta = (step % 2 == 1 ? 1 : -1) * ((step + 1) / 2);
+                    point = document.PointToScreen(new Point(local.X + delta, local.Y));
+                    pixelHit = document.TextLayout.HitTestPoint(document.PointToClient(point) - new Point(document.Padding.Left, document.Padding.Top)).TextPosition;
+                }
+                local = document.PointToClient(point);
+                var visible = document.GetVisualAncestors().OfType<ScrollViewer>().All(scroll =>
+                    document.TranslatePoint(local, scroll) is { } relative && relative.X >= 0 && relative.Y >= 0 && relative.X < scroll.Bounds.Width && relative.Y < scroll.Bounds.Height);
+                return new { index, hit = pixelHit, screen = new { x = point.X, y = point.Y }, visible };
+            }
+            else if (action == "test_reveal")
+            {
+                if (Environment.GetEnvironmentVariable("CI") != "true") throw new InvalidOperationException("An owned CI fixture is required.");
+                var name = args.GetProperty("button").GetString();
+                var expected = args.TryGetProperty("text", out var match) ? match.GetString() : null;
+                var target = window.GetVisualDescendants().OfType<Control>().First(c => c.Name == name && c.IsEffectivelyVisible && (expected == null || c is TextBlock t && t.Text == expected));
+                target.BringIntoView();
+            }
             else if (action == "test_click")
             {
                 UiLayoutProbe.ClickButton(window, args.GetProperty("button").GetString(), args.TryGetProperty("tempDirectory", out var blockedTemp) ? blockedTemp.GetString() : null);
@@ -171,6 +204,15 @@ namespace SourceGit.Automation
                         minColumns = grid?.ColumnDefinitions.Select(d => d.MinWidth).ToArray(), minRows = grid?.RowDefinitions.Select(d => d.MinHeight).ToArray() };
                 }).ToArray(),
 #if INTEGRATION_TESTS
+                metadataDocuments = controls.OfType<Views.CommitMetadataText>().Where(t => t.IsEffectivelyVisible)
+                    .Select(t => new { text = t.PlainText, selected = t.SelectedText, start = t.SelectionStart, end = t.SelectionEnd,
+                        tooltip = ToolTip.GetTip(t)?.ToString(), tooltipOpen = ToolTip.GetIsOpen(t), cursor = t.Cursor?.ToString(), focused = t.IsFocused,
+                        fontSize = t.FontSize, runFontSizes = t.Inlines.OfType<Avalonia.Controls.Documents.Run>().Select(r => r.FontSize).Distinct().ToArray(),
+                        parentColors = t.Inlines.OfType<Avalonia.Controls.Documents.Run>().Where(r => r.TextDecorations?.Count > 0).Select(r => r.Foreground?.ToString()).Distinct().ToArray(),
+                        maxRenderedParentLength = t.MaxRenderedParentLength,
+                        bounds = Bounds(t), visibleHeight = VisibleHeight(t), spans = t.Spans.Select(s => new { name = s.Name, text = s.Text, start = s.Start, length = s.Length, sha = s.SHA, parent = s.IsParent, label = s.IsLabel }).ToArray(),
+                        viewport = t.FindAncestorOfType<ScrollViewer>() is { } scroll ? new { bounds = Bounds(scroll), screen = ScreenPoint(scroll) } : null,
+                        menu = t.ContextMenu is { IsOpen: true } menu ? menu.Items.OfType<MenuItem>().Select(i => new { name = i.Name, text = i.Header?.ToString(), enabled = i.IsEnabled, screen = ScreenPoint(i) }).ToArray() : null }).ToArray(),
                 labels = controls.OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && !string.IsNullOrEmpty(t.Text)).Take(500)
                     .Select(t => new { text = t.Text, bounds = Bounds(t), visibleHeight = VisibleHeight(t) }).ToArray(),
                 sidebarCommitTints = controls.OfType<Border>().Where(b => b.Name == "CommitCoverageBackground" && b.IsEffectivelyVisible && b.DataContext is ViewModels.BranchTreeNode { Backend: Models.Branch })
@@ -188,7 +230,11 @@ namespace SourceGit.Automation
                     .Select(row => new { sha = ((Models.Commit)row.DataContext).SHA, screen = ScreenPoint(row), bounds = Bounds(row) }).ToArray(),
                 selectedBranchBackground = window.FindResource("Brush.Diff.AddedBG")?.ToString(),
                 primaryBranchBackground = window.FindResource("Brush.Diff.AddedHighlight")?.ToString(),
-                commitBranchHeaders = controls.OfType<Views.CommitBranchHeader>().Where(h => h.IsEffectivelyVisible).Select(h =>
+                commitBranchHeaders = controls.OfType<Views.CommitBranchHeader>().Where(h => h.IsEffectivelyVisible &&
+                    h.GetVisualDescendants().Any(c => c.Name == "OtherCommitBranchesBadge") &&
+                    h.GetVisualDescendants().Any(c => c.Name == "MoreCommitBranches") &&
+                    h.GetVisualDescendants().Any(c => c.Name == "CommitPrimaryBranch") &&
+                    h.GetVisualDescendants().Any(c => c.Name == "PrimaryBranchScroll")).Select(h =>
                 {
                     var badge = h.GetVisualDescendants().OfType<Border>().First(b => b.Name == "OtherCommitBranchesBadge");
                     var button = h.GetVisualDescendants().OfType<Button>().First(b => b.Name == "MoreCommitBranches");

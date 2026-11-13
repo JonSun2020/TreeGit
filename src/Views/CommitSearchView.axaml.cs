@@ -2,7 +2,9 @@ using System;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -44,7 +46,15 @@ namespace SourceGit.Views
             var label = _branchPopup.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name == "BranchGroupLabel" && t.IsVisible && t.Bounds.Height > 0);
             var origin = label?.TranslatePoint(default, _branchPopup);
             if (origin == null) return null;
-            return new { x = 0, y = Math.Max(0, (int)Math.Floor(origin.Value.Y) - 2), width = (int)Math.Floor(_branchPopup.Bounds.Width), height = (int)Math.Ceiling(label.Bounds.Height) + 4 };
+            var width = (int)Math.Floor(_branchPopup.Bounds.Width);
+            // Overlay scrollbars animate independently when the pointer enters
+            // the list. They are outside the group heading being inspected.
+            foreach (var bar in _branchPopup.GetVisualDescendants().OfType<ScrollBar>().Where(b => b.Orientation == Orientation.Vertical && b.IsEffectivelyVisible && b.Bounds.Width > 0))
+            {
+                if (bar.TranslatePoint(default, _branchPopup) is { } barOrigin && barOrigin.X > 0)
+                    width = Math.Min(width, (int)Math.Floor(barOrigin.X));
+            }
+            return new { x = 0, y = Math.Max(0, (int)Math.Floor(origin.Value.Y) - 2), width, height = (int)Math.Ceiling(label.Bounds.Height) + 4 };
         }
 
         private object PopupBounds()

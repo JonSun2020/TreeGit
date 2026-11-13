@@ -1,5 +1,11 @@
 <?xml version='1.0' encoding='utf-8'?>
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:c="using:SourceGit.Converters" xmlns:vm="using:SourceGit.ViewModels" xmlns:v="using:SourceGit.Views" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SourceGit.Views.CommitChanges" x:DataType="vm:CommitDetail">
+  <UserControl.Styles>
+    <Style Selector="ScrollViewer#CommitMetadataScroll /template/ ScrollContentPresenter#PART_ContentPresenter">
+      <Setter Property="Grid.ColumnSpan" Value="1"/>
+      <Setter Property="Grid.RowSpan" Value="1"/>
+    </Style>
+  </UserControl.Styles>
   <v:SplitViewGrid>
     <Grid.ColumnDefinitions>
       <ColumnDefinition Width="{Binding Source={x:Static vm:Preferences.Instance}, Path=Layout.CommitDetailChangesLeftWidth, Mode=TwoWay}" MinWidth="200"/>
@@ -11,19 +17,8 @@
       <Border Grid.Row="0" BorderBrush="{DynamicResource Brush.Border0}" BorderThickness="0,0,0,1" Padding="8,4" Margin="0,0,0,4" MaxHeight="{Binding #CommitFilesPanel.Bounds.Height, Converter={x:Static c:DoubleConverters.CommitSummaryHeight}}">
         <Grid RowDefinitions="Auto,*">
           <v:CommitBranchHeader Margin="0,0,0,4"/>
-        <ScrollViewer x:Name="CommitMetadataScroll" Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-        <StackPanel Spacing="1">
-          <TextBlock FontSize="12" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Commit.SHA}"><Run FontWeight="Bold" Text="{DynamicResource Text.CommitChanges.CommitLabel}"/><Run Text="{Binding Commit.SHA}"/></TextBlock>
-          <Grid ColumnDefinitions="Auto,*" IsVisible="{Binding Commit.Parents, Converter={x:Static c:ListConverters.IsNotNullOrEmpty}}">
-            <TextBlock FontSize="12" FontWeight="Bold" Text="{DynamicResource Text.CommitDetail.Info.Parents}"/>
-            <ItemsControl Grid.Column="1" Margin="6,0,0,0" ItemsSource="{Binding Commit.Parents}"><ItemsControl.ItemsPanel><ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate></ItemsControl.ItemsPanel><ItemsControl.ItemTemplate><DataTemplate x:DataType="x:String"><Button Classes="icon_button" Foreground="{DynamicResource Brush.Link}" FontSize="12" Cursor="Hand" Padding="0" Margin="0,0,8,0" Content="{Binding Converter={x:Static c:StringConverters.ToShortSHA}}" ToolTip.Tip="{Binding}" Click="OnParentClicked"/></DataTemplate></ItemsControl.ItemTemplate></ItemsControl>
-          </Grid>
-          <TextBlock FontSize="12" TextWrapping="Wrap"><Run FontWeight="Bold" Text="{DynamicResource Text.CommitChanges.AuthorLabel}"/><Run Text="{Binding Commit.Author.Name}"/><Run Text=" &lt;"/><Run Text="{Binding Commit.Author.Email}"/><Run Text="&gt;"/></TextBlock>
-          <StackPanel Orientation="Horizontal" Spacing="6"><TextBlock FontSize="12" FontWeight="Bold" Text="{DynamicResource Text.CommitChanges.DateLabel}"/><v:DateTimePresenter Timestamp="{Binding Commit.CommitterTime}" FontSize="12"/></StackPanel>
-          <TextBlock FontSize="12" TextWrapping="Wrap"><Run FontWeight="Bold" Text="{DynamicResource Text.CommitDetail.Info.Committer}"/><Run Text=" "/><Run Text="{Binding Commit.Committer.Name}"/><Run Text=" &lt;"/><Run Text="{Binding Commit.Committer.Email}"/><Run Text="&gt;"/></TextBlock>
-          <SelectableTextBlock Text="{Binding DisplayMessage}" Margin="0,3,0,1" TextWrapping="Wrap"/>
-
-        </StackPanel>
+        <ScrollViewer x:Name="CommitMetadataScroll" Grid.Row="1" AllowAutoHide="False" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+          <v:CommitMetadataText x:Name="CommitMetadataText" Background="Transparent" Foreground="{DynamicResource Brush.FG1}" LinkBrush="{DynamicResource Brush.TreeGit.ParentSHA}" SelectionForegroundBrush="{x:Null}" SelectionBrush="{DynamicResource Brush.AccentHovered}" FontSize="12" TextWrapping="Wrap" Cursor="Ibeam" ToolTip.ShowDelay="0" ToolTip.Placement="Pointer" ToolTip.HorizontalOffset="8" ToolTip.VerticalOffset="16" ParentNavigationRequested="OnParentNavigationRequested"/>
         </ScrollViewer>
         </Grid>
       </Border>

@@ -14,8 +14,9 @@ assert exe.is_file() and archive.is_file() and not output.exists()
 try:
     result = subprocess.run([str(exe), '--integration-update-ui', str(archive), str(output)],
                             capture_output=True, timeout=180, creationflags=subprocess.CREATE_NO_WINDOW)
-    assert result.returncode == 0, (result.returncode, result.stderr.decode('utf-8', 'replace'))
     report = output / 'results.json'
+    diagnostic = json.loads(report.read_text(encoding='utf-8-sig')) if report.is_file() else {}
+    assert result.returncode == 0, (result.returncode, diagnostic.get('failure'), result.stderr.decode('utf-8', 'replace'))
     assert report.is_file(), 'The update-window application exited without producing its required check results'
     data = json.loads(report.read_text(encoding='utf-8-sig'))
     assert data['failure'] is None and data['passed'] >= 20 and len(data['checks']) == data['passed'], data

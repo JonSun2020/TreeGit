@@ -582,7 +582,8 @@ namespace SourceGit.Automation
                 {
                     var action = Text(args, "action");
                     if (action == "check") { App.CheckForUpdateCommand.Execute(null); return (object)new { accepted = true }; }
-                    var window = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).Windows.OfType<Views.SelfUpdate>().FirstOrDefault(w => w.IsVisible);
+                    var lifetime = (IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime;
+                    var window = (App.Current as App)?.UpdateWindow ?? lifetime.Windows.OfType<Views.SelfUpdate>().FirstOrDefault();
                     if (window?.DataContext is not ViewModels.SelfUpdate model) throw new InvalidOperationException("Open the update window first.");
                     if (action is "download" or "apply")
                     {
@@ -591,8 +592,14 @@ namespace SourceGit.Automation
                         Dispatcher.UIThread.Post(async () => await model.ActAsync(), DispatcherPriority.Background);
                     }
                     else if (action == "cancel") model.Dismiss();
+                    else if (action == "background")
+                    {
+                        if (!model.CanBackground) throw new InvalidOperationException("No available or active update can run in the background.");
+                        Dispatcher.UIThread.Post(async () => await model.RunInBackgroundAsync());
+                    }
+                    else if (action == "foreground") window.Present(lifetime.MainWindow);
                     else if (action != "state") throw new ArgumentException("Unknown update action.");
-                    return (object)new { state = model.State, heading = model.Heading, message = model.Message, version = model.NewVersion, progress = model.Progress, progressText = model.ProgressText, canAct = model.CanAct, canDismiss = model.CanDismiss };
+                    return (object)new { state = model.State, heading = model.Heading, message = model.Message, version = model.NewVersion, progress = model.Progress, progressText = model.ProgressText, canAct = model.CanAct, canDismiss = model.CanDismiss, background = model.IsBackground, canBackground = model.CanBackground };
                 });
             }
 

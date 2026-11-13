@@ -1,0 +1,85 @@
+name: TreeGit update and metadata preview
+on:
+  push:
+    branches: [feature/background-update]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: treegit-update-preview-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 10.0.x
+      - name: Check reserves and build one isolated application
+        id: build
+        shell: pwsh
+        run: |
+          if ((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory * 1024 -lt 4GB) { throw 'Insufficient memory for the isolated build' }
+          if ((Get-Item $env:GITHUB_WORKSPACE).PSDrive.Free -lt 10GB) { throw 'Insufficient workspace disk reserve' }
+          dotnet build src/SourceGit.csproj -c Debug -p:EnableIntegrationTests=true -p:UseSharedCompilation=false -m:1 -v:q
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Path src/bin/Debug/net10.0/data -Force | Out-Null
+      - name: Reuse one pinned real update package
+        shell: pwsh
+        run: |
+          curl.exe --fail --location --retry 3 https://github.com/JonSun2020/TreeGit/releases/download/treegit-v2026.24.1/TreeGit-2026.24.1-Windows-x64.zip -o "$env:RUNNER_TEMP/update-fixture.zip"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          if ((Get-FileHash "$env:RUNNER_TEMP/update-fixture.zip" -Algorithm SHA256).Hash.ToLowerInvariant() -ne '0506ad33856e6bbaa509c380d168da7a259594e93b37c9e72e0924f985401ca8') { throw 'Update fixture checksum mismatch' }
+      - name: Verify background transfers close choices and completion windows
+        shell: pwsh
+        run: python tests/update_ui.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/update-fixture.zip" "$env:RUNNER_TEMP/update-flow-results"
+      - name: Verify startup detection and its preference
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        shell: pwsh
+        run: python tests/startup_update.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/startup-update-results"
+      - name: Verify native metadata selection and clipboard in both Git object formats
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        shell: pwsh
+        run: python tests/metadata_copy.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/metadata-copy-results"
+      - name: Verify models and configuration transactions
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        shell: pwsh
+        run: python tests/ui_models.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/model-results/fixture" "$env:RUNNER_TEMP/model-results/logic-report.json"
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        with:
+          name: TreeGit-update-metadata-core
+          path: |
+            ${{ runner.temp }}/update-flow-results/results.json
+            ${{ runner.temp }}/update-flow-results/*.png
+            ${{ runner.temp }}/startup-update-results/*.json
+            ${{ runner.temp }}/startup-update-results/*.log
+            ${{ runner.temp }}/metadata-copy-results/*.json
+            ${{ runner.temp }}/metadata-copy-results/*.png
+            ${{ runner.temp }}/metadata-copy-results/*.log
+            ${{ runner.temp }}/model-results/*.json
+      - name: Recheck history pixel stability and merge operations
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        shell: pwsh
+        run: python tests/history_merge_ui.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/history-results"
+      - name: Recheck resizable panels and dialogs
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        shell: pwsh
+        run: |
+          python tests/layout_audit.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/layout-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/dialog_audit.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/dialog-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TreeGit-update-metadata-regressions
+          path: |
+            ${{ runner.temp }}/history-results/*.json
+            ${{ runner.temp }}/history-results/*.png
+            ${{ runner.temp }}/layout-results/*.json
+            ${{ runner.temp }}/layout-results/*.png
+            ${{ runner.temp }}/dialog-results/*.json
+            ${{ runner.temp }}/dialog-results/*.png

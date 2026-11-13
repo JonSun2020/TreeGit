@@ -161,7 +161,7 @@ def click_pending_and_measure(label):
         assert bitmap and bits.value
         old = gdi.SelectObject(memory, bitmap); pixels = (ctypes.c_uint32*(width*height)).from_address(bits.value)
         first_x = left - row['x']; top_y = top - row['y']; bottom_y = bottom - row['y']
-        ready.set()
+        baseline = []
         try:
             while not stopped.is_set():
                 assert gdi.BitBlt(memory, 0, 0, width, height, dc, row['x'], row['y'], 0x00CC0020)
@@ -170,7 +170,17 @@ def click_pending_and_measure(label):
                 for x in range(first_x, first_x + round(120*scale)):
                     if sum(contrast(pixels[y*width+x], background) > 32 for y in range(top_y, bottom_y)) >= 2:
                         first = x + row['x']; break
-                samples.append({'dot': pixels[round(9.5*scale)*width + round(6*scale)] & 0xffffff, 'inkX': first})
+                frame = {'dot': pixels[round(9.5*scale)*width + round(6*scale)] & 0xffffff, 'inkX': first}
+                if not ready.is_set():
+                    # Geometry is updated before the compositor presents a zoom
+                    # change. Establish ten rendered baseline frames before
+                    # clicking, then require every selection frame to stay fixed.
+                    baseline.append(frame)
+                    baseline = baseline[-10:]
+                    if len(baseline) == 10 and all(p['dot'] == 0x8a8a8a and p['inkX'] is not None for p in baseline) and max(p['inkX'] for p in baseline) - min(p['inkX'] for p in baseline) <= 2:
+                        samples.extend(baseline); ready.set()
+                else:
+                    samples.append(frame)
                 time.sleep(.008)
         finally:
             gdi.SelectObject(memory, old); gdi.DeleteObject(bitmap); gdi.DeleteDC(memory); api.ReleaseDC(None, dc)
@@ -226,7 +236,11 @@ def press(name):
     stable = 0
     for _ in range(60):
         time.sleep(.05); current = available()
-        stable = stable + 1 if current and current['bounds'] == b['bounds'] and current['screen'] == b['screen'] else 0
+        native_ready = False
+        if current:
+            target = api.WindowFromPoint(wintypes.POINT(current['screen']['x'], current['screen']['y']))
+            native_ready = owner(target) == pid and api.GetAncestor(target, 2) == main
+        stable = stable + 1 if current and native_ready and current['bounds'] == b['bounds'] and current['screen'] == b['screen'] else 0
         if current: b = current
         if stable >= 3: break
     assert stable >= 3, 'Button layout did not settle: ' + name
@@ -366,9 +380,22 @@ try:
     activate_main(); row = state()['pendingRow']; scale = row['scaling']; dc = api.GetDC(None)
     try:
         line_y = round(row['y'] + 21*scale)
+        stable = 0; rendered_samples = []
+        for _ in range(150):
+            samples = []
+            for parent in parents:
+                line_x = round(row['x'] + parent['x']*scale)
+                samples.append({'sha': parent['sha'], 'line': gdi.GetPixel(dc, line_x, line_y),
+                                'background': gdi.GetPixel(dc, line_x + round(4*scale), line_y)})
+            rendered_samples.append(samples)
+            visible = all(p['line'] != 0xffffffff and p['background'] != 0xffffffff and p['line'] != p['background'] for p in samples)
+            stable = stable + 1 if visible else 0
+            if stable >= 3: break
+            time.sleep(.03)
+        (out / 'pending-merge-render-samples.json').write_text(json.dumps({'row': row, 'frames': rendered_samples}, indent=2), encoding='utf-8')
         for parent in parents:
-            line_x = round(row['x'] + parent['x']*scale)
-            check('pending merge connection is actually painted for ' + parent['sha'][:8], gdi.GetPixel(dc, line_x, line_y) != gdi.GetPixel(dc, line_x + round(4*scale), line_y))
+            sample = next(p for p in samples if p['sha'] == parent['sha'])
+            check('pending merge connection is actually painted for ' + parent['sha'][:8], stable >= 3 and sample['line'] != sample['background'])
     finally: api.ReleaseDC(None, dc)
     shot('pending-merge-two-parents')
     items = open_commit_menu(main)

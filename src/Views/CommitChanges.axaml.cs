@@ -17,10 +17,9 @@ namespace SourceGit.Views
             InitializeComponent();
         }
 
-        private void OnParentClicked(object sender, RoutedEventArgs e)
+        private void OnParentNavigationRequested(object sender, CommitParentNavigationEventArgs e)
         {
-            if (DataContext is ViewModels.CommitDetail vm && sender is Control { DataContext: string sha }) vm.NavigateTo(sha);
-            e.Handled = true;
+            if (DataContext is ViewModels.CommitDetail vm) vm.NavigateTo(e.SHA);
         }
 
         private void OnChangeContextRequested(object sender, ContextRequestedEventArgs e)

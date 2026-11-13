@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Controls.ApplicationLifetimes;
 using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace SourceGit.ViewModels
@@ -41,6 +42,8 @@ namespace SourceGit.ViewModels
         public bool CanAct => _state is "available" or "ready" or "failed" or "cancelled";
         public bool CanRestart => _plan != null && (_state == "ready" || (_state == "failed" && !_retryDownload));
         public bool CanDownload => _newAvailable && (_state is "available" or "cancelled" || (_state == "failed" && _retryDownload));
+        public bool CanBackground => CanDownload || _state is "download" or "verify";
+        public bool IsBackground => _background;
         public bool ShowManualDownload => _state == "failed";
         public bool IsIndeterminate => _state is "checking" or "verify" or "applying";
         public bool ShowProgress => IsWorking;
@@ -51,8 +54,25 @@ namespace SourceGit.ViewModels
         public bool Restarting { get; private set; }
         public event Action CloseRequested;
         public event Action RestartRequested;
+        public event Action BackgroundRequested;
+        public event Action ForegroundRequested;
 
-        public async Task CheckAsync()
+        public async Task RunInBackgroundAsync()
+        {
+            if (_closed || !CanBackground) return;
+            _background = true;
+            OnPropertyChanged(nameof(IsBackground));
+            BackgroundRequested?.Invoke();
+            if (CanDownload && !_taskActive) await DownloadAsync();
+        }
+
+        public void EnterForeground()
+        {
+            _background = false;
+            OnPropertyChanged(nameof(IsBackground));
+        }
+
+        public async Task CheckAsync(Models.Version knownRelease = null)
         {
             if (_taskActive) return;
             _taskActive = true;
@@ -63,7 +83,7 @@ namespace SourceGit.ViewModels
             try
             {
                 using var updater = _factory();
-                var release = await updater.CheckAsync(cancellation.Token);
+                var release = knownRelease ?? await updater.CheckAsync(cancellation.Token);
                 if (!_closed)
                 {
                     SetRelease(release);
@@ -104,7 +124,7 @@ namespace SourceGit.ViewModels
             SetState("download", App.Text("SelfUpdate.Flow.DownloadHint"));
             var progress = new Progress<Models.UpdateProgress>(update =>
             {
-                if (_closed || !_taskActive || _state is not ("download" or "verify")) return;
+                if (_closed || !_taskActive || !ReferenceEquals(_cancellation, cancellation) || _state is not ("download" or "verify")) return;
                 _progress = update.Total > 0 ? 100.0 * update.Completed / update.Total : 0;
                 _progressText = update.Total > 0 ? $"{update.Completed / 1048576.0:F1} MB / {update.Total / 1048576.0:F1} MB" : string.Empty;
                 SetState(update.Phase, App.Text(update.Phase == "verify" ? "SelfUpdate.Flow.VerifyHint" : "SelfUpdate.Flow.DownloadHint"));
@@ -113,14 +133,22 @@ namespace SourceGit.ViewModels
             {
                 using var updater = _factory();
                 _plan = await Task.Run(() => updater.PrepareAsync(_release, progress, cancellation.Token));
-                if (!_closed) SetState(cancellation.IsCancellationRequested ? "cancelled" : "ready", App.Text(cancellation.IsCancellationRequested ? "SelfUpdate.Flow.CancelledHint" : "SelfUpdate.Flow.ReadyHint"));
+                if (!_closed) SetState("ready", App.Text("SelfUpdate.Flow.ReadyHint"));
             }
             catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
             {
                 if (!_closed) SetState("cancelled", App.Text("SelfUpdate.Flow.CancelledHint"));
             }
             catch (Exception error) { if (!_closed) Fail(error); }
-            finally { _taskActive = false; }
+            finally
+            {
+                _taskActive = false;
+                if (!_closed && _background && _state is "ready" or "failed")
+                {
+                    EnterForeground();
+                    ForegroundRequested?.Invoke();
+                }
+            }
         }
 
         private async Task InstallAsync()
@@ -198,10 +226,16 @@ namespace SourceGit.ViewModels
         public void OnClosed()
         {
             _closed = true;
+            _background = false;
             _cancellation?.Cancel();
         }
 
-        private static bool HasGitOperations() => App.GetLauncher()?.Pages.Any(page => page.HasRunningOperation) == true;
+        private static bool HasGitOperations()
+        {
+            if (App.GetLauncher()?.Pages.Any(page => page.HasRunningOperation || page.Popup != null) == true) return true;
+            return App.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime lifetime &&
+                lifetime.Windows.Any(window => window.IsVisible && window != lifetime.MainWindow && window is not Views.SelfUpdate);
+        }
 
         private CancellationTokenSource ResetCancellation()
         {
@@ -241,5 +275,6 @@ namespace SourceGit.ViewModels
         private bool _retryDownload;
         private bool _closed;
         private bool _taskActive;
+        private bool _background;
     }
 }

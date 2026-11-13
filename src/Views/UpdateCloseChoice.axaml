@@ -1,0 +1,19 @@
+<v:ChromelessWindow xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:v="using:SourceGit.Views" x:Class="SourceGit.Views.UpdateCloseChoice" x:Name="ThisControl"
+                    Title="{DynamicResource Text.SelfUpdate.Title}" Icon="/App.ico" Width="440" Height="205"
+                    MinWidth="300" MinHeight="165" CanResize="True" WindowStartupLocation="CenterOwner">
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Grid Height="28" IsVisible="{Binding !#ThisControl.UseSystemWindowFrame}">
+      <Border Background="{DynamicResource Brush.TitleBar}" PointerPressed="BeginMoveWindow"/>
+      <TextBlock Text="{DynamicResource Text.SelfUpdate.Title}" Classes="bold" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
+      <v:CaptionButtons HorizontalAlignment="Right" IsCloseButtonOnly="True"/>
+    </Grid>
+    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+      <TextBlock Margin="20,18" Text="{DynamicResource Text.SelfUpdate.Flow.CloseChoice}" TextWrapping="Wrap"/>
+    </ScrollViewer>
+    <WrapPanel Grid.Row="2" HorizontalAlignment="Center" Margin="16,8,16,12">
+      <Button x:Name="CancelUpdate" Classes="flat" MinWidth="105" Height="32" Padding="12,0" Margin="4,0,4,4" Content="{DynamicResource Text.SelfUpdate.Flow.CancelUpdate}" Click="OnCancelUpdate"/>
+      <Button x:Name="ContinueBackgroundUpdate" Classes="flat primary" MinWidth="105" Height="32" Padding="12,0" Margin="4,0,4,4" Content="{DynamicResource Text.SelfUpdate.Flow.Background}" Click="OnBackground"/>
+    </WrapPanel>
+  </Grid>
+</v:ChromelessWindow>

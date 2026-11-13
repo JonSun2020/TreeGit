@@ -25,6 +25,9 @@ namespace SourceGit.Native
         public TreeGitUpdater(string root, HttpClient client = null)
         {
             _root = Path.GetFullPath(root);
+#if INTEGRATION_TESTS
+            client ??= Tests.UpdateStartupHttpHandler.CreateClient();
+#endif
             _client = client ?? new HttpClient(new HttpClientHandler { AllowAutoRedirect = false });
             _client.Timeout = Timeout.InfiniteTimeSpan;
             _client.DefaultRequestHeaders.UserAgent.ParseAdd("TreeGit/" + Models.TreeGitRelease.Version);

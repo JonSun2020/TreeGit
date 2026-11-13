@@ -35,10 +35,13 @@
         </Border>
       </StackPanel>
     </ScrollViewer>
-    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Margin="20,10,20,16">
-      <Button Grid.Column="0" HorizontalAlignment="Left" Classes="flat" Content="{DynamicResource Text.SelfUpdate.Flow.Manual}" IsVisible="{Binding ShowManualDownload}" Click="GotoDownload"/>
-      <Button Grid.Column="1" Classes="flat primary" MinWidth="110" Height="32" Padding="12,0" Content="{Binding ActionText}" IsVisible="{Binding CanAct}" Click="OnAction"/>
-      <Button Grid.Column="2" Classes="flat" MinWidth="90" Height="32" Padding="12,0" Margin="8,0,0,0" Content="{Binding DismissText}" IsEnabled="{Binding CanDismiss}" Click="OnDismiss"/>
+    <Grid Grid.Row="2" RowDefinitions="Auto,Auto" Margin="20,10,20,16">
+      <Button Grid.Row="0" HorizontalAlignment="Left" Margin="0,0,0,8" Classes="flat" Content="{DynamicResource Text.SelfUpdate.Flow.Manual}" IsVisible="{Binding ShowManualDownload}" Click="GotoDownload"/>
+      <WrapPanel Grid.Row="1" HorizontalAlignment="Right">
+        <Button Classes="flat primary" MinWidth="110" Height="32" Padding="12,0" Margin="0,0,0,4" Content="{Binding ActionText}" IsVisible="{Binding CanAct}" Click="OnAction"/>
+        <Button x:Name="BackgroundUpdate" Classes="flat" MinWidth="90" Height="32" Padding="12,0" Margin="8,0,0,4" Content="{DynamicResource Text.SelfUpdate.Flow.Background}" IsVisible="{Binding CanBackground}" Click="OnBackground"/>
+        <Button Classes="flat" MinWidth="90" Height="32" Padding="12,0" Margin="8,0,0,4" Content="{Binding DismissText}" IsEnabled="{Binding CanDismiss}" Click="OnDismiss"/>
+      </WrapPanel>
     </Grid>
   </Grid>
 </v:ChromelessWindow>

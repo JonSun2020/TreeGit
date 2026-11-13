@@ -197,7 +197,7 @@
   <x:String x:Key="Text.CommitDetail.Files.Tips" xml:space="preserve">SELECT FILE TO VIEW CONTENT</x:String>
   <x:String x:Key="Text.CommitDetail.Info" xml:space="preserve">INFORMATION</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Author" xml:space="preserve">AUTHOR</x:String>
-  <x:String x:Key="Text.CommitDetail.Info.Committer" xml:space="preserve">COMMITTER</x:String>
+  <x:String x:Key="Text.CommitDetail.Info.Committer" xml:space="preserve">COMMITTER:</x:String>
   <x:String x:Key="Text.CommitDetail.Info.ContainsIn" xml:space="preserve">Check refs that contains this commit</x:String>
   <x:String x:Key="Text.CommitDetail.Info.ContainsIn.Title" xml:space="preserve">COMMIT IS CONTAINED BY</x:String>
   <x:String x:Key="Text.CommitDetail.Info.CopyEmail" xml:space="preserve">Copy Email</x:String>
@@ -206,7 +206,7 @@
   <x:String x:Key="Text.CommitDetail.Info.GotoChangesPage" xml:space="preserve">Shows only the first 100 changes. See all changes on the CHANGES tab.</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Key" xml:space="preserve">Key:</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Message" xml:space="preserve">MESSAGE</x:String>
-  <x:String x:Key="Text.CommitDetail.Info.Parents" xml:space="preserve">PARENTS</x:String>
+  <x:String x:Key="Text.CommitDetail.Info.Parents" xml:space="preserve">PARENTS:</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Refs" xml:space="preserve">REFS</x:String>
   <x:String x:Key="Text.CommitDetail.Info.SHA" xml:space="preserve">SHA</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Signer" xml:space="preserve">Signer:</x:String>
@@ -912,6 +912,10 @@ Manually add a branch/tag history filter will disable this feature automatically
   <x:String x:Key="Text.ScanRepositories.RootDir" xml:space="preserve">Root Dir:</x:String>
   <x:String x:Key="Text.ScanRepositories.UseCustomDir" xml:space="preserve">Scan another custom directory</x:String>
   <x:String x:Key="Text.SelfUpdate" xml:space="preserve">Check for Updates...</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Background">Update in background</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.CancelUpdate">Cancel update</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.CloseChoice">The update is not finished. Cancel it or continue in the background? This window will return when the download finishes or fails.</x:String>
+  <x:String x:Key="Text.CommitChanges.CopySHA">Copy full SHA</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.checking" xml:space="preserve">Checking for updates</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.available" xml:space="preserve">A new version is available</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.current" xml:space="preserve">You are up to date</x:String>
@@ -934,7 +938,7 @@ Manually add a branch/tag history filter will disable this feature automatically
   <x:String x:Key="Text.SelfUpdate.Flow.VerifyHint" xml:space="preserve">Checking that the update package is complete. Please wait.</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.ReadyHint" xml:space="preserve">Restart and update saves your settings, replaces the program, and reopens TreeGit. Your settings and repositories will be kept. Connected AI clients may need to reconnect after the update.</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.CancelledHint" xml:space="preserve">Your download progress has been kept. You can resume later.</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.BusyHint" xml:space="preserve">The update is ready, but a repository operation is still running. Finish that operation, then choose Restart and update.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.BusyHint" xml:space="preserve">The update is ready. Finish the current operation or close any pending settings and operation windows, then choose Restart and update.</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.ApplyingHint" xml:space="preserve">Saving your settings and restarting TreeGit. Please wait.</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.StartingHint" xml:space="preserve">Starting the updated TreeGit. Please wait.</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.Error.network" xml:space="preserve">The update service cannot be reached. Check your connection and retry.</x:String>
