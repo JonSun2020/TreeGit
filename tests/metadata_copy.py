@@ -239,6 +239,8 @@ try:
 
             for name in ['CommitLabel', 'ParentLabel', 'AuthorLabel', 'DateLabel', 'CommitterLabel']:
                 value = span(name); select(value['start'], value['start'] + value['length'], name)
+                copy_menu(value['start'] + 1, 'CopyMetadataSelection'); until(lambda: clipboard() == value['text'])
+                check(object_format + ': reopening the context menu copies the current ' + name, clipboard() == value['text'])
             for parent_sha in expected_parents:
                 parent = span('ParentSHA', parent_sha); label = span('ParentLabel')
                 select(label['start'], parent['start'] + parent['length'], 'label through parent SHA')

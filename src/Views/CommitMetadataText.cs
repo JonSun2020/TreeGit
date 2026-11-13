@@ -39,7 +39,9 @@ namespace SourceGit.Views
         {
             _scrollTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(50) };
             _scrollTimer.Tick += (_, _) => AutoScrollSelection();
-            ContextRequested += OnMetadataContextRequested;
+            // Handle before the attached ContextMenu's bubbling handler, so every
+            // request refreshes its text and SHA instead of reopening stale items.
+            AddHandler(ContextRequestedEvent, OnMetadataContextRequested, RoutingStrategies.Tunnel);
         }
 
         protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -225,6 +227,7 @@ namespace SourceGit.Views
         private void OnMetadataContextRequested(object sender, ContextRequestedEventArgs e)
         {
             e.Handled = true;
+            SetHoveredParent(null);
             var selected = SelectedText;
             var whole = PlainText;
             var copy = new MenuItem { Name = "CopyMetadataSelection", Header = App.Text("Copy"), IsEnabled = selected.Length > 0, InputGesture = TextBox.CopyGesture };
@@ -240,7 +243,8 @@ namespace SourceGit.Views
                 full.Click += async (_, ev) => { await this.CopyTextAsync(sha); ev.Handled = true; };
                 items.Add(full);
             }
-            ContextMenu = new ContextMenu { ItemsSource = items };
+            ContextMenu ??= new ContextMenu();
+            ContextMenu.ItemsSource = items;
             ContextMenu.Open(this);
         }
 
