@@ -25,6 +25,9 @@ namespace SourceGit.Views
     }
 
     // One selection surface for labels, values and the full commit message.
+    // Keep inline foregrounds while selecting (set by the view): otherwise the
+    // base control splits shaped runs at each selection edge and caret positions
+    // can move under a captured pointer. A tinted background marks the selection.
     public sealed class CommitMetadataText : SelectableTextBlock
     {
         public static readonly StyledProperty<IBrush> LinkBrushProperty =

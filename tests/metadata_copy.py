@@ -211,6 +211,7 @@ try:
                 (out / (object_format + '-drag-failure.json')).write_text(json.dumps({'expected': expected, 'start': start, 'end': end, 'first': first, 'last': last,
                     'after': tool('ui_layout', action='test_metadata', value=end), 'document': document()}, ensure_ascii=False, indent=2), encoding='utf-8')
             check(object_format + ': ' + label + ' selects the exact text', document()['selected'] == expected and state()['detailCommit'] == head)
+            check(object_format + ': ' + label + ' keeps text geometry stable while selecting', tool('ui_layout', action='test_metadata', value=end)['screen'] == last)
             key(0x43, ctrl=True); until(lambda: clipboard() == expected)
             check(object_format + ': ' + label + ' copies the actual selected range', clipboard() == expected)
 
