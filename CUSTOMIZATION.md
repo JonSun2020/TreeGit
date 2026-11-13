@@ -8,6 +8,6 @@ The GitHub source archive was imported into a local checkpoint repository after 
 
 A subsequent `git fetch --depth 1 upstream master` succeeded. The actual upstream commit is also available as `upstream/master` and was verified to match the imported archive SHA above.
 
-Requirements: retain SourceGit functionality; SourceTree-style layout and palette; Windows x64 portable, no application login; repository-scoped remote credentials with automatic prompts; OpenSSH for SSH and OpenSSL for HTTPS; MCP server for AI control of the GUI (no MCP client).
+Requirements: retain SourceGit functionality; a layout and palette optimized for everyday usability and clarity; Windows x64 portable, no application login; repository-scoped remote credentials with automatic prompts; OpenSSH for SSH and OpenSSL for HTTPS; MCP server for AI control of the GUI (no MCP client).
 
 Checkpoints and verification records are maintained in this repository and the sibling output directory. SourceGit and dependency license notices must accompany distributions. The UI uses SourceGit's own icons and code; no Atlassian binary assets are included.

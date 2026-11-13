@@ -1,6 +1,6 @@
 # 跟随 SourceGit 更新
 
-TreeGit 的目标是保持 SourceGit 的 Git 工作流，持续维护独立的界面、品牌、便携构建、仓库凭据和 MCP 控制层。它与 Atlassian SourceTree 没有隶属关系，不包含 SourceTree 的二进制文件或图像资产。
+TreeGit 的目标是保持 SourceGit 的 Git 工作流，持续维护独立的界面、品牌、便携构建、仓库凭据和 MCP 控制层。界面布局围绕实际使用的便捷性和直观性优化。
 
 当前上游基线：
 

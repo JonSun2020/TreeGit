@@ -145,14 +145,14 @@ if probe is not None:
     check('all toolbar labels share the same vertical center', max(centers)-min(centers) < 1)
     (out/'overview-minimum-width.png').write_bytes(c.tool('ui_screenshot'))
 c.tool('ui_window', {'width':1440,'height':900})
-c.tool('ui_window', {'theme':'SourceTree'})
+c.tool('ui_window', {'theme':'Blue'})
 time.sleep(.4)
 from PIL import Image
 import io
 png = c.tool('ui_screenshot')
 image = Image.open(io.BytesIO(png)).convert('RGB')
-check('SourceTree theme uses the reference blue title bar', image.getpixel((900,20)) == (7,71,166))
-(out/'sourcetree-theme.png').write_bytes(png)
+check('Blue theme uses the reference blue title bar', image.getpixel((900,20)) == (7,71,166))
+(out/'blue-theme.png').write_bytes(png)
 c.tool('ui_window', {'theme':'Light'})
 time.sleep(.3)
 image = Image.open(io.BytesIO(c.tool('ui_screenshot'))).convert('RGB')

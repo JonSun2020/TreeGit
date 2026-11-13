@@ -53,7 +53,7 @@ def wait_counts(a,b):
         if s['ahead']==a and s['behind']==b:return
         time.sleep(.1)
     raise AssertionError(s)
-rpc('initialize',{'protocolVersion':'2025-11-25'});tool('ui_open_repository',{'repo':str(repo)});tool('ui_window',{'theme':'SourceTree','width':1440,'height':900});wait_counts(0,0)
+rpc('initialize',{'protocolVersion':'2025-11-25'});tool('ui_open_repository',{'repo':str(repo)});tool('ui_window',{'theme':'Blue','width':1440,'height':900});wait_counts(0,0)
 check('synced branch has no pending counts')
 (repo/'local.txt').write_text('Local\n');run('add','.',cwd=repo);run('commit','-m','Local change',cwd=repo);tool('ui_refresh',{'repo':str(repo)});wait_counts(1,0)
 check('un-pushed local commit reports one outgoing change');(out/'outgoing.png').write_bytes(tool('ui_screenshot'))

@@ -38,7 +38,7 @@ helptext = '''TreeGit 2026.23 · Windows x64 便携版
 默认使用电脑上已有的 Git，与原版 SourceGit 的使用方式相同。
 没有 Git 时，将单独提供的 TreeGit-便携Git组件.zip 解压到本目录，形成 git/cmd/git.exe；不需要运行安装程序。
 
-主界面按 SourceTree Windows 布局重排：菜单与标签栏、操作工具栏、工作区/分支侧栏、图谱与提交表、下方文件列表和差异预览。
+主界面根据便捷性和直观性重排：菜单与标签栏、操作工具栏、工作区/分支侧栏、图谱与提交表、下方文件列表和差异预览。
 单击左侧分支即可将它的主线放在图谱最左侧，不会切换检出分支。
 历史上方下拉框：全部分支 / 仅所选分支（仅一条主线）/ 所选分支及合并历史。
 双击分支仍执行原来的检出操作。更多、工具及上下文菜单保留补丁、LFS、二分查找、日志、统计等功能。
@@ -70,7 +70,7 @@ gitpart = delivery/'TreeGit-便携Git组件.zip'
 archive(base/'optional/git',gitpart,'git')
 preview=delivery/'界面预览'
 preview.mkdir(exist_ok=True)
-for name in ['main-interface.png','only-main.png','main-1024.png','main-dark.png','working-copy.png','about.png','sourcetree-theme.png','uncommitted-overview.png']:
+for name in ['main-interface.png','only-main.png','main-1024.png','main-dark.png','working-copy.png','about.png','blue-theme.png','uncommitted-overview.png']:
     shutil.copy2(qa/name,preview/name)
 shutil.copy2(base/'reference/graph-comparison.png',preview/'图谱组件对照.png')
 backup=delivery/'开发备份'
@@ -79,7 +79,9 @@ subprocess.run(['git','archive','--format=zip','--prefix=TreeGit-source/','-o',s
 subprocess.run(['git','bundle','create',str(backup/'TreeGit-源码检查点.bundle'),'--all'],cwd=repo,check=True)
 
 payload = sum(p.stat().st_size for p in app.rglob('*') if p.is_file() and p.relative_to(app).parts[0]!='data')
-oldzip=repo.parent/'output/SourceGit-Portable/交付/SourceGit-SourceTree风格-Windows-x64.zip'
+previous_packages=sorted((repo.parent/'output/SourceGit-Portable/交付').glob('SourceGit-*-Windows-x64.zip'))
+assert len(previous_packages)==1, 'Specify a single prior portable archive for the legacy comparison'
+oldzip=previous_packages[0]
 with zipfile.ZipFile(portable) as z:
     assert z.testzip() is None
     assert not any('/git/' in n or n.endswith('.pdb') for n in z.namelist())
@@ -98,9 +100,9 @@ report=f'''TreeGit 验收说明 · 2026-11-03
 标准包不捆绑 Git，默认复用现有 Git；可选便携 Git 组件单独提供，大小 {mb(gitpart.stat().st_size)}。
 
 本次修正
-1. 软件名称改为 TreeGit；主界面整体按 SourceTree Windows 的布局重排。使用独立的深青色树形 Logo；关于窗口明确注明基于 SourceGit 开发并修改界面，保留原项目链接、版权和 MIT 许可证。
-2. 改用本机 SourceTree ADG3 主题的深蓝 #0747A6 顶栏、#0052CC 强调色和 #F4F5F7 功能栏底色。保留提交、推送、拉取、获取、分支、合并、贮藏、丢弃、标签及终端/浏览/设置/工具入口。
-3. 图谱改为 19 像素行高、11 像素列距、2 像素折线，以及半径 4 像素、白色 1 像素边框的实心节点，使用本机 SourceTree 的原始分支配色。保留左侧工作区/分支树与右侧独立图谱、描述、提交时间、作者和指纹列。
+1. 软件名称改为 TreeGit；主界面根据实际使用的便捷性和直观性重排。使用独立的深青色树形 Logo；关于窗口明确注明基于 SourceGit 开发并修改界面，保留原项目链接、版权和 MIT 许可证。
+2. 改用Blue 主题的深蓝 #0747A6 顶栏、#0052CC 强调色和 #F4F5F7 功能栏底色。保留提交、推送、拉取、获取、分支、合并、贮藏、丢弃、标签及终端/浏览/设置/工具入口。
+3. 图谱改为 19 像素行高、11 像素列距、2 像素折线，以及半径 4 像素、白色 1 像素边框的实心节点，使用已确认的分支配色。保留左侧工作区/分支树与右侧独立图谱、描述、提交时间、作者和指纹列。
 4. 下方默认显示紧凑提交信息、变更文件和差异；文件状态页改为文件/差异区及底部提交区。
 5. 单击分支后，该分支 first-parent 主线固定在最左侧；选择仅所选分支时隐藏其他提交和分支标签。
 6. 另保留所选分支及合并历史模式，切回全部分支可恢复其他历史；图形选择不会检出分支。
@@ -112,7 +114,7 @@ report=f'''TreeGit 验收说明 · 2026-11-03
 - 多分支图形 31 项，包括远端分支、仅主线、合并历史、删除所选分支回退：通过。
 - 28 项原有控件/操作/绑定及语言资源保留检查：通过。
 - 35 项原有命令与图形模型检查，含子模块、工作树、LFS、Git Flow、80 个复杂 DAG 选择、单色主题：通过。
-- 使用本机 SourceTree 原组件离屏生成相同合并样例：节点坐标、行列间距和分支颜色一致；不同绘图引擎仍有边缘抗锯齿差异。未取得用户当前 SourceTree 窗口截图，不声明整窗逐像素一致。
+- 使用本机参考组件离屏生成相同合并样例：节点坐标、行列间距和分支颜色一致；不同绘图引擎仍有边缘抗锯齿差异。未取得用户当前参考窗口截图，不声明整窗逐像素一致。
 - 12 个并发客户端、60 次请求及 1 MiB 输出上限：通过。
 - 不同仓库同一服务器的账号隔离、系统凭据保存/删除、缺失与失效凭据自动弹窗重试：通过。
 - 便携 Git：2.56.0.windows.4；OpenSSH 10.6p1 / OpenSSL 3.5.9；Git LFS 3.8.1；Git Flow Next 2.1.0。

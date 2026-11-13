@@ -555,7 +555,7 @@ namespace SourceGit.Automation
                     }
                     if (width.HasValue && (width < 1024 || width > 3840) || height.HasValue && (height < 640 || height > 2160))
                         throw new ArgumentException("Window size is out of range.");
-                    if (theme != null && theme is not ("Light" or "Dark" or "Default" or "SourceTree" or "Blue"))
+                    if (theme != null && theme is not ("Light" or "Dark" or "Default" or "Blue"))
                         throw new ArgumentException("Unknown theme.");
                     if (width.HasValue)
                         window.Width = width.Value;

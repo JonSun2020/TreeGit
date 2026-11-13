@@ -31,7 +31,7 @@ jobs:
           dotnet build src/SourceGit.csproj -c Debug -p:EnableIntegrationTests=true -v:q
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           New-Item -ItemType Directory -Path src/bin/Debug/net10.0/data -Force | Out-Null
-      - name: Audit history against SourceTree references
+      - name: Audit history against approved interface references
         if: ${{ inputs.history_only }}
         shell: pwsh
         run: python tests/history_merge_ui.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/history-merge-results"

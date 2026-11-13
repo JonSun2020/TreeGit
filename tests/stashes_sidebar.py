@@ -51,7 +51,7 @@ def wait(predicate):
     raise AssertionError(s)
 
 tool('initialize');tool('ui_open_repository',{'repo':str(repo)})
-tool('ui_window',{'width':1440,'height':900,'theme':'SourceTree'})
+tool('ui_window',{'width':1440,'height':900,'theme':'Blue'})
 wait(lambda s:s['stashes']['count']==3 and not s['graphLoading'])
 width=state()['sidebarWidth']
 stash('collapse');check('collapsing stash header does not leave history',state()['view']==0 and not state()['stashes']['expanded'])
@@ -70,7 +70,7 @@ for name,index in [('stash@{0}',2),('stash@{1}',1),('stash@{2}',0)]:
     check('history exits '+name+' without shrinking the sidebar',state()['view']==0 and state()['sidebarWidth']==width and state()['stashes']['selected'] is None)
 stash('select',stash='stash@{0}');wait(lambda s:bool(s['stashes']['changes']))
 time.sleep(1)
-(out/'stashes-sourceTree.png').write_bytes(tool('ui_screenshot'))
+(out/'stashes-blue.png').write_bytes(tool('ui_screenshot'))
 for command,kind in [('stash_apply_dialog','ApplyStash'),('stash_drop_dialog','DropStash'),('stash_branch_dialog','CheckoutBranchFromStash')]:
     tool('ui_command',{'repo':str(repo),'command':command})
     check(command+' opens its original confirmation',state()['pendingDialog']==kind)
@@ -84,7 +84,7 @@ tool('ui_window',{'width':1440,'height':900,'zoom':1,'theme':'Dark'});time.sleep
 (out/'stashes-dark.png').write_bytes(tool('ui_screenshot'))
 check('viewing, filtering and cancelling never apply or delete stashes',git('stash','list')==before and git('status','--porcelain')==status)
 tool('ui_select_view',{'repo':str(repo),'view':'history'})
-tool('ui_window',{'theme':'SourceTree'})
+tool('ui_window',{'theme':'Blue'})
 tool('ui_command',{'command':'close_tab'})
 p.stdin.close();p.wait(timeout=10)
 (out/'stashes-results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'repo':str(repo)},ensure_ascii=False,indent=2),encoding='utf-8')

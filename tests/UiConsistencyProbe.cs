@@ -33,6 +33,10 @@ namespace SourceGit.Tests
                 Directory.CreateDirectory(root);
                 ownsRoot = true;
                 Native.OS.GitExecutable = Native.OS.FindGitExecutable();
+                var retiredBlueName = System.Text.Encoding.ASCII.GetString(Convert.FromHexString("536F7572636554726565"));
+                Check("early blue preferences migrate without exposing retired names", Models.TreeGitThemes.Normalize(retiredBlueName) == "Blue" && Models.TreeGitThemes.Normalize(retiredBlueName.ToLowerInvariant()) == "Blue");
+                Check("current theme names retain their requested behavior", new[] { "Light", "Dark", "Blue", "Default" }.All(name => Models.TreeGitThemes.Normalize(name) == name) && Models.TreeGitThemes.Blue.Key.Equals("Blue"));
+                Check("missing and unknown theme preferences keep the light fallback", Models.TreeGitThemes.Normalize(null) == "Light" && Models.TreeGitThemes.Normalize("invalid-theme") == "Light");
                 var source = new List<Models.Change>
                 {
                     new() { Path = "src/file10.txt", Index = Models.ChangeState.Modified, WorkTree = Models.ChangeState.None },

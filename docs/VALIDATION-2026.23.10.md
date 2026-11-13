@@ -7,7 +7,7 @@
 - 主题列表包含跟随系统、Light、Dark、Blue；已查看中文外观设置的实际截图，跟随系统不再显示含义不明的 Default。
 - 初次启动仍为 Light；在同一窗口反复切换四种主题，核对实际顶栏像素、白色菜单文字及 MCP 返回的实际主题。
 - 本机 Windows 应用主题当前为浅色，选择跟随系统时实际为 Light，顶栏 `#16836D`。单独选择 Dark 时实际为 Dark，顶栏 `#1F1F1F`；Blue 为 `#0747A6`。
-- 跟随系统保存为兼容标识 `Default`，重启后仍为 Default 并正确适配当前系统；Dark、Blue 及旧名称 SourceTree 的保存、重启兼容检查通过。
+- 跟随系统保存为兼容标识 `Default`，重启后仍为 Default 并正确适配当前系统；Dark、Blue 及旧版蓝色主题名称 的保存、重启兼容检查通过。
 
 系统自动适配使用 Avalonia 的 `ThemeVariant.Default`，由框架响应系统主题变化。此次未修改用户的 Windows 全局主题；系统浅色与固定 Dark 的实际渲染均已核对。
 

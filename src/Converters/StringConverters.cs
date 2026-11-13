@@ -35,7 +35,7 @@ namespace SourceGit.Converters
                 if (theme == "Dark")
                     return ThemeVariant.Dark;
                 if (theme == "Blue")
-                    return Models.TreeGitThemes.SourceTree;
+                    return Models.TreeGitThemes.Blue;
                 return ThemeVariant.Light;
             }
 

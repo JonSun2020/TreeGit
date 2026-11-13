@@ -211,7 +211,7 @@
                 <ThemeVariant>Default</ThemeVariant>
                 <ThemeVariant>Light</ThemeVariant>
                 <ThemeVariant>Dark</ThemeVariant>
-                <x:Static Member="m:TreeGitThemes.SourceTree"/>
+                <x:Static Member="m:TreeGitThemes.Blue"/>
               </ComboBox.Items>
             </ComboBox>
 

@@ -96,7 +96,7 @@ def refresh():
 rpc('initialize', {'protocolVersion':'2025-11-25'})
 tool('ui_open_repository', {'repo':str(repo)})
 gui_pid = tool('ui_state')['processId']
-tool('ui_window', {'width':1440, 'height':900, 'theme':'SourceTree', 'zoom':1})
+tool('ui_window', {'width':1440, 'height':900, 'theme':'Blue', 'zoom':1})
 state = select()
 expected = sum(a != b for a, b in zip(staged, working)) + len(working)-len(staged)
 check('unstaged binary compares against index, including changes across a 64 KiB boundary and append', state['differentBytes'] == expected and state['oldSize'] == len(staged) and state['newSize'] == len(working))
@@ -113,7 +113,7 @@ tool('ui_window', {'width':1024, 'height':720}); time.sleep(.3)
 check('narrow viewport adapts bytes per row', diff()['bytesPerRow'] in (4, 8))
 tool('ui_window', {'theme':'Dark'}); time.sleep(.3)
 (out/'binary-dark.png').write_bytes(tool('ui_screenshot'))
-tool('ui_window', {'width':1440, 'height':900, 'theme':'SourceTree'})
+tool('ui_window', {'width':1440, 'height':900, 'theme':'Blue'})
 
 diff('window')
 comparison_window = None

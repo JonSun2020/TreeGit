@@ -1,4 +1,4 @@
-"""Apply the presentation-only SourceTree layout to the pinned upstream snapshot."""
+"""Apply the presentation-only usability-focused layout to the pinned upstream snapshot."""
 from pathlib import Path
 import re
 

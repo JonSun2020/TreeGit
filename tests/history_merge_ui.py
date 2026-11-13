@@ -299,7 +299,7 @@ try:
     items = open_commit_menu(main)
     expected = ['CommitCheckout', 'CommitMerge', 'CommitRebase', 'CommitTag', 'CommitArchive', 'CommitBranch',
                 'CommitInteractiveRebase', 'CommitReset', 'CommitRevert', 'CommitPatch', 'CommitCherryPick', 'CommitCopySHA', 'CommitAdvanced']
-    check('commit context menu exposes SourceTree common actions in order', [i['name'] for i in items] == expected)
+    check('commit context menu exposes common actions in order', [i['name'] for i in items] == expected)
     check('reset to current HEAD remains available while redundant merge and rebase are disabled', next(i for i in items if i['name'] == 'CommitReset')['enabled'] and not any(i['enabled'] for i in items if i['name'] in ['CommitMerge', 'CommitRebase', 'CommitInteractiveRebase']))
     shot('commit-menu-current-head', active=True)
     press_commit_menu('CommitReset')

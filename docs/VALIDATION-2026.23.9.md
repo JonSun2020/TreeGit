@@ -8,7 +8,7 @@
 - 在同一窗口反复切换 Light、Dark、Blue，核对实际截图的顶栏像素与白色菜单文字。Light 为 `#16836D`，Dark 为 `#1F1F1F`，Blue 为 `#0747A6`。
 - 逐一查看三种主题的外观设置窗口，核对当前主题及深浅背景。
 - Dark 保存后重启仍为 Dark，顶栏保持深灰色。
-- 旧配置 `Default` 启动后转为 Light，保存后也是 Light；旧名 `SourceTree` 继续兼容并保存为 Blue。
+- 旧配置 `Default` 启动后转为 Light，保存后也是 Light；旧版蓝色主题名称 继续兼容并保存为 Blue。
 
 MCP 协议检查 18 项通过。源码 [CI 41977837077](https://github.com/JonSun2020/TreeGit/actions/runs/41977837077) 的 portable 和 cancellation 两个作业通过，包括便携构建、Git 自动发现、内置 Git、无已安装 Git 的 GUI 启动和进程取消检查。
 
