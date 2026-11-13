@@ -4,6 +4,8 @@
 
 **无需安装、无需登录软件账号。** 解压 Windows x64 便携版后运行 `TreeGit.exe`。访问需要授权的 Git 仓库时，使用对应仓库的账号或 SSH 密钥。
 
+**提交与分支覆盖联动。** 点击提交，左栏同时标出包含它的本地、远程分支，以深浅底色区分主要对应分支与其它包含分支；同一跟踪关系优先突出本地分支。
+
 **内置二进制文件对比，无需外部工具。** 在 TreeGit 中直接左右对比旧版与新版二进制内容，查看十六进制、ASCII、字节偏移和差异高亮，并跳转前后差异；无需安装 Beyond Compare 等外部比较软件。
 
 > TreeGit 在 SourceGit 基础上改进界面布局、交互、便携运行和 MCP 控制，保留 SourceGit 原版权、MIT 许可证及第三方声明。
@@ -66,7 +68,7 @@
 | --- | --- |
 | [<img src="docs/images/ui-2026.24.2/merge-unresolved.png" width="450" alt="三方合并：冲突为红色，合并结果可直接编辑">](docs/images/ui-2026.24.2/merge-unresolved.png) | [<img src="docs/images/ui-2026.24.2/merge-resolved.png" width="450" alt="三方合并：冲突解决后变绿，可保存并暂存">](docs/images/ui-2026.24.2/merge-resolved.png) |
 
-当前正式版为 **2026.24.2（Windows x64）**，下载见 [Releases](https://github.com/JonSun2020/TreeGit/releases/latest)；近期改动见[发行说明](docs/RELEASE-2026.24.2.md)，实际检查范围及结果见[验收记录](docs/VALIDATION-2026.24.2.md)。后续继续跟随 SourceGit 正式版本更新，保留 TreeGit 自行开发的功能和交互。
+当前正式版为 **2026.24.2（Windows x64）**，下载见 [Releases](https://github.com/JonSun2020/TreeGit/releases/latest)；版本改动见[发行说明](docs/RELEASE-2026.24.2.md)，实际检查范围及结果见[验收记录](docs/VALIDATION-2026.24.2.md)。后续继续跟随 SourceGit 正式版本更新，保留 TreeGit 自行开发的功能和交互。
 
 ## 下载安装
 
