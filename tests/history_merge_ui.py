@@ -236,7 +236,11 @@ def press(name):
     stable = 0
     for _ in range(60):
         time.sleep(.05); current = available()
-        stable = stable + 1 if current and current['bounds'] == b['bounds'] and current['screen'] == b['screen'] else 0
+        native_ready = False
+        if current:
+            target = api.WindowFromPoint(wintypes.POINT(current['screen']['x'], current['screen']['y']))
+            native_ready = owner(target) == pid and api.GetAncestor(target, 2) == main
+        stable = stable + 1 if current and native_ready and current['bounds'] == b['bounds'] and current['screen'] == b['screen'] else 0
         if current: b = current
         if stable >= 3: break
     assert stable >= 3, 'Button layout did not settle: ' + name
