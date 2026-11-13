@@ -172,6 +172,7 @@ namespace SourceGit.Views
         protected override void OnPointerPressed(PointerPressedEventArgs e)
         {
             var point = e.GetCurrentPoint(this);
+            _characterDrag = point.Properties.IsLeftButtonPressed && e.ClickCount == 1 && e.KeyModifiers == KeyModifiers.None;
             _pressedParent = point.Properties.IsLeftButtonPressed && e.KeyModifiers == KeyModifiers.None && SpanAt(point.Position) is { IsParent: true } parent ? parent : null;
             _pressPosition = point.Position; _dragged = false;
             SetHoveredParent(null);
@@ -195,6 +196,19 @@ namespace SourceGit.Views
 
         protected override void OnPointerReleased(PointerReleasedEventArgs e)
         {
+            if (e.InitialPressMouseButton == MouseButton.Left && _characterDrag)
+            {
+                var delta = e.GetPosition(this) - _pressPosition;
+                _dragged |= delta.X * delta.X + delta.Y * delta.Y > 9;
+                if (_dragged)
+                {
+                    // The OS can coalesce the final move into the release. Use
+                    // the release position as the final selection endpoint.
+                    var point = e.GetPosition(this) - new Point(Padding.Left, Padding.Top);
+                    point = new Point(Math.Clamp(point.X, 0, Math.Max(TextLayout.WidthIncludingTrailingWhitespace, 0)), Math.Clamp(point.Y, 0, Math.Max(TextLayout.Height, 0)));
+                    SetCurrentValue(SelectionEndProperty, TextLayout.HitTestPoint(point).TextPosition);
+                }
+            }
             var navigate = e.InitialPressMouseButton == MouseButton.Left && !_dragged && _pressedParent != null &&
                 Equals(_pressedParent, SpanAt(e.GetPosition(this))) && SelectionStart == SelectionEnd ? _pressedParent.SHA : null;
             base.OnPointerReleased(e);
@@ -204,7 +218,7 @@ namespace SourceGit.Views
 
         protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e) { StopDrag(); base.OnPointerCaptureLost(e); }
         protected override void OnPointerExited(PointerEventArgs e) { SetHoveredParent(null); base.OnPointerExited(e); }
-        private void StopDrag() { _scrollTimer.Stop(); _dragEvent = null; _pressedParent = null; }
+        private void StopDrag() { _scrollTimer.Stop(); _dragEvent = null; _pressedParent = null; _characterDrag = false; }
         private void AutoScrollSelection()
         {
             var e = _dragEvent;
@@ -261,6 +275,7 @@ namespace SourceGit.Views
         private string _revision;
         private bool _attached;
         private bool _dragged;
+        private bool _characterDrag;
         private Point _pressPosition;
         private CommitMetadataSpan _pressedParent;
         private CommitMetadataSpan _hoveredParent;
