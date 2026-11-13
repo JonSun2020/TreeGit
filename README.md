@@ -20,7 +20,7 @@
 - 保留 SourceGit 的克隆、推拉、分支、标签、合并、变基、交互式变基、贮藏、冲突处理、补丁、文件历史、Blame、子模块、Worktree、GitFlow、LFS、Bisect和命令日志等功能。高级操作位于“操作 → 高级操作”、偏好设置及对应的上下文菜单。
 - 使用 TreeGit 自有图标，帮助/关于注明上游来源及 MCP 支持。
 
-当前源码版本为 **2026.24.2**；Windows x64 正式下载与版本记录见 [Releases](https://github.com/JonSun2020/TreeGit/releases/latest)。后续继续跟随 SourceGit 上游更新，维护独立的界面、便携构建与 MCP 控制。
+当前正式版为 **2026.24.2（Windows x64）**；下载与版本记录见 [Releases](https://github.com/JonSun2020/TreeGit/releases/latest)。后续继续跟随 SourceGit 上游更新，维护独立的界面、便携构建与 MCP 控制。
 
 本版增加后台更新、每次启动自动检测更新，以及可连续选择和复制的提交信息区。父级 SHA 首次显示 10 位，重复时自动扩位，文字可点击跳转。本版同步 SourceGit 2026.24，增加提交分支名框和包含此提交的分支列表，统一历史、搜索和左栏分支的联动与底色。完善刷新定位、查询失败恢复、冲突末尾换行及 MCP 启动和只读隔离。保留 Local / Base / Remote 合并工具、完整 Git 操作和内置二进制左右对比。具体改动见[发行说明](docs/RELEASE-2026.24.1.md)，验证记录见[验收记录](docs/VALIDATION-2026.24.1.md)，Git 功能入口见[功能对照](docs/FUNCTIONALITY.md)。
 
