@@ -27,7 +27,7 @@
 | 图谱与分支筛选 | 当前检出分支的主线始终在最左侧；提供“当前分支”和“所有分支”。当前分支包含合并历史，勾选“显示远程分支”后也显示对应上游历史；此模式下单击其它分支不会改变图谱范围。 |
 | 同步数量与本地改动 | 获取远端信息后，仓库标签及拉取 / 推送按钮显示对应方向与提交数量；本地分支头提交加粗。有本地改动时，图谱顶部显示“未提交的更改”，选中后可查看已暂存、未暂存文件及差异；没有改动时隐藏该节点。未完成的合并在图谱中连接两个父节点。 |
 | 仓库标签与布局 | 标签背景不透明；选中的标签与下方内容区贯通，并显示关闭按钮。仓库较多时可用下拉列表选择。图谱、描述、日期、作者、提交等列可拖动调整宽度，并按仓库保存。 |
-| Light / Dark / Blue 主题 | Light 使用深绿色顶栏，Dark 使用深灰色顶栏，Blue 使用蓝色顶栏与浅色内容区；“跟随系统”在 Light、Dark 间自动切换。初次启动默认 Light，升级保留原选择。 |
+| Light / Dark / Blue 主题 | Light 使用深绿色顶栏，Dark 使用深灰色顶栏，Blue 使用蓝色顶栏与浅色内容区；“跟随系统”在 Light、Dark 间自动切换。提交行、左栏主分支、变更文件和同步数字角标统一使用主题选中色；其它包含分支使用浅底。初次启动默认 Light，升级保留原选择。 |
 | 后台更新与启动检测 | 勾选“启动时检测软件更新”后，每次启动都会检测。更新窗口提供“后台更新”；下载前或下载 / 校验期间关闭窗口，可选择取消或转入后台。下载完成或失败后重新提示，由用户决定重试或重启安装；支持有效下载片段续传。无新版本或启动检测暂时离线时保持安静。 |
 | 启动与便携运行 | 优先加载当前选中的仓库，其余仓库逐步加载；未加载标签也显示正确仓库名。自动使用电脑上可用的 Git，不可用时回退到随包 Git；无需安装 .NET 或登录软件账号。 |
 | 仓库认证 | 各仓库可独立配置凭据；认证使用同一个置顶账号 / 密码窗口，密码可留空，并可切换可见性。账号或密码错误时可重新输入；SSH 私钥可按远程独立选择。 |
@@ -38,41 +38,47 @@
 
 ### 界面截图
 
-以下均为 TreeGit 2026.24.2 的真实界面截图，来自隔离测试仓库。仓库、分支、提交、代码、二进制内容及作者均为演示数据；不含用户业务仓库、真实账号、个人路径或凭据。点击图片可查看原图。
+以下均为 TreeGit 2026.24.3 的真实界面截图，来自隔离测试仓库。仓库、分支、提交、代码、二进制内容及作者均为演示数据；不含用户业务仓库、真实账号、个人路径或凭据。点击图片可查看原图。
 
 **选中提交后，直接看清左侧分支的包含关系**
 
 选中图谱中的提交，左侧所有包含它的分支会同时高亮：详情分支框对应的分支使用较深底色，其余包含分支使用浅底色；不包含该提交的分支保持原样。同一跟踪关系中，优先突出本地分支。
 
-下图选中了 `Remote tip` 提交：本地 `main` 为深绿色，远程 `origin/main` 为浅绿色，未包含该提交的 `feature/side` 不高亮。无需沿图谱线条逐条查找，即可辨认该提交覆盖的分支。
+下图选中了“调整示例参数”提交：本地 `main` 为深绿色，远程 `origin/main` 为浅绿色，未包含该提交的 `feature/side` 不高亮。无需沿图谱线条逐条查找，即可辨认该提交覆盖的分支。
 
-![主界面选中提交后的左侧分支高亮，本地 main 深色、origin/main 浅色、不包含提交的分支不高亮](docs/images/ui-2026.24.2/commit-branch-highlights.png)
+![主界面选中提交后的左侧分支高亮，本地 main 深色、origin/main 浅色、不包含提交的分支不高亮](docs/images/ui-2026.24.3/commit-branch-highlights.png)
 
-**Light / Dark / Blue：主题与整块提交信息选择**
+**Light / Dark / Blue：主题与统一选中色**
 
 | Light | Dark | Blue |
 | --- | --- | --- |
-| [<img src="docs/images/ui-2026.24.2/theme-light.png" width="300" alt="Light 主题：绿色顶栏与连续选择的提交信息">](docs/images/ui-2026.24.2/theme-light.png) | [<img src="docs/images/ui-2026.24.2/theme-dark.png" width="300" alt="Dark 主题：深灰顶栏与绿色父级 SHA">](docs/images/ui-2026.24.2/theme-dark.png) | [<img src="docs/images/ui-2026.24.2/theme-blue.png" width="300" alt="Blue 主题：蓝色顶栏与蓝色父级 SHA">](docs/images/ui-2026.24.2/theme-blue.png) |
+| [<img src="docs/images/ui-2026.24.3/theme-light.png" width="300" alt="Light 主题：绿色顶栏，主分支和文件使用统一浅绿色选中底色">](docs/images/ui-2026.24.3/theme-light.png) | [<img src="docs/images/ui-2026.24.3/theme-dark.png" width="300" alt="Dark 主题：深灰顶栏与深浅绿色分支高亮">](docs/images/ui-2026.24.3/theme-dark.png) | [<img src="docs/images/ui-2026.24.3/theme-blue.png" width="300" alt="Blue 主题：蓝色顶栏，蓝底白字选中项与浅蓝包含分支">](docs/images/ui-2026.24.3/theme-blue.png) |
+
+**远程待拉取提交与同步数量**
+
+选中未合入当前分支的远程提交时，Blue 下的描述、日期、作者和 SHA 都以完整白字显示；左栏对应远程分支高亮。拉取、推送和仓库标签显示各自的提交数量。
+
+![远程待拉取提交选中后的蓝底白字、远程分支高亮及同步数量](docs/images/ui-2026.24.3/remote-selected-blue.png)
 
 **包含分支与搜索联动：结果中的数量下拉、详情分支框及左栏高亮**
 
-![搜索结果的包含分支列、分支数量及左栏联动高亮](docs/images/ui-2026.24.2/containing-branches.png)
+![搜索结果的包含分支列、分支数量及左栏联动高亮](docs/images/ui-2026.24.3/containing-branches.png)
 
 **内置二进制对比：旧版 / 新版左右显示，不依赖外部工具**
 
-![内置二进制对比，显示十六进制、ASCII、偏移与差异高亮](docs/images/ui-2026.24.2/binary-diff.png)
+![内置二进制对比，显示十六进制、ASCII、偏移与差异高亮](docs/images/ui-2026.24.3/binary-diff.png)
 
 **三方合并：上方比较 Local / Base / Remote，下方编辑合并结果**
 
 | 未解决冲突示例 | 解决后示例 |
 | --- | --- |
-| [<img src="docs/images/ui-2026.24.2/merge-unresolved.png" width="450" alt="三方合并：冲突为红色，合并结果可直接编辑">](docs/images/ui-2026.24.2/merge-unresolved.png) | [<img src="docs/images/ui-2026.24.2/merge-resolved.png" width="450" alt="三方合并：冲突解决后变绿，可保存并暂存">](docs/images/ui-2026.24.2/merge-resolved.png) |
+| [<img src="docs/images/ui-2026.24.3/merge-unresolved.png" width="450" alt="三方合并：冲突为红色，合并结果可直接编辑">](docs/images/ui-2026.24.3/merge-unresolved.png) | [<img src="docs/images/ui-2026.24.3/merge-resolved.png" width="450" alt="三方合并：冲突解决后变绿，可保存并暂存">](docs/images/ui-2026.24.3/merge-resolved.png) |
 
-当前正式版为 **2026.24.2（Windows x64）**，下载见 [Releases](https://github.com/JonSun2020/TreeGit/releases/latest)；版本改动见[发行说明](docs/RELEASE-2026.24.2.md)，实际检查范围及结果见[验收记录](docs/VALIDATION-2026.24.2.md)。后续继续跟随 SourceGit 正式版本更新，保留 TreeGit 自行开发的功能和交互。
+当前正式版为 **2026.24.3（Windows x64）**，下载见 [Releases](https://github.com/JonSun2020/TreeGit/releases/latest)；版本改动见[发行说明](docs/RELEASE-2026.24.3.md)，实际检查范围及结果见[验收记录](docs/VALIDATION-2026.24.3.md)。后续继续跟随 SourceGit 正式版本更新，保留 TreeGit 自行开发的功能和交互。
 
 ## 下载安装
 
-从 [最新正式版](https://github.com/JonSun2020/TreeGit/releases/latest) 下载 [TreeGit-2026.24.2-Windows-x64.zip](https://github.com/JonSun2020/TreeGit/releases/download/treegit-v2026.24.2/TreeGit-2026.24.2-Windows-x64.zip)，完整解压后运行 `TreeGit/TreeGit.exe`。标准包含 Git，约 70 MB。校验值见同页的 `SHA256SUMS.txt`。2026.23.10 及更早版本需先手动升级一次，此后可使用“帮助 → 检查更新”。开发构建仍可从 **Actions → TreeGit Windows portable** 下载。
+从 [最新正式版](https://github.com/JonSun2020/TreeGit/releases/latest) 下载 [TreeGit-2026.24.3-Windows-x64.zip](https://github.com/JonSun2020/TreeGit/releases/download/treegit-v2026.24.3/TreeGit-2026.24.3-Windows-x64.zip)，完整解压后运行 `TreeGit/TreeGit.exe`。标准包含 Git，约 70 MB。校验值见同页的 `SHA256SUMS.txt`。2026.23.10 及更早版本需先手动升级一次，此后可使用“帮助 → 检查更新”。开发构建仍可从 **Actions → TreeGit Windows portable** 下载。
 
 - 自带裁剪和压缩后的 .NET 运行时，无需安装 .NET。
 - 自动优先使用电脑上已有且可用的 Git；没有安装、路径失效或版本不兼容时，自动使用随包的便携 Git，无需另行安装或联网下载。
