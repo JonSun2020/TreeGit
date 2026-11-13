@@ -68,7 +68,7 @@ namespace SourceGit.Views
         protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
         {
             base.OnPropertyChanged(change);
-            if (_attached && change.Property == LinkBrushProperty) Rebuild(true);
+            if (_attached && (change.Property == LinkBrushProperty || change.Property == FontSizeProperty)) Rebuild(true);
         }
 
         private void AttachDetail(ViewModels.CommitDetail detail)
@@ -141,8 +141,8 @@ namespace SourceGit.Views
             var runs = new List<Inline>(); var position = 0;
             foreach (var span in spans)
             {
-                if (span.Start > position) runs.Add(new Run(next[position..span.Start]));
-                var run = new Run(span.Text);
+                if (span.Start > position) runs.Add(new Run(next[position..span.Start]) { FontSize = FontSize });
+                var run = new Run(span.Text) { FontSize = FontSize };
                 if (span.IsLabel) run.FontWeight = Avalonia.Media.FontWeight.Bold;
                 if (span.IsParent) { run.Foreground = LinkBrush; run.TextDecorations = Avalonia.Media.TextDecorations.Underline; }
                 runs.Add(run); position = span.Start + span.Length;
@@ -204,8 +204,10 @@ namespace SourceGit.Views
             var scroll = this.FindAncestorOfType<ScrollViewer>();
             if (scroll == null) return;
             var y = e.GetPosition(scroll).Y;
-            if (y < 8) scroll.LineUp();
-            else if (y > scroll.Bounds.Height - 8) scroll.LineDown();
+            // Staying inside the pane must not move text under a normal drag.
+            // Scroll only once the captured pointer leaves its viewport.
+            if (y < 0) scroll.LineUp();
+            else if (y > scroll.Bounds.Height) scroll.LineDown();
             else return;
             _dragged = true;
             base.OnPointerMoved(e);

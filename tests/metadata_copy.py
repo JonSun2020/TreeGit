@@ -267,7 +267,7 @@ try:
             point(0, True)
             viewport = document()['viewport']; scale = layout()['window']['scaling']
             edge = {'x': viewport['screen']['x'] + viewport['bounds']['width'] * scale / 2 - 24 * scale,
-                    'y': viewport['screen']['y'] + viewport['bounds']['height'] * scale / 2 - 2 * scale}
+                    'y': viewport['screen']['y'] + viewport['bounds']['height'] * scale / 2 + 8 * scale}
             drag(point(0), edge, finish=lambda: document()['selected'] == initial)
             check(object_format + ': dragging to the lower edge scrolls and selects the entire message', document()['selected'] == initial and state()['detailCommit'] == head)
             clear_clipboard(); key(0x43, ctrl=True); until(lambda: clipboard() == initial)
