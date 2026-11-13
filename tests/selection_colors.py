@@ -121,7 +121,10 @@ try:
     assert 'result' in json.loads(messages.get(timeout=45))
     pid = tool('ui_state')['processId']
     tool('ui_open_repository', repo=str(repo))
-    tool('ui_window', width=1400, height=900, state='normal', zoom=1)
+    # Fit the hosted Windows desktop; oversized windows can be clipped by its
+    # working area before the compositor finishes a resize.
+    tool('ui_window', width=1040, height=736, state='normal', zoom=1)
+    time.sleep(.6)
     tool('ui_graph', repo=str(repo), mode='all', showRemotes=True)
     until(lambda: not state()['graphLoading'] and state()['historyRows'])
     for theme, foreground in [('Light', '#ff123e34'), ('Dark', '#ffffffff'), ('Blue', '#ffffffff')]:

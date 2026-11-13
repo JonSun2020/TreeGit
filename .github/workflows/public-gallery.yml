@@ -1,0 +1,63 @@
+name: TreeGit public screenshots
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Exact product source of the existing portable package
+        type: string
+        required: true
+      package_run:
+        description: Successful Windows run containing the portable package
+        type: string
+        required: true
+permissions:
+  contents: read
+  actions: read
+jobs:
+  gallery:
+    runs-on: windows-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Require identical product source
+        env:
+          SOURCE: ${{ inputs.source }}
+        shell: pwsh
+        run: |
+          if ($env:SOURCE -notmatch '^[0-9a-f]{40}$') { throw 'Invalid source' }
+          git diff --exit-code $env:SOURCE -- src
+          if ($LASTEXITCODE -ne 0) { throw 'Product source differs from the selected package' }
+      - uses: actions/download-artifact@v4
+        with:
+          name: TreeGit-Windows-x64
+          path: package
+          run-id: ${{ inputs.package_run }}
+          github-token: ${{ github.token }}
+      - name: Verify and reuse the exact normal portable package
+        env:
+          SOURCE: ${{ inputs.source }}
+          PACKAGE_RUN: ${{ inputs.package_run }}
+        shell: pwsh
+        run: |
+          $archive = (Get-ChildItem package/TreeGit-*-Windows-x64.zip | Select-Object -First 1).FullName
+          $sum = (Get-Content package/SHA256SUMS.txt -Raw).Trim() -split '\s+'
+          $actual = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $sum[0]) { throw 'Archive checksum mismatch' }
+          Expand-Archive -LiteralPath $archive -DestinationPath "$env:RUNNER_TEMP/gallery-program"
+          $build = Get-Content "$env:RUNNER_TEMP/gallery-program/TreeGit/build-info.json" -Raw | ConvertFrom-Json
+          if ($build.sourceCommit -ne $env:SOURCE -or $build.integrationTests) { throw 'Unexpected product build' }
+          New-Item -ItemType Directory -Path "$env:RUNNER_TEMP/public-gallery" -Force | Out-Null
+          @{source=$env:SOURCE;packageRun=$env:PACKAGE_RUN;zipSHA256=$actual;version=$build.version;integrationTests=$false} | ConvertTo-Json | Set-Content -Encoding UTF8 "$env:RUNNER_TEMP/public-gallery/gallery-source.json"
+      - name: Capture only fictional repository data
+        shell: pwsh
+        run: python tests/selection_colors.py "$env:RUNNER_TEMP/gallery-program/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/public-gallery" --gallery
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: TreeGit-public-gallery
+          path: |
+            ${{ runner.temp }}/public-gallery/*.json
+            ${{ runner.temp }}/public-gallery/*.png
+            ${{ runner.temp }}/public-gallery/*.log
