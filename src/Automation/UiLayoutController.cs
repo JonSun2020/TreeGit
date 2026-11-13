@@ -208,6 +208,7 @@ namespace SourceGit.Automation
                     .Select(t => new { text = t.PlainText, selected = t.SelectedText, start = t.SelectionStart, end = t.SelectionEnd,
                         tooltip = ToolTip.GetTip(t)?.ToString(), tooltipOpen = ToolTip.GetIsOpen(t), cursor = t.Cursor?.ToString(), focused = t.IsFocused,
                         fontSize = t.FontSize, runFontSizes = t.Inlines.OfType<Avalonia.Controls.Documents.Run>().Select(r => r.FontSize).Distinct().ToArray(),
+                        parentColors = t.Inlines.OfType<Avalonia.Controls.Documents.Run>().Where(r => r.TextDecorations?.Count > 0).Select(r => r.Foreground?.ToString()).Distinct().ToArray(),
                         bounds = Bounds(t), visibleHeight = VisibleHeight(t), spans = t.Spans.Select(s => new { name = s.Name, text = s.Text, start = s.Start, length = s.Length, sha = s.SHA, parent = s.IsParent, label = s.IsLabel }).ToArray(),
                         viewport = t.FindAncestorOfType<ScrollViewer>() is { } scroll ? new { bounds = Bounds(scroll), screen = ScreenPoint(scroll) } : null,
                         menu = t.ContextMenu is { IsOpen: true } menu ? menu.Items.OfType<MenuItem>().Select(i => new { name = i.Name, text = i.Header?.ToString(), enabled = i.IsEnabled, screen = ScreenPoint(i) }).ToArray() : null }).ToArray(),

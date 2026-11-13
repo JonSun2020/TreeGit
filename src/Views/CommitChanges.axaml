@@ -18,7 +18,7 @@
         <Grid RowDefinitions="Auto,*">
           <v:CommitBranchHeader Margin="0,0,0,4"/>
         <ScrollViewer x:Name="CommitMetadataScroll" Grid.Row="1" AllowAutoHide="False" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-          <v:CommitMetadataText x:Name="CommitMetadataText" Background="Transparent" Foreground="{DynamicResource Brush.FG1}" LinkBrush="{DynamicResource Brush.Link}" SelectionForegroundBrush="{x:Null}" SelectionBrush="{DynamicResource Brush.AccentHovered}" FontSize="12" TextWrapping="Wrap" Cursor="Ibeam" ToolTip.ShowDelay="0" ToolTip.Placement="Pointer" ToolTip.HorizontalOffset="8" ToolTip.VerticalOffset="16" ParentNavigationRequested="OnParentNavigationRequested"/>
+          <v:CommitMetadataText x:Name="CommitMetadataText" Background="Transparent" Foreground="{DynamicResource Brush.FG1}" LinkBrush="{DynamicResource Brush.TreeGit.ParentSHA}" SelectionForegroundBrush="{x:Null}" SelectionBrush="{DynamicResource Brush.AccentHovered}" FontSize="12" TextWrapping="Wrap" Cursor="Ibeam" ToolTip.ShowDelay="0" ToolTip.Placement="Pointer" ToolTip.HorizontalOffset="8" ToolTip.VerticalOffset="16" ParentNavigationRequested="OnParentNavigationRequested"/>
         </ScrollViewer>
         </Grid>
       </Border>

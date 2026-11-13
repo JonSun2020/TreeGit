@@ -160,10 +160,13 @@ namespace SourceGit.Views
 
         public CommitMetadataSpan SpanAt(Point point)
         {
-            var hit = TextLayout.HitTestPoint(point - new Point(Padding.Left, Padding.Top));
-            if (!hit.IsInside) return null;
+            var local = point - new Point(Padding.Left, Padding.Top);
+            var hit = TextLayout.HitTestPoint(local);
             var index = hit.CharacterHit.FirstCharacterIndex;
-            return _spans.FirstOrDefault(span => index >= span.Start && index < span.Start + span.Length);
+            var span = _spans.FirstOrDefault(s => index >= s.Start && index < s.Start + s.Length);
+            // Check actual glyph bounds: the framework's IsInside compares the
+            // document's Y coordinate with one line's height on multiline text.
+            return span != null && TextLayout.HitTestTextRange(span.Start, span.Length).Any(rect => rect.Contains(local)) ? span : null;
         }
 
         protected override void OnPointerPressed(PointerPressedEventArgs e)

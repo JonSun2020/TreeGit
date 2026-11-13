@@ -264,9 +264,12 @@ try:
             version = state()['workingCopyRefreshVersion']; tool('ui_refresh', repo=str(repo))
             until(lambda: state()['workingCopyRefreshVersion'] > version and not state()['graphLoading'])
             check(object_format + ': background refresh preserves the whole-pane selection', document()['selected'] == initial)
-            for theme in ['Dark', 'Blue']:
+            for theme, color in [('Light', '#ff16836d'), ('Dark', '#ff16836d'), ('Blue', '#ff0747a6'), ('Default', '#ff16836d')]:
                 tool('ui_window', theme=theme)
+                until(lambda: document()['parentColors'] and all(c.lower() == color for c in document()['parentColors']))
+                check(object_format + ': ' + theme + ' uses the requested parent SHA color', all(c.lower() == color for c in document()['parentColors']))
                 check(object_format + ': ' + theme + ' preserves selected rich text', document()['selected'] == initial)
+                (out / (object_format + '-selection-' + theme.lower() + '.png')).write_bytes(tool('ui_screenshot'))
             point(0, True)
             viewport = document()['viewport']; scale = layout()['window']['scaling']
             edge = {'x': viewport['screen']['x'] + viewport['bounds']['width'] * scale / 2 - 24 * scale,
