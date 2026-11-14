@@ -28,6 +28,7 @@
 | 同步数量与本地改动 | 获取远端信息后，仓库标签及拉取 / 推送按钮显示对应方向与提交数量；本地分支头提交加粗。有本地改动时，图谱顶部显示“未提交的更改”，选中后可查看已暂存、未暂存文件及差异；没有改动时隐藏该节点。未完成的合并在图谱中连接两个父节点。 |
 | 仓库标签与布局 | 标签背景不透明；选中的标签与下方内容区贯通，并显示关闭按钮。仓库较多时可用下拉列表选择。图谱、描述、日期、作者、提交等列可拖动调整宽度，并按仓库保存。 |
 | Light / Dark / Blue 主题 | Light 使用深绿色顶栏，Dark 使用深灰色顶栏，Blue 使用蓝色顶栏与浅色内容区；“跟随系统”在 Light、Dark 间自动切换。提交行、左栏主分支、变更文件和同步数字角标统一使用主题选中色；其它包含分支使用浅底。初次启动默认 Light，升级保留原选择。 |
+| 顶栏菜单交互 | 再次点击已展开的菜单按钮直接收起；展开按钮显示主题色亮边，尺寸和位置保持不变。支持悬停切换、方向键、Esc 和点击外部关闭。 |
 | 后台更新与启动检测 | 勾选“启动时检测软件更新”后，每次启动都会检测。更新窗口提供“后台更新”；下载前或下载 / 校验期间关闭窗口，可选择取消或转入后台。下载完成或失败后重新提示，由用户决定重试或重启安装；支持有效下载片段续传。无新版本或启动检测暂时离线时保持安静。 |
 | 启动与便携运行 | 优先加载当前选中的仓库，其余仓库逐步加载；未加载标签也显示正确仓库名。自动使用电脑上可用的 Git，不可用时回退到随包 Git；无需安装 .NET 或登录软件账号。 |
 | 仓库认证 | 各仓库可独立配置凭据；认证使用同一个置顶账号 / 密码窗口，密码可留空，并可切换可见性。账号或密码错误时可重新输入；SSH 私钥可按远程独立选择。 |
@@ -74,11 +75,11 @@
 | --- | --- |
 | [<img src="docs/images/ui-2026.24.3/merge-unresolved.png" width="450" alt="三方合并：冲突为红色，合并结果可直接编辑">](docs/images/ui-2026.24.3/merge-unresolved.png) | [<img src="docs/images/ui-2026.24.3/merge-resolved.png" width="450" alt="三方合并：冲突解决后变绿，可保存并暂存">](docs/images/ui-2026.24.3/merge-resolved.png) |
 
-当前正式版为 **2026.24.3（Windows x64）**，下载见 [Releases](https://github.com/JonSun2020/TreeGit/releases/latest)；版本改动见[发行说明](docs/RELEASE-2026.24.3.md)，实际检查范围及结果见[验收记录](docs/VALIDATION-2026.24.3.md)。后续继续跟随 SourceGit 正式版本更新，保留 TreeGit 自行开发的功能和交互。
+当前正式版为 **2026.24.4（Windows x64）**，下载见 [Releases](https://github.com/JonSun2020/TreeGit/releases/latest)；版本改动见[发行说明](docs/RELEASE-2026.24.4.md)，实际检查范围及结果见[验收记录](docs/VALIDATION-2026.24.4.md)。后续继续跟随 SourceGit 正式版本更新，保留 TreeGit 自行开发的功能和交互。
 
 ## 下载安装
 
-从 [最新正式版](https://github.com/JonSun2020/TreeGit/releases/latest) 下载 [TreeGit-2026.24.3-Windows-x64.zip](https://github.com/JonSun2020/TreeGit/releases/download/treegit-v2026.24.3/TreeGit-2026.24.3-Windows-x64.zip)，完整解压后运行 `TreeGit/TreeGit.exe`。标准包含 Git，约 70 MB。校验值见同页的 `SHA256SUMS.txt`。2026.23.10 及更早版本需先手动升级一次，此后可使用“帮助 → 检查更新”。开发构建仍可从 **Actions → TreeGit Windows portable** 下载。
+从 [最新正式版](https://github.com/JonSun2020/TreeGit/releases/latest) 下载 [TreeGit-2026.24.4-Windows-x64.zip](https://github.com/JonSun2020/TreeGit/releases/download/treegit-v2026.24.4/TreeGit-2026.24.4-Windows-x64.zip)，完整解压后运行 `TreeGit/TreeGit.exe`。标准包含 Git，约 70 MB。校验值见同页的 `SHA256SUMS.txt`。2026.23.10 及更早版本需先手动升级一次，此后可使用“帮助 → 检查更新”。开发构建仍可从 **Actions → TreeGit Windows portable** 下载。
 
 - 自带裁剪和压缩后的 .NET 运行时，无需安装 .NET。
 - 自动优先使用电脑上已有且可用的 Git；没有安装、路径失效或版本不兼容时，自动使用随包的便携 Git，无需另行安装或联网下载。
