@@ -75,6 +75,9 @@ def move(header):
     assert owner(user.GetForegroundWindow()) == pid, 'Owned CI window lost foreground'
     assert user.SetCursorPos(point.x, point.y)
     time.sleep(.12)
+    actual = wintypes.POINT()
+    assert user.GetCursorPos(ctypes.byref(actual))
+    assert (actual.x, actual.y) == (point.x, point.y), 'CI pointer target is outside the visible desktop'
 
 
 def click():
@@ -100,7 +103,7 @@ try:
     process_sample(exe, pid)
     tool('ui_window', width=1040, height=736, state='normal', zoom=1)
     for theme in ['Blue', 'Light', 'Dark']:
-        tool('ui_window', theme=theme)
+        tool('ui_window', theme=theme, state='normal')
         color = {'Blue': '#ff0078d7', 'Light': '#ffa7e1a7', 'Dark': '#ff6f9f76'}[theme]
         check('all header outlines follow the theme', all(h['outlineBrush'].lower() == color for h in action('inspect')['headers']))
         for index in range(6):
@@ -135,6 +138,10 @@ try:
         check('outside press closes menu', not action('outside')['menuOpen'])
         # Re-enable real hit testing and verify the same event sequence through
         # the OS, only after process ownership and foreground are established.
+        # The initial large centered window can extend above a small CI desktop;
+        # resizing alone does not relocate it. Maximize before native input.
+        tool('ui_window', state='maximized')
+        time.sleep(.25)
         state = action('native_reset')
         for index in range(6):
             state = action('native_reset')
