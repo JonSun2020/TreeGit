@@ -27,6 +27,19 @@ namespace SourceGit.Views
             TitleChrome.AddHandler(PointerPressedEvent, OnTitleChromePointerPressed, Avalonia.Interactivity.RoutingStrategies.Tunnel, true);
         }
 
+        private void OnPrimaryMenuHeaderPointerPressed(object sender, PointerPressedEventArgs e)
+        {
+            if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || e.Source is not Avalonia.Visual source)
+                return;
+
+            var header = source as MenuItem ?? source.FindAncestorOfType<MenuItem>();
+            if (header?.Parent != PrimaryMenu || !header.IsSubMenuOpen)
+                return;
+
+            PrimaryMenu.Close();
+            e.Handled = true;
+        }
+
         private void OnTitleChromePointerPressed(object sender, PointerPressedEventArgs e)
         {
             if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;

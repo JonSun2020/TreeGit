@@ -58,6 +58,7 @@
                   <Border Name="PART_LayoutRoot" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
                     <ContentPresenter Name="PART_HeaderPresenter" Content="{TemplateBinding Header}" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center"/>
                   </Border>
+                  <Border Name="MenuHeaderOutline" BorderThickness="1" BorderBrush="{DynamicResource Brush.TreeGit.MenuBorder}" IsVisible="False" IsHitTestVisible="False"/>
                   <Popup Name="PART_Popup" Placement="BottomEdgeAlignedLeft" IsLightDismissEnabled="False" IsOpen="{TemplateBinding IsSubMenuOpen, Mode=TwoWay}">
                     <Border Padding="4" MinWidth="180" Background="{DynamicResource Brush.Popup}" BorderBrush="{DynamicResource Brush.Border1}" BorderThickness="1">
                       <ItemsPresenter Name="PART_ItemsPresenter" Grid.IsSharedSizeScope="True"><ItemsPresenter.ItemsPanel><ItemsPanelTemplate><StackPanel/></ItemsPanelTemplate></ItemsPresenter.ItemsPanel></ItemsPresenter>
@@ -69,6 +70,7 @@
           </Style>
           <Style Selector="Menu &gt; MenuItem:selected /template/ Border#PART_LayoutRoot"><Setter Property="Background" Value="{DynamicResource Brush.TreeGit.ChromeHover}"/></Style>
           <Style Selector="Menu &gt; MenuItem:selected /template/ ContentPresenter#PART_HeaderPresenter"><Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.ChromeForeground}"/></Style>
+          <Style Selector="Menu &gt; MenuItem:open /template/ Border#MenuHeaderOutline"><Setter Property="IsVisible" Value="True"/></Style>
         </Menu.Styles>
         <MenuItem Header="文件(F)">
           <MenuItem Header="新标签页" Command="{Binding AddNewTab}"/>

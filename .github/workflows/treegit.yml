@@ -323,6 +323,9 @@ jobs:
       - name: Verify selected and deselected unmerged text and theme branch priority
         shell: pwsh
         run: python tests/selection_colors.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/selection-colors-results"
+      - name: Verify menu header toggling and outlines with routed and native input
+        shell: pwsh
+        run: python tests/menu_toggle.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/menu-toggle-results"
       - name: Verify startup update preference and metadata copying
         shell: pwsh
         run: |
@@ -352,3 +355,6 @@ jobs:
             ${{ runner.temp }}/selection-colors-results/*.json
             ${{ runner.temp }}/selection-colors-results/*.png
             ${{ runner.temp }}/selection-colors-results/*.log
+            ${{ runner.temp }}/menu-toggle-results/*.json
+            ${{ runner.temp }}/menu-toggle-results/*.png
+            ${{ runner.temp }}/menu-toggle-results/*.log

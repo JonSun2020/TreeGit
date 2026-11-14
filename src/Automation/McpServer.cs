@@ -49,6 +49,7 @@ namespace SourceGit.Automation
             actions.Add("test_set");
             actions.Add("test_reveal");
             actions.Add("test_metadata");
+            actions.Add("test_menu");
 #endif
             var fields = new Dictionary<string, object> { ["action"] = Field("Layout operation.", values: actions.ToArray()), ["window"] = Field("Main window or active dialog.", values: ["main", "active"]), ["splitter"] = Field("Index returned by list; required for drag/restore.", "integer"), ["scroller"] = Field("Scroll area index returned by list.", "integer"), ["scrollbar"] = Field("Scroll bar index returned by list; alternative to scroller.", "integer"), ["value"] = Field("Absolute scroll-bar value for scrollbar.", "number"), ["dx"] = Field("Horizontal drag change, or scroll offset, in UI units.", "number"), ["dy"] = Field("Vertical drag change, or scroll offset, in UI units.", "number"), ["width"] = Field("Window width for resize.", "number"), ["height"] = Field("Window height for resize.", "number"), ["columns"] = new { type = "array", items = new { type = "string" } }, ["rows"] = new { type = "array", items = new { type = "string" } }, ["twoColumnHistory"] = Field("Use side-by-side history/detail panes.", "boolean"), ["twoColumnDiff"] = Field("Use side-by-side text differences.", "boolean") };
 #if INTEGRATION_TESTS

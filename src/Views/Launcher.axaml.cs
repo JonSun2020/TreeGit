@@ -43,6 +43,10 @@ namespace SourceGit.Views
             else
                 CaptionHeight = new GridLength(56);
 
+            // Register before XAML attaches the menu's default input handler.
+            // A second header press must be consumed before it can dismiss and
+            // re-open the same popup in one input cycle.
+            AddHandler(PointerPressedEvent, OnPrimaryMenuHeaderPointerPressed, RoutingStrategies.Tunnel);
             InitializeComponent();
             InitializeTitleChrome();
             PositionChanged += OnPositionChanged;

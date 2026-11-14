@@ -54,6 +54,8 @@ namespace SourceGit.Automation
                     args.TryGetProperty("dy", out _) ? Change(args, "dy") : scroller.Offset.Y);
             }
 #if INTEGRATION_TESTS
+            else if (action == "test_menu")
+                return MenuToggleProbe.Execute(window, args);
             else if (action == "test_metadata")
             {
                 if (Environment.GetEnvironmentVariable("CI") != "true") throw new InvalidOperationException("An owned CI fixture is required.");
