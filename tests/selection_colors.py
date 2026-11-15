@@ -81,9 +81,9 @@ def select(sha):
     until(lambda: state()['detailCommit'] == sha and not state()['detailBranchesLoading'])
 
 
-def capture(name):
+def capture(name, active=False):
     time.sleep(.3)
-    (out / (name + '.png')).write_bytes(tool('ui_screenshot'))
+    (out / (name + '.png')).write_bytes(tool('ui_screenshot', **({'window': 'active'} if active else {})))
 
 
 def text_rows(sha, selected):
@@ -164,6 +164,48 @@ try:
         tool('ui_search', repo=str(repo), showBranches=True)
         capture('search-branches-popup')
     check('viewing selections and search preserves HEAD index and working files', before == [git('rev-parse', 'HEAD'), git('ls-files', '--stage'), git('status', '--porcelain')])
+    if gallery:
+        # Set up each public example explicitly inside this disposable repository.
+        tool('ui_search', repo=str(repo), select=target, open=True)
+        (repo / 'firmware.bin').write_bytes(bytes(range(256)) * 8)
+        git('add', '.'); git('commit', '-m', '添加示例固件')
+        image = bytearray((repo / 'firmware.bin').read_bytes())
+        image[32:48] = bytes(range(240, 256)); image[96:104] = b'TreeGit!'
+        (repo / 'firmware.bin').write_bytes(image)
+        git('commit', '-am', '更新示例固件字节')
+        binary_head = git('rev-parse', 'HEAD')
+        tool('ui_refresh', repo=str(repo))
+        until(lambda: not state()['graphLoading'] and any(b['head'] == binary_head for b in state()['loadedBranches']))
+        select(binary_head)
+        until(lambda: 'firmware.bin' in (state()['detailChanges'] or []))
+        tool('ui_diff', repo=str(repo), action='select', source='history', file='firmware.bin')
+        until(lambda: tool('ui_diff', repo=str(repo), action='state').get('status') == 'ready')
+        capture('binary-diff')
+        check('public binary example renders the built-in comparison', True)
+
+        repo = root / 'Merge Demo'
+        repo.mkdir()
+        git('init', '-b', 'main'); git('config', 'user.name', 'TreeGit Demo'); git('config', 'user.email', 'demo@example.invalid')
+        git('config', 'core.autocrlf', 'false'); git('config', 'merge.conflictStyle', 'diff3')
+        lines = ['sample_rate = 100;\n'] + ['context_' + str(i) + ' = 0;\n' for i in range(12)] + ['report_interval = 20;\n']
+        (repo / 'settings.cfg').write_text(''.join(lines), encoding='utf-8')
+        git('add', '.'); git('commit', '-m', '初始采样配置')
+        git('checkout', '-b', 'feature/demo')
+        (repo / 'settings.cfg').write_text(''.join(lines).replace('sample_rate = 100', 'sample_rate = 200').replace('report_interval = 20', 'report_interval = 40'), encoding='utf-8')
+        git('commit', '-am', '远端示例配置')
+        git('checkout', 'main')
+        (repo / 'settings.cfg').write_text(''.join(lines).replace('sample_rate = 100', 'sample_rate = 160').replace('report_interval = 20', 'report_interval = 30'), encoding='utf-8')
+        git('commit', '-am', '本地示例配置')
+        merge = subprocess.run(['git', '-C', str(repo), 'merge', '--no-edit', 'feature/demo'], env=env, capture_output=True)
+        check('public merge example has actual independent conflicts', merge.returncode == 1 and bool(git('ls-files', '--unmerged')))
+        tool('ui_open_repository', repo=str(repo)); until(lambda: state()['changes'] == 1)
+        tool('ui_command', repo=str(repo), command='merge_conflicts', file='settings.cfg')
+        tool('ui_merge_result', repo=str(repo), file='settings.cfg', action='resolve', region=0, choice='left')
+        current = tool('ui_merge_result', repo=str(repo), file='settings.cfg', action='read')
+        check('public merge example shows resolved and unresolved blocks', current['unsolved'] == 1)
+        capture('merge-editor', active=True)
+        tool('ui_merge_result', repo=str(repo), file='settings.cfg', action='resolve', region=1, choice='right')
+        check('public merge example saves and stages through the real editor', tool('ui_merge_result', repo=str(repo), file='settings.cfg', action='save')['saved'])
 except BaseException:
     failure = traceback.format_exc()
     if process and pid:
