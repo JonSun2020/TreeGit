@@ -55,8 +55,21 @@ namespace SourceGit.Commands
                     if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(plan, UnixFileMode.UserRead | UnixFileMode.UserWrite);
                     var executable = Environment.ProcessPath;
                     if (OperatingSystem.IsWindows()) { executable = executable.Replace('\\', '/'); plan = plan.Replace('\\', '/'); }
+                    var inputs = "\"$BASE\" \"$LOCAL\" \"$REMOTE\" \"$MERGED\"";
+                    if (OperatingSystem.IsWindows())
+                    {
+                        // MSYS automatic argument conversion can skip temporary
+                        // paths containing quotes. Hand the native worker explicit
+                        // absolute Windows paths, including an optional empty base.
+                        inputs = "\"$(treegit_native_path \"$BASE\")\" \"$(treegit_native_path \"$LOCAL\")\" " +
+                            "\"$(treegit_native_path \"$REMOTE\")\" \"$(treegit_native_path \"$MERGED\")\"";
+                    }
                     var cmd = Native.ExternalMergeSession.ShellQuote(executable) + " --external-merge-tool " +
-                        Native.ExternalMergeSession.ShellQuote(plan) + " \"$BASE\" \"$LOCAL\" \"$REMOTE\" \"$MERGED\"";
+                        Native.ExternalMergeSession.ShellQuote(plan) + " " + inputs;
+                    if (OperatingSystem.IsWindows())
+                        // pwd -W is provided by Git for Windows' shell, including
+                        // MinGit (which does not ship the cygpath executable).
+                        cmd = "treegit_native_path() { if test -n \"$1\"; then (cd -- \"$(dirname -- \"$1\")\" && printf '%s/%s' \"$(pwd -W)\" \"$(basename -- \"$1\")\"); fi; }; " + cmd;
                     Args = $"-c mergetool.sourcegit.cmd={cmd.Quoted()} -c mergetool.writeToTemp=true -c mergetool.keepBackup=false -c mergetool.sourcegit.trustExitCode=true mergetool --tool=sourcegit --no-prompt -- {_file}";
                 }
 

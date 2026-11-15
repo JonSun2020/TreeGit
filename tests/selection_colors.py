@@ -27,7 +27,7 @@ out.mkdir(parents=True, exist_ok=True)
 profile = IsolatedProfile(exe, out)
 parent = Path(tempfile.gettempdir()).resolve()
 root = new_fixture(parent, 'TreeGit selection colors ')
-repo = root / 'TreeGit Demo'
+repo = root / 'Demo'
 repo.mkdir()
 env = {**os.environ, 'GIT_CONFIG_GLOBAL': str(root / 'global.gitconfig'), 'GIT_CONFIG_NOSYSTEM': '1'}
 process = None
@@ -182,14 +182,17 @@ try:
         until(lambda: 'firmware.bin' in (state()['detailChanges'] or []))
         tool('ui_diff', repo=str(repo), action='select', source='history', file='firmware.bin')
         until(lambda: tool('ui_diff', repo=str(repo), action='state').get('status') == 'ready')
-        capture('binary-diff')
+        tool('ui_diff', repo=str(repo), action='window')
+        until(lambda: any(d['type'] == 'BinaryDiffWindow' for d in tool('ui_state')['dialogs']))
+        capture('binary-diff', active=True)
+        tool('ui_command', command='close_dialog')
         check('public binary example renders the built-in comparison', True)
 
         repo = root / 'Merge Demo'
         repo.mkdir()
         git('init', '-b', 'main'); git('config', 'user.name', 'TreeGit Demo'); git('config', 'user.email', 'demo@example.invalid')
         git('config', 'core.autocrlf', 'false'); git('config', 'merge.conflictStyle', 'diff3')
-        lines = ['sample_rate = 100;\n'] + ['context_' + str(i) + ' = 0;\n' for i in range(12)] + ['report_interval = 20;\n']
+        lines = ['sample_rate = 100;\n'] + ['context_' + str(i) + ' = 0;\n' for i in range(8)] + ['report_interval = 20;\n']
         (repo / 'settings.cfg').write_text(''.join(lines), encoding='utf-8')
         git('add', '.'); git('commit', '-m', '初始采样配置')
         git('checkout', '-b', 'feature/demo')
@@ -207,7 +210,10 @@ try:
         check('public merge example shows resolved and unresolved blocks', current['unsolved'] == 1)
         capture('merge-editor', active=True)
         tool('ui_merge_result', repo=str(repo), file='settings.cfg', action='resolve', region=1, choice='right')
-        check('public merge example saves and stages through the real editor', tool('ui_merge_result', repo=str(repo), file='settings.cfg', action='save')['saved'])
+        saved = tool('ui_merge_result', repo=str(repo), file='settings.cfg', action='save')['saved']
+        if not saved:
+            raise AssertionError('Public merge save failed: ' + json.dumps(tool('ui_merge_result', repo=str(repo), file='settings.cfg', action='read'), ensure_ascii=False))
+        check('public merge example saves and stages through the real editor', saved and not git('ls-files', '--unmerged'))
 except BaseException:
     failure = traceback.format_exc()
     if process and pid:

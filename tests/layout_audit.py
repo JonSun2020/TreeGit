@@ -437,7 +437,7 @@ try:
             repo_tool('ui_select_view', view='search')
             time.sleep(.1)
             fresh = next(s for s in tool('ui_layout')['scrolls'] if s['name'] == 'PageViewport' and s['visible'])
-            check(f'zoom-{theme}-{zoom}: new page starts at its own top left', fresh['offset']['x'] == 0 and fresh['offset']['y'] == 0)
+            check(f'zoom-{theme}-{zoom}: new page starts at its own top left', fresh['offset']['x'] == 0 and fresh['offset']['y'] == 0, fresh)
             repo_tool('ui_working_copy')
     tool('ui_window', {'theme': 'Blue', 'zoom': 1, 'state': 'normal', 'width': 1024, 'height': 640})
     inspect('minimum-normal-window', '文件状态', capture=True)

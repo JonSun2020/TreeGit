@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 namespace SourceGit.Views
@@ -170,10 +171,20 @@ namespace SourceGit.Views
                     return;
                 _navigationSurface = surface;
                 PageViewport.Offset = default;
+                var navigation = ++_navigationRevision;
+                // Focus restoration and the new page's layout may request a
+                // bring-into-view after the synchronous reset. Finish this
+                // navigation at the origin without resetting graph selections.
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (IsLoaded && navigation == _navigationRevision)
+                        PageViewport.Offset = default;
+                }, DispatcherPriority.Loaded);
             }
         }
 
         private int _navigationSurface = -1;
+        private int _navigationRevision;
 
         private void OnHistoryBranchSelection(Models.Branch branch)
         {
