@@ -458,6 +458,21 @@ namespace SourceGit.Views
         public MergeConflictEditor()
         {
             InitializeComponent();
+            AddHandler(KeyDownEvent, OnMergeKeyDown, RoutingStrategies.Tunnel, true);
+        }
+
+        private void OnMergeKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Escape) return;
+            // The editable text area can retain keyboard focus while an overlay
+            // context menu is open. Close that menu before the editor handles Esc.
+            foreach (var menu in new[] { OursPresenter.OpenContextMenu, BasePresenter.OpenContextMenu,
+                TheirsPresenter.OpenContextMenu, ResultPresenter.OpenContextMenu })
+            {
+                if (menu?.IsOpen != true) continue;
+                menu.Close();
+                e.Handled = true;
+            }
         }
 
         private void OnEditorLayoutUpdated(object sender, EventArgs e)
