@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Threading.Tasks;
@@ -42,7 +42,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = "Adding Ignored File(s) ...";
+            SetProgressDescription("TreeGit.Progress.AddToIgnore");
 
             var file = _selectedStorageFile.FullPath;
             if (!File.Exists(file))

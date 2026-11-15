@@ -12,7 +12,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = "Prune worktrees ...";
+            SetProgressDescription("TreeGit.Progress.PruneWorktrees");
 
             var log = _repo.CreateLog("Prune Worktrees");
             Use(log);

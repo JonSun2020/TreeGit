@@ -221,7 +221,7 @@ try:
     check('the complete commit message remains readable in the metadata scroll area', True)
     check('reading a long message keeps the branch header fixed and visible', layout()['commitBranchHeaders'][0]['bounds'] == header_before)
     client.tool('ui_layout', {'action': 'scroll', 'scroller': metadata_scroll['index'], 'dy': 0})
-    check('history diff clearly identifies the parent commit', '父级：' in labels())
+    check('history diff clearly identifies the parent commit', '父级: ' in labels())
     capture('complete-commit-detail')
     before_popup = git('status', '--porcelain=v1'), git('show-ref')
     for action in ['create_branch', 'pull_dialog', 'push_dialog', 'stash_dialog', 'reset_dialog']:

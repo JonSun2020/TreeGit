@@ -34,6 +34,14 @@ python tests/desktop_soak.py <另一测试副本>/TreeGit.exe <结果目录>/soa
 
 `--integration-probe <临时目录> <报告.json>` 验证原始命令、图谱、bundle、子模块、工作树、LFS 对象传输和 Git Flow。其 Git Flow 检查要求 `git flow version` 可找到 Git Flow Next。不要在业务仓库运行这些写入专项。
 
+## 语言、表格和对比窗口
+
+`localization_catalog.py` 检查简体中文、繁体中文和英文的键、格式参数及源码引用。`localization_ui.py <隔离集成程序> <结果目录> [连续操作轮数]` 检查语言预览与恢复、菜单关闭、表头尺寸与拖动、窄分栏、缩放、独立对比窗口和真实冲突的保存。它使用 MCP 和控件路由事件，不移动系统鼠标；每轮核对 Git 状态、快照清理及资源占用。CI 使用 `localization_ui_ci.py` 隔离并恢复便携配置。
+
+`external_tools.py <隔离集成程序> <结果目录> [文件名]` 使用真实 Git 和标准文件工具核对外部适配器的退出状态、实际输入及索引结果，包括未保存、取消、残留冲突标记、多种编码和特殊文件名。它不代表已自动操作每一种第三方工具的界面；第三方程序仍须由使用者安装并配置。
+
+`--recovery-state-change` 额外核对外部程序改变索引后不会盲目恢复文件，并保留草稿及原文件对应关系。此项要求已验证的 Windows CI 程序和隔离配置。
+
 ## Git 自动检测与内置回退
 
 `GitDiscoveryProbe.csproj` 编译真正的检测器，使用构造的可用、过旧、损坏、挂起程序检查优先级、超时、PATH 与 SSH 配套范围，不修改用户注册表或已安装 Git。可选最后一个参数校验真实便携 `git/cmd/git.exe`。
@@ -48,7 +56,7 @@ python tests/desktop_soak.py <另一测试副本>/TreeGit.exe <结果目录>/soa
 
 先安装测试依赖并构建 `tests/GitSshProxy.csproj`，将 `TREEGIT_TEST_GIT_PROXY` 指向构建后的 `GitSshProxy.exe`。代理运行真实 Git，仅给程序生成的 SSH 命令追加隔离的配置文件，保留原私钥参数，并转发原始输出。代理是测试工具，需可用的 .NET 10 运行时或 SDK。
 
-正常程序使用 `--plain-only` 检查 URI、配置别名、两个身份的克隆、获取和推送。集成构建还检查加密私钥、置顶输入和错误口令重试；`--trust-first-host` 额外检查首次主机指纹确认。SSH 密钥、known_hosts 和配置均在测试目录生成，不修改用户 SSH 文件。
+正常程序使用 `--plain-only` 检查 URI、配置别名、两个身份的克隆、获取和推送。集成构建还检查加密私钥、认证窗口仅置于 TreeGit 之上和错误口令重试；`--trust-first-host` 额外检查首次主机指纹确认。SSH 密钥、known_hosts 和配置均在测试目录生成，不修改用户 SSH 文件。
 
 ## 自动更新
 

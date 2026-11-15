@@ -6,7 +6,7 @@
                     mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
                     x:Class="SourceGit.Views.ConfirmRestart"
                     x:Name="ThisControl"
-                    Title="Restart Required"
+                    Title="{DynamicResource Text.ConfirmRestart.Title}"
                     Icon="/App.ico"
                     CanResize="False"
                     SizeToContent="WidthAndHeight"

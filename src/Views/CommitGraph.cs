@@ -41,12 +41,32 @@ namespace SourceGit.Views
             set => SetValue(DotBrushProperty, value);
         }
 
+        protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            base.OnAttachedToVisualTree(e);
+            _graph?.UpdatePalette();
+            Models.CommitGraph.PaletteChanged += OnPaletteChanged;
+        }
+
+        protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            Models.CommitGraph.PaletteChanged -= OnPaletteChanged;
+            base.OnDetachedFromVisualTree(e);
+        }
+
+        private void OnPaletteChanged()
+        {
+            _graph?.UpdatePalette();
+            InvalidateVisual();
+        }
+
         public override void Render(DrawingContext context)
         {
             base.Render(context);
 
             if (_layout == null)
                 return;
+            _graph?.UpdatePalette();
 
             var startY = _layout.StartY;
             var clipWidth = _layout.ClipWidth;

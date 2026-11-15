@@ -11,6 +11,13 @@ namespace SourceGit.Views
         {
             InitializeComponent();
             AttachedToVisualTree += (_, _) => Dispatcher.UIThread.Post(() => BranchFilter.Focus(), DispatcherPriority.Loaded);
+            AttachedToVisualTree += (_, _) => App.LocaleChanged += OnLocaleChanged;
+            DetachedFromVisualTree += (_, _) => App.LocaleChanged -= OnLocaleChanged;
+        }
+
+        private void OnLocaleChanged()
+        {
+            if (DataContext is ViewModels.SearchBranches context) context.RefreshLocalizedText();
         }
 
         private void OnBranchClicked(object sender, RoutedEventArgs e)

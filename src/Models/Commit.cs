@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using CommunityToolkit.Mvvm.ComponentModel;
 
@@ -15,6 +15,13 @@ namespace SourceGit.Models
 
     public class Commit : ObservableObject
     {
+        public void RefreshLocalizedText()
+        {
+            SearchBranches?.RefreshLocalizedText();
+            OnPropertyChanged(nameof(SearchBranchName));
+            OnPropertyChanged(nameof(SearchBranchDescription));
+        }
+
         public string SHA { get; set; } = string.Empty;
         public User Author { get; set; } = User.Invalid;
         public ulong AuthorTime { get; set; } = 0;
@@ -38,8 +45,9 @@ namespace SourceGit.Models
         public string SearchBranchName => SearchBranches?.PrimaryName ?? "—";
         public string SearchMoreBranches => SearchBranches?.MoreLabel ?? string.Empty;
         public bool SearchHasMoreBranches => SearchBranches?.Count > 1;
-        public string SearchBranchDescription => SearchBranches?.Description ?? "分支信息暂不可用，请重新搜索";
+        public string SearchBranchDescription => SearchBranches?.Description ?? App.Text("TreeGit.Branches.Unavailable");
         private SearchBranchCoverage _searchBranches;
+        internal CommitBranchDetails SearchBranchDetails { get; set; }
         public List<string> Parents { get; set; } = new();
         public List<Decorator> Decorators { get; set; } = new();
 

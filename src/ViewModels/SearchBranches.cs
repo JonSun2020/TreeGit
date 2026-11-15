@@ -10,12 +10,13 @@ namespace SourceGit.ViewModels
         public string Group { get; set; }
         public bool HasGroup => !string.IsNullOrEmpty(Group);
         public bool IsBranch => Branch != null;
+        public bool IsPrimary { get; set; }
     }
 
     public class SearchBranches : ObservableObject
     {
         public Models.Commit Commit { get; }
-        public string Title => $"包含此提交的分支（{Commit.SearchBranches.Count}）";
+        public string Title => App.Text("TreeGit.Branches.Title", Commit.SearchBranches.Count);
         public string Filter
         {
             get => _filter;
@@ -23,14 +24,23 @@ namespace SourceGit.ViewModels
         }
         public List<SearchBranchRow> Rows { get => _rows; private set => SetProperty(ref _rows, value); }
         public bool IsEmpty => Rows.Count == 0;
-        public string EmptyText => Commit.SearchBranches.Count == 0 ? "没有已知分支包含此提交" : "没有匹配的分支";
-        public string FooterText { get; }
+        public string EmptyText => Commit.SearchBranches.Count == 0 ? App.Text("TreeGit.Branches.Empty") : App.Text("TreeGit.Branches.NoMatch");
+        public string FooterText => App.Text(_copyNames ? "TreeGit.Branches.CopyHint" : "TreeGit.Branches.FetchHint");
+        private readonly bool _copyNames;
+
+        public void RefreshLocalizedText()
+        {
+            OnPropertyChanged(nameof(Title));
+            OnPropertyChanged(nameof(EmptyText));
+            OnPropertyChanged(nameof(FooterText));
+            UpdateRows();
+        }
         public event Action<Models.Branch> BranchChosen;
 
         public SearchBranches(Models.Commit commit, bool copyNames = false)
         {
             Commit = commit;
-            FooterText = copyNames ? "点击分支名可复制。远程分支以最近一次获取为准。" : "远程分支以最近一次获取为准。";
+            _copyNames = copyNames;
             UpdateRows();
         }
 
@@ -47,9 +57,9 @@ namespace SourceGit.ViewModels
             {
                 var group = matches.FindAll(b => b.IsLocal == local);
                 if (group.Count == 0) continue;
-                rows.Add(new SearchBranchRow { Group = $"{(local ? "本地" : "远程")}（{group.Count}）" });
+                rows.Add(new SearchBranchRow { Group = App.Text("TreeGit.Branches.Group", App.Text(local ? "TreeGit.Branches.Local" : "TreeGit.Branches.Remote"), group.Count) });
                 for (var i = 0; i < group.Count; i++)
-                    rows.Add(new SearchBranchRow { Branch = group[i] });
+                    rows.Add(new SearchBranchRow { Branch = group[i], IsPrimary = Commit.SearchBranches.IsPrimaryBranch(group[i]) });
             }
             Rows = rows;
             OnPropertyChanged(nameof(IsEmpty));

@@ -24,7 +24,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = "Remove worktree ...";
+            SetProgressDescription("TreeGit.Progress.RemoveWorktree");
 
             var log = _repo.CreateLog("Remove worktree");
             Use(log);

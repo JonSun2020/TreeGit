@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -14,37 +14,37 @@ namespace SourceGit.Views
     {
         public RepositoryRemoteEditor(ViewModels.Repository repo, Models.Remote remote)
         {
-            Title = remote == null ? "添加远程仓库" : "编辑远程仓库";
+            App.BindText(this, TitleProperty, remote == null ? "TreeGit.Remote.Add" : "TreeGit.Remote.Edit");
             Width = 550; SizeToContent = SizeToContent.Height; WindowStartupLocation = WindowStartupLocation.CenterOwner; CanResize = false; CloseOnESC = true;
             var panel = new StackPanel { Margin = new Thickness(20), Spacing = 9 };
-            panel.Children.Add(new TextBlock { Text = Title, FontSize = 18, FontWeight = FontWeight.Bold });
+            panel.Children.Add(new TextBlock { [!TextBlock.TextProperty] = new Avalonia.Data.Binding("Title") { Source = this }, FontSize = 18, FontWeight = FontWeight.Bold });
             var name = new TextBox { Text = remote?.Name ?? "origin", Height = 28 };
-            var url = new TextBox { Text = remote?.URL ?? "", Height = 28, Watermark = "HTTPS / SSH 地址或本地仓库路径" };
-            var key = new TextBox { Text = remote?.PrivateSSHKey ?? "", Height = 28, Watermark = "留空使用 OpenSSH 默认密钥或代理" };
-            panel.Children.Add(new TextBlock { Text = "名称" }); panel.Children.Add(name);
-            panel.Children.Add(new TextBlock { Text = "远程仓库路径" }); panel.Children.Add(url);
+            var url = new TextBox { Text = remote?.URL ?? "", Height = 28, [!Avalonia.Controls.TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Remote.UrlHint") };
+            var key = new TextBox { Text = remote?.PrivateSSHKey ?? "", Height = 28, [!Avalonia.Controls.TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Remote.KeyHint") };
+            panel.Children.Add(new TextBlock { [!Avalonia.Controls.TextBlock.TextProperty] = App.TextBinding("TreeGit.Settings.Name") }); panel.Children.Add(name);
+            panel.Children.Add(new TextBlock { [!Avalonia.Controls.TextBlock.TextProperty] = App.TextBinding("TreeGit.Remote.Url") }); panel.Children.Add(url);
             var keyRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
             keyRow.Children.Add(key);
-            var browse = RepositorySettings.Action("浏览…", async () =>
+            var browse = RepositorySettings.Action("TreeGit.BrowseEllipsis", async () =>
             {
-                var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { Title = "选择 SSH 私钥", AllowMultiple = false });
+                var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { Title = App.Text("TreeGit.Remote.SelectKey"), AllowMultiple = false });
                 if (files.Count > 0) key.Text = files[0].Path.LocalPath;
             }); Grid.SetColumn(browse, 1); keyRow.Children.Add(browse);
             var advanced = new StackPanel { Spacing = 6 };
-            advanced.Children.Add(new TextBlock { Text = "SSH 私钥（可选）" }); advanced.Children.Add(keyRow);
-            panel.Children.Add(new Expander { Header = "认证选项", Content = advanced, HorizontalAlignment = HorizontalAlignment.Stretch, IsExpanded = !string.IsNullOrEmpty(remote?.PrivateSSHKey) });
+            advanced.Children.Add(new TextBlock { [!Avalonia.Controls.TextBlock.TextProperty] = App.TextBinding("TreeGit.Remote.OptionalKey") }); advanced.Children.Add(keyRow);
+            panel.Children.Add(new Expander { [!Avalonia.Controls.Expander.HeaderProperty] = App.TextBinding("TreeGit.Remote.Authentication"), Content = advanced, HorizontalAlignment = HorizontalAlignment.Stretch, IsExpanded = !string.IsNullOrEmpty(remote?.PrivateSSHKey) });
             var error = new TextBlock { Foreground = Brushes.IndianRed, TextWrapping = TextWrapping.Wrap, IsVisible = false }; panel.Children.Add(error);
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8 };
-            buttons.Children.Add(RepositorySettings.Action("确定", async () =>
+            buttons.Children.Add(RepositorySettings.Action("TreeGit.Ok", async () =>
             {
                 var remoteName = name.Text?.Trim() ?? "";
                 var remoteUrl = url.Text?.Trim() ?? "";
                 var sshKey = key.Text?.Trim() ?? "";
                 string message = null;
-                if (!Regex.IsMatch(remoteName, @"^[\w.\-]+$")) message = "请输入有效的远程名称（字母、数字、下划线、点或连字符）。";
-                else if (repo.Remotes.Any(r => r.Name == remoteName && r.Name != remote?.Name)) message = "同名远程仓库已存在。";
-                else if (string.IsNullOrWhiteSpace(remoteUrl) || (!Models.Remote.IsValidURL(remoteUrl) && !Directory.Exists(remoteUrl))) message = "请输入有效的远程地址或本地仓库路径。";
-                else if (!string.IsNullOrEmpty(sshKey) && !File.Exists(sshKey)) message = "找不到指定的 SSH 私钥文件。";
+                if (!Regex.IsMatch(remoteName, @"^[\w.\-]+$")) message = App.Text("TreeGit.Remote.InvalidName");
+                else if (repo.Remotes.Any(r => r.Name == remoteName && r.Name != remote?.Name)) message = App.Text("TreeGit.Remote.NameExists");
+                else if (string.IsNullOrWhiteSpace(remoteUrl) || (!Models.Remote.IsValidURL(remoteUrl) && !Directory.Exists(remoteUrl))) message = App.Text("TreeGit.Remote.InvalidUrl");
+                else if (!string.IsNullOrEmpty(sshKey) && !File.Exists(sshKey)) message = App.Text("TreeGit.Remote.KeyMissing");
                 if (message != null) { error.Text = message; error.IsVisible = true; return; }
                 var command = new Commands.Remote(repo.FullPath);
                 bool success;
@@ -59,9 +59,9 @@ namespace SourceGit.Views
                 else if (success && !string.IsNullOrEmpty(remote?.PrivateSSHKey))
                     success = await new Commands.Config(repo.FullPath).SetAsync($"remote.{remoteName}.sshkey", null);
                 if (success) Close(true);
-                else { error.Text = "保存失败，请查看仓库命令日志。"; error.IsVisible = true; }
+                else { error.Text = App.Text("TreeGit.Remote.SaveFailed"); error.IsVisible = true; }
             }));
-            buttons.Children.Add(RepositorySettings.Action("取消", () => { Close(false); return System.Threading.Tasks.Task.CompletedTask; }));
+            buttons.Children.Add(RepositorySettings.Action("TreeGit.Cancel", () => { Close(false); return System.Threading.Tasks.Task.CompletedTask; }));
             RepositoryDialogLayout.Apply(this, panel, buttons, 550);
         }
     }

@@ -96,7 +96,7 @@
 
           <Path Width="12" Height="12" Fill="{DynamicResource Brush.FG1}" Data="{StaticResource Icons.Plus}"/>
         </Button>
-        <Button x:Name="NormalTabListButton" Classes="icon_button treegit_tab_dropdown" Width="22" Height="24" Padding="0" Click="OnOpenTabList" ToolTip.Tip="已打开的仓库" IsVisible="{Binding !#ThisControl.IsScrollButtonVisible}">
+        <Button x:Name="NormalTabListButton" Classes="icon_button treegit_tab_dropdown" Width="22" Height="24" Padding="0" Click="OnOpenTabList" ToolTip.Tip="{DynamicResource Text.TreeGit.Tabs.OpenRepositories}" IsVisible="{Binding !#ThisControl.IsScrollButtonVisible}">
           <Path Width="9" Height="6" Fill="{DynamicResource Brush.TreeGit.ChromeForeground}" Stretch="Fill" Data="M0 0L10 0L5 6z"/>
         </Button>
       </StackPanel>
@@ -117,7 +117,7 @@
 
         <Path Width="12" Height="12" Fill="{DynamicResource Brush.FG1}" Data="{StaticResource Icons.Plus}"/>
       </Button>
-      <Button x:Name="OverflowTabListButton" Classes="icon_button treegit_tab_dropdown" Width="22" Height="24" Padding="0" Click="OnOpenTabList" ToolTip.Tip="已打开的仓库">
+      <Button x:Name="OverflowTabListButton" Classes="icon_button treegit_tab_dropdown" Width="22" Height="24" Padding="0" Click="OnOpenTabList" ToolTip.Tip="{DynamicResource Text.TreeGit.Tabs.OpenRepositories}">
         <Path Width="9" Height="6" Fill="{DynamicResource Brush.TreeGit.ChromeForeground}" Stretch="Fill" Data="M0 0L10 0L5 6z"/>
       </Button>
     </StackPanel>

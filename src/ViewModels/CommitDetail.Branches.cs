@@ -22,6 +22,13 @@ namespace SourceGit.ViewModels
             HasBranchDetailsError ? App.Text("CommitBranches.Failed") : BranchDetails?.Primary == null ? App.Text("CommitBranches.Unknown") : string.Empty;
         public string BranchDisplayDescription => HasBranchDetailsError ? App.Text("CommitBranches.Failed") : BranchDetails?.Description;
 
+        public void RefreshLocalizedText()
+        {
+            BranchDetails?.Commit.RefreshLocalizedText();
+            OnPropertyChanged(nameof(BranchDisplayStatus));
+            OnPropertyChanged(nameof(BranchDisplayDescription));
+        }
+
         private void RefreshBranchDetails(Models.Commit commit, CancellationToken token)
         {
             var request = ++_branchDetailsRequest;
@@ -29,6 +36,15 @@ namespace SourceGit.ViewModels
             IsBranchDetailsLoading = commit != null;
             HasBranchDetailsError = false;
             if (commit == null) return;
+            // Search rows and their selected detail share one resolved snapshot. Repository
+            // changes invalidate the search, so switching views needs no second origin query.
+            if (commit.SearchBranchDetails is { } searchDetails)
+            {
+                BranchDetails = searchDetails;
+                IsBranchDetailsLoading = false;
+                _repo.SynchronizeCommitBranchSelection(commit, searchDetails);
+                return;
+            }
             var graph = _repo.Histories.Commits?.ToList() ?? [];
             var locals = _repo.Branches.Where(b => b.IsLocal && !b.IsDetachedHead).ToList();
             var key = string.Join('\n', locals.OrderBy(b => b.FullName, StringComparer.Ordinal).Select(b => b.FullName + " " + b.Head));

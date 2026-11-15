@@ -30,7 +30,7 @@ namespace SourceGit.ViewModels
             if (ctx.ObjectInstance is SetPushURL set)
             {
                 if (!string.IsNullOrEmpty(url) && !Models.Remote.IsValidURL(url))
-                    return new ValidationResult("Bad remote URL format!!!");
+                    return new ValidationResult(App.Text("TreeGit.Message.RemoteUrlFormat"));
             }
 
             return ValidationResult.Success;
@@ -42,7 +42,7 @@ namespace SourceGit.ViewModels
                 return true;
 
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = $"Set PushURL for '{_remote.Name}' ...";
+            SetProgressDescription("TreeGit.Progress.SetPushURL", _remote.Name);
 
             var succ = false;
             if (string.IsNullOrEmpty(_pushURL))

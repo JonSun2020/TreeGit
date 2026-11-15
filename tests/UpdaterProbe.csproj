@@ -13,6 +13,8 @@
     <Compile Include="../src/Models/UpdatePackage.cs"/>
     <Compile Include="../src/Models/SelfUpdate.cs"/>
     <Compile Include="../src/Models/TreeGitRelease.cs"/>
+    <Compile Include="../src/Models/Locales.cs" />
+    <EmbeddedResource Include="../src/Resources/Locales/Bootstrap.json" LogicalName="SourceGit.Resources.Locales.Bootstrap.json" />
     <Compile Include="../src/Native/ProcessLauncher.cs" />
   </ItemGroup>
 </Project>

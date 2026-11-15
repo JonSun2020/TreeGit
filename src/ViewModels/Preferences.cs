@@ -43,6 +43,7 @@ namespace SourceGit.ViewModels
             get => _locale;
             set
             {
+                value = Models.Locale.Normalize(value);
                 if (SetProperty(ref _locale, value) && !_isLoading)
                 {
                     App.SetLocale(value);
@@ -417,6 +418,7 @@ namespace SourceGit.ViewModels
                 {
                     Native.OS.ExternalMergerType = value;
                     OnPropertyChanged();
+                    OnPropertyChanged(nameof(ExternalMergeToolUsesExecutable));
 
                     if (!_isLoading)
                     {
@@ -428,6 +430,9 @@ namespace SourceGit.ViewModels
                 }
             }
         }
+
+        public bool ExternalMergeToolUsesExecutable => ExternalMergeToolType > 0 && ExternalMergeToolType < Models.ExternalMerger.Supported.Count &&
+            !Models.ExternalMerger.Supported[ExternalMergeToolType].IsGitConfiguration;
 
         public string ExternalMergeToolPath
         {

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Threading.Tasks;
@@ -35,7 +35,7 @@ namespace SourceGit.ViewModels
         public static ValidationResult ValidateURL(string url, ValidationContext ctx)
         {
             if (!Models.Remote.IsValidURL(url))
-                return new ValidationResult("Invalid repository URL format");
+                return new ValidationResult(App.Text("TreeGit.Message.RepositoryUrl"));
 
             return ValidationResult.Success;
         }
@@ -43,7 +43,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = "Adding submodule...";
+            SetProgressDescription("TreeGit.Progress.AddSubmodule");
 
             var log = _repo.CreateLog("Add Submodule");
             Use(log);

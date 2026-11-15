@@ -62,6 +62,8 @@ namespace SourceGit
         ]
     )]
     [JsonSerializable(typeof(Models.ExternalToolCustomization))]
+    [JsonSerializable(typeof(Native.ExternalMergePlan))]
+    [JsonSerializable(typeof(Native.ExternalMergeDraft))]
     [JsonSerializable(typeof(Models.InteractiveRebaseJobCollection))]
     [JsonSerializable(typeof(Models.JetBrainsState))]
     [JsonSerializable(typeof(Models.ThemeOverrides))]

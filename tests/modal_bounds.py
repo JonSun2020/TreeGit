@@ -48,7 +48,7 @@ try:
             check(f'{dialog} {zoom} stays on screen',bounds['withinScreen'])
             check(f'{dialog} {zoom} keeps all footer actions visible',len(bounds['buttons'])>=2 and all(b['visible'] for b in bounds['buttons']))
             if dialog=='credentials':
-                check(f'credentials {zoom} remains topmost',bounds['topmost'])
+                check(f'credentials {zoom} belongs to TreeGit without global topmost',not bounds['topmost'] and bounds['hasOwner'])
                 check(f'credentials {zoom} invalid input preserves the authentication mode',details['invalidInputPreservedConfig'])
     tool('ui_window',{'zoom':1})
     for scenario in ['unchanged','empty_password','explicit_clear','oversized','config_locked','commit_failure']:

@@ -1,6 +1,6 @@
-﻿namespace SourceGit.Models
+namespace SourceGit.Models
 {
-    public class MergeMode(string n, string d, string a)
+    public class MergeMode(string n, string d, string a) : LocalizedOption
     {
         public static readonly MergeMode Default =
             new MergeMode("Default", "Use git configuration", "");
@@ -28,6 +28,7 @@
 
         private string ResourceKey => "Options.MergeMode." + (string.IsNullOrEmpty(Arg) ? "default" : Arg.Replace("--", "").Replace(" ", "_"));
         public string DisplayName => App.Text(ResourceKey + ".Name");
+        public string NameResourceKey => ResourceKey + ".Name";
         public string DisplayDescription => App.Text(ResourceKey + ".Desc");
 
         public string Name { get; set; } = n;

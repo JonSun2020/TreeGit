@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
@@ -30,24 +30,24 @@ namespace SourceGit.ViewModels
             if (ctx.ObjectInstance is CheckoutBranchFromStash caller)
             {
                 if (!Models.RefName.IsValidBranchName(name))
-                    return new ValidationResult("Bad branch name format!");
+                    return new ValidationResult(App.Text("TreeGit.Message.BranchNameFormat"));
 
                 foreach (var b in caller._repo.Branches)
                 {
                     if (b.FriendlyName.Equals(name, StringComparison.Ordinal))
-                        return new ValidationResult("A branch with same name already exists!");
+                        return new ValidationResult(App.Text("TreeGit.Message.BranchExists"));
                 }
 
                 return ValidationResult.Success;
             }
 
-            return new ValidationResult("Missing runtime context to create branch!");
+            return new ValidationResult(App.Text("TreeGit.Message.BranchContext"));
         }
 
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = "Checkout branch from stash...";
+            SetProgressDescription("TreeGit.Progress.CheckoutBranchFromStash");
 
             var log = _repo.CreateLog($"Checkout Branch '{_branchName}'");
             Use(log);

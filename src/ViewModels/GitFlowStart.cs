@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
@@ -67,13 +67,13 @@ namespace SourceGit.ViewModels
             if (ctx.ObjectInstance is GitFlowStart starter)
             {
                 if (!Models.RefName.IsValidBranchName($"{starter.Prefix}{name}"))
-                    return new ValidationResult("Bad branch name format!");
+                    return new ValidationResult(App.Text("TreeGit.Message.BranchNameFormat"));
 
                 var check = $"{starter.Prefix}{name}";
                 foreach (var b in starter._repo.Branches)
                 {
                     if (b.FriendlyName == check)
-                        return new ValidationResult("A branch with same name already exists!");
+                        return new ValidationResult(App.Text("TreeGit.Message.BranchExists"));
                 }
             }
 
@@ -83,7 +83,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = $"Git Flow - Start {Prefix}{_name} ...";
+            SetProgressDescription("TreeGit.Progress.GitFlowStart", Prefix, _name);
 
             var log = _repo.CreateLog("GitFlow - Start");
             Use(log);

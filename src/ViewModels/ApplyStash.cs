@@ -31,7 +31,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = $"Applying stash: {Stash.Name}";
+            SetProgressDescription("TreeGit.Progress.ApplyStash", Stash.Name);
 
             var log = _repo.CreateLog("Apply Stash");
             Use(log);

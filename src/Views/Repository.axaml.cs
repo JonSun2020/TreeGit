@@ -183,23 +183,18 @@ namespace SourceGit.Views
             if (branch == null || DataContext is not ViewModels.Repository repo) return;
             if (branch.IsLocal)
             {
-                repo.IsLocalBranchGroupExpanded = true;
-                LocalBranchTree.Select(branch, false);
+                if (repo.IsLocalBranchGroupExpanded) LocalBranchTree.Select(branch, false, false);
             }
             else
             {
-                repo.IsRemoteGroupExpanded = true;
-                RemoteBranchTree.Select(branch, false);
+                if (repo.IsRemoteGroupExpanded) RemoteBranchTree.Select(branch, false, false);
             }
         }
 
         private void OnCommitBranchHighlights(Models.CommitBranchDetails details)
         {
-            if (details != null && DataContext is ViewModels.Repository repo)
-            {
-                if (details.Coverage.Branches.Exists(b => b.IsLocal)) repo.IsLocalBranchGroupExpanded = true;
-                if (details.Coverage.Branches.Exists(b => !b.IsLocal)) repo.IsRemoteGroupExpanded = true;
-            }
+            LocalBranchGroup.Classes.Set("commit_covered", details?.Coverage.Branches.Exists(b => b.IsLocal) == true);
+            RemoteBranchGroup.Classes.Set("commit_covered", details?.Coverage.Branches.Exists(b => !b.IsLocal) == true);
             LocalBranchTree.SetCommitHighlights(details);
             RemoteBranchTree.SetCommitHighlights(details);
         }

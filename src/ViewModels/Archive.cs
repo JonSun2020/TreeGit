@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Threading.Tasks;
@@ -47,7 +47,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = "Archiving ...";
+            SetProgressDescription("TreeGit.Progress.Archive");
 
             var log = _repo.CreateLog("Archive");
             Use(log);
@@ -64,7 +64,7 @@ namespace SourceGit.ViewModels
                 if (!await new Commands.Archive(_repo.FullPath, _revision, stagedFile).Use(log).ExecAsync())
                     return false;
                 File.Move(stagedFile, destination, true);
-                _repo.SendNotification($"Save archive to : {_saveFile}");
+                _repo.SendNotification(App.Text("TreeGit.Message.ArchiveSaved", _saveFile));
                 return true;
             }
             catch (Exception ex)

@@ -6,6 +6,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
@@ -16,7 +17,48 @@ namespace SourceGit.Views
         public CommitSearchView()
         {
             InitializeComponent();
+            SearchResults.AddHandler(InputElement.PointerPressedEvent, OnResultRowPressed, RoutingStrategies.Tunnel, true);
             DetachedFromVisualTree += (_, _) => CloseContainingBranches();
+        }
+
+        private void OnResultRowPressed(object sender, PointerPressedEventArgs e)
+        {
+            if (e.Pointer.Type != PointerType.Mouse || e.Source is not Control source ||
+                source is DataGridCell || source.FindAncestorOfType<DataGridCell>() != null ||
+                DataContext is not ViewModels.SearchCommitContext)
+                return;
+            var properties = e.GetCurrentPoint(SearchResults).Properties;
+            if (!properties.IsLeftButtonPressed && !properties.IsRightButtonPressed) return;
+            if ((source != SearchResults && source.FindAncestorOfType<DataGrid>() != SearchResults) ||
+                source is ScrollBar or DataGridColumnHeader || source.FindAncestorOfType<ScrollBar>() != null ||
+                source.FindAncestorOfType<DataGridColumnHeader>() != null) return;
+            if (FindResultRow(e.GetPosition) is { } candidate)
+            {
+                foreach (var visual in candidate.GetVisualDescendants())
+                {
+                    if (visual is not DataGridCell cell || !cell.IsEffectivelyVisible || !cell.IsEffectivelyEnabled || !cell.IsHitTestVisible || cell.Content == null ||
+                        !new Rect(cell.Bounds.Size).Contains(e.GetPosition(cell)) ||
+                        (cell.Clip is RectangleGeometry clip && !clip.Rect.Contains(e.GetPosition(cell)))) continue;
+                    var root = TopLevel.GetTopLevel(this);
+                    if (root == null) return;
+                    e.Pointer.Capture(cell);
+                    cell.RaiseEvent(new PointerPressedEventArgs(cell, e.Pointer, root, e.GetPosition(root), e.Timestamp, properties, e.KeyModifiers, e.ClickCount));
+                    e.Handled = true;
+                    return;
+                }
+            }
+        }
+
+        private DataGridRow FindResultRow(Func<Visual, Point> position)
+        {
+            if (DataContext is not ViewModels.SearchCommitContext context) return null;
+            var presenter = SearchResults.FindDescendantOfType<DataGridRowsPresenter>();
+            if (presenter == null) return null;
+            foreach (var child in presenter.Children)
+                if (child is DataGridRow row && row.IsEffectivelyVisible && row.IsEffectivelyEnabled && row.IsHitTestVisible &&
+                    row.Index >= 0 && row.Index < (context.Results?.Count ?? 0) &&
+                    ReferenceEquals(row.DataContext, context.Results[row.Index]) && new Rect(row.Bounds.Size).Contains(position(row))) return row;
+            return null;
         }
 
         public object ContainingBranchesState => _branchFlyout?.IsOpen == true && _branchPopup?.DataContext is ViewModels.SearchBranches context
@@ -28,7 +70,7 @@ namespace SourceGit.Views
                 firstTarget = FirstBranchTarget(),
                 firstGroupRegion = FirstGroupRegion(),
                 groups = context.Rows.Where(r => r.HasGroup).Select(r => r.Group).ToArray(),
-                rows = context.Rows.Where(r => r.IsBranch).Select(r => new { reference = r.Branch.FullName, name = r.Branch.FriendlyName, local = r.Branch.IsLocal, current = r.Branch.IsCurrent, group = r.Branch.IsLocal ? "本地" : "远程" }).ToArray() }
+                rows = context.Rows.Where(r => r.IsBranch).Select(r => new { reference = r.Branch.FullName, name = r.Branch.FriendlyName, local = r.Branch.IsLocal, current = r.Branch.IsCurrent, group = r.Branch.IsLocal ? App.Text("TreeGit.Branches.Local") : App.Text("TreeGit.Branches.Remote") }).ToArray() }
             : null;
 
         public Control ContainingBranchesSurface => _branchFlyout?.IsOpen == true ? _branchPopup : null;
@@ -73,14 +115,14 @@ namespace SourceGit.Views
             SearchResults.ScrollIntoView(commit, null);
             SearchResults.UpdateLayout();
             var button = SearchResults.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "SearchBranchButton" && b.DataContext == commit);
-            if (button == null) throw new InvalidOperationException("该搜索结果当前不可见，请先滚动到对应行。");
+            if (button == null) throw new InvalidOperationException(App.Text("TreeGit.Search.NotVisible"));
             ShowContainingBranches(button, commit);
         }
 
         public void FilterContainingBranches(string filter)
         {
             if (_branchPopup?.DataContext is not ViewModels.SearchBranches context || _branchFlyout?.IsOpen != true)
-                throw new InvalidOperationException("请先打开包含分支列表。");
+                throw new InvalidOperationException(App.Text("TreeGit.Branches.OpenListFirst"));
             context.Filter = filter;
         }
 
@@ -130,7 +172,7 @@ namespace SourceGit.Views
 
         private void OnResultDoubleTapped(object sender, TappedEventArgs e)
         {
-            var row = e.Source as DataGridRow ?? (e.Source as Visual)?.FindAncestorOfType<DataGridRow>();
+            var row = e.Source as DataGridRow ?? (e.Source as Visual)?.FindAncestorOfType<DataGridRow>() ?? FindResultRow(e.GetPosition);
             if (row?.DataContext is Models.Commit commit && DataContext is ViewModels.SearchCommitContext context)
             {
                 context.OpenInHistory(commit);

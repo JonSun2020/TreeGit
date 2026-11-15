@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
@@ -28,7 +28,7 @@ namespace SourceGit.ViewModels
         }
 
         [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.FeaturePrefixRequired))]
-        [RegularExpression(@"^[\w\-\.]+/$", ErrorMessage = "Bad feature prefix format!")]
+        [RegularExpression(@"^[\w\-\.]+/$", ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.FeaturePrefix))]
         public string FeaturePrefix
         {
             get => _featurePrefix;
@@ -36,7 +36,7 @@ namespace SourceGit.ViewModels
         }
 
         [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.ReleasePrefixRequired))]
-        [RegularExpression(@"^[\w\-\.]+/$", ErrorMessage = "Bad release prefix format!")]
+        [RegularExpression(@"^[\w\-\.]+/$", ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.ReleasePrefix))]
         public string ReleasePrefix
         {
             get => _releasePrefix;
@@ -44,7 +44,7 @@ namespace SourceGit.ViewModels
         }
 
         [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.HotfixPrefixRequired))]
-        [RegularExpression(@"^[\w\-\.]+/$", ErrorMessage = "Bad hotfix prefix format!")]
+        [RegularExpression(@"^[\w\-\.]+/$", ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.HotfixPrefix))]
         public string HotfixPrefix
         {
             get => _hotfixPrefix;
@@ -84,10 +84,10 @@ namespace SourceGit.ViewModels
             if (ctx.ObjectInstance is InitGitFlow initializer)
             {
                 if (!Models.RefName.IsValidBranchName(name))
-                    return new ValidationResult("Bad branch name format!");
+                    return new ValidationResult(App.Text("TreeGit.Message.BranchNameFormat"));
 
                 if (initializer._production == initializer._develop)
-                    return new ValidationResult("Develop branch has the same name with production branch!");
+                    return new ValidationResult(App.Text("TreeGit.Message.FlowSameBranch"));
             }
 
             return ValidationResult.Success;
@@ -96,7 +96,7 @@ namespace SourceGit.ViewModels
         public static ValidationResult ValidateTagPrefix(string tagPrefix, ValidationContext ctx)
         {
             if (!string.IsNullOrWhiteSpace(tagPrefix) && !REG_TAG_PREFIX().IsMatch(tagPrefix))
-                return new ValidationResult("Bad tag prefix format!");
+                return new ValidationResult(App.Text("TreeGit.Message.TagPrefix"));
 
             return ValidationResult.Success;
         }
@@ -104,7 +104,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = "Init git-flow ...";
+            SetProgressDescription("TreeGit.Progress.InitGitFlow");
 
             var log = _repo.CreateLog("Gitflow - Init");
             Use(log);

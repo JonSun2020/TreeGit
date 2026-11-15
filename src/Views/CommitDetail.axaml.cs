@@ -124,7 +124,7 @@ namespace SourceGit.Views
                 var options = new FilePickerSaveOptions();
                 options.Title = App.Text("FileCM.SaveAsPatch");
                 options.DefaultExtension = ".patch";
-                options.FileTypeChoices = [new FilePickerFileType("Patch File") { Patterns = ["*.patch"] }];
+                options.FileTypeChoices = [new FilePickerFileType(App.Text("TreeGit.Message.PatchFile")) { Patterns = ["*.patch"] }];
 
                 try
                 {
@@ -137,7 +137,7 @@ namespace SourceGit.Views
                 }
                 catch (Exception exception)
                 {
-                    repo.SendNotification($"Failed to save as patch: {exception.Message}", true);
+                    repo.SendNotification(App.Text("TreeGit.Message.PatchSaveFailed", exception.Message), true);
                 }
 
                 e.Handled = true;

@@ -1,4 +1,4 @@
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 using Avalonia.Threading;
 
@@ -44,7 +44,7 @@ namespace SourceGit.ViewModels
             }
             using var lockWatcher = _repo.LockWatcher();
             var branchName = BranchName;
-            ProgressDescription = $"Checkout '{branchName}' ...";
+            SetProgressDescription("TreeGit.Progress.Checkout", branchName);
 
             var log = _repo.CreateLog($"Checkout '{branchName}'");
             Use(log);

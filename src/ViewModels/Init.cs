@@ -29,7 +29,7 @@ namespace SourceGit.ViewModels
 
         public override async Task<bool> Sure()
         {
-            ProgressDescription = $"Initialize git repository at: '{_targetPath}'";
+            SetProgressDescription("TreeGit.Progress.Init", _targetPath);
 
             var log = new CommandLog("Initialize");
             Use(log);

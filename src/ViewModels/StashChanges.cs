@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -52,7 +52,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = "Stash changes ...";
+            SetProgressDescription("TreeGit.Progress.StashChanges");
 
             var log = _repo.CreateLog("Stash Local Changes");
             Use(log);

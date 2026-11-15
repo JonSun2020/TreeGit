@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace SourceGit.Models
 {
-    public class MergeStrategy
+    public class MergeStrategy : LocalizedOption
     {
         private string ResourceKey => "Options.MergeStrategy." + (string.IsNullOrEmpty(Arg) ? "default" : Arg.Replace("--", "").Replace(" ", "_"));
         public string DisplayName => App.Text(ResourceKey + ".Name");

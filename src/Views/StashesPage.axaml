@@ -19,7 +19,7 @@
     <Border Grid.Row="0" Grid.ColumnSpan="3" Padding="8,4" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Brush.Border0}" Background="{DynamicResource Brush.ToolBar}">
       <Grid ColumnDefinitions="*,220">
         <TextBlock Text="{Binding SelectedStash.DisplayName}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" FontWeight="Bold" Margin="0,0,8,0"/>
-        <TextBox Grid.Column="1" Height="24" Text="{Binding SearchFilter, Mode=TwoWay}" Watermark="筛选贮藏" VerticalContentAlignment="Center">
+        <TextBox Grid.Column="1" Height="24" Text="{Binding SearchFilter, Mode=TwoWay}" Watermark="{DynamicResource Text.TreeGit.Stashes.Filter}" VerticalContentAlignment="Center">
           <TextBox.InnerLeftContent><Path Width="12" Height="12" Margin="6,0" Data="{StaticResource Icons.Search}"/></TextBox.InnerLeftContent>
           <TextBox.InnerRightContent><Button Classes="icon_button" Width="20" Command="{Binding ClearSearchFilter}" IsVisible="{Binding SearchFilter, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"><Path Width="10" Height="10" Data="{StaticResource Icons.Clear}"/></Button></TextBox.InnerRightContent>
         </TextBox>

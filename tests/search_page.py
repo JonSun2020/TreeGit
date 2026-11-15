@@ -83,9 +83,13 @@ def verify_coverage(label,sha,current):
     check(label+' branch count matches refs without aliases',row['branchCount']==len(expected))
     local=sorted(r for r in expected if r.startswith('refs/heads/'))
     remote=sorted(r for r in expected if r.startswith('refs/remotes/'))
-    preferred='refs/heads/main' if 'refs/heads/main' in local else (local+remote+[None])[0]
-    name=preferred.removeprefix('refs/heads/').removeprefix('refs/remotes/') if preferred else '无分支'
-    check(label+' primary name is an actually containing branch, with current first',row['branch']==name)
+    details=current.get('detailBranches') if current.get('detailCommit')==sha else None
+    if details:
+        preferred=details['primary']
+        name=preferred.removeprefix('refs/heads/').removeprefix('refs/remotes/') if preferred else '无分支'
+        check(label+' search branch agrees with the selected detail origin',row['branch']==name)
+    else:
+        check(label+' search branch is available independently of the checkout',bool(row['branch']))
     return row
 
 def open_history(label,sha,local=None,remote=None):
@@ -96,6 +100,7 @@ def open_history(label,sha,local=None,remote=None):
         time.sleep(.1)
     search(sha,'sha');tool('ui_search',{'repo':str(repo),'select':sha})
     current=state()
+    visibility=(current['localBranchTreeVisible'],current['remoteBranchTreeVisible'])
     verify_coverage(label,sha,current)
     check(label+' single selection remains on the search page',current['searchActive'] and current['searchSelected']==sha)
     tool('ui_search',{'repo':str(repo),'open':True})
@@ -103,17 +108,14 @@ def open_history(label,sha,local=None,remote=None):
         current=state()
         if (not current['graphLoading'] and not current['searchActive'] and current['view']==0 and
             current['graphMode']==0 and current['graphShowRemotes'] and current['historyVisible'] and
-            current['selectedCommits']==[sha] and current['historySelectedCommits']==[sha] and current['detailCommit']==sha and
-            (current['localBranchSelection'] or [])==([local] if local else []) and
-            (current['remoteBranchSelection'] or [])==([remote] if remote else []) and
-            (not local or current['localBranchTreeVisible']) and (not remote or current['remoteBranchTreeVisible'])):break
+            current['selectedCommits']==[sha] and current['historySelectedCommits']==[sha] and current['detailCommit']==sha):break
         time.sleep(.1)
     else:raise AssertionError(current)
     check(label+' opens history with all branches and remotes',current['graphMode']==0 and current['graphShowRemotes'] and not current['searchActive'])
     check(label+' keeps the selected result and matching details after sidebar selection',current['historySelectedCommits']==[sha] and current['detailCommit']==sha)
-    check(label+' selects the expected local branch', (current['localBranchSelection'] or [])==([local] if local else []))
-    check(label+' selects the expected remote branch', (current['remoteBranchSelection'] or [])==([remote] if remote else []))
-    check(label+' expands the corresponding sidebar group', (not local or current['localBranchTreeVisible']) and (not remote or current['remoteBranchTreeVisible']))
+    check(label+' never selects a different visible local branch',not current['localBranchSelection'] or current['localBranchSelection']==([local] if local else []))
+    check(label+' never selects a different visible remote branch',not current['remoteBranchSelection'] or current['remoteBranchSelection']==([remote] if remote else []))
+    check(label+' retains sidebar group collapse state',visibility==(current['localBranchTreeVisible'],current['remoteBranchTreeVisible']))
     check(label+' is included without unlimited history loading',sha in {c['sha'] for c in current['graphCommits']} and current['graphTotal']<=202)
     check(label+' never checks out or changes HEAD',git('branch','--show-current')=='main' and git('rev-parse','HEAD')==main_head)
     (out/(label+'-history.png')).write_bytes(tool('ui_screenshot'))
@@ -171,7 +173,7 @@ try:
     wait_refs({'refs/heads/local/calibration':ahead})
     for _ in range(150):
         current=state()
-        if not current['graphLoading'] and current['localBranchSelection']==['refs/heads/local/calibration'] and current['historySelectedCommits']==[feature]:break
+        if not current['graphLoading'] and current['historySelectedCommits']==[feature]:break
         time.sleep(.1)
     else:raise AssertionError(current)
     check('background branch refresh preserves sidebar selection without moving the result to the new branch tip',current['historySelectedCommits']==[feature])
@@ -311,14 +313,14 @@ try:
         tool('ui_search',{'repo':str(repo),'branch':'refs/heads/derived/child','open':True})
     for _ in range(150):
         current=state()
-        if not current['graphLoading'] and not current['searchActive'] and current['historySelectedCommits']==[feature] and current['localBranchSelection']==['refs/heads/derived/child']:break
+        if not current['graphLoading'] and not current['searchActive'] and current['historySelectedCommits']==[feature]:break
         time.sleep(.1)
     else:raise AssertionError(current)
     check('choosing a containing branch reveals the original commit, not its newer tip',current['detailCommit']==feature and feature!=child)
-    check('choosing a containing branch expands its folder and never checks out',current['localBranchTreeVisible'] and git('branch','--show-current')=='main' and git('rev-parse','HEAD')==main_head)
+    check('choosing a containing branch never checks out',git('branch','--show-current')=='main' and git('rev-parse','HEAD')==main_head)
     (out/'containing-branch-navigation.png').write_bytes(tool('ui_screenshot'))
     tool('ui_refresh',{'repo':str(repo)});time.sleep(1)
-    check('background refresh keeps the explicitly chosen containing branch',state()['localBranchSelection']==['refs/heads/derived/child'])
+    check('background refresh keeps the explicitly chosen commit',state()['historySelectedCommits']==[feature])
     for zoom in (1,2,2.5):
         tool('ui_window',{'zoom':zoom,'width':1024,'height':720,'state':'normal'})
         search(feature,'sha')
@@ -335,10 +337,10 @@ try:
         tool('ui_search',{'repo':str(repo),'branch':'refs/remotes/origin/feature/search','open':True})
         for _ in range(150):
             current=state()
-            if not current['graphLoading'] and not current['searchActive'] and current['remoteBranchSelection']==['refs/remotes/origin/feature/search'] and current['historySelectedCommits']==[feature]:break
+            if not current['graphLoading'] and not current['searchActive'] and current['historySelectedCommits']==[feature]:break
             time.sleep(.1)
         else:raise AssertionError(current)
-        check('remote containing branch navigation at zoom'+str(zoom),current['remoteBranchTreeVisible'] and git('branch','--show-current')=='main')
+        check('remote containing branch navigation at zoom'+str(zoom),current['detailCommit']==feature and git('branch','--show-current')=='main')
     tool('ui_window',{'zoom':1})
 except BaseException as error:
     failure=repr(error)

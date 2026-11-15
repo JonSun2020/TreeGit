@@ -37,7 +37,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = "Pushing tag ...";
+            SetProgressDescription("TreeGit.Progress.PushTag");
 
             var log = _repo.CreateLog("Push Tag");
             Use(log);

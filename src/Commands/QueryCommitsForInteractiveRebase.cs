@@ -21,7 +21,7 @@ namespace SourceGit.Commands
             var rs = await ReadToEndAsync().ConfigureAwait(false);
             if (!rs.IsSuccess)
             {
-                RaiseException($"Failed to query commits for interactive-rebase. Reason: {rs.StdErr}");
+                RaiseException(App.Text("TreeGit.Query.RebaseFailed", rs.StdErr));
                 return commits;
             }
 

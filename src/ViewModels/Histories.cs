@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -14,6 +14,8 @@ namespace SourceGit.ViewModels
 {
     public class Histories : ObservableObject
     {
+        internal Repository Repository => _repo;
+
         public bool IsLoading
         {
             get => _isLoading;
@@ -33,15 +35,18 @@ namespace SourceGit.ViewModels
                     _repo.SelectedViewIndex = 0;
                 }
                 else
-                    _searchCommitContext.EndSearch();
+                {
+                    _searchCommitContext.Suspend();
+                    if (ReferenceEquals(DetailContext, _searchDetailContext)) DetailContext = Models.Null.Instance;
+                }
 
                 SetProperty(ref _isSearchingCommits, value);
                 _repo.NotifyNavigationTabsChanged();
                 if (value)
                 {
                     IsCollapseDetails = false;
-                    ShowSearchCommit(null);
-                    _searchCommitContext.StartSearch();
+                    ShowSearchCommit(_searchCommitContext.Selected);
+                    _searchCommitContext.Resume();
                 }
             }
         }
@@ -63,8 +68,14 @@ namespace SourceGit.ViewModels
             _ignoreSelectionChange = false;
             IsWorkingCopySelected = false;
             _repo.RequestCommitBranchSelection(commit);
-            DetailContext = commit == null ? Models.Null.Instance : new CommitDetail(_repo, _commitDetailSharedData) { Commit = commit };
+            if (commit == null) _searchDetailContext = null;
+            else if (_searchDetailContext?.Commit?.SHA != commit.SHA)
+                _searchDetailContext = new CommitDetail(_repo, _commitDetailSharedData) { Commit = commit };
+            DetailContext = (object)_searchDetailContext ?? Models.Null.Instance;
+            if (_searchDetailContext?.BranchDetails is { } details) _repo.SynchronizeCommitBranchSelection(commit, details);
         }
+
+        public void InvalidateSearchDetail() => _searchDetailContext = null;
 
         public bool EnableTopoOrder
         {
@@ -153,7 +164,7 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _graph, value);
         }
 
-        public double GraphWidth => GetHistoryColumnWidth("graph") ?? (_commits.Count > 0 ? Math.Max(48, _commits[0].LeftMargin + 8) : 48);
+        public double GraphWidth => Math.Max(60, GetHistoryColumnWidth("graph") ?? (_commits.Count > 0 ? _commits[0].LeftMargin + 8 : 60));
 
         public double? GetHistoryColumnWidth(string name)
             => _repo.UIStates.HistoryColumnWidths.TryGetValue(name, out var width) && double.IsFinite(width) && width >= 40 && width <= 8192 ? width : null;
@@ -244,7 +255,7 @@ namespace SourceGit.ViewModels
                 _ignoreSelectionChange = true;
                 try { SelectedCommits = []; }
                 finally { _ignoreSelectionChange = ignored; }
-                _searchCommitContext.Selected = null;
+                if (_isSearchingCommits) _searchCommitContext.Selected = null;
                 if (_repo.UIStates.GraphHighlighting >= Models.CommitGraphHighlighting.SelectedCommitsOnly)
                     GenerateGraph(_commits);
             }
@@ -658,7 +669,7 @@ namespace SourceGit.ViewModels
             var head = _commits.Find(x => x.IsCurrentHead);
             if (head == null)
             {
-                _searchCommitContext.Selected = null;
+                if (_isSearchingCommits) _searchCommitContext.Selected = null;
                 head = await new Commands.QuerySingleCommit(_repo.FullPath, "HEAD").GetResultAsync();
                 if (head != null)
                     DetailContext = new RevisionCompare(_repo, commit, head);
@@ -714,7 +725,7 @@ namespace SourceGit.ViewModels
 
             if (_selectedCommits.Count == 0)
             {
-                _searchCommitContext.Selected = null;
+                if (_isSearchingCommits) _searchCommitContext.Selected = null;
                 DetailContext = Models.Null.Instance;
             }
             else if (_selectedCommits.Count == 1)
@@ -733,7 +744,7 @@ namespace SourceGit.ViewModels
             }
             else if (_selectedCommits.Count == 2)
             {
-                _searchCommitContext.Selected = null;
+                if (_isSearchingCommits) _searchCommitContext.Selected = null;
 
                 if (_detailContext is RevisionCompare compare)
                     compare.SetTargets(_selectedCommits[1], _selectedCommits[0]);
@@ -742,7 +753,7 @@ namespace SourceGit.ViewModels
             }
             else
             {
-                _searchCommitContext.Selected = null;
+                if (_isSearchingCommits) _searchCommitContext.Selected = null;
                 DetailContext = new Models.Count(_selectedCommits.Count);
             }
 
@@ -787,6 +798,7 @@ namespace SourceGit.ViewModels
 
         private bool _isSearchingCommits = false;
         private SearchCommitContext _searchCommitContext = null;
+        private CommitDetail _searchDetailContext;
 
         private GridLength _leftArea = new(1, GridUnitType.Star);
         private GridLength _rightArea = new(1, GridUnitType.Star);

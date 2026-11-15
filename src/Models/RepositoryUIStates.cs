@@ -41,6 +41,7 @@ namespace SourceGit.Models
         } = true;
 
         public Dictionary<string, double> HistoryColumnWidths { get; set; } = [];
+        public double? ChangesPanelWidth { get; set; }
 
         public double AuthorColumnWidth
         {

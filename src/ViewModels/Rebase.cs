@@ -80,7 +80,7 @@ namespace SourceGit.ViewModels
             await _testingTask;
             using var lockWatcher = _repo.LockWatcher();
             ErrorMessage = string.Empty;
-            ProgressDescription = App.Text("Rebase.Progress");
+            SetProgressDescription("Rebase.Progress");
             var log = _repo.CreateLog("Rebase");
             Use(log);
             try

@@ -132,7 +132,15 @@ namespace SourceGit.Automation
                 }).ToArray();
             var actions = window.GetVisualDescendants().OfType<MenuItem>().Where(m => m.Name?.StartsWith("GitAction_", StringComparison.Ordinal) == true)
                 .Select(m => new { id = m.Name, shortcut = m.Tag?.ToString() }).ToArray();
-            return new { stageButtonsOutsidePanel = overflow, toolbarLabelCenters = positions, taggedRefs, popups, dialogs, actions };
+            return new
+            {
+                stageButtonsOutsidePanel = overflow,
+                toolbarLabelCenters = positions,
+                graphPalette = Models.CommitGraph.Pens.Select(p => p.Brush.ToString()).ToArray(),
+                graphNodes = window.GetVisualDescendants().OfType<Views.CommitGraph>().Where(v => v.IsEffectivelyVisible && v.Graph != null)
+                    .SelectMany(v => v.Graph.Dots.Select(d => new { x = d.Center.X, color = d.Color })).ToArray(),
+                taggedRefs, popups, dialogs, actions,
+            };
         }
 
         private static object Bounds(Control control, Window window)

@@ -1,6 +1,8 @@
 """Repeated selection during a large binary read must converge without restarting the read."""
 import json, os, queue, subprocess, sys, tempfile, threading, time
+import signal
 from pathlib import Path
+from qa_cleanup import remove_fixture
 exe=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
 root=Path(tempfile.mkdtemp(prefix='TreeGit repeated binary selection '));repo=root/'repo';repo.mkdir();env=os.environ.copy();env.update(GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'),GIT_CONFIG_NOSYSTEM='1')
 def git(*args):subprocess.run(['git','-C',str(repo),*args],env=env,check=True,capture_output=True)
@@ -32,4 +34,18 @@ finally:
     p.stdin.close()
     try:p.wait(timeout=10)
     except subprocess.TimeoutExpired:p.kill()
-    if pid:subprocess.run(['taskkill','/PID',str(pid),'/F'],capture_output=True)
+    if pid:
+        if os.name == 'posix':
+            target = Path('/proc') / str(pid) / 'exe'
+            if target.exists():
+                assert target.resolve() == exe, 'Unexpected process; left unchanged'
+                os.kill(pid, signal.SIGTERM)
+                for _ in range(150):
+                    if not target.exists(): break
+                    time.sleep(.05)
+                assert not target.exists(), 'Owned QA process did not exit'
+        else:
+            literal = str(exe).replace("'", "''")
+            script = f"$p=Get-Process -Id {int(pid)} -ErrorAction SilentlyContinue;if($p){{if($p.Path -ne '{literal}'){{throw 'Unexpected process'}};$null=$p.CloseMainWindow();if(-not $p.WaitForExit(5000)){{$p.Kill();$p.WaitForExit()}}}}"
+            subprocess.run(['powershell', '-NoProfile', '-Command', script], check=True, capture_output=True, timeout=20)
+    remove_fixture(root, root.parent, 'TreeGit repeated binary selection ')

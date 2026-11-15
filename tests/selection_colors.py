@@ -104,6 +104,7 @@ try:
     (repo / 'readme.txt').write_text('TreeGit interface demonstration\nUpdated settings\n', encoding='utf-8')
     git('add', '.'); git('commit', '-m', '调整示例参数')
     target = git('rev-parse', 'HEAD')
+    git('branch', 'release/demo', target)
     remote = git('commit-tree', git('rev-parse', 'HEAD^{tree}'), '-p', target, '-m', '远程待拉取的提交')
     git('update-ref', 'refs/remotes/origin/main', remote)
     git('remote', 'add', 'origin', str(repo))
@@ -112,6 +113,10 @@ try:
     (repo / 'readme.txt').write_text('TreeGit interface demonstration\nUpdated settings\nLocal next step\n', encoding='utf-8')
     git('add', '.'); git('commit', '-m', '本地待推送的提交')
     before = [git('rev-parse', 'HEAD'), git('ls-files', '--stage'), git('status', '--porcelain')]
+    (repo / '.git/sourcegit.uistates').write_text(json.dumps({
+        'IsLocalBranchesExpandedInSideBar': True, 'IsRemotesExpandedInSideBar': True,
+        'ExpandedBranchNodesInSideBar': ['refs/remotes/origin']
+    }), encoding='utf-8')
     (profile.data / 'preference.json').write_text(json.dumps({'Locale': 'zh_CN', 'Theme': 'Light', 'Zoom': 1, 'EnableAutoFetch': False,
         'Check4UpdatesOnStartup': False, 'Workspaces': [{'Name': '示例', 'IsActive': True, 'RestoreOnStartup': True, 'Repositories': [repo.as_posix()]}]}, ensure_ascii=False), encoding='utf-8')
     process = subprocess.Popen([str(exe), '--mcp'], env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=(out / 'stderr.log').open('w'), text=True, encoding='utf-8', creationflags=subprocess.CREATE_NO_WINDOW)
@@ -132,7 +137,7 @@ try:
         select(target)
         scope = state()['commitBranchHighlights']
         levels = {r['reference']: r['level'] for r in scope['local'] + scope['remote']}
-        check(theme + ' local tracking branch is primary and remote containing branch is secondary', levels == {'refs/heads/main': 2, 'refs/remotes/origin/main': 1})
+        check(theme + ' local tracking branch and its containing remote share the primary background', levels == {'refs/heads/main': 2, 'refs/remotes/origin/main': 2})
         tool('ui_diff', repo=str(repo), action='select', source='history', file='settings.json')
         capture('theme-' + theme.lower())
         if theme == 'Light':
@@ -155,6 +160,9 @@ try:
     until(lambda: state()['searchSelected'] == target and not state()['detailBranchesLoading'])
     tool('ui_diff', repo=str(repo), action='select', source='history', file='settings.json')
     capture('containing-branches')
+    if gallery:
+        tool('ui_search', repo=str(repo), showBranches=True)
+        capture('search-branches-popup')
     check('viewing selections and search preserves HEAD index and working files', before == [git('rev-parse', 'HEAD'), git('ls-files', '--stage'), git('status', '--porcelain')])
 except BaseException:
     failure = traceback.format_exc()

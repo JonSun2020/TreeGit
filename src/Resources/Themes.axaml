@@ -7,6 +7,7 @@
       <Color x:Key="Color.TreeGit.Chrome">#FF16836D</Color>
       <Color x:Key="Color.TreeGit.ParentSHA">#FF16836D</Color>
       <Color x:Key="Color.TreeGit.Selection">#FFA7E1A7</Color>
+      <Color x:Key="Color.TreeGit.GraphPrimary">#FF67AB49</Color>
       <Color x:Key="Color.TreeGit.SelectionSecondary">#FFD9F0DA</Color>
       <Color x:Key="Color.TreeGit.SelectionForeground">#FF123E34</Color>
       <Color x:Key="Color.TreeGit.SelectionSecondaryForeground">#FF184B41</Color>
@@ -54,6 +55,7 @@
       <Color x:Key="Color.TreeGit.Chrome">#FF1F1F1F</Color>
       <Color x:Key="Color.TreeGit.ParentSHA">#FF16836D</Color>
       <Color x:Key="Color.TreeGit.Selection">#FF31743A</Color>
+      <Color x:Key="Color.TreeGit.GraphPrimary">#FF67AB49</Color>
       <Color x:Key="Color.TreeGit.SelectionSecondary">#FF6F9F76</Color>
       <Color x:Key="Color.TreeGit.SelectionForeground">#FFFFFFFF</Color>
       <Color x:Key="Color.TreeGit.SelectionSecondaryForeground">#FF102D16</Color>
@@ -100,6 +102,7 @@
       <Color x:Key="Color.TreeGit.Chrome">#FF0747A6</Color>
       <Color x:Key="Color.TreeGit.ParentSHA">#FF0747A6</Color>
       <Color x:Key="Color.TreeGit.Selection">#FF0078D7</Color>
+      <Color x:Key="Color.TreeGit.GraphPrimary">#FF0066B7</Color>
       <Color x:Key="Color.TreeGit.SelectionSecondary">#FFC6DDF1</Color>
       <Color x:Key="Color.TreeGit.SelectionForeground">#FFFFFFFF</Color>
       <Color x:Key="Color.TreeGit.SelectionSecondaryForeground">#FF193F77</Color>

@@ -171,7 +171,7 @@ namespace SourceGit.Native
             }
             catch
             {
-                if (OperatingSystem.IsWindows()) MessageBox(IntPtr.Zero, "更新尚未完成。请重新打开 TreeGit；如仍无法打开，可从项目主页下载软件包解压到新文件夹。原有配置和仓库不会被删除。", "TreeGit", 0x10);
+                if (OperatingSystem.IsWindows()) MessageBox(IntPtr.Zero, Models.Locale.BootstrapText("TreeGit.Startup.UpdateIncomplete", root), "TreeGit", 0x10);
                 return true;
             }
         }
@@ -228,7 +228,7 @@ namespace SourceGit.Native
                     plan.State = "NeedsRecovery";
                     plan.Error = ProblemCode(rollback);
                     SavePlan(plan);
-                    if (OperatingSystem.IsWindows()) MessageBox(IntPtr.Zero, "更新未完成，旧版文件已保留。请先关闭其他 TreeGit 窗口或相关终端，再重新打开 TreeGit，程序将继续恢复。", "TreeGit", 0x10);
+                    if (OperatingSystem.IsWindows()) MessageBox(IntPtr.Zero, Models.Locale.BootstrapText("TreeGit.Startup.RecoveryPending", plan.InstallRoot), "TreeGit", 0x10);
                     return 2;
                 }
                 return 1;

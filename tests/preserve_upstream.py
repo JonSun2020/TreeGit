@@ -18,6 +18,13 @@ for name in files:
             history = (root/'src/Views/Histories.axaml').read_text(encoding='utf-8-sig')
             assert '<Border IsVisible="{Binding IsSearchingCommits}"><v:CommitSearchView DataContext="{Binding SearchCommitContext}"/></Border>' in history
             missing = Counter({key: count for key, count in missing.items() if key not in moved})
+        if name in ['src/Views/WorkingCopy.axaml','src/Views/CommitChanges.axaml'] and label == 'data bindings':
+            # Both panes now share a repository-specific setting instead of the
+            # former global preference; the actual persisted width is GUI-tested.
+            assert '{Binding Repository.ChangesPanelWidth, Mode=TwoWay}' in new
+            former = '{Binding Source={x:Static vm:Preferences.Instance}'
+            if missing[former] == 1:
+                del missing[former]
         assert not missing, (name,label,dict(missing))
         checks.append(f'{name}: all original {label} retained')
 for p in (root/'src/Resources/Locales').glob('*.axaml'):

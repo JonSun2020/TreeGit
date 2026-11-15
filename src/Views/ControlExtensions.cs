@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 
 using Avalonia;
@@ -37,7 +37,7 @@ namespace SourceGit.Views
             }
             catch (Exception e)
             {
-                await new Alert().ShowAsync(topLevel, "Failed to copy text to clipboard: " + e.Message, true);
+                await new Alert().ShowAsync(topLevel, App.Text("TreeGit.Message.CopyFailed", e.Message), true);
             }
         }
 
@@ -62,6 +62,13 @@ namespace SourceGit.Views
             if (data == null)
                 return;
 
+            if (data is ViewModels.MergeConflictEditor merge && App.FindOpenMergeEditor(merge.RepositoryPath, merge.FilePath) is { } existing)
+            {
+                if (existing.WindowState == WindowState.Minimized) existing.WindowState = WindowState.Normal;
+                existing.Activate();
+                return;
+            }
+
             if (data is not ChromelessWindow window)
             {
                 window = CreateFromViewModels(data) as ChromelessWindow;
@@ -71,9 +78,9 @@ namespace SourceGit.Views
                 window.DataContext = data;
             }
 
+            var owner = TopLevel.GetTopLevel(control) as Window;
             do
             {
-                var owner = TopLevel.GetTopLevel(control) as Window;
                 if (owner != null)
                 {
                     // Get the screen where current window locates.
@@ -93,7 +100,8 @@ namespace SourceGit.Views
                 }
             } while (false);
 
-            window.Show();
+            if (owner != null) window.Show(owner);
+            else window.Show();
         }
 
         public static Task ShowDialogAsync(this Control control, object data)

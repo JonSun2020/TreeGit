@@ -535,7 +535,7 @@ namespace SourceGit.Tests
                         }).ToArray();
                     using var bitmap = new RenderTargetBitmap(new PixelSize((int)Math.Ceiling(dialog.Bounds.Width), (int)Math.Ceiling(dialog.Bounds.Height)), new Vector(96, 96));
                     bitmap.Render(dialog); bitmap.Save(fixture + ".dialog.png");
-                    result.SetResult(new { width = dialog.Bounds.Width, height = dialog.Bounds.Height, buttons, topmost = dialog.Topmost,
+                    result.SetResult(new { width = dialog.Bounds.Width, height = dialog.Bounds.Height, buttons, topmost = dialog.Topmost, hasOwner = dialog.Owner == owner,
                         withinScreen = dialog.Position.X >= area.X && dialog.Position.Y >= area.Y && dialog.Position.X + dialog.Bounds.Width * dialog.RenderScaling <= area.Right + 1 && dialog.Position.Y + dialog.Bounds.Height * dialog.RenderScaling <= area.Bottom + 1 });
                 }
                 catch (Exception error) { result.SetException(error); }

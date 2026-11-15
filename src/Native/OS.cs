@@ -239,6 +239,10 @@ namespace SourceGit.Native
             if (ExternalMergerType < 0 || ExternalMergerType >= Models.ExternalMerger.Supported.Count)
                 return null;
 
+            var selected = Models.ExternalMerger.Supported[ExternalMergerType];
+            if (selected.IsBuiltIn) return null;
+            if (selected.IsGitConfiguration) return new Models.DiffMergeTool(string.Empty, string.Empty);
+
             if (ExternalMergerType != 0 && (string.IsNullOrEmpty(ExternalMergerExecFile) || !File.Exists(ExternalMergerExecFile)))
                 return null;
 
@@ -250,6 +254,13 @@ namespace SourceGit.Native
             if (ExternalMergerType >= 0 && ExternalMergerType < Models.ExternalMerger.Supported.Count)
             {
                 var merger = Models.ExternalMerger.Supported[ExternalMergerType];
+                if (merger.IsBuiltIn || merger.IsGitConfiguration)
+                {
+                    ExternalMergerExecFile = string.Empty;
+                    ExternalDiffArgs = string.Empty;
+                    ExternalMergeArgs = string.Empty;
+                    return;
+                }
                 var externalTool = ExternalTools.Find(x => x.Name.Equals(merger.Name, StringComparison.Ordinal));
                 if (externalTool != null)
                     ExternalMergerExecFile = externalTool.ExecFile;

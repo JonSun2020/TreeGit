@@ -950,7 +950,7 @@ namespace SourceGit.Views
             var patch = new Models.PatchGenerator(option, diff, startIdx, endIdx, isCombined, IsOld);
             if (!patch.IsValid)
             {
-                Models.Notification.Send(null, "You should select at lease one changed line!", true);
+                Models.Notification.Send(null, App.Text("TreeGit.Message.SelectChangedLine"), true);
                 return;
             }
 

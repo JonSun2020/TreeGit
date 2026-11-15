@@ -635,7 +635,7 @@ namespace SourceGit.Views
 
                 if (vm.Staged == null || vm.Staged.Count == 0)
                 {
-                    repo.SendNotification("No files added to commit!", true);
+                    repo.SendNotification(App.Text("TreeGit.Message.NoStagedFiles"), true);
                     e.Handled = true;
                     return;
                 }
@@ -643,7 +643,7 @@ namespace SourceGit.Views
                 var services = repo.GetPreferredOpenAIServices();
                 if (services.Count == 0)
                 {
-                    repo.SendNotification("Bad configuration for OpenAI", true);
+                    repo.SendNotification(App.Text("TreeGit.Message.AIConfig"), true);
                     e.Handled = true;
                     return;
                 }

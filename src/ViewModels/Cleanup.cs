@@ -12,7 +12,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = "Cleanup (GC & prune) ...";
+            SetProgressDescription("TreeGit.Progress.Cleanup");
 
             var log = _repo.CreateLog("Cleanup (GC & prune)");
             Use(log);

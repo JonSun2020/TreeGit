@@ -17,17 +17,23 @@ namespace SourceGit.Views
 
         public bool IsCredentialPrompt { get; private set; }
 
+        protected override void OnOpened(EventArgs e)
+        {
+            if (OperatingSystem.IsWindows()) Native.Windows.AttachAuthenticationOwner(this);
+            base.OnOpened(e);
+        }
+
         public void ConfigureCredentials(string repo, string remote, string username, bool retry = false)
         {
             IsCredentialPrompt = true;
-            Title = "仓库认证";
+            Title = App.Text("TreeGit.Credentials.Authentication");
             TxtTitle.Text = Title;
-            TxtDescription.Text = $"仓库：{repo}\n服务器：{remote}";
+            TxtDescription.Text = App.Text("TreeGit.Credentials.Context", repo, remote);
             UsernameSection.IsVisible = true;
             TxtUsername.Text = username ?? string.Empty;
             if (retry)
             {
-                ValidationMessage.Text = "账号或密码错误，请重新输入。";
+                ValidationMessage.Text = App.Text("TreeGit.Credentials.Retry");
                 ValidationMessage.IsVisible = true;
             }
         }
@@ -59,7 +65,7 @@ namespace SourceGit.Views
             if (IsCredentialPrompt && (string.IsNullOrWhiteSpace(username) || username.IndexOfAny(['\r', '\n', '\0']) >= 0 ||
                 passphrase.IndexOfAny(['\r', '\n', '\0']) >= 0))
             {
-                ValidationMessage.Text = "请输入账号；账号和密码不能包含换行或 NUL 字符。";
+                ValidationMessage.Text = App.Text("TreeGit.Credentials.InvalidInput");
                 ValidationMessage.IsVisible = true;
                 return;
             }

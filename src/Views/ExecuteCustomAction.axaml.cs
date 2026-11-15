@@ -47,7 +47,7 @@ namespace SourceGit.Views
                 var options = new FilePickerOpenOptions()
                 {
                     AllowMultiple = false,
-                    FileTypeFilter = [new("All Files") { Patterns = ["*"] }]
+                    FileTypeFilter = [new(App.Text("TreeGit.Message.AllFiles")) { Patterns = ["*"] }]
                 };
 
                 var selected = await topLevel.StorageProvider.OpenFilePickerAsync(options);

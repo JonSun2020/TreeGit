@@ -77,7 +77,7 @@ namespace SourceGit.ViewModels
             if (!Directory.Exists(selectedDir))
                 return true;
 
-            ProgressDescription = $"Scan repositories under '{selectedDir}' ...";
+            SetProgressDescription("TreeGit.Progress.ScanRepositories", selectedDir);
 
             var minDelay = Task.Delay(500);
             var rootDir = new DirectoryInfo(selectedDir);
@@ -96,7 +96,7 @@ namespace SourceGit.ViewModels
             for (var i = 0; i < found.Count; i++)
             {
                 var f = found[i];
-                ProgressDescription = $"Registering ({i + 1}/{found.Count}) {f}...";
+                SetProgressDescription("TreeGit.Progress.ScanRepositories.Register", i + 1, found.Count, f);
                 var parent = new DirectoryInfo(f).Parent!.FullName.Replace('\\', '/').TrimEnd('/');
                 if (parent.Equals(normalizedRoot, StringComparison.OrdinalIgnoreCase))
                 {
@@ -142,7 +142,7 @@ namespace SourceGit.ViewModels
                     subdir.Name.Equals("node_modules", StringComparison.Ordinal))
                     continue;
 
-                ProgressDescription = $"Scanning {subdir.FullName}...";
+                SetProgressDescription("TreeGit.Progress.ScanRepositories.Folder", subdir.FullName);
 
                 var normalizedSelf = subdir.FullName.Replace('\\', '/').TrimEnd('/');
                 if (IsManaged(normalizedSelf))

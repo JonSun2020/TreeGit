@@ -43,7 +43,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = $"Git Flow - Finish {Branch.Name} ...";
+            SetProgressDescription("TreeGit.Progress.GitFlowFinish", Branch.Name);
 
             var log = _repo.CreateLog("GitFlow - Finish");
             Use(log);

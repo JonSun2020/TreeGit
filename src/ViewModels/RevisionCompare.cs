@@ -10,6 +10,7 @@ namespace SourceGit.ViewModels
 {
     public class RevisionCompare : ObservableObject
     {
+        public Repository Repository => _repo;
         public bool IsLoading
         {
             get => _isLoading;

@@ -399,17 +399,17 @@ namespace SourceGit.Views
             flyout.Placement = PlacementMode.BottomEdgeAlignedLeft;
             flyout.VerticalOffset = -4;
 
-            CreateActionMenuItem(flyout, item, Models.InteractiveRebaseAction.Pick, Brushes.Green, "Use this commit", "P");
-            CreateActionMenuItem(flyout, item, Models.InteractiveRebaseAction.Edit, Brushes.Orange, "Stop for amending", "E");
-            CreateActionMenuItem(flyout, item, Models.InteractiveRebaseAction.Reword, Brushes.Orange, "Edit the commit message", "R");
+            CreateActionMenuItem(flyout, item, Models.InteractiveRebaseAction.Pick, Brushes.Green, App.Text("TreeGit.Message.Pick"), "P");
+            CreateActionMenuItem(flyout, item, Models.InteractiveRebaseAction.Edit, Brushes.Orange, App.Text("TreeGit.Message.Edit"), "E");
+            CreateActionMenuItem(flyout, item, Models.InteractiveRebaseAction.Reword, Brushes.Orange, App.Text("TreeGit.Message.Reword"), "R");
 
             if (item.CanSquashOrFixup)
             {
-                CreateActionMenuItem(flyout, item, Models.InteractiveRebaseAction.Squash, Brushes.LightGray, "Meld into previous commit", "S");
-                CreateActionMenuItem(flyout, item, Models.InteractiveRebaseAction.Fixup, Brushes.LightGray, "Like 'Squash' but discard message", "F");
+                CreateActionMenuItem(flyout, item, Models.InteractiveRebaseAction.Squash, Brushes.LightGray, App.Text("TreeGit.Message.Squash"), "S");
+                CreateActionMenuItem(flyout, item, Models.InteractiveRebaseAction.Fixup, Brushes.LightGray, App.Text("TreeGit.Message.Fixup"), "F");
             }
 
-            CreateActionMenuItem(flyout, item, Models.InteractiveRebaseAction.Drop, Brushes.Red, "Remove commit", "D");
+            CreateActionMenuItem(flyout, item, Models.InteractiveRebaseAction.Drop, Brushes.Red, App.Text("TreeGit.Message.Drop"), "D");
 
             flyout.ShowAt(button);
             e.Handled = true;

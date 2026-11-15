@@ -19,7 +19,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = "Deleting submodule ...";
+            SetProgressDescription("TreeGit.Progress.DeleteSubmodule");
 
             var log = _repo.CreateLog("Delete Submodule");
             Use(log);

@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -11,6 +12,21 @@ namespace SourceGit.Views
         {
             InitializeComponent();
         }
+
+        protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            base.OnAttachedToVisualTree(e);
+            App.LocaleChanged += RefreshLocalizedText;
+            RefreshLocalizedText();
+        }
+
+        protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            App.LocaleChanged -= RefreshLocalizedText;
+            base.OnDetachedFromVisualTree(e);
+        }
+
+        private void RefreshLocalizedText() => (DataContext as ViewModels.Conflict)?.RefreshLocalizedText();
 
         private void OnPressedSHA(object sender, PointerPressedEventArgs e)
         {

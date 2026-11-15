@@ -1,11 +1,21 @@
 name: Localization Check
 on:
   push:
-    branches: [develop]
+    branches: [master, develop]
     paths:
-      - 'src/Resources/Locales/**'
+      - 'src/**'
+      - 'tests/localization_catalog.py'
+      - '.github/workflows/localization-check.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/localization_catalog.py'
+      - '.github/workflows/localization-check.yml'
   workflow_dispatch:
   workflow_call:
+
+permissions:
+  contents: read
 
 jobs:
   localization-check:
@@ -15,27 +25,5 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: '24.x'
-
-      - name: Install dependencies
-        run: npm install fs-extra@11.2.0 path@0.12.7 xml2js@0.6.2
-
-      - name: Run localization check
-        run: node build/scripts/localization-check.js
-
-      - name: Commit changes
-        run: |
-          git config --global user.name 'github-actions[bot]'
-          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          if [ -n "$(git status --porcelain)" ]; then
-            git add TRANSLATION.md src/Resources/Locales/*.axaml
-            git commit -m 'doc: Update translation status and sort locale files'
-            git push
-          else
-            echo "No changes to commit"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check the three shipped language catalogs
+        run: python3 tests/localization_catalog.py

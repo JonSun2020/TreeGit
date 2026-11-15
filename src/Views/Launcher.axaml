@@ -1,4 +1,4 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <v:ChromelessWindow xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:s="using:SourceGit" xmlns:vm="using:SourceGit.ViewModels" xmlns:v="using:SourceGit.Views" xmlns:c="using:SourceGit.Converters" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SourceGit.Views.Launcher" x:DataType="vm:Launcher" x:Name="ThisControl" Icon="/App.ico" MinWidth="1024" MinHeight="600">
   <v:ChromelessWindow.Title>
     <MultiBinding Converter="{x:Static c:StringConverters.ToWindowTitle}">
@@ -49,6 +49,9 @@
       <!-- Pages Tabs -->
       <Menu Grid.Column="1" VerticalAlignment="Center" Background="Transparent" x:Name="PrimaryMenu">
         <Menu.Styles>
+          <Style Selector="MenuItem /template/ Popup#PART_Popup">
+            <Setter Property="ShouldUseOverlayLayer" Value="True"/>
+          </Style>
           <Style Selector="Menu &gt; MenuItem">
             <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.ChromeForeground}"/>
             <Setter Property="Padding" Value="12,4"/>
@@ -59,7 +62,7 @@
                     <ContentPresenter Name="PART_HeaderPresenter" Content="{TemplateBinding Header}" Foreground="{TemplateBinding Foreground}" VerticalAlignment="Center"/>
                   </Border>
                   <Border Name="MenuHeaderOutline" BorderThickness="1" BorderBrush="{DynamicResource Brush.TreeGit.MenuBorder}" IsVisible="False" IsHitTestVisible="False"/>
-                  <Popup Name="PART_Popup" Placement="BottomEdgeAlignedLeft" IsLightDismissEnabled="False" IsOpen="{TemplateBinding IsSubMenuOpen, Mode=TwoWay}">
+                  <Popup Name="PART_Popup" Placement="BottomEdgeAlignedLeft" ShouldUseOverlayLayer="True" IsLightDismissEnabled="False" IsOpen="{TemplateBinding IsSubMenuOpen, Mode=TwoWay}">
                     <Border Padding="4" MinWidth="180" Background="{DynamicResource Brush.Popup}" BorderBrush="{DynamicResource Brush.Border1}" BorderThickness="1">
                       <ItemsPresenter Name="PART_ItemsPresenter" Grid.IsSharedSizeScope="True"><ItemsPresenter.ItemsPanel><ItemsPanelTemplate><StackPanel/></ItemsPanelTemplate></ItemsPresenter.ItemsPanel></ItemsPresenter>
                     </Border>
@@ -72,47 +75,74 @@
           <Style Selector="Menu &gt; MenuItem:selected /template/ ContentPresenter#PART_HeaderPresenter"><Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.ChromeForeground}"/></Style>
           <Style Selector="Menu &gt; MenuItem:open /template/ Border#MenuHeaderOutline"><Setter Property="IsVisible" Value="True"/></Style>
         </Menu.Styles>
-        <MenuItem Header="文件(F)">
-          <MenuItem Header="新标签页" Command="{Binding AddNewTab}"/>
-          <MenuItem Header="打开 / 克隆仓库" Click="OnTreeGitShowRepositories"/>
-          <MenuItem Header="退出" Command="{x:Static s:App.QuitCommand}"/>
+        <MenuItem Header="{DynamicResource Text.TreeGit.Menu.File}">
+          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.NewTab}" Command="{Binding AddNewTab}"/>
+          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.OpenClone}" Click="OnTreeGitShowRepositories"/>
+          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Quit}" Command="{x:Static s:App.QuitCommand}"/>
         </MenuItem>
-        <MenuItem Header="编辑(E)"><MenuItem Header="偏好设置" Command="{x:Static s:App.OpenPreferencesCommand}"/></MenuItem>
+        <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Edit}">
+          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Language}" x:Name="LanguageMenu" PointerEntered="OnLanguageMenuPointerEntered">
+            <MenuItem x:Name="Language_zh_CN" Click="OnTreeGitLanguageChanged" PointerEntered="OnLanguageOptionPointerEntered">
+              <MenuItem.Header>
+                <Grid ColumnDefinitions="*,18" MinWidth="112">
+                  <TextBlock Text="简体中文" VerticalAlignment="Center"/>
+                  <Path Grid.Column="1" Width="12" Height="12" Data="{StaticResource Icons.Check}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="#67AB49" IsVisible="{Binding Source={x:Static vm:Preferences.Instance}, Path=Locale, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=zh_CN}"/>
+                </Grid>
+              </MenuItem.Header>
+            </MenuItem>
+            <MenuItem x:Name="Language_zh_TW" Click="OnTreeGitLanguageChanged" PointerEntered="OnLanguageOptionPointerEntered">
+              <MenuItem.Header>
+                <Grid ColumnDefinitions="*,18" MinWidth="112">
+                  <TextBlock Text="繁體中文" VerticalAlignment="Center"/>
+                  <Path Grid.Column="1" Width="12" Height="12" Data="{StaticResource Icons.Check}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="#67AB49" IsVisible="{Binding Source={x:Static vm:Preferences.Instance}, Path=Locale, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=zh_TW}"/>
+                </Grid>
+              </MenuItem.Header>
+            </MenuItem>
+            <MenuItem x:Name="Language_en_US" Click="OnTreeGitLanguageChanged" PointerEntered="OnLanguageOptionPointerEntered">
+              <MenuItem.Header>
+                <Grid ColumnDefinitions="*,18" MinWidth="112">
+                  <TextBlock Text="English" VerticalAlignment="Center"/>
+                  <Path Grid.Column="1" Width="12" Height="12" Data="{StaticResource Icons.Check}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" Fill="#67AB49" IsVisible="{Binding Source={x:Static vm:Preferences.Instance}, Path=Locale, Mode=OneWay, Converter={x:Static ObjectConverters.Equal}, ConverterParameter=en_US}"/>
+                </Grid>
+              </MenuItem.Header>
+            </MenuItem>
+          </MenuItem>
+          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Preferences}" Command="{x:Static s:App.OpenPreferencesCommand}"/>
+        </MenuItem>
 
-        <MenuItem Header="仓库(R)">
-          <MenuItem Header="仓库设置" Click="OnTreeGitRepositorySettings"/>
-          <MenuItem Header="在文件管理器中打开" Click="OnTreeGitExplorer"/>
-          <MenuItem Header="打开终端" Click="OnTreeGitTerminal"/>
+        <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Repository}">
+          <MenuItem Header="{DynamicResource Text.TreeGit.Settings.Title}" Click="OnTreeGitRepositorySettings"/>
+          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Explorer}" Click="OnTreeGitExplorer"/>
+          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Terminal}" Click="OnTreeGitTerminal"/>
 
         </MenuItem>
-        <MenuItem Header="操作(A)">
-          <MenuItem Header="获取" Click="OnTreeGitFetch"/><MenuItem Header="拉取" Click="OnTreeGitPull"/><MenuItem Header="推送" Click="OnTreeGitPush"/>
-          <MenuItem Header="新建分支" Click="OnTreeGitBranch"/><MenuItem Header="新建标签" Click="OnTreeGitTag"/>
-          <MenuItem Header="高级操作">
-            <MenuItem Header="添加子模块" x:Name="GitAction_submodule" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="添加工作树" x:Name="GitAction_worktree" Click="OnTreeGitExtraAction"/>
+        <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Actions}">
+          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Fetch}" Click="OnTreeGitFetch"/><MenuItem Header="{DynamicResource Text.TreeGit.Menu.Pull}" Click="OnTreeGitPull"/><MenuItem Header="{DynamicResource Text.TreeGit.Menu.Push}" Click="OnTreeGitPush"/>
+          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.NewBranch}" Click="OnTreeGitBranch"/><MenuItem Header="{DynamicResource Text.TreeGit.Menu.NewTag}" Click="OnTreeGitTag"/>
+          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Advanced}">
+            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.AddSubmodule}" x:Name="GitAction_submodule" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.AddWorktree}" x:Name="GitAction_worktree" Click="OnTreeGitExtraAction"/>
             <MenuItem Header="Git LFS" x:Name="GitAction_lfs" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="应用补丁" x:Name="GitAction_patch" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="二分查找" x:Name="GitAction_bisect" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="Git 工作流" x:Name="GitAction_gitflow" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="定位当前提交" x:Name="GitAction_head" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="找回丢失的提交" x:Name="GitAction_reflog" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="命令日志" x:Name="GitAction_logs" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="统计" x:Name="GitAction_statistics" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="清理仓库" x:Name="GitAction_cleanup" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.ApplyPatch}" x:Name="GitAction_patch" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Bisect}" x:Name="GitAction_bisect" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.GitFlow}" x:Name="GitAction_gitflow" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.GoToHead}" x:Name="GitAction_head" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Reflog}" x:Name="GitAction_reflog" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.CommandLog}" x:Name="GitAction_logs" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Statistics}" x:Name="GitAction_statistics" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Cleanup}" x:Name="GitAction_cleanup" Click="OnTreeGitExtraAction"/>
           </MenuItem>
         </MenuItem>
-        <MenuItem Header="工具(T)">
-          <MenuItem Header="MCP · AI 连接" Command="{x:Static s:App.OpenMcpConnectionCommand}"/>
-          <MenuItem Header="SSH 密钥" Command="{x:Static s:App.OpenSSHKeyHelperCommand}"/>
-          <MenuItem Header="仓库账号与密码" x:Name="GitAction_credentials" Click="OnTreeGitExtraAction"/>
-          <MenuItem Header="外部工具" x:Name="GitAction_external" Click="OnTreeGitExtraAction"/>
+        <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Tools}">
+          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Mcp}" Command="{x:Static s:App.OpenMcpConnectionCommand}"/>
+          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.SshKeys}" Command="{x:Static s:App.OpenSSHKeyHelperCommand}"/>
+          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Credentials}" x:Name="GitAction_credentials" Click="OnTreeGitExtraAction"/>
         </MenuItem>
-        <MenuItem Header="帮助(H)"><MenuItem Header="{DynamicResource Text.SelfUpdate}" Command="{x:Static s:App.CheckForUpdateCommand}" IsVisible="{x:Static s:App.IsCheckForUpdateCommandVisible}">
+        <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Help}"><MenuItem Header="{DynamicResource Text.SelfUpdate}" Command="{x:Static s:App.CheckForUpdateCommand}" IsVisible="{x:Static s:App.IsCheckForUpdateCommandVisible}">
               <MenuItem.Icon>
                 <Path Width="14" Height="14" Data="{StaticResource Icons.SoftwareUpdate}"/>
               </MenuItem.Icon>
-            </MenuItem><MenuItem Header="-" IsVisible="{x:Static s:App.IsCheckForUpdateCommandVisible}"/><MenuItem Header="诊断与数据"><MenuItem Header="{DynamicResource Text.OpenAppDataDir}" Command="{x:Static s:App.OpenAppDataDirCommand}" IsVisible="{OnPlatform True, Linux=False}">
+            </MenuItem><MenuItem Header="-" IsVisible="{x:Static s:App.IsCheckForUpdateCommandVisible}"/><MenuItem Header="{DynamicResource Text.TreeGit.Menu.Diagnostics}"><MenuItem Header="{DynamicResource Text.OpenAppDataDir}" Command="{x:Static s:App.OpenAppDataDirCommand}" IsVisible="{OnPlatform True, Linux=False}">
               <MenuItem.Icon>
                 <Path Width="14" Height="14" Data="{StaticResource Icons.Explore}"/>
               </MenuItem.Icon>
@@ -123,7 +153,7 @@
 
               <MenuItem Header="{DynamicResource Text.OpenAppDataDir.Config}" Command="{x:Static s:App.OpenAppConfigDirCommand}"/>
               <MenuItem Header="{DynamicResource Text.OpenAppDataDir.Cache}" Command="{x:Static s:App.OpenAppDataDirCommand}"/>
-            </MenuItem></MenuItem><MenuItem Header="快捷键" Command="{x:Static s:App.OpenHotkeysCommand}"/><MenuItem Header="关于 TreeGit" Command="{x:Static s:App.OpenAboutCommand}"/></MenuItem>
+            </MenuItem></MenuItem><MenuItem Header="{DynamicResource Text.TreeGit.Menu.Hotkeys}" Command="{x:Static s:App.OpenHotkeysCommand}"/><MenuItem Header="{DynamicResource Text.TreeGit.Menu.About}" Command="{x:Static s:App.OpenAboutCommand}"/></MenuItem>
       </Menu>
       <v:LauncherTabBar Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="6" Height="26" Margin="10,0,110,0" VerticalAlignment="Bottom" x:Name="RepositoryTabs"/>
 

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -23,6 +25,11 @@ namespace SourceGit
         [STAThread]
         public static void Main(string[] args)
         {
+            if (args.Length > 0 && args[0] == "--external-merge-tool")
+            {
+                Environment.Exit(args.Length == 6 ? Native.ExternalMergeSession.Run(args[1], args[2], args[3], args[4], args[5]) : 2);
+                return;
+            }
             if (args.Length == 2 && args[0] is "--apply-update" or "--recover-update")
             {
                 Environment.Exit(Native.TreeGitUpdateInstaller.Run(args[1], args[0] == "--recover-update"));
@@ -62,6 +69,11 @@ namespace SourceGit
             }
             Native.StartupTrace.Mark("directories");
 #if INTEGRATION_TESTS
+            if (args.Length == 5 && args[0] == "--integration-external-tool")
+            {
+                Environment.Exit(Tests.ExternalToolProbe.RunAsync(args[1], args[2], args[3], args[4]).GetAwaiter().GetResult());
+                return;
+            }
             if (args.Length == 3 && args[0] == "--integration-ui-consistency")
             {
                 Environment.Exit(Tests.UiConsistencyProbe.RunAsync(args[1], args[2]).GetAwaiter().GetResult());
@@ -205,18 +217,58 @@ namespace SourceGit
                 targetLocale == app._activeLocale)
                 return;
 
-            if (app._activeLocale != null)
-                app.Resources.MergedDictionaries.Remove(app._activeLocale);
-
-            app.Resources.MergedDictionaries.Add(targetLocale);
+            if (!app._localeTextCache.TryGetValue(finalLocaleKey, out var texts))
+            {
+                texts = targetLocale.Keys.OfType<string>().Where(key => key.StartsWith("Text.", StringComparison.Ordinal))
+                    .ToDictionary(key => key, key => targetLocale[key] as string, StringComparer.Ordinal);
+                app._localeTextCache.Add(finalLocaleKey, texts);
+            }
+            // Background Git operations also request localized messages. Publish
+            // an immutable snapshot rather than enumerating UI dictionaries.
+            System.Threading.Volatile.Write(ref app._activeTexts, texts);
+            var localeIndex = app._activeLocale == null ? -1 : app.Resources.MergedDictionaries.IndexOf(app._activeLocale);
+            if (localeIndex >= 0) app.Resources.MergedDictionaries[localeIndex] = targetLocale;
+            else app.Resources.MergedDictionaries.Add(targetLocale);
             app._activeLocale = targetLocale;
+            app._activeLocaleKey = finalLocaleKey;
+            Models.LocalizedOption.RefreshAll();
+            if (app._launcher != null)
+                foreach (var page in app._launcher.Pages.ToArray())
+                {
+                    page.Popup?.RefreshLocalizedText();
+                    if (page.LoadedRepository?.Histories is { } history)
+                    {
+                        // History can contain tens of thousands of commits;
+                        // only search rows have localized branch captions.
+                        foreach (var commit in history.SearchCommitContext?.Results ?? [])
+                            commit.RefreshLocalizedText();
+                        if (history.DetailContext is ViewModels.CommitDetail detail)
+                            detail.RefreshLocalizedText();
+                    }
+                }
+            LocaleChanged?.Invoke();
         }
+
+        private string _activeLocaleKey = "en_US";
+        private Dictionary<string, string> _activeTexts;
+        private readonly Dictionary<string, Dictionary<string, string>> _localeTextCache = new(StringComparer.Ordinal);
+        public static string ActiveLocale => (Current as App)?._activeLocaleKey ?? "en_US";
+        public static event Action LocaleChanged;
+
+        public static Avalonia.Data.IBinding TextBinding(string key)
+            => new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension($"Text.{key}");
+
+        public static void BindText(AvaloniaObject target, AvaloniaProperty property, string key)
+            => target.Bind(property, TextBinding(key));
 
         public static void SetTheme(string theme, string themeOverridesFile)
         {
             if (Current is not App app)
                 return;
 
+            // A theme applies a base palette and its primary branch color.
+            // Recolor each loaded graph once after the complete change.
+            using var paletteUpdate = Models.CommitGraph.DeferPaletteUpdates();
             theme = Models.TreeGitThemes.Normalize(theme);
             if (theme == "Default")
                 app.RequestedThemeVariant = ThemeVariant.Default;
@@ -265,6 +317,13 @@ namespace SourceGit
             {
                 Models.CommitGraph.SetDefaultPens();
             }
+            app.UpdateGraphPrimaryColor();
+        }
+
+        private void UpdateGraphPrimaryColor()
+        {
+            if (Resources.TryGetResource("Color.TreeGit.GraphPrimary", ActualThemeVariant, out var value) && value is Color primary)
+                Models.CommitGraph.SetPrimaryColor(primary);
         }
 
         public static void SetFonts(string defaultFont, string monospaceFont)
@@ -310,7 +369,10 @@ namespace SourceGit
 
         public static string Text(string key, params object[] args)
         {
-            var fmt = Current?.FindResource($"Text.{key}") as string;
+            var snapshot = Current is App app ? System.Threading.Volatile.Read(ref app._activeTexts) : null;
+            var fmt = snapshot != null ? snapshot.GetValueOrDefault($"Text.{key}") : Current?.FindResource($"Text.{key}") as string;
+            if (fmt == null && key.StartsWith("TreeGit.Startup.", StringComparison.Ordinal))
+                fmt = Models.Locale.BootstrapText(key);
             if (string.IsNullOrWhiteSpace(fmt))
                 return $"Text.{key}";
 
@@ -345,6 +407,7 @@ namespace SourceGit
         public override void Initialize()
         {
             AvaloniaXamlLoader.Load(this);
+            ActualThemeVariantChanged += (_, _) => UpdateGraphPrimaryColor();
             Native.StartupTrace.Mark("application-resources");
 
             var pref = ViewModels.Preferences.Instance;

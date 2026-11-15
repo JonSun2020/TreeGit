@@ -86,7 +86,7 @@ def scope_ready(search):
 def verify_priority(current, name):
     scope = current['commitBranchHighlights']
     levels = {row['reference']: row['level'] for row in scope['local'] + scope['remote']}
-    check(name + ' local tracking main is darker', levels == {'refs/heads/main': 2, 'refs/remotes/origin/main': 1})
+    check(name + ' local tracking main and its remote share the primary background', levels == {'refs/heads/main': 2, 'refs/remotes/origin/main': 2})
     check(name + ' metadata and actual branch focus agree', current['detailBranches']['primary'] == 'refs/heads/main' and current['localBranchSelection'] == ['refs/heads/main'])
 
 try:
@@ -142,7 +142,7 @@ try:
         layout = tool('ui_layout')
         shades = {r['reference']: r for r in layout['sidebarCommitShades']}
         check(theme + ' primary selection uses the shared theme color', shades['refs/heads/main']['color'] == layout['primaryBranchBackground'] and shades['refs/heads/main']['opacity'] == 1)
-        check(theme + ' secondary selection uses a lighter related color', layout['selectedBranchBackground'] != layout['primaryBranchBackground'] and shades['refs/remotes/origin/main']['opacity'] == 0)
+        check(theme + ' tracked remote uses the same primary color', shades['refs/remotes/origin/main']['color'] == layout['primaryBranchBackground'] and shades['refs/remotes/origin/main']['opacity'] == 1)
         (out / (theme + '-history.png')).write_bytes(tool('ui_screenshot'))
         tool('ui_select_view', repo=str(repo), view='search')
         tool('ui_search', repo=str(repo), method='sha', query=target)

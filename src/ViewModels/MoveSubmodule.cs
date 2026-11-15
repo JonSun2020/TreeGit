@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
@@ -27,7 +27,7 @@ namespace SourceGit.ViewModels
 
         public override async Task<bool> Sure()
         {
-            ProgressDescription = "Moving submodule ...";
+            SetProgressDescription("TreeGit.Progress.MoveSubmodule");
 
             var oldPath = Native.OS.GetAbsPath(_repo.FullPath, Submodule.Path);
             var newPath = Native.OS.GetAbsPath(_repo.FullPath, _moveTo);

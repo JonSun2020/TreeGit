@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
@@ -194,7 +194,7 @@ namespace SourceGit.Automation
                                 var confirm = w.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "ConfirmRepositorySettings");
                                 var top = confirm?.TranslatePoint(new Point(0, 0), w);
                                 var bottom = confirm?.TranslatePoint(new Point(confirm.Bounds.Width, confirm.Bounds.Height), w);
-                                return new { title = w.Title, type = w.GetType().Name, topmost = w.Topmost, message = w is Views.Alert ? w.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name == "Message")?.Text : null, width = w.Bounds.Width, height = w.Bounds.Height, x = w.Position.X, y = w.Position.Y, scaling = w.RenderScaling,
+                                return new { title = w.Title, type = w.GetType().Name, topmost = w.Topmost, owner = (w.Owner as Window)?.Title, message = w is Views.Alert ? w.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name == "Message")?.Text : null, width = w.Bounds.Width, height = w.Bounds.Height, x = w.Position.X, y = w.Position.Y, scaling = w.RenderScaling,
                                     workArea = new { x = area?.X, y = area?.Y, width = area?.Width, height = area?.Height },
                                     merge = merge == null ? null : new { file = merge.FilePath, repo = merge.RepositoryPath, unsolved = merge.UnsolvedCount, modified = merge.HasChanges, saving = merge.IsSaving, canSave = merge.CanSave, error = merge.Error, encoding = merge.SelectedEncoding?.Name,
                                         totalConflicts = merge.TotalConflictCount, activeConflict = merge.ActiveConflictIndex, position = merge.ConflictPosition,
@@ -241,7 +241,7 @@ namespace SourceGit.Automation
                                     x = pendingRow.PointToScreen(default).X, y = pendingRow.PointToScreen(default).Y,
                                     width = pendingRow.Bounds.Width, height = pendingRow.Bounds.Height,
                                     scaling = (pendingRow.PointToScreen(new Point(100, 0)).X - pendingRow.PointToScreen(default).X) / 100.0,
-                                    subjectX = pendingRow.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Text == "未提交的更改")?.PointToScreen(default).X,
+                                    subjectX = pendingRow.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Text == App.Text("TreeGit.PendingChanges"))?.PointToScreen(default).X,
                                     graphMargin = r.Histories?.CommitGraphMargin.Top,
                                     parents = r.Histories?.WorkingCopyParentIndices.Select(index => new { sha = r.Histories.Commits[index].SHA, index,
                                         x = r.Histories.Graph?.Dots[index].Center.X }).ToArray() },
@@ -486,7 +486,12 @@ namespace SourceGit.Automation
                         var diff = lifetime.MainWindow.GetVisualDescendants().OfType<Views.DiffView>()
                             .FirstOrDefault(v => v.IsEffectivelyVisible)?.DataContext as ViewModels.DiffContext;
                         if (diff == null) throw new InvalidOperationException("Select a changed file first.");
-                        diff.OpenExternalMergeTool();
+                        // A configured external tool can edit files or run a
+                        // custom command. Read-only AI connections stay in the
+                        // built-in inspector even when the user chose a vendor.
+                        if (request.TryGetProperty("allowWrite", out var diffPermission) && diffPermission.GetBoolean())
+                            diff.OpenExternalMergeTool();
+                        else diff.OpenReadOnlyComparison();
                         return (object)new { opened = uiCommand };
                     }
                     return null;
@@ -563,6 +568,8 @@ namespace SourceGit.Automation
                         window.Height = height.Value;
                     if (theme != null)
                         ViewModels.Preferences.Instance.Theme = theme;
+                    if (args.TryGetProperty("locale", out var locale))
+                        ViewModels.Preferences.Instance.Locale = locale.GetString();
                     if (args.TryGetProperty("state", out var windowState))
                     {
                         if (windowState.GetString() == "toggle" && window is Views.Launcher launcher) launcher.ToggleMaximizeRestore();
@@ -1091,7 +1098,7 @@ namespace SourceGit.Automation
                         case "commit_branches":
                             var branchHeader = owner.GetVisualDescendants().OfType<Views.CommitBranchHeader>()
                                 .FirstOrDefault(v => v.IsEffectivelyVisible && v.DataContext is ViewModels.CommitDetail d && d.Repository == repo);
-                            if (branchHeader == null || !branchHeader.ShowBranches()) throw new InvalidOperationException("该提交没有可展开的其他包含分支。");
+                            if (branchHeader == null || !branchHeader.ShowBranches()) throw new InvalidOperationException(App.Text("TreeGit.Branches.NoOther"));
                             break;
                         case "show_reflog":
                             repo.ShowReflog();
@@ -1123,7 +1130,15 @@ namespace SourceGit.Automation
                 if (!resolved.IsSuccess)
                     throw new ArgumentException(Redact(resolved.StdErr));
                 var sha = resolved.StdOut.Trim();
-                await Dispatcher.UIThread.InvokeAsync(() => { repo.SelectedViewIndex = 0; repo.NavigateToCommit(sha); repo.Histories.RevealSelectedCommitBranch(); });
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    repo.SelectedViewIndex = 0;
+                    // Preserve the user's navigation intent while the graph
+                    // and branch snapshot load independently. A deferred row
+                    // selection does not generate a pointer/keyboard event.
+                    repo.RequestCommitBranchSelection(new Models.Commit { SHA = sha });
+                    repo.NavigateToCommit(sha, repo.Histories.IsLoading);
+                });
                 return new { selected = sha, repo = path };
             }
             if (name == "ui_refresh")
@@ -1360,7 +1375,7 @@ namespace SourceGit.Automation
                         if (!string.Equals(credentialScope, path, pathComparison))
                             foreach (var page in App.GetLauncher().Pages)
                                 if (page.Data is ViewModels.Repository affected && string.Equals(affected.FullPath, credentialScope, pathComparison)) affected.RefreshAll();
-                        repo.McpActivity = "MCP · " + activity + (result.IsSuccess ? " ✓" : " ✕ · 查看命令日志");
+                        repo.McpActivity = "MCP · " + activity + (result.IsSuccess ? " ✓" : App.Text("TreeGit.CommandLogs.FailedSuffix"));
                     });
                 }
                 var stdout = Redact(result.StdOut);

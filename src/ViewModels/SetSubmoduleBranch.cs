@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading.Tasks;
 
 namespace SourceGit.ViewModels
@@ -25,7 +25,7 @@ namespace SourceGit.ViewModels
 
         public override async Task<bool> Sure()
         {
-            ProgressDescription = "Set submodule's branch ...";
+            SetProgressDescription("TreeGit.Progress.SetSubmoduleBranch");
 
             if (_changeTo.Equals(Submodule.Branch, StringComparison.Ordinal))
                 return true;

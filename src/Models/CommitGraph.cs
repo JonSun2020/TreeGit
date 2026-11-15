@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using Avalonia;
 using Avalonia.Media;
@@ -19,7 +20,130 @@ namespace SourceGit.Models
 
     public partial class CommitGraph
     {
-        public static List<Pen> Pens { get; } = [];
+        public static List<Pen> Pens
+        {
+            get => System.Threading.Volatile.Read(ref s_pens);
+            private set => System.Threading.Volatile.Write(ref s_pens, value);
+        }
+        private static List<Pen> s_pens = [];
+        public static event Action PaletteChanged;
+
+        internal static IDisposable DeferPaletteUpdates()
+        {
+            s_paletteUpdateDepth++;
+            return new PaletteUpdateScope();
+        }
+
+        private static void NotifyPaletteChanged()
+        {
+            System.Threading.Interlocked.Increment(ref s_paletteVersion);
+            if (s_paletteUpdateDepth > 0) s_paletteUpdatePending = true;
+            else PaletteChanged?.Invoke();
+        }
+
+        private sealed class PaletteUpdateScope : IDisposable
+        {
+            private bool _disposed;
+            public void Dispose()
+            {
+                if (_disposed) return;
+                _disposed = true;
+                if (--s_paletteUpdateDepth != 0 || !s_paletteUpdatePending) return;
+                s_paletteUpdatePending = false;
+                PaletteChanged?.Invoke();
+            }
+        }
+
+        private static int s_paletteUpdateDepth;
+        private static bool s_paletteUpdatePending;
+
+        public static void SetPrimaryColor(Color color)
+        {
+            var pens = Pens;
+            if (pens.Count == 0)
+                return;
+
+            bool IsSecondary(Color candidate) => ColorFamily(candidate) != ColorFamily(color) &&
+                (candidate.ToHsl().S < .15 || HueDistance(candidate.ToHsl().H, color.ToHsl().H) >= 45);
+            var candidates = s_sourcePenColors.Concat(s_defaultPenColors)
+                .Where(IsSecondary).Distinct().ToList();
+            var palette = new List<Color> { color };
+            // Three lanes should form a broad triad, rather than taking the
+            // individually most distant hue and then squeezing a third beside it.
+            for (var i = 1; i < Math.Min(3, pens.Count); i++)
+            {
+                var target = (color.ToHsl().H + (i == 1 ? 240 : 120)) % 360;
+                var next = candidates.MinBy(c => HueDistance(c.ToHsl().H, target));
+                palette.Add(next);
+                candidates.Remove(next);
+            }
+            for (var hue = 0; hue < 360; hue += 15)
+            {
+                var candidate = new HslColor(1, hue, .72, .46).ToRgb();
+                if (IsSecondary(candidate) && !palette.Contains(candidate) && !candidates.Contains(candidate))
+                    candidates.Add(candidate);
+            }
+            for (var seed = 1; candidates.Count + palette.Count < pens.Count; seed++)
+            {
+                var candidate = new HslColor(1, seed * 137.508 % 360, .65, .35 + seed % 6 * .05).ToRgb();
+                if (IsSecondary(candidate) && !palette.Contains(candidate) && !candidates.Contains(candidate))
+                    candidates.Add(candidate);
+            }
+            while (palette.Count < pens.Count)
+            {
+                var next = palette.Count < 32
+                    ? candidates.MaxBy(c => palette.Min(used => ColorDifference(c, used)))
+                    : candidates.MaxBy(c => ColorDifference(c, palette[^1]));
+                palette.Add(next);
+                candidates.Remove(next);
+            }
+            var changed = false;
+            for (var i = 0; i < pens.Count; i++)
+            {
+                var original = ((ISolidColorBrush)pens[i].Brush).Color;
+                var next = palette[i];
+                if (original == next)
+                    continue;
+                changed = true;
+            }
+            if (changed)
+            {
+                // A history can be generated on a worker while the UI changes
+                // themes. Publish a complete palette instead of changing the
+                // brushes in a list that another thread is still reading.
+                Pens = pens.Select((pen, i) => new Pen(palette[i].ToUInt32(), pen.Thickness)).ToList();
+                NotifyPaletteChanged();
+            }
+        }
+
+        private static double HueDistance(double a, double b)
+        {
+            var distance = Math.Abs(a - b);
+            return Math.Min(distance, 360 - distance);
+        }
+
+        private static double ColorDifference(Color a, Color b)
+        {
+            var first = a.ToHsl();
+            var second = b.ToHsl();
+            var hue = HueDistance(first.H, second.H);
+            if (ColorFamily(a) == ColorFamily(b)) hue *= .35;
+            return hue + 80 * Math.Abs(first.L - second.L) + 20 * Math.Abs(first.S - second.S);
+        }
+
+        private static int ColorFamily(Color color)
+        {
+            var hsl = color.ToHsl();
+            if (hsl.S < .15)
+                return -1;
+            var hue = hsl.H;
+            if (hue < 25 || hue >= 330) return 0; // Red / pink
+            if (hue < 55) return 1; // Orange / gold
+            if (hue < 75) return 2; // Yellow
+            if (hue < 170) return 3; // Green
+            if (hue < 260) return 4; // Cyan / blue
+            return 5; // Violet / purple
+        }
 
         public static void SetDefaultPens(double thickness = 2)
         {
@@ -28,18 +152,18 @@ namespace SourceGit.Models
 
         public static void SetPens(List<Color> colors, double thickness)
         {
-            Pens.Clear();
-
-            foreach (var c in colors)
-                Pens.Add(new Pen(c.ToUInt32(), thickness));
+            s_sourcePenColors = new List<Color>(colors);
+            Pens = colors.Select(c => new Pen(c.ToUInt32(), thickness)).ToList();
 
             s_penCount = colors.Count;
+            NotifyPaletteChanged();
         }
 
         public class Path(int color, bool isHighlighted)
         {
             public List<Point> Points { get; } = [];
-            public int Color { get; } = color;
+            public int Color { get; internal set; } = color;
+            internal int Branch = -1;
             public bool IsHighlighted { get; } = isHighlighted;
         }
 
@@ -61,6 +185,7 @@ namespace SourceGit.Models
 
         public class Dot
         {
+            internal int Branch = -1;
             public DotType Type;
             public Point Center;
             public int Color;
@@ -327,6 +452,8 @@ namespace SourceGit.Models
 
             public void Recycle(int idx)
             {
+                if (reservePrimary && idx == 0)
+                    return;
                 if (!_colorsQueue.Contains(idx))
                     _colorsQueue.Enqueue(idx);
             }
@@ -473,6 +600,8 @@ namespace SourceGit.Models
         }
 
         private static int s_penCount = 0;
+        private static int s_paletteVersion;
+        private static List<Color> s_sourcePenColors = [];
         private static readonly List<Color> s_defaultPenColors = [
             Color.Parse("#3572B0"),
             Color.Parse("#F05C75"),

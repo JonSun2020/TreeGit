@@ -31,7 +31,51 @@ namespace SourceGit.Native
 
         public void SetupApp(AppBuilder builder)
         {
-            // Do nothing for now.
+            // Native popup windows can remain above unrelated applications.
+            // Menus, combo boxes, flyouts and tooltips belong to their own window.
+            builder.With(new Win32PlatformOptions { OverlayPopups = true });
+        }
+
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
+
+        [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
+        private static extern IntPtr SetWindowLongPtr(IntPtr window, int index, IntPtr value);
+
+        [DllImport("user32.dll", EntryPoint = "SetWindowLongW", SetLastError = true)]
+        private static extern int SetWindowLong(IntPtr window, int index, int value);
+
+        internal static void RegisterAuthenticationOwner(Window window)
+        {
+            if (window.TryGetPlatformHandle()?.Handle is not { } handle || handle == IntPtr.Zero) return;
+            // Git and its credential helper inherit these hints. No credentials
+            // are included, and the receiving helper verifies the owner process.
+            Environment.SetEnvironmentVariable("TREEGIT_AUTH_OWNER_WINDOW", handle.ToInt64().ToString(System.Globalization.CultureInfo.InvariantCulture));
+            Environment.SetEnvironmentVariable("TREEGIT_AUTH_OWNER_PROCESS", Environment.ProcessId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        internal static void AttachAuthenticationOwner(Window window)
+        {
+            if (!long.TryParse(Environment.GetEnvironmentVariable("TREEGIT_AUTH_OWNER_WINDOW"), out var value) ||
+                !uint.TryParse(Environment.GetEnvironmentVariable("TREEGIT_AUTH_OWNER_PROCESS"), out var expected) || value == 0)
+                return;
+            var owner = new IntPtr(value);
+            if (GetWindowThreadProcessId(owner, out var actual) == 0 || actual != expected) return;
+            try
+            {
+                using var process = Process.GetProcessById((int)actual);
+                if (!string.Equals(process.MainModule?.FileName, Environment.ProcessPath, StringComparison.OrdinalIgnoreCase)) return;
+                if (window.TryGetPlatformHandle()?.Handle is not { } handle || handle == IntPtr.Zero) return;
+                // An owned window stays above TreeGit without becoming globally
+                // topmost. Switching applications moves the whole group behind.
+                if (IntPtr.Size == 8) SetWindowLongPtr(handle, -8 /* GWLP_HWNDPARENT */, owner);
+                else SetWindowLong(handle, -8, owner.ToInt32());
+            }
+            catch (Exception error) when (error is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
+            {
+                // The owner can close while a helper is starting. The prompt
+                // remains a regular window; never fall back to global topmost.
+            }
         }
 
         public void SetupWindow(Window window)

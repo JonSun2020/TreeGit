@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -28,6 +28,8 @@ namespace SourceGit.ViewModels
         }
 
         public string DefaultRemote { get; set; }
+
+        public bool ReadSucceeded { get; private set; }
 
         public int PreferredMergeMode { get; set; }
 
@@ -139,9 +141,12 @@ namespace SourceGit.ViewModels
             BackgroundFetchEnabled = repo.Settings.BackgroundFetchEnabled;
             foreach (var template in repo.Settings.CommitTemplates)
                 CommitTemplates.Add(new Models.CommitTemplate { Name = template.Name, Content = template.Content });
-            _cachedLocal = new Commands.Config(repo.FullPath).ReadAll(true);
+            var localQuery = new Commands.Config(repo.FullPath);
+            _cachedLocal = localQuery.ReadAll(true);
             UseGlobalIdentity = !_cachedLocal.ContainsKey("user.name") && !_cachedLocal.ContainsKey("user.email");
-            _cached = new Commands.Config(repo.FullPath).ReadAll();
+            var query = new Commands.Config(repo.FullPath);
+            _cached = query.ReadAll();
+            ReadSucceeded = localQuery.ReadSucceeded && query.ReadSucceeded;
             if (_cached.TryGetValue("user.name", out var name))
                 UserName = name;
             if (_cached.TryGetValue("user.email", out var email))
@@ -161,7 +166,12 @@ namespace SourceGit.ViewModels
             var rules = new List<Models.IssueTracker>();
             var sharedFile = Path.Combine(repo.FullPath, ".issuetracker");
             if (File.Exists(sharedFile))
-                Commands.IssueTracker.ReadFromConfig(new Commands.Config(repo.FullPath, sharedFile) { RaiseError = false }.ReadAll(), rules, true);
+            {
+                var sharedQuery = new Commands.Config(repo.FullPath, sharedFile) { RaiseError = false };
+                var sharedConfig = sharedQuery.ReadAll();
+                ReadSucceeded &= sharedQuery.ReadSucceeded;
+                Commands.IssueTracker.ReadFromConfig(sharedConfig, rules, true);
+            }
             Commands.IssueTracker.ReadFromConfig(_cachedLocal, rules, false);
             foreach (var rule in rules)
             {
@@ -177,7 +187,7 @@ namespace SourceGit.ViewModels
 
         public void AddCommitTemplate()
         {
-            var template = new Models.CommitTemplate() { Name = "New Template" };
+            var template = new Models.CommitTemplate() { Name = App.Text("TreeGit.Template.New") };
             CommitTemplates.Add(template);
             SelectedCommitTemplate = template;
         }
@@ -247,16 +257,17 @@ namespace SourceGit.ViewModels
 
         public async Task SaveAsync()
         {
+            if (!ReadSucceeded) throw new IOException(App.Text("TreeGit.Config.ReadFailed"));
             if (_repo.Settings.LoadRecovery == 2) throw new IOException(App.Text("Repository.ConfigRecovery.Readonly"));
             var names = new HashSet<string>(StringComparer.Ordinal);
             foreach (var rule in IssueTrackers)
             {
                 if (string.IsNullOrWhiteSpace(rule.Name) || rule.Name.IndexOfAny(['\r', '\n', '\0']) >= 0)
-                    throw new InvalidOperationException("提交文本链接的名称不能为空或包含换行符。");
+                    throw new InvalidOperationException(App.Text("TreeGit.Links.InvalidName"));
                 if (!names.Add(rule.Name))
-                    throw new InvalidOperationException("提交文本链接的名称不能重复：" + rule.Name);
+                    throw new InvalidOperationException(App.Text("TreeGit.Links.DuplicateName") + rule.Name);
                 if (!rule.IsRegexValid || string.IsNullOrWhiteSpace(rule.URLTemplate))
-                    throw new InvalidOperationException("请检查提交文本链接的匹配表达式和链接模板：" + rule.Name);
+                    throw new InvalidOperationException(App.Text("TreeGit.Links.InvalidPattern") + rule.Name);
             }
             var cached = new Dictionary<string, string>(_cached);
             var cachedLocal = new Dictionary<string, string>(_cachedLocal);
@@ -318,7 +329,7 @@ namespace SourceGit.ViewModels
             var current = forceLocal ? _cachedLocal.GetValueOrDefault(key) : _cached.GetValueOrDefault(key, defValue);
             if (!remove && value == current) return;
             if (!await new Commands.Config(_repo.FullPath, _saveTransaction.GitConfigPath) { RaiseError = false }.SetAsync(key, value))
-                throw new InvalidOperationException("无法保存仓库配置：" + key);
+                throw new InvalidOperationException(App.Text("TreeGit.Config.SaveFailedPrefix") + key);
             if (remove) { _cachedLocal.Remove(key); _cached.Remove(key); }
             else { _cachedLocal[key] = value; _cached[key] = value; }
         }
@@ -328,7 +339,7 @@ namespace SourceGit.ViewModels
             static async Task RequireSuccess(Task<bool> operation, string name)
             {
                 if (!await operation)
-                    throw new InvalidOperationException("无法保存提交文本链接：" + name);
+                    throw new InvalidOperationException(App.Text("TreeGit.Links.SaveFailedPrefix") + name);
             }
 
             var changed = false;

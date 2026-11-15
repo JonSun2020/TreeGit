@@ -1,6 +1,6 @@
-﻿namespace SourceGit.Models
+namespace SourceGit.Models
 {
-    public class ApplyWhiteSpaceMode(string n, string d, string a)
+    public class ApplyWhiteSpaceMode(string n, string d, string a) : LocalizedOption
     {
         public static readonly ApplyWhiteSpaceMode[] Supported =
         [

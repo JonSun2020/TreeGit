@@ -104,7 +104,16 @@ namespace SourceGit.ViewModels
 
         public void OpenExternalMergeTool()
         {
-            App.ShowNotSupported();
+            new Commands.DiffTool(_repo, _option).Open();
+        }
+
+        public void OpenReadOnlyComparison() => App.OpenInternalComparison(_repo, _option);
+
+        public void RefreshLocalizedText()
+        {
+            OnPropertyChanged(nameof(OldSource));
+            OnPropertyChanged(nameof(NewSource));
+            OnPropertyChanged(nameof(SourceDescription));
         }
 
         public void CheckSettings()

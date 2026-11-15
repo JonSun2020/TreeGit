@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace SourceGit.Commands
 {
@@ -12,41 +12,55 @@ namespace SourceGit.Commands
             _option = option;
         }
 
-        public void Open()
+        public void Open() => _ = OpenAsync();
+
+        public async Task<bool> OpenAsync()
         {
+            if (Native.OS.ExternalMergerType == 0)
+            {
+                App.OpenInternalComparison(WorkingDirectory, _option);
+                return true;
+            }
             var tool = Native.OS.GetDiffMergeTool(true);
             if (tool == null)
             {
-                RaiseException("Invalid diff/merge tool in preference setting!");
-                return;
+                RaiseException(App.Text("TreeGit.Tool.NotConfigured"));
+                return false;
             }
 
-            if (string.IsNullOrEmpty(tool.Cmd))
+            if (string.IsNullOrEmpty(tool.Exec))
             {
-                if (!CheckGitConfiguration())
-                    return;
+                if (!await CheckGitConfigurationAsync())
+                    return false;
 
                 Args = $"difftool -g --no-prompt {_option}";
             }
             else
             {
-                var cmd = $"{tool.Exec.Quoted()} {tool.Cmd}";
-                Args = $"-c difftool.sourcegit.cmd={cmd.Quoted()} difftool --tool=sourcegit --no-prompt {_option}";
+                var executable = OperatingSystem.IsWindows() ? tool.Exec.Replace('\\', '/') : tool.Exec;
+                var cmd = Native.ExternalMergeSession.ShellQuote(executable) + " " + tool.Cmd;
+                Args = $"-c difftool.sourcegit.cmd={cmd.Quoted()} difftool --trust-exit-code --tool=sourcegit --no-prompt {_option}";
             }
 
             try
             {
-                Native.ProcessLauncher.Start(CreateGitStartInfo(false));
+                // Observe Git and the adapter's exit status. A detached process
+                // used to hide missing-executable and invalid-argument errors.
+                return await ExecAsync().ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                RaiseException(ex.Message);
+                Native.OS.LogException(ex);
+                RaiseException(App.Text("TreeGit.Tool.CannotOpen"));
+                return false;
             }
         }
 
-        private bool CheckGitConfiguration()
+        private async Task<bool> CheckGitConfigurationAsync()
         {
-            var config = new Config(WorkingDirectory).ReadAll();
+            var command = new Config(WorkingDirectory);
+            var config = await command.ReadAllAsync().ConfigureAwait(false);
+            if (!command.ReadSucceeded) return false;
             if (config.TryGetValue("diff.guitool", out var guiTool))
                 return CheckCLIBasedTool(guiTool);
             if (config.TryGetValue("merge.guitool", out var mergeGuiTool))
@@ -56,7 +70,7 @@ namespace SourceGit.Commands
             if (config.TryGetValue("merge.tool", out var mergeTool))
                 return CheckCLIBasedTool(mergeTool);
 
-            RaiseException("Missing git configuration: diff.guitool");
+            RaiseException(App.Text("TreeGit.Tool.GitDiffMissing"));
             return false;
         }
 
@@ -65,7 +79,7 @@ namespace SourceGit.Commands
             if (tool.StartsWith("vimdiff", StringComparison.Ordinal) ||
                 tool.StartsWith("nvimdiff", StringComparison.Ordinal))
             {
-                RaiseException($"CLI based diff tool \"{tool}\" is not supported by this app!");
+                RaiseException(App.Text("TreeGit.Tool.ConsoleUnsupported", tool));
                 return false;
             }
 

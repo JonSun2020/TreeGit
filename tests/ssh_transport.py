@@ -137,7 +137,7 @@ try:
     pid=tool('ui_state')['processId'];check('TreeGit clones through real OpenSSH with a spaced apostrophe key path',git(clone,'rev-parse','HEAD')==initial)
     if trust_first_host:
         events=Path(str(fixture)+'.events')
-        check('first SSH host trust is confirmed in a topmost prompt and stored only in the owned known-hosts file',host_key.get_base64() in known.read_text() and events.exists() and 'topmost-password-dialog' in events.read_text())
+        check('first SSH host trust is confirmed in an app-scoped prompt and stored only in the owned known-hosts file',host_key.get_base64() in known.read_text() and events.exists() and 'scoped-password-dialog' in events.read_text())
         events.unlink();fixture.write_text(json.dumps({'username':'unused','password':phrase}),encoding='utf-8')
     alias_clone=root/'SSH alias clone'
     tool('git_clone',{'url':'treegit-qa:'+bare.as_posix(),'destination':str(alias_clone),'sshKey':str(keys['qaA']),'recursive':False})
@@ -148,7 +148,7 @@ try:
     tool('git_action',{'repo':str(repo_b),'action':'fetch'})
     check('a second repository authenticates with its own key' if plain else 'an encrypted repository key authenticates after the real passphrase prompt',git(repo_b,'rev-parse','origin/main')==initial)
     events=Path(str(fixture)+'.events');first_events=events.read_text() if events.exists() else ''
-    if not plain:check('SSH passphrase input uses an activated topmost window','topmost-password-dialog' in first_events)
+    if not plain:check('SSH passphrase input uses an activated app-scoped window','scoped-password-dialog' in first_events)
     (clone/'roundtrip.txt').write_text('actual SSH push payload\n');git(clone,'config','user.name','SSH QA');git(clone,'config','user.email','ssh@example.invalid')
     tool('git_action',{'repo':str(clone),'action':'stage','paths':['roundtrip.txt']});tool('git_action',{'repo':str(clone),'action':'commit','message':'SSH round-trip'})
     tool('git_action',{'repo':str(clone),'action':'push'});pushed=git(clone,'rev-parse','HEAD')
@@ -168,7 +168,7 @@ try:
         threading.Thread(target=correct_second_prompt,daemon=True).start()
         tool('git_action',{'repo':str(repo_b),'action':'fetch'})
         retry_events=events.read_text() if events.exists() else ''
-        check('a wrong SSH key phrase prompts again and then succeeds',updated.is_set() and retry_events.count('topmost-password-dialog')>=2 and git(repo_b,'rev-parse','origin/main')==pushed)
+        check('a wrong SSH key phrase prompts again and then succeeds',updated.is_set() and retry_events.count('scoped-password-dialog')>=2 and git(repo_b,'rev-parse','origin/main')==pushed)
     check('distinct repositories use their configured SSH identities',any(c['user']=='qaA' and c['command']=='git-receive-pack' for c in commands) and sum(c['user']=='qaB' and c['command']=='git-upload-pack' for c in commands)>=2)
     check('all SSH Git backend commands completed without server errors',not server_errors)
 finally:

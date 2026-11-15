@@ -111,7 +111,7 @@ namespace SourceGit.Commands
             }
             catch (Exception e)
             {
-                if (!CancellationToken.IsCancellationRequested) RaiseException($"Failed to query commits. Reason: {e.Message}");
+                if (!CancellationToken.IsCancellationRequested) RaiseException(App.Text("TreeGit.Query.CommitsFailed", e.Message));
             }
 
             return Succeeded ? commits : [];

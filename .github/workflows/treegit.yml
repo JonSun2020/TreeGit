@@ -33,6 +33,15 @@ jobs:
       - name: Verify menu header toggling and outlines with routed and native input
         shell: pwsh
         run: python tests/menu_toggle.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/menu-toggle-results"
+      - name: Verify languages, table resizing, independent viewers and real merge results
+        shell: pwsh
+        run: |
+          python tests/localization_catalog.py "$env:RUNNER_TEMP/localization-catalog.json"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/localization_ui_ci.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/localization-ui-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/external_tools.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/external-tool-results" --recovery-state-change
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify large query output and malformed authentication settings
         shell: pwsh
         run: |
@@ -173,6 +182,11 @@ jobs:
             ${{ runner.temp }}/menu-toggle-results/*.json
             ${{ runner.temp }}/menu-toggle-results/*.png
             ${{ runner.temp }}/menu-toggle-results/*.log
+            ${{ runner.temp }}/localization-catalog.json
+            ${{ runner.temp }}/localization-ui-results/*.json
+            ${{ runner.temp }}/localization-ui-results/*.png
+            ${{ runner.temp }}/localization-ui-results/*.log
+            ${{ runner.temp }}/external-tool-results/*.json
   portable:
     runs-on: windows-latest
     steps:

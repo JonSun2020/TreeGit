@@ -3,12 +3,14 @@ import base64
 import datetime
 import json
 import os
+import signal
 from pathlib import Path
 import shutil
 import subprocess
 import sys
 import tempfile
 import time
+from qa_cleanup import remove_fixture
 
 exe = Path(sys.argv[1]).resolve()
 out = Path(sys.argv[2]).resolve()
@@ -194,5 +196,16 @@ finally:
     (out/'graph-results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'repo':str(repo),'failure':failure},indent=2,ensure_ascii=False),encoding='utf-8')
     p.stdin.close();p.wait(timeout=15)
     if gui_pid:
-        code="$p=Get-Process -Id "+str(gui_pid)+" -ErrorAction SilentlyContinue; if($p){if($p.Path -ne '"+str(exe).replace("'","''")+"'){throw 'Wrong QA process'}; if(-not $p.CloseMainWindow()){throw 'Owned QA window did not close'};if(-not $p.WaitForExit(15000)){throw 'Owned QA window did not exit'}}"
-        subprocess.run(['powershell','-NoProfile','-Command',code],capture_output=True,check=True)
+        if os.name == 'posix':
+            target = Path('/proc') / str(gui_pid) / 'exe'
+            if target.exists():
+                assert target.resolve() == exe, 'Unexpected process; left unchanged'
+                os.kill(gui_pid, signal.SIGTERM)
+                for _ in range(150):
+                    if not target.exists(): break
+                    time.sleep(.05)
+                assert not target.exists(), 'Owned QA process did not exit'
+        else:
+            code="$p=Get-Process -Id "+str(gui_pid)+" -ErrorAction SilentlyContinue; if($p){if($p.Path -ne '"+str(exe).replace("'","''")+"'){throw 'Wrong QA process'}; if(-not $p.CloseMainWindow()){throw 'Owned QA window did not close'};if(-not $p.WaitForExit(15000)){throw 'Owned QA window did not exit'}}"
+            subprocess.run(['powershell','-NoProfile','-Command',code],capture_output=True,check=True)
+    remove_fixture(repo, repo.parent, 'TreeGit graph 中文 ')

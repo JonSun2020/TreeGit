@@ -400,7 +400,7 @@ namespace SourceGit.Views
                     init.Click += (_, e) =>
                     {
                         if (repo.CurrentBranch == null)
-                            repo.SendNotification("Git flow init failed: No branch found!!!", true);
+                            repo.SendNotification(App.Text("TreeGit.Message.FlowNoBranch"), true);
                         else if (repo.CanCreatePopup())
                             repo.ShowPopup(new ViewModels.InitGitFlow(repo));
 
@@ -560,9 +560,9 @@ namespace SourceGit.Views
                 repo.CanCreatePopup())
             {
                 if (repo.LocalChangesCount > 0)
-                    repo.SendNotification("You have un-committed local changes. Please discard or stash them first.", true);
+                    repo.SendNotification(App.Text("TreeGit.Message.UncommittedChanges"), true);
                 else if (repo.IsBisectCommandRunning || repo.BisectState != Models.BisectState.None)
-                    repo.SendNotification("Bisect is running! Please abort it before starting a new one.", true);
+                    repo.SendNotification(App.Text("TreeGit.Message.BisectRunning"), true);
                 else
                     await repo.ExecBisectCommandAsync("start");
             }

@@ -196,7 +196,7 @@
   <x:String x:Key="Text.CommitDetail.Files.Tips" xml:space="preserve">請選擇要檢視內容的檔案</x:String>
   <x:String x:Key="Text.CommitDetail.Info" xml:space="preserve">基本資訊</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Author" xml:space="preserve">作者</x:String>
-  <x:String x:Key="Text.CommitDetail.Info.Committer" xml:space="preserve">提交者</x:String>
+  <x:String x:Key="Text.CommitDetail.Info.Committer" xml:space="preserve">提交者: </x:String>
   <x:String x:Key="Text.CommitDetail.Info.ContainsIn" xml:space="preserve">檢視包含此提交的分支或標籤</x:String>
   <x:String x:Key="Text.CommitDetail.Info.ContainsIn.Title" xml:space="preserve">本提交包含於以下分支或標籤</x:String>
   <x:String x:Key="Text.CommitDetail.Info.CopyEmail" xml:space="preserve">複製電子郵件</x:String>
@@ -205,7 +205,7 @@
   <x:String x:Key="Text.CommitDetail.Info.GotoChangesPage" xml:space="preserve">僅顯示前 100 項變更。請前往 [變更對比] 頁面以瀏覽所有變更。</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Key" xml:space="preserve">簽章金鑰:</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Message" xml:space="preserve">提交訊息</x:String>
-  <x:String x:Key="Text.CommitDetail.Info.Parents" xml:space="preserve">前次提交</x:String>
+  <x:String x:Key="Text.CommitDetail.Info.Parents" xml:space="preserve">父級: </x:String>
   <x:String x:Key="Text.CommitDetail.Info.Refs" xml:space="preserve">相關參照</x:String>
   <x:String x:Key="Text.CommitDetail.Info.SHA" xml:space="preserve">提交編號</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Signer" xml:space="preserve">簽署人:</x:String>
@@ -524,7 +524,7 @@
   <x:String x:Key="Text.Histories.Header.Author" xml:space="preserve">作者</x:String>
   <x:String x:Key="Text.Histories.Header.AuthorTime" xml:space="preserve">修改時間</x:String>
   <x:String x:Key="Text.Histories.Header.CommitTime" xml:space="preserve">提交時間</x:String>
-  <x:String x:Key="Text.Histories.Header.GraphAndSubject" xml:space="preserve">路線圖與訊息標題</x:String>
+  <x:String x:Key="Text.Histories.Header.GraphAndSubject" xml:space="preserve">圖譜與訊息標題</x:String>
   <x:String x:Key="Text.Histories.Header.SHA" xml:space="preserve">提交編號</x:String>
   <x:String x:Key="Text.Histories.HighlightsInGraph" xml:space="preserve">上色分支</x:String>
   <x:String x:Key="Text.Histories.HighlightsInGraph.All" xml:space="preserve">全部</x:String>
@@ -643,7 +643,7 @@
   <x:String x:Key="Text.OpenAppDataDir.Cache" xml:space="preserve">快取資料</x:String>
   <x:String x:Key="Text.OpenAppDataDir.Config" xml:space="preserve">偏好設定資料</x:String>
   <x:String x:Key="Text.OpenFile" xml:space="preserve">開啟檔案</x:String>
-  <x:String x:Key="Text.OpenInExternalMergeTool" xml:space="preserve">使用外部比對工具檢視</x:String>
+  <x:String x:Key="Text.OpenInExternalMergeTool" xml:space="preserve">以所選比較工具開啟</x:String>
   <x:String x:Key="Text.OpenLocalRepository" xml:space="preserve">開啟本機存放庫</x:String>
   <x:String x:Key="Text.OpenLocalRepository.Bookmark" xml:space="preserve">書籤:</x:String>
   <x:String x:Key="Text.OpenLocalRepository.Group" xml:space="preserve">群組:</x:String>
@@ -711,11 +711,11 @@
   <x:String x:Key="Text.Preferences.General.MaxHistoryCommits" xml:space="preserve">最大歷史提交數</x:String>
   <x:String x:Key="Text.Preferences.General.ShowChangesPageByDefault" xml:space="preserve">預設顯示 [本機變更] 頁面</x:String>
   <x:String x:Key="Text.Preferences.General.ShowChangesTabInCommitDetailByDefault" xml:space="preserve">在提交詳細資訊頁面預設顯示 [變更對比]</x:String>
-  <x:String x:Key="Text.Preferences.General.ShowRelativeTimeInGraph" xml:space="preserve">在提交路線圖中顯示相對時間</x:String>
-  <x:String x:Key="Text.Preferences.General.ShowTagsInGraph" xml:space="preserve">在路線圖中顯示標籤</x:String>
+  <x:String x:Key="Text.Preferences.General.ShowRelativeTimeInGraph" xml:space="preserve">在提交圖譜中顯示相對時間</x:String>
+  <x:String x:Key="Text.Preferences.General.ShowTagsInGraph" xml:space="preserve">在圖譜中顯示標籤</x:String>
   <x:String x:Key="Text.Preferences.General.SubjectGuideLength" xml:space="preserve">提交標題字數偵測</x:String>
   <x:String x:Key="Text.Preferences.General.Use24Hours" xml:space="preserve">24 小時制</x:String>
-  <x:String x:Key="Text.Preferences.General.UseCompactBranchNames" xml:space="preserve">在提交路線圖中使用簡潔的分支標籤</x:String>
+  <x:String x:Key="Text.Preferences.General.UseCompactBranchNames" xml:space="preserve">在提交圖譜中使用簡潔的分支標籤</x:String>
   <x:String x:Key="Text.Preferences.General.UseGitHubStyleAvatar" xml:space="preserve">產生 GitHub 風格的預設頭貼</x:String>
   <x:String x:Key="Text.Preferences.Git" xml:space="preserve">Git 設定</x:String>
   <x:String x:Key="Text.Preferences.Git.CRLF" xml:space="preserve">自動換行轉換</x:String>
@@ -1107,7 +1107,7 @@
   <x:String x:Key="Text.WorkingCopy.ConfirmCommitWithFilter" xml:space="preserve">您已暫存 {0} 個檔案，但只顯示 {1} 個檔案 ({2} 個檔案被篩選器隱藏)。您確定要繼續提交嗎?</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts" xml:space="preserve">偵測到衝突</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.Merge" xml:space="preserve">編輯合併結果</x:String>
-  <x:String x:Key="Text.WorkingCopy.Conflicts.MergeExternal" xml:space="preserve">使用外部工具解決衝突</x:String>
+  <x:String x:Key="Text.WorkingCopy.Conflicts.MergeExternal" xml:space="preserve">以所選合併工具編輯</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.OpenExternalMergeToolAllConflicts" xml:space="preserve">使用外部合併工具開啟</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.Resolved" xml:space="preserve">檔案衝突已解決</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.UseMine" xml:space="preserve">使用 Local</x:String>
@@ -1380,4 +1380,459 @@
   <x:String x:Key="Text.CommitBranches.Estimated" xml:space="preserve">Inferred from the current graph: {0}</x:String>
   <x:String x:Key="Text.CommitBranches.LocalRecord" xml:space="preserve">Local commit record: {0}</x:String>
   <x:String x:Key="Text.Repository.Search.Failed" xml:space="preserve">搜尋未完成，請檢查輸入和倉庫狀態後重試。已保留上次的結果。</x:String>
+  <x:String x:Key="Text.TreeGit.PendingChanges" xml:space="preserve">未提交的變更</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.NoOther" xml:space="preserve">此提交沒有其他可展開的包含分支。</x:String>
+  <x:String x:Key="Text.TreeGit.CommandLogs.FailedSuffix" xml:space="preserve"> ✕ · 查看命令記錄</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.Unavailable" xml:space="preserve">分支資訊暫時無法取得，請重新搜尋。</x:String>
+  <x:String x:Key="Text.TreeGit.Config.Changed" xml:space="preserve">設定檔已被其他程式修改，請重新開啟儲存庫設定。</x:String>
+  <x:String x:Key="Text.TreeGit.Config.RestoreFailed" xml:space="preserve">儲存失敗，部分設定未能還原。請檢查儲存庫設定檔。</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.ShowAll" xml:space="preserve">查看全部 {0} 個包含此提交的分支</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.NotContained" xml:space="preserve">已知的本機與遠端分支皆不包含此提交</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.None" xml:space="preserve">無分支</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.UpdateIncomplete" xml:space="preserve">更新尚未完成。請重新開啟 TreeGit；若仍無法開啟，可從專案首頁下載軟體包並解壓縮至新資料夾。原有設定與儲存庫不會被刪除。</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.RecoveryPending" xml:space="preserve">更新未完成，舊版檔案已保留。請先關閉其他 TreeGit 視窗或相關終端機，再重新開啟 TreeGit，程式將繼續還原。</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.Incomplete" xml:space="preserve">TreeGit 檔案不完整。請完整解壓縮軟體包後重新開啟。原有設定與儲存庫不會被刪除。</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.NotWritable" xml:space="preserve">TreeGit 無法寫入所需檔案。請將完整的軟體資料夾移至具有寫入權限的位置後重新開啟。</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.OpenFailed" xml:space="preserve">TreeGit 未能正常開啟。請重新開啟後再試；若問題持續，請保留 data 資料夾並重新完整解壓縮最新版。</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.Changed" xml:space="preserve">此分支已變更，已定位原提交；請重新搜尋分支清單。</x:String>
+  <x:String x:Key="Text.TreeGit.Search.CommitUnavailable" xml:space="preserve">此提交已無法取得，請重新搜尋。</x:String>
+  <x:String x:Key="Text.TreeGit.Links.InvalidName" xml:space="preserve">提交文字連結的名稱不能為空或包含換行字元。</x:String>
+  <x:String x:Key="Text.TreeGit.Links.DuplicateName" xml:space="preserve">提交文字連結的名稱不能重複：</x:String>
+  <x:String x:Key="Text.TreeGit.Links.InvalidPattern" xml:space="preserve">請檢查提交文字連結的比對運算式與連結範本：</x:String>
+  <x:String x:Key="Text.TreeGit.Config.SaveFailedPrefix" xml:space="preserve">無法儲存儲存庫設定：</x:String>
+  <x:String x:Key="Text.TreeGit.Links.SaveFailedPrefix" xml:space="preserve">無法儲存提交文字連結：</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.Title" xml:space="preserve">包含此提交的分支（{0}）</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.Empty" xml:space="preserve">沒有已知分支包含此提交</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.NoMatch" xml:space="preserve">沒有符合的分支</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.CopyHint" xml:space="preserve">按一下分支名稱可複製。遠端分支以最近一次擷取的結果為準。</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.FetchHint" xml:space="preserve">遠端分支以最近一次擷取的結果為準。</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.SelectContaining" xml:space="preserve">請選擇確實包含此提交的分支。</x:String>
+  <x:String x:Key="Text.TreeGit.Stage.Failed" xml:space="preserve">暫存未完成，請確認磁碟空間與檔案存取權限後重試。</x:String>
+  <x:String x:Key="Text.TreeGit.Unstage.Failed" xml:space="preserve">取消暫存未完成，請確認磁碟空間與檔案存取權限後重試。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Username" xml:space="preserve">帳號</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.UsernameHint" xml:space="preserve">使用者名稱</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.OptionalPassword" xml:space="preserve">密碼（可留空）</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.PasswordHint" xml:space="preserve">密碼</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.TogglePassword" xml:space="preserve">顯示／隱藏密碼</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Authentication" xml:space="preserve">儲存庫驗證</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Context" xml:space="preserve">儲存庫：{0}
+伺服器：{1}</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Retry" xml:space="preserve">帳號或密碼錯誤，請重新輸入。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.InvalidInput" xml:space="preserve">請輸入帳號；帳號與密碼不能包含換行或 NUL 字元。</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.AddressHint" xml:space="preserve">十六進位位址</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.First" xml:space="preserve">第一個差異</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.Previous" xml:space="preserve">上一個差異</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.Next" xml:space="preserve">下一個差異</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.Last" xml:space="preserve">最後一個差異</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.GoTo" xml:space="preserve">跳至</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.SeparateWindow" xml:space="preserve">獨立視窗</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.Loading" xml:space="preserve">正在讀取並比較二進位檔案…</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.OldPrefix" xml:space="preserve">舊版本 · </x:String>
+  <x:String x:Key="Text.TreeGit.Binary.NewPrefix" xml:space="preserve">新版本 · </x:String>
+  <x:String x:Key="Text.TreeGit.Binary.Summary" xml:space="preserve">舊：{0:N0} 位元組    新：{1:N0} 位元組    差異：{2:N0} 位元組 · 依相同偏移量比較（唯讀）</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.ByteCount" xml:space="preserve"> · {0:N0} 位元組</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.WorkingTree" xml:space="preserve">工作目錄</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.Index" xml:space="preserve">暫存區</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.WindowTitle" xml:space="preserve">TreeGit · 二進位比較</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.Offset" xml:space="preserve">偏移量</x:String>
+  <x:String x:Key="Text.TreeGit.Search" xml:space="preserve">搜尋</x:String>
+  <x:String x:Key="Text.TreeGit.Search.Label" xml:space="preserve">搜尋：</x:String>
+  <x:String x:Key="Text.TreeGit.Search.Scope" xml:space="preserve">搜尋範圍</x:String>
+  <x:String x:Key="Text.TreeGit.Search.ContainingBranches" xml:space="preserve">分支</x:String>
+  <x:String x:Key="Text.TreeGit.History.Description" xml:space="preserve">描述</x:String>
+  <x:String x:Key="Text.TreeGit.History.Date" xml:space="preserve">日期</x:String>
+  <x:String x:Key="Text.TreeGit.History.Author" xml:space="preserve">作者</x:String>
+  <x:String x:Key="Text.TreeGit.History.Commit" xml:space="preserve">提交</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.Local" xml:space="preserve">本機</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.Remote" xml:space="preserve">遠端</x:String>
+  <x:String x:Key="Text.TreeGit.Search.NotVisible" xml:space="preserve">此搜尋結果目前不可見，請先捲動至對應列。</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.OpenListFirst" xml:space="preserve">請先開啟包含分支清單。</x:String>
+  <x:String x:Key="Text.TreeGit.History.ShowRemotes" xml:space="preserve">顯示遠端分支</x:String>
+  <x:String x:Key="Text.TreeGit.History.DateOrder" xml:space="preserve">依日期排序</x:String>
+  <x:String x:Key="Text.TreeGit.History.TopoOrder" xml:space="preserve">依拓撲排序</x:String>
+  <x:String x:Key="Text.TreeGit.History.Graph" xml:space="preserve">圖譜</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.File" xml:space="preserve">檔案(F)</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.NewTab" xml:space="preserve">新增分頁</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.OpenClone" xml:space="preserve">開啟／複製儲存庫</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Quit" xml:space="preserve">結束</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Edit" xml:space="preserve">編輯(E)</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Preferences" xml:space="preserve">偏好設定</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Repository" xml:space="preserve">儲存庫(R)</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Title" xml:space="preserve">儲存庫設定</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Explorer" xml:space="preserve">在檔案管理員中開啟</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Terminal" xml:space="preserve">開啟終端機</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Actions" xml:space="preserve">操作(A)</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Fetch" xml:space="preserve">擷取</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Pull" xml:space="preserve">拉取</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Push" xml:space="preserve">推送</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.NewBranch" xml:space="preserve">新增分支</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.NewTag" xml:space="preserve">新增標籤</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Advanced" xml:space="preserve">進階操作</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.AddSubmodule" xml:space="preserve">新增子模組</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.AddWorktree" xml:space="preserve">新增工作樹</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.ApplyPatch" xml:space="preserve">套用修補檔</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Bisect" xml:space="preserve">二分搜尋</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.GitFlow" xml:space="preserve">Git 工作流程</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.GoToHead" xml:space="preserve">定位目前提交</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Reflog" xml:space="preserve">找回遺失的提交</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.CommandLog" xml:space="preserve">命令記錄</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Statistics" xml:space="preserve">統計</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Cleanup" xml:space="preserve">清理儲存庫</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Tools" xml:space="preserve">工具(T)</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Mcp" xml:space="preserve">MCP · AI 連線</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.SshKeys" xml:space="preserve">SSH 金鑰</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Credentials" xml:space="preserve">儲存庫帳號與密碼</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.ExternalTools" xml:space="preserve">外部工具</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Help" xml:space="preserve">說明(H)</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Diagnostics" xml:space="preserve">診斷與資料</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Hotkeys" xml:space="preserve">鍵盤快速鍵</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.About" xml:space="preserve">關於 TreeGit</x:String>
+  <x:String x:Key="Text.TreeGit.Tabs.OpenRepositories" xml:space="preserve">已開啟的儲存庫</x:String>
+  <x:String x:Key="Text.TreeGit.Mcp.Description" xml:space="preserve">將下方設定加入支援 stdio MCP 的 AI 用戶端。AI 可開啟儲存庫、查看歷史與差異及控制 TreeGit；預設支援讀寫，可執行暫存、提交、推送、重設及分支管理等所有 Git 操作。操作會同步顯示於 TreeGit 與命令記錄。</x:String>
+  <x:String x:Key="Text.TreeGit.Mcp.ReadOnly" xml:space="preserve">唯讀連線（禁止 Git 寫入）</x:String>
+  <x:String x:Key="Text.TreeGit.Mcp.Ready" xml:space="preserve">本機服務已就緒 · stdio · 目前的 Windows 使用者 · 無需登入</x:String>
+  <x:String x:Key="Text.TreeGit.Mcp.CopyConfig" xml:space="preserve">複製連線設定</x:String>
+  <x:String x:Key="Text.TreeGit.Mcp.Copied" xml:space="preserve">已複製連線設定。若移動可攜式資料夾，請重新複製設定。</x:String>
+  <x:String x:Key="Text.TreeGit.Close" xml:space="preserve">關閉</x:String>
+  <x:String x:Key="Text.TreeGit.Tabs.FileStatus" xml:space="preserve">檔案狀態</x:String>
+  <x:String x:Key="Text.TreeGit.Tabs.History" xml:space="preserve">記錄／歷史</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Title" xml:space="preserve">儲存庫驗證</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Description" xml:space="preserve">HTTPS 帳號僅用於此儲存庫與所選遠端。密碼或權杖儲存於 Windows 認證管理員。
+SSH 金鑰仍在遠端設定中設定。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.OptionalToken" xml:space="preserve">密碼或存取權杖（可留空）</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.SystemAuth" xml:space="preserve">使用系統驗證／OAuth（Git Credential Manager）</x:String>
+  <x:String x:Key="Text.TreeGit.Save" xml:space="preserve">儲存</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Forget" xml:space="preserve">清除已儲存的驗證資訊</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.SelectHttp" xml:space="preserve">請選擇 HTTP(S) 遠端；SSH 遠端使用其 SSH 金鑰設定與自動驗證視窗。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Exists" xml:space="preserve">已有驗證資訊。填寫新密碼可取代；清除後，下次存取時會重新詢問。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.None" xml:space="preserve">尚未儲存驗證資訊。亦可在下次存取遠端時自動輸入。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.UsernameRequired" xml:space="preserve">請輸入帳號，密碼可留空。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.ModeSaveFailed" xml:space="preserve">無法儲存此儲存庫的驗證模式。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.SystemModeSaved" xml:space="preserve">已切換為此儲存庫的系統驗證／OAuth 模式。下次網路操作會啟動既有驗證流程。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Saved" xml:space="preserve">已儲存此儲存庫的驗證資訊。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Cleared" xml:space="preserve">已清除。下次存取遠端時會自動顯示驗證視窗。</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.Add" xml:space="preserve">新增遠端儲存庫</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.Edit" xml:space="preserve">編輯遠端儲存庫</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.UrlHint" xml:space="preserve">HTTPS／SSH 位址或本機儲存庫路徑</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.KeyHint" xml:space="preserve">留空以使用 OpenSSH 預設金鑰或代理程式</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Name" xml:space="preserve">名稱</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.Url" xml:space="preserve">遠端儲存庫路徑</x:String>
+  <x:String x:Key="Text.TreeGit.BrowseEllipsis" xml:space="preserve">瀏覽…</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.SelectKey" xml:space="preserve">選擇 SSH 私密金鑰</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.OptionalKey" xml:space="preserve">SSH 私密金鑰（可選）</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.Authentication" xml:space="preserve">驗證選項</x:String>
+  <x:String x:Key="Text.TreeGit.Ok" xml:space="preserve">確定</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.InvalidName" xml:space="preserve">請輸入有效的遠端名稱（字母、數字、底線、點或連字號）。</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.NameExists" xml:space="preserve">同名遠端儲存庫已存在。</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.InvalidUrl" xml:space="preserve">請輸入有效的遠端位址或本機儲存庫路徑。</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.KeyMissing" xml:space="preserve">找不到指定的 SSH 私密金鑰檔案。</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.SaveFailed" xml:space="preserve">儲存失敗，請查看儲存庫命令記錄。</x:String>
+  <x:String x:Key="Text.TreeGit.Cancel" xml:space="preserve">取消</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Remotes" xml:space="preserve">遠端儲存庫</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Advanced" xml:space="preserve">進階</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Path" xml:space="preserve">路徑</x:String>
+  <x:String x:Key="Text.TreeGit.Add" xml:space="preserve">新增</x:String>
+  <x:String x:Key="Text.TreeGit.Edit" xml:space="preserve">編輯</x:String>
+  <x:String x:Key="Text.TreeGit.Remove" xml:space="preserve">移除</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Ignore" xml:space="preserve">儲存庫專用忽略清單</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.GlobalIdentity" xml:space="preserve">使用全域使用者設定</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.FullName" xml:space="preserve">全名：</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Email" xml:space="preserve">電子郵件地址：</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Identity" xml:space="preserve">提交者資訊</x:String>
+  <x:String x:Key="Text.TreeGit.Delete" xml:space="preserve">刪除</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.CommitLinks" xml:space="preserve">提交文字連結</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Automatic" xml:space="preserve">自動選擇</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.DefaultRemote" xml:space="preserve">預設遠端：</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.MergeMode" xml:space="preserve">合併方式：</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.ProxyHint" xml:space="preserve">留空以繼承全域代理設定</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.HttpProxy" xml:space="preserve">HTTP 代理伺服器：</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Prune" xml:space="preserve">擷取時清理已刪除的遠端分支參照</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.AutoRefresh" xml:space="preserve">自動重新整理檔案狀態</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.BackgroundFetch" xml:space="preserve">允許在背景擷取遠端狀態（需啟用全域設定）</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.SyncMerge" xml:space="preserve">同步與合併</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.SigningKeyHint" xml:space="preserve">留空以使用全域簽署金鑰</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.SigningKey" xml:space="preserve">簽署金鑰：</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.SignCommits" xml:space="preserve">簽署提交</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.SignTags" xml:space="preserve">簽署標籤</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Signing" xml:space="preserve">提交與標籤簽署</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.ConfirmSubmodule" xml:space="preserve">自動更新子模組前先詢問</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.RecursiveSubmodule" xml:space="preserve">遞迴更新子模組</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.SubmoduleUpdate" xml:space="preserve">子模組更新</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.AddTemplate" xml:space="preserve">新增提交範本</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.EditTemplate" xml:space="preserve">編輯提交範本</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Content" xml:space="preserve">內容</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Templates" xml:space="preserve">提交範本</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.EditConfig" xml:space="preserve">編輯設定檔…</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.Remove" xml:space="preserve">移除遠端儲存庫</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.RemovePrefix" xml:space="preserve">將移除遠端設定「</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.RemoveSuffix" xml:space="preserve">」。遠端儲存庫與本機提交不會被刪除。</x:String>
+  <x:String x:Key="Text.TreeGit.Links.Add" xml:space="preserve">新增提交文字連結</x:String>
+  <x:String x:Key="Text.TreeGit.Links.Edit" xml:space="preserve">編輯提交文字連結</x:String>
+  <x:String x:Key="Text.TreeGit.Links.Pattern" xml:space="preserve">比對運算式</x:String>
+  <x:String x:Key="Text.TreeGit.Links.UrlTemplate" xml:space="preserve">連結範本</x:String>
+  <x:String x:Key="Text.TreeGit.OperationIncomplete" xml:space="preserve">操作未完成</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.DiscardChanges" xml:space="preserve">捨棄變更</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.Discard" xml:space="preserve">捨棄</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.Terminal" xml:space="preserve">終端機</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.CommandLine" xml:space="preserve">命令列模式</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.Browse" xml:space="preserve">瀏覽</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.Explorer" xml:space="preserve">檔案管理員</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.Settings" xml:space="preserve">設定</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.RepoTools" xml:space="preserve">儲存庫工具</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.Tools" xml:space="preserve">工具</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.MoreActions" xml:space="preserve">更多操作</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.Remotes" xml:space="preserve">遠端</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.More" xml:space="preserve">更多</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.Filter" xml:space="preserve">篩選分支</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.Current" xml:space="preserve">目前檢出的分支</x:String>
+  <x:String x:Key="Text.TreeGit.Stashes.Filter" xml:space="preserve">篩選貯藏</x:String>
+  <x:String x:Key="Text.TreeGit.Changes.Unstaged" xml:space="preserve">未暫存的檔案</x:String>
+  <x:String x:Key="Text.TreeGit.Changes.StageAll" xml:space="preserve">暫存全部</x:String>
+  <x:String x:Key="Text.TreeGit.Changes.StageSelected" xml:space="preserve">暫存所選</x:String>
+  <x:String x:Key="Text.TreeGit.Changes.Staged" xml:space="preserve">已暫存的檔案</x:String>
+  <x:String x:Key="Text.TreeGit.Changes.UnstageAll" xml:space="preserve">取消全部暫存</x:String>
+  <x:String x:Key="Text.TreeGit.Changes.UnstageSelected" xml:space="preserve">取消所選暫存</x:String>
+  <x:String x:Key="Text.About.Mcp" xml:space="preserve">內置 MCP 服務，支援 AI 讀取和寫入儲存庫、控制 TreeGit 並執行全部 Git 操作。通過“工具 → MCP · AI 連線”複製連線配置。</x:String>
+  <x:String x:Key="Text.About.BasedOnSourceGit" xml:space="preserve">基於 SourceGit 開發，修改了主介面風格。保留原專案版權聲明與 MIT 許可證。</x:String>
+  <x:String x:Key="Text.Apply.CommitChanges" xml:space="preserve">套用並提交修改</x:String>
+  <x:String x:Key="Text.Apply.CommitChanges.Tip" xml:space="preserve">執行 `git am` 命令而非 `git apply` 命令</x:String>
+  <x:String x:Key="Text.DeleteBranch.DeleteAttachedWorktree" xml:space="preserve">同時刪除與使用此分支的工作樹</x:String>
+  <x:String x:Key="Text.EditApiKey" xml:space="preserve">編輯 API 金鑰</x:String>
+  <x:String x:Key="Text.EditApiKey.ApiKey" xml:space="preserve">API 金鑰</x:String>
+  <x:String x:Key="Text.EditApiKey.EnvironmentVariable" xml:space="preserve">環境變數</x:String>
+  <x:String x:Key="Text.EditApiKey.InvalidStorage" xml:space="preserve">未檢測到 `secret-tool`, 請安裝後重啟程式再嘗試</x:String>
+  <x:String x:Key="Text.EditApiKey.Server" xml:space="preserve">服務位址</x:String>
+  <x:String x:Key="Text.EditApiKey.Storage" xml:space="preserve">儲存方式</x:String>
+  <x:String x:Key="Text.Repository.FocusOnCurrentBranch" xml:space="preserve">專注模式
+
+進入該模式後，歷史提交列表將僅顯示屬於目前分支及其跟蹤的上游分支（如果有的話）的提交，並且自動清空已設置的過濾條件。
+
+使用者手動添加新的分支或標籤過濾條件後，自動退出該模式。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Background" xml:space="preserve">背景更新</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.CancelUpdate" xml:space="preserve">取消更新</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.CloseChoice" xml:space="preserve">更新尚未完成。取消更新，還是轉到背景繼續？下載完成或失敗時會再次提示。</x:String>
+  <x:String x:Key="Text.CommitChanges.CopySHA" xml:space="preserve">複製完整 SHA</x:String>
+  <x:String x:Key="Text.Options.ResetMode.soft.Name" xml:space="preserve">軟重設（soft）</x:String>
+  <x:String x:Key="Text.Options.ResetMode.soft.Desc" xml:space="preserve">保留暫存區和工作區</x:String>
+  <x:String x:Key="Text.Options.ResetMode.mixed.Name" xml:space="preserve">混合重設（mixed）</x:String>
+  <x:String x:Key="Text.Options.ResetMode.mixed.Desc" xml:space="preserve">保留工作區修改，重設暫存區</x:String>
+  <x:String x:Key="Text.Options.ResetMode.merge.Name" xml:space="preserve">合並重設（merge）</x:String>
+  <x:String x:Key="Text.Options.ResetMode.merge.Desc" xml:space="preserve">保留未暫存修改，有沖突時中止</x:String>
+  <x:String x:Key="Text.Options.ResetMode.keep.Name" xml:space="preserve">保留重設（keep）</x:String>
+  <x:String x:Key="Text.Options.ResetMode.keep.Desc" xml:space="preserve">保留本機修改，有沖突時中止</x:String>
+  <x:String x:Key="Text.Options.ResetMode.hard.Name" xml:space="preserve">硬重設（hard）</x:String>
+  <x:String x:Key="Text.Options.ResetMode.hard.Desc" xml:space="preserve">丟棄暫存區和工作區的已跟蹤修改</x:String>
+  <x:String x:Key="Text.Options.MergeMode.default.Name" xml:space="preserve">預設</x:String>
+  <x:String x:Key="Text.Options.MergeMode.default.Desc" xml:space="preserve">使用 Git 配置</x:String>
+  <x:String x:Key="Text.Options.MergeMode.ff-only.Name" xml:space="preserve">僅快進（ff-only）</x:String>
+  <x:String x:Key="Text.Options.MergeMode.ff-only.Desc" xml:space="preserve">無法快進時拒絕合並</x:String>
+  <x:String x:Key="Text.Options.MergeMode.no-ff.Name" xml:space="preserve">創建合並提交（no-ff）</x:String>
+  <x:String x:Key="Text.Options.MergeMode.no-ff.Desc" xml:space="preserve">始終創建新的合並提交</x:String>
+  <x:String x:Key="Text.Options.MergeMode.squash.Name" xml:space="preserve">壓縮合並（squash）</x:String>
+  <x:String x:Key="Text.Options.MergeMode.squash.Desc" xml:space="preserve">合並差異，不立即創建提交</x:String>
+  <x:String x:Key="Text.Options.MergeMode.no-ff_no-commit.Name" xml:space="preserve">合並但不提交</x:String>
+  <x:String x:Key="Text.Options.MergeMode.no-ff_no-commit.Desc" xml:space="preserve">合並差異，保留為未提交修改</x:String>
+  <x:String x:Key="Text.Options.ApplyWhiteSpaceMode.nowarn.Name" xml:space="preserve">不警告</x:String>
+  <x:String x:Key="Text.Options.ApplyWhiteSpaceMode.nowarn.Desc" xml:space="preserve">忽略行尾空白警告</x:String>
+  <x:String x:Key="Text.Options.ApplyWhiteSpaceMode.warn.Name" xml:space="preserve">警告</x:String>
+  <x:String x:Key="Text.Options.ApplyWhiteSpaceMode.warn.Desc" xml:space="preserve">顯示空白問題警告，繼續套用補丁</x:String>
+  <x:String x:Key="Text.Options.ApplyWhiteSpaceMode.error.Name" xml:space="preserve">報錯</x:String>
+  <x:String x:Key="Text.Options.ApplyWhiteSpaceMode.error.Desc" xml:space="preserve">遇到空白錯誤時拒絕套用補丁</x:String>
+  <x:String x:Key="Text.Options.ApplyWhiteSpaceMode.error-all.Name" xml:space="preserve">顯示全部錯誤</x:String>
+  <x:String x:Key="Text.Options.ApplyWhiteSpaceMode.error-all.Desc" xml:space="preserve">拒絕套用補丁，並顯示全部空白錯誤</x:String>
+  <x:String x:Key="Text.Options.CRLFMode.true.Name" xml:space="preserve">自動轉換（true）</x:String>
+  <x:String x:Key="Text.Options.CRLFMode.true.Desc" xml:space="preserve">提交時使用 LF，檢出時使用 CRLF</x:String>
+  <x:String x:Key="Text.Options.CRLFMode.input.Name" xml:space="preserve">僅提交時轉換（input）</x:String>
+  <x:String x:Key="Text.Options.CRLFMode.input.Desc" xml:space="preserve">僅在提交時轉換為 LF</x:String>
+  <x:String x:Key="Text.Options.CRLFMode.false.Name" xml:space="preserve">不轉換（false）</x:String>
+  <x:String x:Key="Text.Options.CRLFMode.false.Desc" xml:space="preserve">不自動轉換換行符</x:String>
+  <x:String x:Key="Text.Options.MergeStrategy.default.Name" xml:space="preserve">預設</x:String>
+  <x:String x:Key="Text.Options.MergeStrategy.default.Desc" xml:space="preserve">讓 Git 自動選擇合並策略</x:String>
+  <x:String x:Key="Text.Options.MergeStrategy.octopus.Name" xml:space="preserve">多分支合並（octopus）</x:String>
+  <x:String x:Key="Text.Options.MergeStrategy.octopus.Desc" xml:space="preserve">同時合並多個分支頭</x:String>
+  <x:String x:Key="Text.Options.MergeStrategy.ours.Name" xml:space="preserve">保留目前內容（ours）</x:String>
+  <x:String x:Key="Text.Options.MergeStrategy.ours.Desc" xml:space="preserve">記錄合並關系，保留目前檔案內容</x:String>
+  <x:String x:Key="Text.Option.TextBox" xml:space="preserve">文本框</x:String>
+  <x:String x:Key="Text.Option.PathSelector" xml:space="preserve">路徑選擇器</x:String>
+  <x:String x:Key="Text.Option.CheckBox" xml:space="preserve">復選框</x:String>
+  <x:String x:Key="Text.Option.ComboBox" xml:space="preserve">下拉列表</x:String>
+  <x:String x:Key="Text.Option.LocalBranch" xml:space="preserve">本機分支選擇器</x:String>
+  <x:String x:Key="Text.Option.RemoteBranch" xml:space="preserve">遠端分支選擇器</x:String>
+  <x:String x:Key="Text.Common.LocalOnly" xml:space="preserve">僅本機</x:String>
+  <x:String x:Key="Text.Common.Global" xml:space="preserve">全域</x:String>
+  <x:String x:Key="Text.Common.None" xml:space="preserve">（無）</x:String>
+  <x:String x:Key="Text.CommitChanges.CommitLabel" xml:space="preserve">提交: </x:String>
+  <x:String x:Key="Text.CommitChanges.AuthorLabel" xml:space="preserve">作者: </x:String>
+  <x:String x:Key="Text.CommitChanges.DateLabel" xml:space="preserve">日期: </x:String>
+  <x:String x:Key="Text.Diff.ImageLabel" xml:space="preserve">圖片</x:String>
+  <x:String x:Key="Text.StashChanges.StagedHint" xml:space="preserve">--staged：如果檔案只暫存了部分修改，未暫存部分也會一並貯藏。</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Language" xml:space="preserve">語種/Language</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.Group" xml:space="preserve">{0}（{1}）</x:String>
+  <x:String x:Key="Text.TreeGit.Language.SaveFailed" xml:space="preserve">語種設定未儲存，已還原原來的語種。請確認軟體目錄的寫入權限與可用空間後重試。</x:String>
+  <x:String x:Key="Text.TreeGit.RestartRequired" xml:space="preserve">需要重新啟動</x:String>
+  <x:String x:Key="Text.TreeGit.ApiKey.SystemKeychain" xml:space="preserve">系統鑰匙圈</x:String>
+  <x:String x:Key="Text.TreeGit.ApiKey.PlainText" xml:space="preserve">明文</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.GitConfiguration">使用 Git 設定</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.MergeNotSaved">合併結果未儲存，或仍有未解決的衝突。請在 TreeGit 中檢查後再標記為已解決。</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.CannotOpen">無法開啟所選工具。請在偏好設定中確認工具路徑，或選擇 TreeGit。</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.AddToIgnore">正在新增忽略檔案…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.AddSubmodule">正在新增子模組…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.AddRemote">正在新增遠端儲存庫…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Apply">正在套用修補檔…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Archive">正在封存…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.AddWorktree">正在新增工作樹…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.ApplyStash">正在套用貯藏：{0}</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.ChangeSubmoduleUrl">正在變更子模組位址…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.CheckoutAndFastForward">正在切換並快轉分支「{0}」…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Checkout">正在切換至「{0}」…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.CheckoutAsWorktree">正在將分支「{0}」取出至工作樹…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.CheckoutBranchFromStash">正在從貯藏建立分支…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.CheckoutDetached">正在切換至提交「{0}」…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.CheckoutRemoteBranchAsWorktree">正在將遠端分支「{0}」取出至工作樹…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.CherryPick">正在揀選提交…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Cleanup">正在清理儲存庫…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.ClearStashes">正在清空貯藏…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Clone">正在複製儲存庫…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.CreateTag">正在建立標籤…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.DeinitSubmodule">正在停用子模組…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.DeleteBranch">正在刪除分支…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.DeleteMultipleBranches">正在刪除多個分支…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.DeleteMultipleTags">正在刪除多個標籤…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.DeleteRemote">正在刪除遠端儲存庫…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.DeleteSubmodule">正在刪除子模組…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.DeleteTag">正在刪除標籤「{0}」…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.EditRemote">正在變更遠端儲存庫「{0}」…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.DropStash">正在刪除貯藏：{0}</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.ExecuteCustomAction">正在執行自訂操作…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.FetchInto">正在快轉分支…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.GitFlowFinish">正在完成 Git Flow 分支「{0}」…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.GitFlowStart">正在啟動 Git Flow 分支「{0}{1}」…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Init">正在初始化儲存庫：{0}</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.InitGitFlow">正在初始化 Git Flow…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.LFSFetch">正在擷取遠端 LFS 物件…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.LFSPrune">正在清理 LFS 物件…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.LFSPush">正在推送 LFS 物件…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.LFSTrackCustomPattern">正在新增 LFS 追蹤規則…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.LFSPull">正在拉取 LFS 物件…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.MoveSubmodule">正在移動子模組…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.PruneRemote">正在清理遠端分支參照…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.PruneWorktrees">正在清理工作樹…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.PushRevision">正在推送提交 {0} 至 {1}…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Push">正在將 {0} 推送至 {1}…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.PushTag">正在推送標籤…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.RemoveWorktree">正在移除工作樹…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.RenameBranch">正在重新命名分支「{0}」…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Reset">正在將目前分支重設至 {0}…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.ResetWithoutCheckout">正在將 {0} 重設至 {1}…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Revert">正在還原提交「{0}」…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.ScanRepositories">正在掃描「{0}」中的儲存庫…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.ScanRepositories.Register">正在登錄（{0}/{1}）：{2}…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.ScanRepositories.Folder">正在掃描 {0}…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.SetPushURL">正在設定「{0}」的推送位址…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.SetSubmoduleBranch">正在設定子模組分支…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.SetUpstream">正在設定追蹤分支…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.StashChanges">正在貯藏變更…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.TrustRepository">正在將「{0}」新增為信任的儲存庫…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.TrustRepository.Open">正在開啟「{0}」…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Discard.All">正在捨棄全部本機變更…</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Discard.Count">正在捨棄 {0} 項變更…</x:String>
+  <x:String x:Key="Text.TreeGit.Message.RemoteNameFormat" xml:space="preserve">請輸入有效的遠端名稱。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.RemoteNameExists" xml:space="preserve">已存在同名遠端儲存庫。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.RemoteUrlFormat" xml:space="preserve">請輸入有效的儲存庫網址。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.RemoteUrlExists" xml:space="preserve">已存在使用此網址的遠端儲存庫。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.SSHKeyMissing" xml:space="preserve">找不到指定的 SSH 私密金鑰。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.RepositoryUrl" xml:space="preserve">請輸入有效的儲存庫網址。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.WorktreeContext" xml:space="preserve">請重新開啟儲存庫後再試。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.WorktreePath" xml:space="preserve">請選擇工作樹目錄。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.PathNotEmpty" xml:space="preserve">請選擇空目錄。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.BranchExistsNamed" xml:space="preserve">分支「{0}」已存在。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ContextMissing" xml:space="preserve">請重新開啟儲存庫後再試。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.PatchRequired" xml:space="preserve">請選擇修補檔。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.FileMissing" xml:space="preserve">找不到檔案「{0}」。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ClipboardUnavailable" xml:space="preserve">剪貼簿暫時無法使用。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ClipboardNoPatch" xml:space="preserve">剪貼簿中沒有有效的修補內容。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ArchiveSaved" xml:space="preserve">封存檔已儲存至：{0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.CheckoutContext" xml:space="preserve">請重新開啟儲存庫後再試。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.BranchNameFormat" xml:space="preserve">請輸入有效的分支名稱。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.BranchExists" xml:space="preserve">已存在同名分支。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.BranchContext" xml:space="preserve">請重新開啟儲存庫後再試。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.CloneUrl" xml:space="preserve">請輸入有效的儲存庫網址。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.PathMissing" xml:space="preserve">找不到指定目錄。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.TagNameFormat" xml:space="preserve">請輸入有效的標籤名稱。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.TagExists" xml:space="preserve">已存在同名標籤。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.FeaturePrefix" xml:space="preserve">請輸入以 / 結尾的有效功能分支前綴。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ReleasePrefix" xml:space="preserve">請輸入以 / 結尾的有效發行分支前綴。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.HotfixPrefix" xml:space="preserve">請輸入以 / 結尾的有效修復分支前綴。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.FlowSameBranch" xml:space="preserve">開發分支與正式分支不能同名。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.TagPrefix" xml:space="preserve">請輸入有效的標籤前綴。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.BranchExistsAlt" xml:space="preserve">已存在同名分支。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.WatcherFailed" xml:space="preserve">無法監控「{0}」的檔案變更，請按 F5 手動重新整理。
+
+{1}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.LFSEnabled" xml:space="preserve">已啟用 LFS。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.LFSTracked" xml:space="preserve">已啟用 LFS 追蹤：{0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.LFSLocked" xml:space="preserve">已鎖定檔案：{0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.LFSUnlocked" xml:space="preserve">已解除鎖定檔案：{0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.FirstCommitBranch" xml:space="preserve">請先完成首次提交，再建立分支。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.FirstCommitTag" xml:space="preserve">請先完成首次提交，再建立標籤。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.PatchSaveFailed" xml:space="preserve">無法儲存修補檔：{0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.FileSaveFailed" xml:space="preserve">無法儲存檔案：{0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.AIConfig" xml:space="preserve">請檢查 AI 服務設定。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.NoStagedFiles" xml:space="preserve">請先暫存要提交的檔案。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.BisectRunning" xml:space="preserve">請先完成或中止目前的二分查找。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.UncommittedChanges" xml:space="preserve">請先提交、儲藏或捨棄本機變更。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.RebaseStart" xml:space="preserve">無法從提交「{0}」開始互動式重定基底。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ConflictMixed" xml:space="preserve">請將衝突檔案與其他變更分開選取。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.FlowNoBranch" xml:space="preserve">請先建立分支，再初始化 Git Flow。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.PatchFile" xml:space="preserve">修補檔</x:String>
+  <x:String x:Key="Text.TreeGit.Message.AllFiles" xml:space="preserve">所有檔案</x:String>
+  <x:String x:Key="Text.TreeGit.Message.PatchSaved" xml:space="preserve">修補檔已儲存。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.PatchSavedAlt" xml:space="preserve">修補檔已儲存。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ResetSucceeded" xml:space="preserve">已重設至選取的提交。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ThemeFile" xml:space="preserve">佈景主題設定檔</x:String>
+  <x:String x:Key="Text.TreeGit.Message.GitExecutable" xml:space="preserve">Git 執行檔</x:String>
+  <x:String x:Key="Text.TreeGit.Message.GPGProgram" xml:space="preserve">GPG 執行檔</x:String>
+  <x:String x:Key="Text.TreeGit.Message.Executable" xml:space="preserve">執行檔或指令碼</x:String>
+  <x:String x:Key="Text.TreeGit.Message.UnnamedAction" xml:space="preserve">未命名的全域操作</x:String>
+  <x:String x:Key="Text.TreeGit.Message.Pick" xml:space="preserve">保留此提交</x:String>
+  <x:String x:Key="Text.TreeGit.Message.Edit" xml:space="preserve">暫停並修改此提交</x:String>
+  <x:String x:Key="Text.TreeGit.Message.Reword" xml:space="preserve">編輯提交說明</x:String>
+  <x:String x:Key="Text.TreeGit.Message.Squash" xml:space="preserve">合併至前一個提交</x:String>
+  <x:String x:Key="Text.TreeGit.Message.Fixup" xml:space="preserve">合併至前一個提交並捨棄此說明</x:String>
+  <x:String x:Key="Text.TreeGit.Message.Drop" xml:space="preserve">移除此提交</x:String>
+  <x:String x:Key="Text.TreeGit.Message.SelectChangedLine" xml:space="preserve">請至少選取一行變更。</x:String>
+  <x:String x:Key="Text.TreeGit.Search.MatchCase" xml:space="preserve">區分大小寫</x:String>
+  <x:String x:Key="Text.TreeGit.Search.WholeWords" xml:space="preserve">全字比對</x:String>
+  <x:String x:Key="Text.TreeGit.Search.Regex" xml:space="preserve">使用正規表示式</x:String>
+  <x:String x:Key="Text.TreeGit.Search.Previous" xml:space="preserve">尋找上一處 (Shift+F3)</x:String>
+  <x:String x:Key="Text.TreeGit.Search.Next" xml:space="preserve">尋找下一處 (F3)</x:String>
+  <x:String x:Key="Text.TreeGit.Global" xml:space="preserve">全域</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.NotConfigured">請在偏好設定中選擇比較工具並設定其程式路徑。</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.GitDiffMissing">Git 尚未設定比較工具，請在偏好設定中選擇 TreeGit 或設定其他工具。</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.GitMergeMissing">Git 尚未設定合併工具，請在偏好設定中選擇 TreeGit 或設定其他工具。</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.ConsoleUnsupported">「{0}」需要互動式終端機，請在偏好設定中選擇圖形比較工具。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.CloneFolderSelect">無法選擇複製目錄：{0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ThemeFileSelect">無法選擇佈景主題檔案：{0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.GitSelect">無法選擇 Git 程式：{0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.GpgSelect">無法選擇 GPG 程式：{0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ShellSelect">無法選擇終端機：{0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.MergeSelect">無法選擇比較工具：{0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ActionSelect">無法選擇自訂操作的程式：{0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.InvalidBranchNamed">「{0}」不是有效的分支名稱。</x:String>
+  <x:String x:Key="Text.TreeGit.Message.CopyFailed">無法複製文字：{0}</x:String>
+  <x:String x:Key="Text.TreeGit.Search.NoMatches">找不到符合項目</x:String>
+  <x:String x:Key="Text.TreeGit.Search.OneMatch">1 個符合項目</x:String>
+  <x:String x:Key="Text.TreeGit.Search.Matches">{0} 個符合項目</x:String>
+  <x:String x:Key="Text.TreeGit.Search.Position">第 {0} 項，共 {1} 項</x:String>
+  <x:String x:Key="Text.TreeGit.Search.Error">搜尋錯誤：{0}</x:String>
+  <x:String x:Key="Text.TreeGit.Config.ReadFailed">無法讀取儲存庫設定。請檢查 Git 與設定檔，修復後重新開啟設定。</x:String>
+  <x:String x:Key="Text.TreeGit.Repository.Missing">儲存庫資料夾無法使用，請檢查其位置，或從儲存庫清單中移除。</x:String>
+  <x:String x:Key="Text.TreeGit.Repository.PathMissing">儲存庫資料夾無法使用，請檢查其位置。</x:String>
+  <x:String x:Key="Text.TreeGit.Repository.Invalid">所選資料夾不是有效的 Git 儲存庫。</x:String>
+  <x:String x:Key="Text.TreeGit.Query.CommitsFailed">無法讀取提交歷史：{0}</x:String>
+  <x:String x:Key="Text.TreeGit.Query.RebaseFailed">無法讀取互動式重定基底的提交：{0}</x:String>
+  <x:String x:Key="Text.TreeGit.GitFlow.InvalidType">請選擇有效的 Git Flow 分支類型。</x:String>
+  <x:String x:Key="Text.TreeGit.Template.New">新範本</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.MergeDraftPreserved">編輯內容已保留在工作目錄中，檔案尚未暫存。</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.MergeDraftSaved">未能自動還原 {0}，請檢查目前檔案及以下位置的復原檔案：{1}</x:String>
 </ResourceDictionary>

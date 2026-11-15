@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
@@ -31,12 +31,12 @@ namespace SourceGit.ViewModels
             if (ctx.ObjectInstance is RenameBranch rename)
             {
                 if (!Models.RefName.IsValidBranchName(name))
-                    return new ValidationResult("Bad branch name format!");
+                    return new ValidationResult(App.Text("TreeGit.Message.BranchNameFormat"));
 
                 foreach (var b in rename._repo.Branches)
                 {
                     if (b.IsLocal && b != rename.Target && b.Name.Equals(name, StringComparison.Ordinal))
-                        return new ValidationResult("A branch with same name already exists!!!");
+                        return new ValidationResult(App.Text("TreeGit.Message.BranchExistsAlt"));
                 }
             }
 
@@ -49,7 +49,7 @@ namespace SourceGit.ViewModels
                 return true;
 
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = $"Rename '{Target.Name}'";
+            SetProgressDescription("TreeGit.Progress.RenameBranch", Target.Name);
 
             var log = _repo.CreateLog($"Rename Branch '{Target.Name}'");
             Use(log);

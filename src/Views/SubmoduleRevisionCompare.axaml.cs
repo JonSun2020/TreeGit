@@ -31,7 +31,7 @@ namespace SourceGit.Views
                     var options = new FilePickerSaveOptions();
                     options.Title = App.Text("FileCM.SaveAsPatch");
                     options.DefaultExtension = ".patch";
-                    options.FileTypeChoices = [new FilePickerFileType("Patch File") { Patterns = ["*.patch"] }];
+                    options.FileTypeChoices = [new FilePickerFileType(App.Text("TreeGit.Message.PatchFile")) { Patterns = ["*.patch"] }];
 
                     try
                     {
@@ -41,12 +41,12 @@ namespace SourceGit.Views
                             var saveTo = storageFile.Path.LocalPath;
                             var succ = await vm.SaveChangesAsPatchAsync(selection.Changes, saveTo);
                             if (succ)
-                                await new Alert().ShowAsync(this, "Save patch successfully.", false);
+                                await new Alert().ShowAsync(this, App.Text("TreeGit.Message.PatchSaved"), false);
                         }
                     }
                     catch (Exception exception)
                     {
-                        await new Alert().ShowAsync(this, $"Failed to save as patch: {exception.Message}", true);
+                        await new Alert().ShowAsync(this, App.Text("TreeGit.Message.PatchSaveFailed", exception.Message), true);
                     }
 
                     e.Handled = true;

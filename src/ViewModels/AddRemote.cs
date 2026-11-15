@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Threading.Tasks;
 
@@ -7,7 +7,7 @@ namespace SourceGit.ViewModels
     public class AddRemote : Popup
     {
         [Required(ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.RemoteNameRequired))]
-        [RegularExpression(@"^[\w\-\.]+$", ErrorMessage = "Bad remote name format!!!")]
+        [RegularExpression(@"^[\w\-\.]+$", ErrorMessageResourceType = typeof(ValidationMessages), ErrorMessageResourceName = nameof(ValidationMessages.RemoteNameFormat))]
         [CustomValidation(typeof(AddRemote), nameof(ValidateRemoteName))]
         public string Name
         {
@@ -61,7 +61,7 @@ namespace SourceGit.ViewModels
             {
                 var exists = add._repo.Remotes.Find(x => x.Name == name);
                 if (exists != null)
-                    return new ValidationResult("A remote with given name already exists!!!");
+                    return new ValidationResult(App.Text("TreeGit.Message.RemoteNameExists"));
             }
 
             return ValidationResult.Success;
@@ -72,11 +72,11 @@ namespace SourceGit.ViewModels
             if (ctx.ObjectInstance is AddRemote add)
             {
                 if (!Models.Remote.IsValidURL(url))
-                    return new ValidationResult("Bad remote URL format!!!");
+                    return new ValidationResult(App.Text("TreeGit.Message.RemoteUrlFormat"));
 
                 var exists = add._repo.Remotes.Find(x => x.URL == url);
                 if (exists != null)
-                    return new ValidationResult("A remote with the same url already exists!!!");
+                    return new ValidationResult(App.Text("TreeGit.Message.RemoteUrlExists"));
             }
 
             return ValidationResult.Success;
@@ -87,7 +87,7 @@ namespace SourceGit.ViewModels
             if (ctx.ObjectInstance is AddRemote { _useSSH: true } && !string.IsNullOrEmpty(sshkey))
             {
                 if (!File.Exists(sshkey))
-                    return new ValidationResult("Given SSH private key can NOT be found!");
+                    return new ValidationResult(App.Text("TreeGit.Message.SSHKeyMissing"));
             }
 
             return ValidationResult.Success;
@@ -96,7 +96,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = "Adding remote ...";
+            SetProgressDescription("TreeGit.Progress.AddRemote");
 
             var log = _repo.CreateLog("Add Remote");
             Use(log);

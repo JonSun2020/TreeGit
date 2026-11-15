@@ -12,7 +12,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = "Clear all stashes...";
+            SetProgressDescription("TreeGit.Progress.ClearStashes");
 
             var log = _repo.CreateLog("Clear Stashes");
             Use(log);

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -27,7 +27,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = "Deleting multiple branches...";
+            SetProgressDescription("TreeGit.Progress.DeleteMultipleBranches");
 
             var log = _repo.CreateLog("Delete Multiple Branches");
             Use(log);

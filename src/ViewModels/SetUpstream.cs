@@ -53,7 +53,7 @@ namespace SourceGit.ViewModels
 
         public override async Task<bool> Sure()
         {
-            ProgressDescription = "Setting upstream...";
+            SetProgressDescription("TreeGit.Progress.SetUpstream");
             Models.Branch upstream = _unset ? null : SelectedRemoteBranch;
 
             if (upstream == null)

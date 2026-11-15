@@ -33,8 +33,6 @@ namespace SourceGit.Views
                     if (Grid.GetRow(child) > 0) child.IsVisible = !IsOverview;
                 if (IsOverview)
                 {
-                    MainLayout.ColumnDefinitions[0].ClearValue(ColumnDefinition.WidthProperty);
-                    MainLayout.ColumnDefinitions[0].Width = new GridLength(1, GridUnitType.Star);
                     OverviewEmptyHint.IsVisible = false;
                 }
             }
@@ -45,14 +43,14 @@ namespace SourceGit.Views
             if (sender is not Grid grid)
                 return;
 
-            var layout = ViewModels.Preferences.Instance.Layout;
+            if (DataContext is not ViewModels.WorkingCopy context) return;
             var width = grid.Bounds.Width;
             if (IsOverview || !IsEffectivelyVisible || width < 600)
                 return;
             var leftWidth = Math.Max(width - 474, 300);
 
-            if (layout.WorkingCopyLeftWidth.Value - leftWidth > 1.0)
-                layout.WorkingCopyLeftWidth = new GridLength(leftWidth, GridUnitType.Pixel);
+            if (context.Repository.ChangesPanelWidth.Value - leftWidth > 1.0)
+                context.Repository.ChangesPanelWidth = new GridLength(leftWidth, GridUnitType.Pixel);
         }
 
         private async void OnOpenAssumeUnchanged(object sender, RoutedEventArgs e)
@@ -477,7 +475,7 @@ namespace SourceGit.Views
                         var options = new FilePickerSaveOptions();
                         options.Title = App.Text("FileCM.SaveAsPatch");
                         options.DefaultExtension = ".patch";
-                        options.FileTypeChoices = [new FilePickerFileType("Patch File") { Patterns = ["*.patch"] }];
+                        options.FileTypeChoices = [new FilePickerFileType(App.Text("TreeGit.Message.PatchFile")) { Patterns = ["*.patch"] }];
 
                         try
                         {
@@ -487,7 +485,7 @@ namespace SourceGit.Views
                         }
                         catch (Exception exception)
                         {
-                            repo.SendNotification($"Failed to save as patch: {exception.Message}", true);
+                            repo.SendNotification(App.Text("TreeGit.Message.PatchSaveFailed", exception.Message), true);
                         }
 
                         e.Handled = true;
@@ -774,7 +772,7 @@ namespace SourceGit.Views
                 {
                     if (hasNonConflicts)
                     {
-                        repo.SendNotification("Selection contains both conflict and non-conflict changes!", true);
+                        repo.SendNotification(App.Text("TreeGit.Message.ConflictMixed"), true);
                         return null;
                     }
 
@@ -884,7 +882,7 @@ namespace SourceGit.Views
                     var options = new FilePickerSaveOptions();
                     options.Title = App.Text("FileCM.SaveAsPatch");
                     options.DefaultExtension = ".patch";
-                    options.FileTypeChoices = [new FilePickerFileType("Patch File") { Patterns = ["*.patch"] }];
+                    options.FileTypeChoices = [new FilePickerFileType(App.Text("TreeGit.Message.PatchFile")) { Patterns = ["*.patch"] }];
 
                     try
                     {
@@ -894,7 +892,7 @@ namespace SourceGit.Views
                     }
                     catch (Exception exception)
                     {
-                        repo.SendNotification($"Failed to save as patch: {exception.Message}", true);
+                        repo.SendNotification(App.Text("TreeGit.Message.PatchSaveFailed", exception.Message), true);
                     }
 
                     e.Handled = true;
@@ -1078,7 +1076,7 @@ namespace SourceGit.Views
                     var options = new FilePickerSaveOptions();
                     options.Title = App.Text("FileCM.SaveAsPatch");
                     options.DefaultExtension = ".patch";
-                    options.FileTypeChoices = [new FilePickerFileType("Patch File") { Patterns = ["*.patch"] }];
+                    options.FileTypeChoices = [new FilePickerFileType(App.Text("TreeGit.Message.PatchFile")) { Patterns = ["*.patch"] }];
 
                     try
                     {
@@ -1088,7 +1086,7 @@ namespace SourceGit.Views
                     }
                     catch (Exception exception)
                     {
-                        repo.SendNotification($"Failed to save as patch: {exception.Message}", true);
+                        repo.SendNotification(App.Text("TreeGit.Message.PatchSaveFailed", exception.Message), true);
                     }
 
                     e.Handled = true;
@@ -1293,7 +1291,7 @@ namespace SourceGit.Views
                     var options = new FilePickerSaveOptions();
                     options.Title = App.Text("FileCM.SaveAsPatch");
                     options.DefaultExtension = ".patch";
-                    options.FileTypeChoices = [new FilePickerFileType("Patch File") { Patterns = ["*.patch"] }];
+                    options.FileTypeChoices = [new FilePickerFileType(App.Text("TreeGit.Message.PatchFile")) { Patterns = ["*.patch"] }];
 
                     try
                     {
@@ -1303,7 +1301,7 @@ namespace SourceGit.Views
                     }
                     catch (Exception exception)
                     {
-                        repo.SendNotification($"Failed to save as patch: {exception.Message}", true);
+                        repo.SendNotification(App.Text("TreeGit.Message.PatchSaveFailed", exception.Message), true);
                     }
 
                     e.Handled = true;

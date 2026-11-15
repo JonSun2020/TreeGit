@@ -2,6 +2,10 @@ namespace SourceGit.ViewModels
 {
     public static class ValidationMessages
     {
+        public static string ReleasePrefix => App.Text("TreeGit.Message.ReleasePrefix");
+        public static string FeaturePrefix => App.Text("TreeGit.Message.FeaturePrefix");
+        public static string HotfixPrefix => App.Text("TreeGit.Message.HotfixPrefix");
+        public static string RemoteNameFormat => App.Text("TreeGit.Message.RemoteNameFormat");
         public static string BranchNameRequired => App.Text("Validation.BranchNameRequired");
         public static string RemoteBranchRequired => App.Text("Validation.RemoteBranchRequired");
         public static string RemoteNameRequired => App.Text("Validation.RemoteNameRequired");

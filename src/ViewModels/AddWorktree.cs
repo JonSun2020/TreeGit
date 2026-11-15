@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Threading.Tasks;
@@ -30,10 +30,10 @@ namespace SourceGit.ViewModels
         public static ValidationResult ValidateWorktreePath(string path, ValidationContext ctx)
         {
             if (ctx.ObjectInstance is not AddWorktree creator)
-                return new ValidationResult("Missing runtime context to add worktree!");
+                return new ValidationResult(App.Text("TreeGit.Message.WorktreeContext"));
 
             if (string.IsNullOrEmpty(path))
-                return new ValidationResult("Worktree path is required!");
+                return new ValidationResult(App.Text("TreeGit.Message.WorktreePath"));
 
             var fullPath = Path.IsPathRooted(path) ? path : Path.Combine(creator._repo.FullPath, path);
             var info = new DirectoryInfo(fullPath);
@@ -41,11 +41,11 @@ namespace SourceGit.ViewModels
             {
                 var files = info.GetFiles();
                 if (files.Length > 0)
-                    return new ValidationResult("Given path is not empty!!!");
+                    return new ValidationResult(App.Text("TreeGit.Message.PathNotEmpty"));
 
                 var folders = info.GetDirectories();
                 if (folders.Length > 0)
-                    return new ValidationResult("Given path is not empty!!!");
+                    return new ValidationResult(App.Text("TreeGit.Message.PathNotEmpty"));
             }
 
             return ValidationResult.Success;
@@ -54,16 +54,16 @@ namespace SourceGit.ViewModels
         public static ValidationResult ValidateBranchName(string name, ValidationContext ctx)
         {
             if (ctx.ObjectInstance is not AddWorktree creator)
-                return new ValidationResult("Missing runtime context to add worktree!");
+                return new ValidationResult(App.Text("TreeGit.Message.WorktreeContext"));
 
             var test = !string.IsNullOrEmpty(name) ? name : Path.GetFileName(creator._worktreePath.TrimEnd('/').TrimEnd('\\'));
             if (!Models.RefName.IsValidBranchName(test))
-                return new ValidationResult($"{test} is not a valid branch name!");
+                return new ValidationResult(App.Text("TreeGit.Message.InvalidBranchNamed", test));
 
             foreach (var b in creator._repo.Branches)
             {
                 if (b.IsLocal && b.Name.Equals(test, StringComparison.Ordinal))
-                    return new ValidationResult($"A branch with name '{test}' already exists!");
+                    return new ValidationResult(App.Text("TreeGit.Message.BranchExistsNamed", test));
             }
 
             return ValidationResult.Success;
@@ -72,7 +72,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = $"Adding a new worktree ...";
+            SetProgressDescription("TreeGit.Progress.AddWorktree");
 
             var log = _repo.CreateLog("Add Worktree");
             Use(log);

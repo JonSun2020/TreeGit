@@ -59,6 +59,14 @@ namespace SourceGit.ViewModels
             Refresh(change);
         }
 
+        public void RefreshLocalizedText()
+        {
+            OnPropertyChanged(nameof(Description));
+            if (_wc.InProgressContext is RevertInProgress) Theirs = App.Text("Conflict.RevertVersion");
+            else if (_wc.InProgressContext is not (CherryPickInProgress or RebaseInProgress or MergeInProgress))
+                Theirs = App.Text("Conflict.StashOrPatch");
+        }
+
         public void Refresh(Models.Change change)
         {
             _change = change;
@@ -113,7 +121,8 @@ namespace SourceGit.ViewModels
                     State = state;
                     OnPropertyChanged(nameof(CanOpenMergeEditor));
                     Mine = mine;
-                    Theirs = theirs;
+                    Theirs = inProgress is RevertInProgress ? App.Text("Conflict.RevertVersion") :
+                        inProgress is not (CherryPickInProgress or RebaseInProgress or MergeInProgress) ? App.Text("Conflict.StashOrPatch") : theirs;
                 });
             });
         }

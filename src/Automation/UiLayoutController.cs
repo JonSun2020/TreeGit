@@ -206,6 +206,15 @@ namespace SourceGit.Automation
                         minColumns = grid?.ColumnDefinitions.Select(d => d.MinWidth).ToArray(), minRows = grid?.RowDefinitions.Select(d => d.MinHeight).ToArray() };
                 }).ToArray(),
 #if INTEGRATION_TESTS
+                locale = App.ActiveLocale,
+                savedLocale = ViewModels.Preferences.Instance.Locale,
+                localizedTexts = controls.OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && !string.IsNullOrWhiteSpace(t.Text))
+                    .Select(t => new { name = t.Name, text = t.Text, context = t.DataContext?.GetType().Name,
+                        width = t.Bounds.Width, height = t.Bounds.Height, trimming = t.TextTrimming.ToString(),
+                        wrapping = t.TextWrapping.ToString(), textWidth = t.TextLayout.WidthIncludingTrailingWhitespace,
+                        textHeight = t.TextLayout.Height, bounds = Bounds(t) }).ToArray(),
+                binaryJumpGroups = controls.OfType<StackPanel>().Where(c => c.Name == "BinaryJumpGroup" && c.IsEffectivelyVisible)
+                    .Select(c => new { bounds = Bounds(c), children = c.Children.Select(child => new { type = child.GetType().Name, bounds = Bounds(child) }).ToArray() }).ToArray(),
                 historySelectionText = controls.Where(c => c.Classes.Contains("history_commit_text") && c.IsEffectivelyVisible && c.DataContext is Models.Commit && c.FindAncestorOfType<DataGridRow>() != null)
                     .Select(c => new { sha = ((Models.Commit)c.DataContext).SHA, merged = ((Models.Commit)c.DataContext).IsMerged,
                         selected = c.FindAncestorOfType<DataGridRow>().IsSelected, opacity = c.Opacity, type = c.GetType().Name,

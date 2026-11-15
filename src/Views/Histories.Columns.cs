@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
@@ -51,7 +51,7 @@ namespace SourceGit.Views
             {
                 var width = vm.GetHistoryColumnWidth(ColumnNames[i]);
                 var column = CommitListContainer.Columns[i];
-                column.MinWidth = i == 0 ? 40 : i == 1 ? 100 : 60;
+                column.MinWidth = i == 0 ? 60 : i == 1 ? 100 : 60;
                 column.Width = width.HasValue ? new(width.Value) : i switch
                 {
                     0 => new(vm.GraphWidth), 1 => new(1, DataGridLengthUnitType.Star),
@@ -68,7 +68,7 @@ namespace SourceGit.Views
                 var column = CommitListContainer.Columns[i];
                 var width = column.ActualWidth;
                 if (!double.IsFinite(width) || width < column.MinWidth)
-                    width = (DataContext as ViewModels.Histories)?.GetHistoryColumnWidth(ColumnNames[i]) ?? (i == 0 ? 48 : i == 1 ? 400 : i is 2 or 5 ? 160 : i == 3 ? 120 : 100);
+                    width = (DataContext as ViewModels.Histories)?.GetHistoryColumnWidth(ColumnNames[i]) ?? (i == 0 ? 60 : i == 1 ? 400 : i is 2 or 5 ? 160 : i == 3 ? 120 : 100);
                 widths[ColumnNames[i]] = Math.Round(width, 2);
             }
             return widths;
@@ -78,7 +78,7 @@ namespace SourceGit.Views
         {
             if (DataContext is not ViewModels.Histories vm) throw new InvalidOperationException("History is not loaded.");
             foreach (var pair in widths)
-                if (!ColumnNames.Contains(pair.Key) || !double.IsFinite(pair.Value) || pair.Value < (pair.Key == "graph" ? 40 : pair.Key == "description" ? 100 : 60) || pair.Value > 8192)
+                if (!ColumnNames.Contains(pair.Key) || !double.IsFinite(pair.Value) || pair.Value < (pair.Key == "description" ? 100 : 60) || pair.Value > 8192)
                     throw new ArgumentException("Invalid history column width: " + pair.Key);
             if (reset) vm.ResetHistoryColumnWidths();
             vm.SaveHistoryColumnWidths(widths);

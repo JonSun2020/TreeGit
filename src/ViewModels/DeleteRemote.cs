@@ -19,7 +19,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = "Deleting remote ...";
+            SetProgressDescription("TreeGit.Progress.DeleteRemote");
 
             var log = _repo.CreateLog("Delete Remote");
             Use(log);

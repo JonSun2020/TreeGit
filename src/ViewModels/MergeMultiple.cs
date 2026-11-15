@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace SourceGit.ViewModels
@@ -62,7 +62,7 @@ namespace SourceGit.ViewModels
                     (safety.Obstruction == null ? string.Empty : "\n" + safety.Obstruction), true);
                 return false;
             }
-            ProgressDescription = App.Text("Merge.Progress", _repo.CurrentBranch?.Name ?? "HEAD");
+            SetProgressDescription("Merge.Progress", _repo.CurrentBranch?.Name ?? "HEAD");
 
             var log = _repo.CreateLog("Merge Multiple Heads");
             Use(log);

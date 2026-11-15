@@ -51,6 +51,7 @@
     <Compile Include="../tests/RepositorySettingsProbe.cs" />
     <Compile Include="../tests/ProcessCancellationProbe.cs" />
     <Compile Include="../tests/CommandPipeProbe.cs" />
+    <Compile Include="../tests/ExternalToolProbe.cs" />
     <Compile Include="../tests/RevisionFileProbe.cs" />
     <Compile Include="../tests/DataSafetyProbe.cs" />
     <Compile Include="../tests/PullSafetyProbe.cs" />
@@ -64,6 +65,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="Resources/Locales/Bootstrap.json" />
     <AvaloniaResource Include="App.ico" />
     <AvaloniaResource Include="Resources/Fonts/*" />
     <AvaloniaResource Include="Resources/Grammars/*" />

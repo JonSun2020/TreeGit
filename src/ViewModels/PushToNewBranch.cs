@@ -27,7 +27,7 @@ namespace SourceGit.ViewModels
         public static ValidationResult ValidateBranchName(string name, ValidationContext ctx)
         {
             if (!Models.RefName.IsValidBranchName(name))
-                return new ValidationResult("Bad branch name format!");
+                return new ValidationResult(App.Text("TreeGit.Message.BranchNameFormat"));
 
             return ValidationResult.Success;
         }

@@ -64,7 +64,7 @@ namespace SourceGit.Commands
                     builder.Append("hotfix");
                     break;
                 default:
-                    RaiseException("Bad git-flow branch type!!!");
+                    RaiseException(App.Text("TreeGit.GitFlow.InvalidType"));
                     return false;
             }
 
@@ -93,7 +93,7 @@ namespace SourceGit.Commands
                     builder.Append("hotfix");
                     break;
                 default:
-                    RaiseException("Bad git-flow branch type!!!");
+                    RaiseException(App.Text("TreeGit.GitFlow.InvalidType"));
                     return false;
             }
 

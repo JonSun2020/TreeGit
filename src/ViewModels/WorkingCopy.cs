@@ -470,7 +470,7 @@ namespace SourceGit.ViewModels
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 Native.OS.LogException(ex);
-                _repo.SendNotification("暂存未完成，请确认磁盘空间和文件访问权限后重试。", true);
+                _repo.SendNotification(App.Text("TreeGit.Stage.Failed"), true);
                 return false;
             }
             finally
@@ -539,7 +539,7 @@ namespace SourceGit.ViewModels
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 Native.OS.LogException(ex);
-                _repo.SendNotification("取消暂存未完成，请确认磁盘空间和文件访问权限后重试。", true);
+                _repo.SendNotification(App.Text("TreeGit.Unstage.Failed"), true);
             }
             finally
             {

@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace SourceGit.Models
 {
-    public class DealWithChangesAfterStashing(string key)
+    public class DealWithChangesAfterStashing(string key) : LocalizedOption
     {
         public string Label => App.Text("Stash.After." + key);
         public string Desc => App.Text("Stash.After." + key + ".Description");

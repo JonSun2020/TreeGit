@@ -9,6 +9,7 @@
 
     <ListBox.Styles>
       <Style Selector="ListBox.repo_left_content_list ListBoxItem" x:DataType="vm:BranchTreeNode">
+        <Setter Property="Margin" Value="0,0,18,0"/>
         <Setter Property="CornerRadius" Value="{Binding CornerRadius}"/>
         <Setter Property="Template">
           <ControlTemplate TargetType="ListBoxItem">

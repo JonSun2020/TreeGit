@@ -347,7 +347,7 @@ namespace SourceGit.ViewModels
                 ActivePage.Notifications.Add(new Models.Notification
                 {
                     Group = node.Id,
-                    Message = "Repository does NOT exist any more. Please remove it.",
+                    Message = App.Text("TreeGit.Repository.Missing"),
                     IsError = true,
                 });
                 return;
@@ -360,7 +360,7 @@ namespace SourceGit.ViewModels
                 ActivePage.Notifications.Add(new Models.Notification
                 {
                     Group = node.Id,
-                    Message = "Given path is not a valid git repository!",
+                    Message = App.Text("TreeGit.Repository.Invalid"),
                     IsError = true,
                 });
                 return;
@@ -425,7 +425,7 @@ namespace SourceGit.ViewModels
                 ownerPage.Notifications.Add(new Models.Notification
                 {
                     Group = ownerPage.Node.Id,
-                    Message = "Repository path does NOT exist. Please check the path.",
+                    Message = App.Text("TreeGit.Repository.PathMissing"),
                     IsError = true,
                 });
 
@@ -439,7 +439,7 @@ namespace SourceGit.ViewModels
                 ownerPage.Notifications.Add(new Models.Notification
                 {
                     Group = ownerPage.Node.Id,
-                    Message = "Given path is not a valid git repository!",
+                    Message = App.Text("TreeGit.Repository.Invalid"),
                     IsError = true,
                 });
                 return;

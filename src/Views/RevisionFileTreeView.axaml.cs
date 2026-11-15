@@ -606,7 +606,7 @@ namespace SourceGit.Views
                 }
                 catch (Exception e)
                 {
-                    repo.SendNotification($"Failed to save file: {e.Message}", true);
+                    repo.SendNotification(App.Text("TreeGit.Message.FileSaveFailed", e.Message), true);
                 }
 
                 ev.Handled = true;

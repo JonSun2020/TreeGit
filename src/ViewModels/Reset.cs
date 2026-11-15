@@ -31,7 +31,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = $"Reset current branch to {To.SHA} ...";
+            SetProgressDescription("TreeGit.Progress.Reset", To.SHA);
 
             var log = _repo.CreateLog($"Reset HEAD to '{To.SHA}'");
             Use(log);

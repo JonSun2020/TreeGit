@@ -332,7 +332,7 @@ namespace SourceGit.Views
         {
             var options = new FilePickerOpenOptions()
             {
-                FileTypeFilter = [new FilePickerFileType("Theme Overrides File") { Patterns = ["*.json"] }],
+                FileTypeFilter = [new FilePickerFileType(App.Text("TreeGit.Message.ThemeFile")) { Patterns = ["*.json"] }],
                 AllowMultiple = false,
             };
 
@@ -344,7 +344,7 @@ namespace SourceGit.Views
             }
             catch (Exception ex)
             {
-                await new Alert().ShowAsync(this, $"Failed to select theme override file: {ex.Message}", true);
+                await new Alert().ShowAsync(this, App.Text("TreeGit.Message.ThemeFileSelect", ex.Message), true);
             }
 
             e.Handled = true;
@@ -361,7 +361,7 @@ namespace SourceGit.Views
             var pattern = OperatingSystem.IsWindows() ? "git.exe" : "git";
             var options = new FilePickerOpenOptions()
             {
-                FileTypeFilter = [new FilePickerFileType("Git Executable") { Patterns = [pattern] }],
+                FileTypeFilter = [new FilePickerFileType(App.Text("TreeGit.Message.GitExecutable")) { Patterns = [pattern] }],
                 AllowMultiple = false,
             };
 
@@ -376,7 +376,7 @@ namespace SourceGit.Views
             }
             catch (Exception ex)
             {
-                await new Alert().ShowAsync(this, $"Failed to select git executable: {ex.Message}", true);
+                await new Alert().ShowAsync(this, App.Text("TreeGit.Message.GitSelect", ex.Message), true);
             }
 
             e.Handled = true;
@@ -397,7 +397,7 @@ namespace SourceGit.Views
             }
             catch (Exception ex)
             {
-                await new Alert().ShowAsync(this, $"Failed to select default clone directory: {ex.Message}", true);
+                await new Alert().ShowAsync(this, App.Text("TreeGit.Message.CloneFolderSelect", ex.Message), true);
             }
 
             e.Handled = true;
@@ -413,7 +413,7 @@ namespace SourceGit.Views
 
             var options = new FilePickerOpenOptions()
             {
-                FileTypeFilter = [new FilePickerFileType("GPG Program") { Patterns = patterns }],
+                FileTypeFilter = [new FilePickerFileType(App.Text("TreeGit.Message.GPGProgram")) { Patterns = patterns }],
                 AllowMultiple = false,
             };
 
@@ -425,7 +425,7 @@ namespace SourceGit.Views
             }
             catch (Exception ex)
             {
-                await new Alert().ShowAsync(this, $"Failed to select gpg program: {ex.Message}", true);
+                await new Alert().ShowAsync(this, App.Text("TreeGit.Message.GpgSelect", ex.Message), true);
             }
 
             e.Handled = true;
@@ -460,7 +460,7 @@ namespace SourceGit.Views
             }
             catch (Exception ex)
             {
-                await new Alert().ShowAsync(this, $"Failed to select shell/terminal: {ex.Message}", true);
+                await new Alert().ShowAsync(this, App.Text("TreeGit.Message.ShellSelect", ex.Message), true);
             }
 
             e.Handled = true;
@@ -477,6 +477,7 @@ namespace SourceGit.Views
             }
 
             var tool = Models.ExternalMerger.Supported[type];
+            if (tool.IsGitConfiguration) { e.Handled = true; return; }
             var options = new FilePickerOpenOptions()
             {
                 FileTypeFilter = [new FilePickerFileType(tool.Name) { Patterns = tool.GetPatternsToFindExecFile() }],
@@ -491,7 +492,7 @@ namespace SourceGit.Views
             }
             catch (Exception ex)
             {
-                await new Alert().ShowAsync(this, $"Failed to select merge tool: {ex.Message}", true);
+                await new Alert().ShowAsync(this, App.Text("TreeGit.Message.MergeSelect", ex.Message), true);
             }
 
             e.Handled = true;
@@ -510,7 +511,7 @@ namespace SourceGit.Views
 
         private void OnAddCustomAction(object sender, RoutedEventArgs e)
         {
-            var action = new Models.CustomAction() { Name = "Unnamed Action (Global)" };
+            var action = new Models.CustomAction() { Name = App.Text("TreeGit.Message.UnnamedAction") };
             ViewModels.Preferences.Instance.CustomActions.Add(action);
             SelectedCustomAction = action;
 
@@ -522,7 +523,7 @@ namespace SourceGit.Views
             var options = new FilePickerOpenOptions()
             {
                 AllowMultiple = false,
-                FileTypeFilter = [new("Executable file(script)") { Patterns = ["*"] }]
+                FileTypeFilter = [new(App.Text("TreeGit.Message.Executable")) { Patterns = ["*"] }]
             };
 
             try
@@ -533,7 +534,7 @@ namespace SourceGit.Views
             }
             catch (Exception ex)
             {
-                await new Alert().ShowAsync(this, $"Failed to select executable for custom action: {ex.Message}", true);
+                await new Alert().ShowAsync(this, App.Text("TreeGit.Message.ActionSelect", ex.Message), true);
             }
 
             e.Handled = true;

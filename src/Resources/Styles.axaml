@@ -1,4 +1,4 @@
-﻿<Styles xmlns="https://github.com/avaloniaui"
+<Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:SourceGit.ViewModels"
         xmlns:v="using:SourceGit.Views"
@@ -10,6 +10,30 @@
     <StackPanel Orientation="Vertical">
     </StackPanel>
   </Design.PreviewWith>
+
+  <Styles.Resources>
+    <ControlTheme x:Key="TreeGit.CommitTableHeader" TargetType="DataGridColumnHeader">
+      <Setter Property="MinHeight" Value="0"/>
+      <Setter Property="Height" Value="24"/>
+      <Setter Property="MaxHeight" Value="24"/>
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/>
+      <Setter Property="FocusAdorner" Value="{x:Null}"/>
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Grid ClipToBounds="True">
+            <Border Background="{DynamicResource Brush.Contents}" BorderBrush="{DynamicResource Brush.Border0}" BorderThickness="0,1"/>
+            <ContentPresenter x:Name="PART_ContentPresenter" Margin="0,1"
+                              Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                              HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                              Foreground="{TemplateBinding Foreground}"/>
+            <Rectangle Name="VerticalSeparator" Width="1" HorizontalAlignment="Right" VerticalAlignment="Stretch"
+                       Fill="{DynamicResource Brush.Border0}" IsHitTestVisible="False" IsVisible="{TemplateBinding AreSeparatorsVisible}"/>
+          </Grid>
+        </ControlTemplate>
+      </Setter>
+    </ControlTheme>
+  </Styles.Resources>
 
 
 
@@ -179,7 +203,7 @@
     <Setter Property="IsHitTestVisible" Value="False"/>
   </Style>
 
-  <Style Selector="PopupRoot">
+  <Style Selector="PopupRoot, OverlayPopupHost">
     <Setter Property="TextElement.FontFamily" Value="{DynamicResource Fonts.Default}"/>
     <Setter Property="TextElement.FontSize" Value="{Binding Source={x:Static vm:Preferences.Instance}, Path=DefaultFontSize}"/>
   </Style>
@@ -869,7 +893,7 @@
                     <StackPanel Orientation="Horizontal">
                       <TextBlock Text="{Binding Name}" VerticalAlignment="Center"/>
                       <Border Margin="4,0,0,0" Height="16" Background="Green" CornerRadius="8" VerticalAlignment="Center" IsVisible="{Binding IsGlobal}">
-                        <TextBlock Text="GLOBAL" Margin="8,0" FontSize="10" Foreground="White"/>
+                        <TextBlock Text="{DynamicResource Text.TreeGit.Global}" Margin="8,0" FontSize="10" Foreground="White"/>
                       </Border>
                     </StackPanel>
                   </DataTemplate>
@@ -1181,7 +1205,7 @@
     <Setter Property="VerticalAlignment" Value="Stretch"/>
     <Setter Property="Template">
       <ControlTemplate>
-        <Grid ColumnDefinitions="Auto,*" Background="Transparent">
+        <Grid x:Name="GroupExpanderBackground" ColumnDefinitions="Auto,*" Background="{TemplateBinding Background}">
           <Path Grid.Column="0"
                 x:Name="PART_IndicatorIcon"
                 Width="10"
@@ -1490,7 +1514,7 @@
                 Padding="10">
           <Grid RowDefinitions="Auto,Auto">
             <StackPanel Grid.Row="0" Orientation="Horizontal">
-              <TextBox Watermark="{x:Static ae:SR.SearchLabel}"
+              <TextBox Watermark="{DynamicResource Text.TreeGit.Search}"
                        BorderBrush="{DynamicResource Brush.Border2}"
                        Name="PART_searchTextBox"
                        Width="265" Height="28"
@@ -1500,21 +1524,21 @@
                 <TextBox.InnerRightContent>
                   <StackPanel Orientation="Horizontal">
                     <ToggleButton IsChecked="{Binding $parent[aes:SearchPanel].MatchCase, Mode=TwoWay}"
-                                  ToolTip.Tip="Match case"
+                                  ToolTip.Tip="{DynamicResource Text.TreeGit.Search.MatchCase}"
                                   Padding="0"
                                   Width="24" Height="20"
                                   VerticalAlignment="Center">
                       <Path Width="12" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform" Data="{StaticResource Icons.CaseSensitive}" Fill="{DynamicResource Brush.FG1}"/>
                     </ToggleButton>
                     <ToggleButton IsChecked="{Binding $parent[aes:SearchPanel].WholeWords, Mode=TwoWay}"
-                                  ToolTip.Tip="Match whole words"
+                                  ToolTip.Tip="{DynamicResource Text.TreeGit.Search.WholeWords}"
                                   Margin="3,0,0,0" Padding="0"
                                   Width="24" Height="20"
                                   VerticalAlignment="Center">
                       <Path Width="14" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform" Data="{StaticResource Icons.CompleteWord}" Fill="{DynamicResource Brush.FG1}"/>
                     </ToggleButton>
                     <ToggleButton IsChecked="{Binding $parent[aes:SearchPanel].UseRegex, Mode=TwoWay}"
-                                  ToolTip.Tip="Use regular expressions"
+                                  ToolTip.Tip="{DynamicResource Text.TreeGit.Search.Regex}"
                                   Margin="3,0,5,0" Padding="0"
                                   Width="24" Height="20"
                                   VerticalAlignment="Center">
@@ -1528,7 +1552,7 @@
                       Background="Transparent"
                       VerticalAlignment="Stretch"
                       Command="{x:Static aes:SearchCommands.FindPrevious}"
-                      ToolTip.Tip="Find Previous (Shift+F3)">
+                      ToolTip.Tip="{DynamicResource Text.TreeGit.Search.Previous}">
                 <Path Width="14" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform" Data="{StaticResource Icons.Up}" Fill="{DynamicResource Brush.FG1}"/>
               </Button>
               <Button Margin="3,0,0,0"
@@ -1536,12 +1560,12 @@
                       Width="28"
                       Background="Transparent"
                       Command="{x:Static aes:SearchCommands.FindNext}"
-                      ToolTip.Tip="Find Next (F3)">
+                      ToolTip.Tip="{DynamicResource Text.TreeGit.Search.Next}">
                 <Path Width="14" HorizontalAlignment="Center" VerticalAlignment="Center" Stretch="Uniform" Data="{StaticResource Icons.Down}" Fill="{DynamicResource Brush.FG1}"/>
               </Button>
             </StackPanel>
             <StackPanel Grid.Row="1" Name="PART_MessageView" IsVisible="False" Orientation="Horizontal" Margin="0 5 0 0">
-              <TextBlock Name="PART_MessageContent" FontSize="11" />
+              <v:LocalizedSearchMessage Name="PART_MessageContent" FontSize="11" />
             </StackPanel>
           </Grid>
         </Border>

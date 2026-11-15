@@ -15,6 +15,22 @@ namespace SourceGit.Views
             InitializeComponent();
         }
 
+        protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            base.OnAttachedToVisualTree(e);
+            BtnOpenExternalMergeTool.IsVisible = TopLevel.GetTopLevel(this) is not InternalDiffWindow;
+            App.LocaleChanged += OnLocaleChanged;
+            OnLocaleChanged();
+        }
+
+        protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            App.LocaleChanged -= OnLocaleChanged;
+            base.OnDetachedFromVisualTree(e);
+        }
+
+        private void OnLocaleChanged() => (DataContext as ViewModels.DiffContext)?.RefreshLocalizedText();
+
         public void ToggleHotkeyBindings(bool enabled)
         {
             var isMacOS = OperatingSystem.IsMacOS();
@@ -24,7 +40,7 @@ namespace SourceGit.Views
                 BtnGotoPrevChange.HotKey = KeyGesture.Parse(isMacOS ? "Cmd+Alt+Up" : "Ctrl+Alt+Up");
                 BtnGotoNextChange.HotKey = KeyGesture.Parse(isMacOS ? "Cmd+Alt+Down" : "Ctrl+Alt+Down");
                 BtnGotoLastChange.HotKey = KeyGesture.Parse(isMacOS ? "Cmd+Alt+End" : "Ctrl+Alt+End");
-                BtnOpenExternalMergeTool.HotKey = KeyGesture.Parse(isMacOS ? "Cmd+Shift+D" : "Ctrl+Shift+D");
+                BtnOpenExternalMergeTool.HotKey = BtnOpenExternalMergeTool.IsVisible ? KeyGesture.Parse(isMacOS ? "Cmd+Shift+D" : "Ctrl+Shift+D") : null;
             }
             else
             {

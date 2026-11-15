@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia;
@@ -17,7 +18,7 @@ namespace SourceGit.Views
         private readonly TextBlock _summary = new() { Margin = new Thickness(8, 4), TextWrapping = TextWrapping.Wrap };
         private readonly TextBlock _oldTitle = new() { Margin = new Thickness(8, 4), TextTrimming = TextTrimming.CharacterEllipsis };
         private readonly TextBlock _newTitle = new() { Margin = new Thickness(8, 4), TextTrimming = TextTrimming.CharacterEllipsis };
-        private readonly TextBox _address = new() { Width = 116, Watermark = "十六进制地址", Margin = new Thickness(4, 0) };
+        private readonly TextBox _address = new() { Width = 116, [!TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Binary.AddressHint"), Margin = new Thickness(4, 0) };
         private readonly ScrollBar _scroll = new() { Orientation = Avalonia.Layout.Orientation.Vertical, SmallChange = 1 };
         private readonly Button _retry = new() { Name = "RetryBinaryDiff", IsVisible = false, Margin = new Thickness(2), Padding = new Thickness(8, 3) };
         private readonly HexPane _left;
@@ -28,6 +29,8 @@ namespace SourceGit.Views
         private long _selected = -1;
         private int _bytesPerRow = 16;
         private bool _attached;
+        private readonly bool _allowSeparateWindow;
+        private readonly Button _separateWindowButton;
         private string _errorDetails;
         public string Status { get; private set; } = "loading";
         public long SelectedOffset => _selected;
@@ -41,6 +44,7 @@ namespace SourceGit.Views
             snapshotDirectory = _comparison?.SnapshotDirectory,
 #endif
             oldRevision = (DataContext as Models.BinaryDiff)?.OldRevision, newRevision = (DataContext as Models.BinaryDiff)?.NewRevision,
+            oldTitle = _oldTitle.Text, newTitle = _newTitle.Text,
             summary = _summary.Text, errorDetails = _errorDetails, oldSize = OldSize, newSize = NewSize,
             differentBytes = DifferentBytes, selectedOffset = SelectedOffset, topOffset = TopOffset, bytesPerRow = BytesPerRow,
             leftPaneWidth = _left.Bounds.Width, rightPaneWidth = _right.Bounds.Width,
@@ -48,22 +52,27 @@ namespace SourceGit.Views
             oldHex = _comparison == null ? null : Convert.ToHexString(_comparison.Read(true, TopOffset, 256)),
             newHex = _comparison == null ? null : Convert.ToHexString(_comparison.Read(false, TopOffset, 256)) };
 
-        public BinaryDiffView()
+        public BinaryDiffView() : this(true) { }
+
+        private BinaryDiffView(bool allowSeparateWindow)
         {
+            _allowSeparateWindow = allowSeparateWindow;
             _left = new HexPane(this, true);
             _right = new HexPane(this, false);
             var root = new Grid { RowDefinitions = new RowDefinitions("Auto,Auto,Auto,*") };
             root.Bind(BackgroundProperty, new DynamicResourceExtension("Brush.Contents"));
             root.Children.Add(_summary);
             var toolbar = new WrapPanel { Margin = new Thickness(6, 2), Orientation = Avalonia.Layout.Orientation.Horizontal };
-            AddButton(toolbar, "首个差异", async () => await NavigateAsync("first"));
-            AddButton(toolbar, "上一差异", async () => await NavigateAsync("previous"));
-            AddButton(toolbar, "下一差异", async () => await NavigateAsync("next"));
-            AddButton(toolbar, "末个差异", async () => await NavigateAsync("last"));
-            toolbar.Children.Add(_address);
-            AddButton(toolbar, "跳转", Jump);
-            AddButton(toolbar, "独立窗口", OpenComparisonWindow);
-            _retry.Content = App.Text("BinaryDiff.Retry");
+            AddButton(toolbar, "TreeGit.Binary.First", async () => await NavigateAsync("first"));
+            AddButton(toolbar, "TreeGit.Binary.Previous", async () => await NavigateAsync("previous"));
+            AddButton(toolbar, "TreeGit.Binary.Next", async () => await NavigateAsync("next"));
+            AddButton(toolbar, "TreeGit.Binary.Last", async () => await NavigateAsync("last"));
+            var jump = new StackPanel { Name = "BinaryJumpGroup", Orientation = Avalonia.Layout.Orientation.Horizontal };
+            jump.Children.Add(_address);
+            AddButton(jump, "TreeGit.Binary.GoTo", Jump);
+            toolbar.Children.Add(jump);
+            if (allowSeparateWindow) _separateWindowButton = AddButton(toolbar, "TreeGit.Binary.SeparateWindow", OpenComparisonWindow);
+            App.BindText(_retry, ContentControl.ContentProperty, "BinaryDiff.Retry");
             _retry.Classes.Add("flat"); _retry.Click += (_, _) => Retry();
             toolbar.Children.Add(_retry);
             Grid.SetRow(toolbar, 1); root.Children.Add(toolbar);
@@ -86,23 +95,40 @@ namespace SourceGit.Views
             _address.KeyDown += (_, e) => { if (e.Key == Key.Enter) { Jump(); e.Handled = true; } };
         }
 
-        private static void AddButton(Panel panel, string label, Action action)
+        private static Button AddButton(Panel panel, string label, Action action)
         {
-            var button = new Button { Content = label, Margin = new Thickness(2), Padding = new Thickness(8, 3) };
+            var button = new Button { [!ContentControl.ContentProperty] = App.TextBinding(label), Margin = new Thickness(2), Padding = new Thickness(8, 3) };
             button.Classes.Add("flat"); button.Click += (_, _) => action(); panel.Children.Add(button);
+            return button;
         }
 
         protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
         {
-            base.OnAttachedToVisualTree(e); _attached = true; Reload();
+            if (_separateWindowButton != null) _separateWindowButton.IsVisible = TopLevel.GetTopLevel(this) is not InternalDiffWindow;
+            base.OnAttachedToVisualTree(e); _attached = true; App.LocaleChanged += RefreshLocalizedLabels; Reload();
         }
         protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
         {
-            _attached = false; Stop(); base.OnDetachedFromVisualTree(e);
+            _attached = false; App.LocaleChanged -= RefreshLocalizedLabels; Stop(); base.OnDetachedFromVisualTree(e);
         }
         protected override void OnDataContextChanged(EventArgs e)
         {
             base.OnDataContextChanged(e); if (_attached) Reload();
+        }
+
+        private void RefreshLocalizedLabels()
+        {
+            if (DataContext is not Models.BinaryDiff diff) return;
+            _oldTitle.Text = App.Text("TreeGit.Binary.OldPrefix") + Label(diff.OldRevision, diff.NewRevision) + " · " + diff.OldFilePath;
+            _newTitle.Text = App.Text("TreeGit.Binary.NewPrefix") + Label(diff.NewRevision) + " · " + diff.FilePath;
+            if (_comparison is { } comparison)
+            {
+                _summary.Text = App.Text("TreeGit.Binary.Summary", comparison.OldSize, comparison.NewSize, comparison.DifferentBytes);
+                _oldTitle.Text += App.Text("TreeGit.Binary.ByteCount", comparison.OldSize);
+                _newTitle.Text += App.Text("TreeGit.Binary.ByteCount", comparison.NewSize);
+            }
+            else _summary.Text = App.Text(Status == "error" ? "BinaryDiff.LoadFailed" : "TreeGit.Binary.Loading");
+            _left.InvalidateVisual(); _right.InvalidateVisual();
         }
 
         private async void Stop()
@@ -120,17 +146,17 @@ namespace SourceGit.Views
             if (DataContext is not Models.BinaryDiff diff) return;
             var cancellation = new CancellationTokenSource(); _cancel = cancellation;
             _retry.IsVisible = false; _errorDetails = null;
-            Status = "loading"; _summary.Text = "正在读取二进制文件并比较…";
-            _oldTitle.Text = "旧版本 · " + Label(diff.OldRevision) + " · " + diff.OldFilePath;
-            _newTitle.Text = "新版本 · " + Label(diff.NewRevision) + " · " + diff.FilePath;
+            Status = "loading"; _summary.Text = App.Text("TreeGit.Binary.Loading");
+            _oldTitle.Text = App.Text("TreeGit.Binary.OldPrefix") + Label(diff.OldRevision, diff.NewRevision) + " · " + diff.OldFilePath;
+            _newTitle.Text = App.Text("TreeGit.Binary.NewPrefix") + Label(diff.NewRevision) + " · " + diff.FilePath;
             try
             {
                 var comparison = await Commands.BinarySnapshots.LoadAsync(diff, cancellation.Token);
                 if (_cancel != cancellation) { comparison.Dispose(); return; }
                 _comparison = comparison; _selected = -1;
-                _summary.Text = $"旧：{comparison.OldSize:N0} 字节    新：{comparison.NewSize:N0} 字节    差异：{comparison.DifferentBytes:N0} 字节 · 按相同偏移比较（只读）";
-                _oldTitle.Text += $" · {comparison.OldSize:N0} 字节";
-                _newTitle.Text += $" · {comparison.NewSize:N0} 字节";
+                _summary.Text = App.Text("TreeGit.Binary.Summary", comparison.OldSize, comparison.NewSize, comparison.DifferentBytes);
+                _oldTitle.Text += App.Text("TreeGit.Binary.ByteCount", comparison.OldSize);
+                _newTitle.Text += App.Text("TreeGit.Binary.ByteCount", comparison.NewSize);
                 ResizeRows(); await NavigateAsync("first");
                 if (_cancel == cancellation) Status = "ready";
             }
@@ -148,7 +174,15 @@ namespace SourceGit.Views
             if (_attached && Status == "error") Reload();
         }
 
-        private static string Label(string revision) => revision == null ? "工作区" : revision.Length == 0 ? "暂存区" : revision.Length > 14 ? revision[..12] : revision;
+        private static string Label(string revision, string comparedRevision = null)
+        {
+            if (revision == null) return App.Text("TreeGit.Binary.WorkingTree");
+            if (revision.Length == 0) return App.Text("TreeGit.Binary.Index");
+            if (comparedRevision != null && revision == comparedRevision + "^") return App.Text("Diff.Source.Parent");
+            // Shorten only object IDs. Truncating refs or revision expressions
+            // can hide their distinguishing suffix, including a parent '^'.
+            return revision.Length > 14 && revision.All(Uri.IsHexDigit) ? revision[..12] : revision;
+        }
 
         public async Task NavigateAsync(string action)
         {
@@ -199,9 +233,9 @@ namespace SourceGit.Views
         private void Redraw() { _left.InvalidateVisual(); _right.InvalidateVisual(); }
         public void OpenComparisonWindow()
         {
-            if (DataContext is not Models.BinaryDiff diff || TopLevel.GetTopLevel(this) is not Window owner) return;
-            var window = new Window { Title = "TreeGit · 二进制对比", Width = 1340, Height = 760, MinWidth = 640, MinHeight = 360,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner, Content = new BinaryDiffView { DataContext = diff } };
+            if (!_allowSeparateWindow || DataContext is not Models.BinaryDiff diff || TopLevel.GetTopLevel(this) is not Window owner || owner is InternalDiffWindow) return;
+            var window = new Window { [!Window.TitleProperty] = App.TextBinding("TreeGit.Binary.WindowTitle"), Width = 1340, Height = 760, MinWidth = 640, MinHeight = 360,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner, Content = new BinaryDiffView(false) { DataContext = diff } };
             // Use native frame for this independent inspector, including move/resize/close.
             window.SystemDecorations = SystemDecorations.Full;
             window.KeyDown += (_, e) => { if (e.Key == Key.Escape) { window.Close(); e.Handled = true; } };
@@ -244,7 +278,7 @@ namespace SourceGit.Views
                 var rows = Math.Max(0, (int)Math.Ceiling((Bounds.Height - 24) / 20));
                 var count = rows * columns;
                 var a = comparison.Read(old, offset, count); var b = comparison.Read(!old, offset, count);
-                Text("偏移", 6, 3, dim);
+                Text(App.Text("TreeGit.Binary.Offset"), 6, 3, dim);
                 var addressWidth = comparison.Length > uint.MaxValue ? 102 : 74;
                 for (var c = 0; c < columns; c++) Text(c.ToString("X2"), addressWidth + c * 23, 3, dim);
                 Text("ASCII", addressWidth + columns * 23 + 10, 3, dim);

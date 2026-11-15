@@ -67,7 +67,7 @@ namespace SourceGit.ViewModels
 
         public override async Task<bool> Sure()
         {
-            ProgressDescription = "Cherry-Pick commit(s) ...";
+            SetProgressDescription("TreeGit.Progress.CherryPick");
             return await RunGitActionAsync("Cherry-Pick", RunAsync,
                 Targets.ConvertAll(c => (c.SHA, IsMergeCommit ? MainlineForMergeCommit : 0)));
         }

@@ -1,5 +1,13 @@
 <?xml version='1.0' encoding='utf-8'?>
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:m="using:SourceGit.Models" xmlns:vm="using:SourceGit.ViewModels" xmlns:v="using:SourceGit.Views" xmlns:c="using:SourceGit.Converters" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SourceGit.Views.Repository" x:DataType="vm:Repository" x:Name="ThisControl">
+  <UserControl.Styles>
+    <Style Selector="ToggleButton.group_expander.commit_covered:not(:checked)">
+      <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.SelectionSecondary}"/>
+    </Style>
+    <Style Selector="ToggleButton.group_expander.commit_covered:not(:checked) TextBlock.group_header_label">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionSecondaryForeground}"/>
+    </Style>
+  </UserControl.Styles>
   <Grid>
     <Grid.ColumnDefinitions>
       <ColumnDefinition Width="*"/>
@@ -114,7 +122,7 @@
             <Grid Grid.Column="0" RowDefinitions="Auto,*" Background="{DynamicResource Brush.Window}">
     <!-- Page Switcher -->
     <Grid Grid.Row="0" RowDefinitions="24,Auto" ColumnDefinitions="*,32" Margin="0,4,0,4" ClipToBounds="True" IsVisible="False">
-      <TextBlock Grid.ColumnSpan="2" Text="工作区" Margin="12,0" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Brush.FG2}"/>
+      <TextBlock Grid.ColumnSpan="2" Text="{DynamicResource Text.TreeGit.Binary.WorkingTree}" Margin="12,0" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Brush.FG2}"/>
       <ListBox Grid.Row="1" Grid.ColumnSpan="2" Background="Transparent" SelectedIndex="{Binding SelectedViewIndex, Mode=TwoWay}" SelectionMode="AlwaysSelected">
         <ListBox.Styles>
           <Style Selector="Path.icon">
@@ -212,7 +220,7 @@
 
               <Grid Grid.Row="1" x:Name="LeftSidebarGroups" Margin="0,4,0,0" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto" SizeChanged="OnLeftSidebarSizeChanged">
                 <!-- Local Branches -->
-                <ToggleButton Grid.Row="0" Classes="group_expander" IsChecked="{Binding IsLocalBranchGroupExpanded, Mode=TwoWay}">
+                <ToggleButton Grid.Row="0" x:Name="LocalBranchGroup" Classes="group_expander" IsChecked="{Binding IsLocalBranchGroupExpanded, Mode=TwoWay}">
                   <Grid ColumnDefinitions="16,*,Auto">
                     <Path Grid.Column="0" Width="11" Height="11" HorizontalAlignment="Left" Data="{StaticResource Icons.Branch}" Fill="{DynamicResource Brush.FG2}"/>
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
@@ -230,7 +238,7 @@
                 <v:BranchTree Grid.Row="1" x:Name="LocalBranchTree" Height="0" Margin="6,0,4,0" Nodes="{Binding LocalBranchTrees}" IsVisible="{Binding IsLocalBranchGroupExpanded}" SelectionChanged="OnLocalBranchTreeSelectionChanged" RowsChanged="OnLeftSidebarRowsChanged" SearchRequested="OnToggleSidebarFilter"/>
 
                 <!-- Remotes -->
-                <ToggleButton Grid.Row="4" Classes="group_expander" IsChecked="{Binding IsRemoteGroupExpanded, Mode=TwoWay}">
+                <ToggleButton Grid.Row="4" x:Name="RemoteBranchGroup" Classes="group_expander" IsChecked="{Binding IsRemoteGroupExpanded, Mode=TwoWay}">
                   <Grid ColumnDefinitions="16,*,Auto,Auto">
                     <Path Grid.Column="0" Width="11" Height="11" HorizontalAlignment="Left" Data="{StaticResource Icons.Remote}" Fill="{DynamicResource Brush.FG2}"/>
                     <StackPanel Grid.Column="1" Orientation="Horizontal">
@@ -516,7 +524,7 @@
                 </Border>
               </Border>
             </Grid>
-          </v:ContentViewport><StackPanel Grid.Row="1" Orientation="Horizontal" Background="{DynamicResource Brush.ToolBar}"><Button Classes="treegit_bottom_tab" Content="文件状态" Click="OnShowWorkingCopyOverview" Classes.active="{Binding IsFileStatusTabSelected}"/><Button Classes="treegit_bottom_tab" Content="日志 / 历史" Click="OnShowHistory" Classes.active="{Binding IsHistoryTabSelected}"/><Button Classes="treegit_bottom_tab" Content="搜索" Click="OnShowSearch" Classes.active="{Binding IsSearchTabSelected}"/></StackPanel></Grid></Grid>
+          </v:ContentViewport><StackPanel Grid.Row="1" Orientation="Horizontal" Background="{DynamicResource Brush.ToolBar}"><Button Classes="treegit_bottom_tab" Content="{DynamicResource Text.TreeGit.Tabs.FileStatus}" Click="OnShowWorkingCopyOverview" Classes.active="{Binding IsFileStatusTabSelected}"/><Button Classes="treegit_bottom_tab" Content="{DynamicResource Text.TreeGit.Tabs.History}" Click="OnShowHistory" Classes.active="{Binding IsHistoryTabSelected}"/><Button Classes="treegit_bottom_tab" Content="{DynamicResource Text.TreeGit.Search}" Click="OnShowSearch" Classes.active="{Binding IsSearchTabSelected}"/></StackPanel></Grid></Grid>
         </Grid>
       </Border>
     </Border>

@@ -10,7 +10,6 @@
                     Title="{DynamicResource Text.Askpass}"
                     SizeToContent="WidthAndHeight"
                     CanResize="False"
-                    Topmost="True"
                     ShowActivated="True"
                     WindowStartupLocation="CenterScreen">
   <Grid RowDefinitions="Auto,*">
@@ -42,16 +41,16 @@
       </Border>
 
       <StackPanel x:Name="UsernameSection" Margin="16,12,16,0" Spacing="6" IsVisible="False">
-        <TextBlock Text="账号"/>
-        <TextBox x:Name="TxtUsername" Height="32" Watermark="用户名 / Username"/>
-        <TextBlock Text="密码（可留空）" Margin="0,6,0,0"/>
+        <TextBlock Text="{DynamicResource Text.TreeGit.Credentials.Username}"/>
+        <TextBox x:Name="TxtUsername" Height="32" Watermark="{DynamicResource Text.TreeGit.Credentials.UsernameHint}"/>
+        <TextBlock Text="{DynamicResource Text.TreeGit.Credentials.OptionalPassword}" Margin="0,6,0,0"/>
       </StackPanel>
 
       <TextBox x:Name="TxtPassphrase"
                Margin="16"
                MinWidth="300"
                Height="32"
-               Watermark="密码 / Password"
+               Watermark="{DynamicResource Text.TreeGit.Credentials.PasswordHint}"
                Focusable="True"
                PasswordChar="*"
                RevealPassword="{Binding #ToggleShowPassword.IsChecked, Mode=OneWay}"
@@ -60,7 +59,7 @@
           <ToggleButton Grid.Column="6"
                         x:Name="ToggleShowPassword"
                         Classes="toggle_untracked"
-                        ToolTip.Tip="显示 / 隐藏密码"
+                        ToolTip.Tip="{DynamicResource Text.TreeGit.Credentials.TogglePassword}"
                         Width="26" Height="14"/>
         </TextBox.InnerRightContent>
       </TextBox>

@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using Avalonia;
 using Avalonia.Media.Imaging;
@@ -10,6 +11,9 @@ namespace SourceGit.Tests
 {
     internal static class AskpassProbe
     {
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetWindow(IntPtr window, uint command);
+
         public static void OnLoaded(Views.Askpass view, Action submit)
         {
             var fixture = Environment.GetEnvironmentVariable("SOURCEGIT_TEST_ASKPASS_FIXTURE");
@@ -17,8 +21,14 @@ namespace SourceGit.Tests
                 return;
             using var document = JsonDocument.Parse(File.ReadAllText(fixture));
             var value = document.RootElement;
-            if (!view.Topmost || !view.ShowActivated)
-                throw new InvalidOperationException("The authentication prompt must stay on top and activate when shown.");
+            if (view.Topmost || !view.ShowActivated)
+                throw new InvalidOperationException("Authentication must activate without covering other applications.");
+            if (OperatingSystem.IsWindows() && long.TryParse(Environment.GetEnvironmentVariable("TREEGIT_AUTH_OWNER_WINDOW"), out var owner))
+            {
+                if (GetWindow(view.TryGetPlatformHandle().Handle, 4 /* GW_OWNER */).ToInt64() != owner)
+                    throw new InvalidOperationException("The authentication prompt lost its verified TreeGit owner.");
+                File.AppendAllText(fixture + ".events", "owner-verified\n");
+            }
             if (view.IsCredentialPrompt)
             {
                 if (!view.UsernameSection.IsVisible || !view.TxtUsername.IsEffectivelyVisible || !view.TxtPassphrase.IsEffectivelyVisible)
@@ -31,7 +41,7 @@ namespace SourceGit.Tests
                 view.TxtPassphrase.Text = attempt.GetProperty("password").GetString();
                 if (view.ValidationMessage.IsVisible && view.ValidationMessage.Text.Contains("重新输入", StringComparison.Ordinal))
                     File.AppendAllText(fixture + ".events", "retry-message\n");
-                File.AppendAllText(fixture + ".events", "combined-dialog\ntopmost-combined-dialog\n");
+                File.AppendAllText(fixture + ".events", "combined-dialog\nscoped-combined-dialog\n");
                 Dispatcher.UIThread.Post(() =>
                 {
                     if (!File.Exists(fixture + ".png"))
@@ -54,7 +64,7 @@ namespace SourceGit.Tests
             }
             var username = view.TxtDescription.Text.StartsWith("Username", StringComparison.OrdinalIgnoreCase);
             File.AppendAllText(fixture + ".events", username ? "username-dialog\n" : "password-dialog\n");
-            File.AppendAllText(fixture + ".events", username ? "topmost-username-dialog\n" : "topmost-password-dialog\n");
+            File.AppendAllText(fixture + ".events", username ? "scoped-username-dialog\n" : "scoped-password-dialog\n");
             view.TxtPassphrase.Text = value.GetProperty(username ? "username" : "password").GetString();
             Dispatcher.UIThread.Post(submit, DispatcherPriority.Background);
         }

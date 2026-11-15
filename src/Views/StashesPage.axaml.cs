@@ -112,7 +112,7 @@ namespace SourceGit.Views
                 var options = new FilePickerSaveOptions();
                 options.Title = App.Text("StashCM.SaveAsPatch");
                 options.DefaultExtension = ".patch";
-                options.FileTypeChoices = [new FilePickerFileType("Patch File") { Patterns = ["*.patch"] }];
+                options.FileTypeChoices = [new FilePickerFileType(App.Text("TreeGit.Message.PatchFile")) { Patterns = ["*.patch"] }];
 
                 try
                 {
@@ -122,7 +122,7 @@ namespace SourceGit.Views
                 }
                 catch (Exception exception)
                 {
-                    Models.Notification.Send(null, $"Failed to save as patch: {exception.Message}", true);
+                    Models.Notification.Send(null, App.Text("TreeGit.Message.PatchSaveFailed", exception.Message), true);
                 }
 
                 ev.Handled = true;

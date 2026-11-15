@@ -101,6 +101,7 @@ namespace SourceGit.Views
         protected override void OnOpened(EventArgs e)
         {
             base.OnOpened(e);
+            if (OperatingSystem.IsWindows()) Native.Windows.RegisterAuthenticationOwner(this);
             Native.StartupTrace.Mark("opened", true);
             (DataContext as ViewModels.Launcher)?.LoadDeferredRepositories();
 
@@ -116,6 +117,8 @@ namespace SourceGit.Views
             {
                 var state = (WindowState)change.NewValue!;
                 _lastWindowState = (WindowState)change.OldValue!;
+                if (state == WindowState.Minimized && PrimaryMenu != null)
+                    ClosePrimaryMenus();
 
                 if (!OperatingSystem.IsMacOS() && !UseSystemWindowFrame)
                     CaptionHeight = new GridLength(state == WindowState.Maximized ? 64 : 68);

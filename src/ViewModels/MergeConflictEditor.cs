@@ -16,14 +16,14 @@ namespace SourceGit.ViewModels
         public string FilePath => _filePath;
         public string RepositoryPath => _repo.FullPath;
         public object Mine { get; }
-        public object Theirs { get; }
+        public object Theirs => _theirsTextKey == null ? _theirs : App.Text(_theirsTextKey);
         public TextDocument ResultDocument => _buffer?.Document;
         public bool IsRebase { get; }
         public List<Models.ConflictLine> OursLines => (IsRebase ? _comparison?.Remote : _comparison?.Local) ?? [];
         public List<Models.ConflictLine> BaseLines => _comparison?.Base ?? [];
         public List<Models.ConflictLine> TheirsLines => (IsRebase ? _comparison?.Local : _comparison?.Remote) ?? [];
         public IReadOnlyList<Models.MergeConflictRange> ComparisonRanges => _comparison?.Ranges ?? [];
-        public string BaseHint => _baseHint;
+        public string BaseHint => string.IsNullOrEmpty(_baseHint) ? string.Empty : App.Text(_baseHint);
         public string BaseSample => _baseText == null ? string.Empty : _baseText[..Math.Min(4096, _baseText.Length)];
         public IReadOnlyList<Models.ConflictRegion> ConflictRegions => _buffer?.Regions ?? [];
         public int MaxLineNumber => Math.Max(OursLines.Count, TheirsLines.Count);
@@ -62,7 +62,7 @@ namespace SourceGit.ViewModels
             return index;
         }
 
-        public string Error { get => _error; private set => SetProperty(ref _error, value); }
+        public string Error { get => string.IsNullOrEmpty(_error) ? string.Empty : App.Text(_error); private set => SetProperty(ref _error, value); }
         public bool IsSaving { get => _isSaving; private set { if (SetProperty(ref _isSaving, value)) NotifyState(); } }
         public Vector ScrollOffset { get => _scrollOffset; set => SetProperty(ref _scrollOffset, value); }
 
@@ -85,7 +85,7 @@ namespace SourceGit.ViewModels
                 }
                 catch (Exception ex) when (ex is DecoderFallbackException or EncoderFallbackException or FormatException)
                 {
-                    Error = App.Text("MergeConflictEditor.InvalidEncoding");
+                    Error = "MergeConflictEditor.InvalidEncoding";
                     OnPropertyChanged(nameof(SelectedEncoding));
                 }
             }
@@ -96,7 +96,7 @@ namespace SourceGit.ViewModels
             _repo = repo;
             _filePath = filePath;
             IsRebase = InProgressContext.IsRebasing(repo.GitDir);
-            (Mine, Theirs) = repo.InProgressContext switch
+            (Mine, _theirs) = repo.InProgressContext switch
             {
                 CherryPickInProgress cherryPick => (head, cherryPick.Head),
                 RebaseInProgress rebase => (rebase.StoppedAt, head),
@@ -104,23 +104,29 @@ namespace SourceGit.ViewModels
                 MergeInProgress merge => (head, merge.Source),
                 _ => (head, (object)App.Text("Conflict.StashOrPatch")),
             };
+            _theirsTextKey = repo.InProgressContext switch
+            {
+                RevertInProgress => "Conflict.RevertVersion",
+                CherryPickInProgress or RebaseInProgress or MergeInProgress => null,
+                _ => "Conflict.StashOrPatch",
+            };
             try
             {
                 var path = CheckedPath();
-                if (new FileInfo(path).Length > Models.MergeConflictTextFile.MaxBytes) { Error = App.Text("MergeConflictEditor.TooLarge"); return; }
+                if (new FileInfo(path).Length > Models.MergeConflictTextFile.MaxBytes) { Error = "MergeConflictEditor.TooLarge"; return; }
                 _expectedBytes = File.ReadAllBytes(path);
                 _expectedIndex = new Commands.QueryConflictEntries(repo.FullPath, filePath).GetResult();
-                if (string.IsNullOrEmpty(_expectedIndex)) { Error = App.Text("MergeConflictEditor.StateChanged"); return; }
+                if (string.IsNullOrEmpty(_expectedIndex)) { Error = "MergeConflictEditor.StateChanged"; return; }
                 try
                 {
                     var bytes = new Commands.QueryConflictBase(repo.FullPath, _expectedIndex).GetResult();
                     if (bytes != null) _baseText = Models.MergeConflictTextFile.Read(bytes).Text;
-                    else _baseHint = App.Text("MergeConflictEditor.EmptyBase");
+                    else _baseHint = "MergeConflictEditor.EmptyBase";
                 }
                 catch (Exception ex)
                 {
                     Native.OS.LogException(ex);
-                    _baseHint = App.Text("MergeConflictEditor.BaseUnavailable");
+                    _baseHint = "MergeConflictEditor.BaseUnavailable";
                 }
                 _oursFinalNewline = ReadFinalNewline(2);
                 _theirsFinalNewline = ReadFinalNewline(3);
@@ -129,7 +135,7 @@ namespace SourceGit.ViewModels
             catch (Exception ex)
             {
                 Native.OS.LogException(ex);
-                Error = App.Text("MergeConflictEditor.CannotOpen");
+                Error = "MergeConflictEditor.CannotOpen";
             }
         }
 
@@ -170,10 +176,15 @@ namespace SourceGit.ViewModels
 
         public void ClearErrorMessage() => Error = string.Empty;
 
+        public void RefreshLocalizedText()
+        {
+            foreach (var name in new[] { nameof(Error), nameof(BaseHint), nameof(Theirs), nameof(UnsolvedCount) }) OnPropertyChanged(name);
+        }
+
         public async Task<bool> SaveAndStageAsync()
         {
             if (_buffer == null || IsSaving) return false;
-            if (UnsolvedCount > 0) { Error = App.Text("MergeConflictEditor.StillUnresolved"); return false; }
+            if (UnsolvedCount > 0) { Error = "MergeConflictEditor.StillUnresolved"; return false; }
             IsSaving = true;
             using var watcher = _repo.LockWatcher();
             var log = _repo.CreateLog($"Resolve '{_filePath}'");
@@ -181,11 +192,11 @@ namespace SourceGit.ViewModels
             try
             {
                 var path = CheckedPath();
-                if ((File.GetAttributes(path) & FileAttributes.ReadOnly) != 0) { Error = App.Text("MergeConflictEditor.ReadOnly"); return false; }
+                if ((File.GetAttributes(path) & FileAttributes.ReadOnly) != 0) { Error = "MergeConflictEditor.ReadOnly"; return false; }
                 var current = await File.ReadAllBytesAsync(path);
-                if (!current.AsSpan().SequenceEqual(_expectedBytes)) { Error = App.Text("MergeConflictEditor.FileChanged"); return false; }
+                if (!current.AsSpan().SequenceEqual(_expectedBytes)) { Error = "MergeConflictEditor.FileChanged"; return false; }
                 if (await new Commands.QueryConflictEntries(_repo.FullPath, _filePath).GetResultAsync() != _expectedIndex)
-                { Error = App.Text("MergeConflictEditor.StateChanged"); return false; }
+                { Error = "MergeConflictEditor.StateChanged"; return false; }
 
                 var content = _outputCodec.Encode(ResultDocument.Text);
                 temporary = Path.Combine(Path.GetDirectoryName(path), "." + Path.GetFileName(path) + ".treegit-merge-" + Guid.NewGuid().ToString("N"));
@@ -196,9 +207,9 @@ namespace SourceGit.ViewModels
                 }
                 if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(temporary, File.GetUnixFileMode(path));
                 if (!(await File.ReadAllBytesAsync(path)).AsSpan().SequenceEqual(_expectedBytes))
-                { Error = App.Text("MergeConflictEditor.FileChanged"); return false; }
+                { Error = "MergeConflictEditor.FileChanged"; return false; }
                 if (await new Commands.QueryConflictEntries(_repo.FullPath, _filePath).GetResultAsync() != _expectedIndex)
-                { Error = App.Text("MergeConflictEditor.StateChanged"); return false; }
+                { Error = "MergeConflictEditor.StateChanged"; return false; }
                 File.Replace(temporary, path, null);
                 temporary = null;
                 _expectedBytes = content;
@@ -209,15 +220,15 @@ namespace SourceGit.ViewModels
                 };
                 var staged = await command.Use(log).ExecAsync();
                 _repo.MarkWorkingCopyDirtyManually();
-                if (!staged) { Error = App.Text("MergeConflictEditor.StageFailed"); return false; }
+                if (!staged) { Error = "MergeConflictEditor.StageFailed"; return false; }
                 return true;
             }
-            catch (EncoderFallbackException) { Error = App.Text("MergeConflictEditor.Unencodable"); return false; }
-            catch (ArgumentOutOfRangeException) { Error = App.Text("MergeConflictEditor.TooLarge"); return false; }
+            catch (EncoderFallbackException) { Error = "MergeConflictEditor.Unencodable"; return false; }
+            catch (ArgumentOutOfRangeException) { Error = "MergeConflictEditor.TooLarge"; return false; }
             catch (Exception ex)
             {
                 Native.OS.LogException(ex);
-                Error = App.Text("MergeConflictEditor.SaveFailed");
+                Error = "MergeConflictEditor.SaveFailed";
                 return false;
             }
             finally
@@ -290,6 +301,8 @@ namespace SourceGit.ViewModels
         }
 
         private readonly Repository _repo;
+        private readonly object _theirs;
+        private readonly string _theirsTextKey;
         private readonly string _filePath;
         private Models.MergeConflictDocument _buffer;
         private Models.MergeConflictComparison _comparison;

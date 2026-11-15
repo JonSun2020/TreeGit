@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 using Avalonia;
 using Avalonia.Collections;
@@ -10,6 +11,7 @@ using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.VisualTree;
@@ -260,7 +262,8 @@ namespace SourceGit.Views
                 if (DataContext is not Models.Branch branch)
                     break;
 
-                if (e.Root is not PopupRoot { Parent: Popup { Parent: Border owner } })
+                var popup = (e.Root as PopupRoot)?.Parent as Popup ?? this.GetLogicalAncestors().OfType<Popup>().FirstOrDefault();
+                if (popup?.Parent is not Border owner)
                     break;
 
                 var tree = owner.FindAncestorOfType<BranchTree>();
@@ -330,15 +333,15 @@ namespace SourceGit.Views
             InitializeComponent();
         }
 
-        public void Select(Models.Branch branch, bool navigateToTip = true)
+        public void Select(Models.Branch branch, bool navigateToTip = true, bool expandAncestors = true)
         {
             var previous = _suppressNavigation;
             _suppressNavigation |= !navigateToTip;
-            try { SelectCore(branch); }
+            try { SelectCore(branch, expandAncestors); }
             finally { _suppressNavigation = previous; }
         }
 
-        private void SelectCore(Models.Branch branch)
+        private void SelectCore(Models.Branch branch, bool expandAncestors)
         {
             if (branch == null)
                 return;
@@ -347,6 +350,8 @@ namespace SourceGit.Views
             FindTreePath(treePath, _nodes, branch.FullName);
 
             if (treePath.Count == 0)
+                return;
+            if (!expandAncestors && treePath.Exists(node => node.Children.Count > 0 && !node.IsExpanded))
                 return;
 
             var oldRowCount = Rows.Count;
@@ -384,39 +389,17 @@ namespace SourceGit.Views
             var names = new HashSet<string>(StringComparer.Ordinal);
             if (details != null)
                 foreach (var branch in details.Coverage.Branches) names.Add(branch.FullName);
-            var expand = new List<ViewModels.BranchTreeNode>();
-            ViewModels.BranchTreeNode primary = null;
             bool Update(ViewModels.BranchTreeNode node)
             {
                 var level = node.Backend is Models.Branch branch && names.Contains(branch.FullName)
-                    ? branch.FullName == details?.Primary?.FullName ? 2 : 1 : 0;
-                node.SetCommitHighlight(details != null, level, details?.IsInferred == true);
-                if (level == 2) primary = node;
+                    ? details.Coverage.IsPrimaryBranch(branch) ? 2 : 1 : 0;
                 var covered = level > 0;
                 foreach (var child in node.Children) covered |= Update(child);
-                if (covered && node.Children.Count > 0 && !node.IsExpanded) expand.Add(node);
+                if (!node.IsBranch) level = covered && !node.IsExpanded ? 1 : 0;
+                node.SetCommitHighlight(details != null, level, details?.IsInferred == true);
                 return covered;
             }
             foreach (var node in _nodes) Update(node);
-            var wasSuppressed = _suppressNavigation;
-            _suppressNavigation = true;
-            try
-            {
-                // Parents precede their children when the post-order list is reversed.
-                for (var i = expand.Count - 1; i >= 0; i--)
-                {
-                    var node = expand[i];
-                    node.IsExpanded = true;
-                    var index = Rows.IndexOf(node);
-                    if (index < 0) continue;
-                    var children = new List<ViewModels.BranchTreeNode>();
-                    MakeRows(children, node.Children, node.Depth + 1);
-                    Rows.InsertRange(index + 1, children);
-                }
-            }
-            finally { _suppressNavigation = wasSuppressed; }
-            if (expand.Count > 0) RaiseEvent(new RoutedEventArgs(RowsChangedEvent));
-            if (primary != null) BranchesPresenter.ScrollIntoView(primary);
         }
 
         public void ToggleNodeIsExpanded(ViewModels.BranchTreeNode node)
@@ -453,6 +436,7 @@ namespace SourceGit.Views
 
             var repo = DataContext as ViewModels.Repository;
             repo?.UpdateBranchNodeIsExpanded(node);
+            SetCommitHighlights(repo?.SidebarCommitBranches);
 
             RaiseEvent(new RoutedEventArgs(RowsChangedEvent));
             _disableSelectionChangingEvent = false;
@@ -479,13 +463,6 @@ namespace SourceGit.Views
                 if (BranchesPresenter.SelectedItems != null)
                     foreach (var item in BranchesPresenter.SelectedItems)
                         if (item is ViewModels.BranchTreeNode node) selectedPaths.Add(SelectionKey(node));
-                bool ExpandSelectionPath(ViewModels.BranchTreeNode node)
-                {
-                    var contains = selectedPaths.Contains(SelectionKey(node));
-                    foreach (var child in node.Children) contains |= ExpandSelectionPath(child);
-                    if (contains && node.Children.Count > 0) node.IsExpanded = true;
-                    return contains;
-                }
                 var previous = _suppressNavigation;
                 _suppressNavigation = true;
                 try
@@ -493,7 +470,6 @@ namespace SourceGit.Views
                     Rows.Clear();
                     if (_nodes is { Count: > 0 })
                     {
-                        foreach (var node in _nodes) ExpandSelectionPath(node);
                         var rows = new List<ViewModels.BranchTreeNode>();
                         MakeRows(rows, _nodes, 0);
                         Rows.AddRange(rows);
@@ -564,7 +540,7 @@ namespace SourceGit.Views
             if (selected == null || selected.Count == 0)
                 return;
 
-            if (!_suppressNavigation)
+            if (!_suppressNavigation && selected.OfType<ViewModels.BranchTreeNode>().Any(n => n.IsBranch))
             {
                 repo.CancelHistoryNavigation();
                 repo.ClearCommitBranchHighlights();

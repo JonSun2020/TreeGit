@@ -8,9 +8,9 @@
   </UserControl.Styles>
   <v:SplitViewGrid>
     <Grid.ColumnDefinitions>
-      <ColumnDefinition Width="{Binding Source={x:Static vm:Preferences.Instance}, Path=Layout.CommitDetailChangesLeftWidth, Mode=TwoWay}" MinWidth="200"/>
+      <ColumnDefinition Width="{Binding Repository.ChangesPanelWidth, Mode=TwoWay}" MinWidth="300"/>
       <ColumnDefinition Width="4"/>
-      <ColumnDefinition Width="*" MinWidth="220"/>
+      <ColumnDefinition Width="*" MinWidth="470"/>
     </Grid.ColumnDefinitions>
 
     <Grid x:Name="CommitFilesPanel" Grid.Column="0" RowDefinitions="Auto,26,*,26">

@@ -6,6 +6,7 @@ namespace SourceGit.Commands
 {
     public class QueryTags : Command
     {
+        public bool Succeeded { get; private set; }
         public QueryTags(string repo)
         {
             _boundary = $"----- BOUNDARY OF TAGS {Guid.NewGuid()} -----";
@@ -17,6 +18,7 @@ namespace SourceGit.Commands
 
         public async Task<List<Models.Tag>> GetResultAsync()
         {
+            Succeeded = false;
             var tags = new List<Models.Tag>();
             var rs = await ReadToEndAsync().ConfigureAwait(false);
             if (!rs.IsSuccess)
@@ -47,6 +49,7 @@ namespace SourceGit.Commands
                 });
             }
 
+            Succeeded = true;
             return tags;
         }
 

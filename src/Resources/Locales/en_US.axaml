@@ -197,7 +197,7 @@
   <x:String x:Key="Text.CommitDetail.Files.Tips" xml:space="preserve">SELECT FILE TO VIEW CONTENT</x:String>
   <x:String x:Key="Text.CommitDetail.Info" xml:space="preserve">INFORMATION</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Author" xml:space="preserve">AUTHOR</x:String>
-  <x:String x:Key="Text.CommitDetail.Info.Committer" xml:space="preserve">COMMITTER:</x:String>
+  <x:String x:Key="Text.CommitDetail.Info.Committer" xml:space="preserve">Committer: </x:String>
   <x:String x:Key="Text.CommitDetail.Info.ContainsIn" xml:space="preserve">Check refs that contains this commit</x:String>
   <x:String x:Key="Text.CommitDetail.Info.ContainsIn.Title" xml:space="preserve">COMMIT IS CONTAINED BY</x:String>
   <x:String x:Key="Text.CommitDetail.Info.CopyEmail" xml:space="preserve">Copy Email</x:String>
@@ -206,7 +206,7 @@
   <x:String x:Key="Text.CommitDetail.Info.GotoChangesPage" xml:space="preserve">Shows only the first 100 changes. See all changes on the CHANGES tab.</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Key" xml:space="preserve">Key:</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Message" xml:space="preserve">MESSAGE</x:String>
-  <x:String x:Key="Text.CommitDetail.Info.Parents" xml:space="preserve">PARENTS:</x:String>
+  <x:String x:Key="Text.CommitDetail.Info.Parents" xml:space="preserve">Parent: </x:String>
   <x:String x:Key="Text.CommitDetail.Info.Refs" xml:space="preserve">REFS</x:String>
   <x:String x:Key="Text.CommitDetail.Info.SHA" xml:space="preserve">SHA</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Signer" xml:space="preserve">Signer:</x:String>
@@ -651,7 +651,7 @@
   <x:String x:Key="Text.OpenAppDataDir.Cache" xml:space="preserve">Cache</x:String>
   <x:String x:Key="Text.OpenAppDataDir.Config" xml:space="preserve">Config</x:String>
   <x:String x:Key="Text.OpenFile" xml:space="preserve">Open File</x:String>
-  <x:String x:Key="Text.OpenInExternalMergeTool" xml:space="preserve">Open in External Merge Tool</x:String>
+  <x:String x:Key="Text.OpenInExternalMergeTool" xml:space="preserve">Open with comparison tool</x:String>
   <x:String x:Key="Text.OpenLocalRepository" xml:space="preserve">Open Local Repository</x:String>
   <x:String x:Key="Text.OpenLocalRepository.Bookmark" xml:space="preserve">Bookmark:</x:String>
   <x:String x:Key="Text.OpenLocalRepository.Group" xml:space="preserve">Group:</x:String>
@@ -1124,7 +1124,7 @@ Manually add a branch/tag history filter will disable this feature automatically
   <x:String x:Key="Text.WorkingCopy.ConfirmCommitWithFilter">You have staged {0} file(s) but only {1} file(s) displayed ({2} files are filtered out). Do you want to continue?</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts" xml:space="preserve">CONFLICTS DETECTED</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.Merge" xml:space="preserve">Edit merge result</x:String>
-  <x:String x:Key="Text.WorkingCopy.Conflicts.MergeExternal" xml:space="preserve">Merge with External Tool</x:String>
+  <x:String x:Key="Text.WorkingCopy.Conflicts.MergeExternal" xml:space="preserve">Edit with selected merge tool</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.OpenExternalMergeToolAllConflicts" xml:space="preserve">OPEN ALL CONFLICTS IN EXTERNAL MERGETOOL</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.Resolved" xml:space="preserve">FILE CONFLICTS ARE RESOLVED</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.UseMine" xml:space="preserve">Use Local</x:String>
@@ -1187,7 +1187,7 @@ Manually add a branch/tag history filter will disable this feature automatically
   <x:String x:Key="Text.Graph.AllBranches">All branches</x:String>
   <x:String x:Key="Text.Graph.OnlyBranch">Current branch</x:String>
   <x:String x:Key="Text.Graph.MergedHistory">Selected branch with merges</x:String>
-<x:String x:Key="Text.Options.ResetMode.soft.Name">Soft</x:String><x:String x:Key="Text.Options.ResetMode.soft.Desc">Keep index and working tree</x:String><x:String x:Key="Text.Options.ResetMode.mixed.Name">Mixed</x:String><x:String x:Key="Text.Options.ResetMode.mixed.Desc">Keep working tree; reset index</x:String><x:String x:Key="Text.Options.ResetMode.merge.Name">Merge</x:String><x:String x:Key="Text.Options.ResetMode.merge.Desc">Keep unstaged changes; abort on conflicts</x:String><x:String x:Key="Text.Options.ResetMode.keep.Name">Keep</x:String><x:String x:Key="Text.Options.ResetMode.keep.Desc">Keep local modifications; abort on conflicts</x:String><x:String x:Key="Text.Options.ResetMode.hard.Name">Hard</x:String><x:String x:Key="Text.Options.ResetMode.hard.Desc">Discard tracked index and working-tree changes</x:String><x:String x:Key="Text.Options.MergeMode.default.Name">Default</x:String><x:String x:Key="Text.Options.MergeMode.default.Desc">Use Git configuration</x:String><x:String x:Key="Text.Options.MergeMode.ff-only.Name">Fast-forward</x:String><x:String x:Key="Text.Options.MergeMode.ff-only.Desc">Refuse if fast-forward is not possible</x:String><x:String x:Key="Text.Options.MergeMode.no-ff.Name">No fast-forward</x:String><x:String x:Key="Text.Options.MergeMode.no-ff.Desc">Always create a merge commit</x:String><x:String x:Key="Text.Options.MergeMode.squash.Name">Squash</x:String><x:String x:Key="Text.Options.MergeMode.squash.Desc">Combine changes without creating a merge commit</x:String><x:String x:Key="Text.Options.MergeMode.no-ff_no-commit.Name">Do not commit</x:String><x:String x:Key="Text.Options.MergeMode.no-ff_no-commit.Desc">Merge changes without committing</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.nowarn.Name">No warning</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.nowarn.Desc">Disable trailing whitespace warnings</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.warn.Name">Warn</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.warn.Desc">Warn but continue applying the patch</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.error.Name">Error</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.error.Desc">Reject a patch with whitespace errors</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.error-all.Name">All errors</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.error-all.Desc">Reject and show all whitespace errors</x:String><x:String x:Key="Text.Options.CRLFMode.true.Name">TRUE</x:String><x:String x:Key="Text.Options.CRLFMode.true.Desc">Commit as LF; check out as CRLF</x:String><x:String x:Key="Text.Options.CRLFMode.input.Name">INPUT</x:String><x:String x:Key="Text.Options.CRLFMode.input.Desc">Convert line endings only when committing</x:String><x:String x:Key="Text.Options.CRLFMode.false.Name">FALSE</x:String><x:String x:Key="Text.Options.CRLFMode.false.Desc">Do not convert line endings</x:String><x:String x:Key="Text.Options.MergeStrategy.default.Name">Default</x:String><x:String x:Key="Text.Options.MergeStrategy.default.Desc">Let Git select a strategy</x:String><x:String x:Key="Text.Options.MergeStrategy.octopus.Name">Octopus</x:String><x:String x:Key="Text.Options.MergeStrategy.octopus.Desc">Merge multiple branch heads</x:String><x:String x:Key="Text.Options.MergeStrategy.ours.Name">Ours</x:String><x:String x:Key="Text.Options.MergeStrategy.ours.Desc">Record merge without changing this tree</x:String><x:String x:Key="Text.Option.TextBox">Text box</x:String><x:String x:Key="Text.Option.PathSelector">Path selector</x:String><x:String x:Key="Text.Option.CheckBox">Check box</x:String><x:String x:Key="Text.Option.ComboBox">Drop-down list</x:String><x:String x:Key="Text.Option.LocalBranch">Local branch selector</x:String><x:String x:Key="Text.Option.RemoteBranch">Remote branch selector</x:String><x:String x:Key="Text.Common.LocalOnly">Local only</x:String><x:String x:Key="Text.Common.Global">Global</x:String><x:String x:Key="Text.Common.None">(none)</x:String><x:String x:Key="Text.Conflict.MineLabel">Local</x:String><x:String x:Key="Text.Conflict.TheirsLabel">Remote</x:String><x:String x:Key="Text.CommitChanges.CommitLabel">Commit: </x:String><x:String x:Key="Text.CommitChanges.AuthorLabel">Author: </x:String><x:String x:Key="Text.CommitChanges.DateLabel">Date: </x:String><x:String x:Key="Text.Diff.ImageLabel">IMAGE</x:String><x:String x:Key="Text.StashChanges.StagedHint">--staged. For a partly staged file, its unstaged part is also stashed.</x:String>  <x:String x:Key="Text.PreferenceRecovery.Backup" xml:space="preserve">Your settings could not be read. TreeGit started with defaults and kept a backup in the data folder.</x:String>
+<x:String x:Key="Text.Options.ResetMode.soft.Name">Soft</x:String><x:String x:Key="Text.Options.ResetMode.soft.Desc">Keep index and working tree</x:String><x:String x:Key="Text.Options.ResetMode.mixed.Name">Mixed</x:String><x:String x:Key="Text.Options.ResetMode.mixed.Desc">Keep working tree; reset index</x:String><x:String x:Key="Text.Options.ResetMode.merge.Name">Merge</x:String><x:String x:Key="Text.Options.ResetMode.merge.Desc">Keep unstaged changes; abort on conflicts</x:String><x:String x:Key="Text.Options.ResetMode.keep.Name">Keep</x:String><x:String x:Key="Text.Options.ResetMode.keep.Desc">Keep local modifications; abort on conflicts</x:String><x:String x:Key="Text.Options.ResetMode.hard.Name">Hard</x:String><x:String x:Key="Text.Options.ResetMode.hard.Desc">Discard tracked index and working-tree changes</x:String><x:String x:Key="Text.Options.MergeMode.default.Name">Default</x:String><x:String x:Key="Text.Options.MergeMode.default.Desc">Use Git configuration</x:String><x:String x:Key="Text.Options.MergeMode.ff-only.Name">Fast-forward</x:String><x:String x:Key="Text.Options.MergeMode.ff-only.Desc">Refuse if fast-forward is not possible</x:String><x:String x:Key="Text.Options.MergeMode.no-ff.Name">No fast-forward</x:String><x:String x:Key="Text.Options.MergeMode.no-ff.Desc">Always create a merge commit</x:String><x:String x:Key="Text.Options.MergeMode.squash.Name">Squash</x:String><x:String x:Key="Text.Options.MergeMode.squash.Desc">Combine changes without creating a merge commit</x:String><x:String x:Key="Text.Options.MergeMode.no-ff_no-commit.Name">Do not commit</x:String><x:String x:Key="Text.Options.MergeMode.no-ff_no-commit.Desc">Merge changes without committing</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.nowarn.Name">No warning</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.nowarn.Desc">Disable trailing whitespace warnings</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.warn.Name">Warn</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.warn.Desc">Warn but continue applying the patch</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.error.Name">Error</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.error.Desc">Reject a patch with whitespace errors</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.error-all.Name">All errors</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.error-all.Desc">Reject and show all whitespace errors</x:String><x:String x:Key="Text.Options.CRLFMode.true.Name">TRUE</x:String><x:String x:Key="Text.Options.CRLFMode.true.Desc">Commit as LF; check out as CRLF</x:String><x:String x:Key="Text.Options.CRLFMode.input.Name">INPUT</x:String><x:String x:Key="Text.Options.CRLFMode.input.Desc">Convert line endings only when committing</x:String><x:String x:Key="Text.Options.CRLFMode.false.Name">FALSE</x:String><x:String x:Key="Text.Options.CRLFMode.false.Desc">Do not convert line endings</x:String><x:String x:Key="Text.Options.MergeStrategy.default.Name">Default</x:String><x:String x:Key="Text.Options.MergeStrategy.default.Desc">Let Git select a strategy</x:String><x:String x:Key="Text.Options.MergeStrategy.octopus.Name">Octopus</x:String><x:String x:Key="Text.Options.MergeStrategy.octopus.Desc">Merge multiple branch heads</x:String><x:String x:Key="Text.Options.MergeStrategy.ours.Name">Ours</x:String><x:String x:Key="Text.Options.MergeStrategy.ours.Desc">Record merge without changing this tree</x:String><x:String x:Key="Text.Option.TextBox">Text box</x:String><x:String x:Key="Text.Option.PathSelector">Path selector</x:String><x:String x:Key="Text.Option.CheckBox">Check box</x:String><x:String x:Key="Text.Option.ComboBox">Drop-down list</x:String><x:String x:Key="Text.Option.LocalBranch">Local branch selector</x:String><x:String x:Key="Text.Option.RemoteBranch">Remote branch selector</x:String><x:String x:Key="Text.Common.LocalOnly">Local only</x:String><x:String x:Key="Text.Common.Global">Global</x:String><x:String x:Key="Text.Common.None">(none)</x:String><x:String x:Key="Text.Conflict.MineLabel">Local</x:String><x:String x:Key="Text.Conflict.TheirsLabel">Remote</x:String><x:String x:Key="Text.CommitChanges.CommitLabel" xml:space="preserve">Commit: </x:String><x:String x:Key="Text.CommitChanges.AuthorLabel" xml:space="preserve">Author: </x:String><x:String x:Key="Text.CommitChanges.DateLabel" xml:space="preserve">Date: </x:String><x:String x:Key="Text.Diff.ImageLabel">IMAGE</x:String><x:String x:Key="Text.StashChanges.StagedHint">--staged. For a partly staged file, its unstaged part is also stashed.</x:String>  <x:String x:Key="Text.PreferenceRecovery.Backup" xml:space="preserve">Your settings could not be read. TreeGit started with defaults and kept a backup in the data folder.</x:String>
   <x:String x:Key="Text.PreferenceRecovery.Readonly" xml:space="preserve">Your settings are temporarily unavailable. Changes will not be saved in this session. Close other TreeGit windows or check file access, then open TreeGit again.</x:String>
   <x:String x:Key="Text.Launcher.CloseWhileBusy">An operation is still running. Wait for it to finish, or cancel it from the operation window, then close TreeGit or this tab.</x:String>
   <x:String x:Key="Text.Repository.NoRemotes">No remote repository is configured. Add one in Repository Settings, then try again.</x:String>
@@ -1395,4 +1395,385 @@ Manually add a branch/tag history filter will disable this feature automatically
   <x:String x:Key="Text.CommitBranches.Estimated" xml:space="preserve">Inferred from the current graph: {0}</x:String>
   <x:String x:Key="Text.CommitBranches.LocalRecord" xml:space="preserve">Local commit record: {0}</x:String>
   <x:String x:Key="Text.Repository.Search.Failed" xml:space="preserve">Search could not finish. Check the input and repository, then try again. Previous results have been kept.</x:String>
+  <x:String x:Key="Text.TreeGit.PendingChanges" xml:space="preserve">Uncommitted changes</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.NoOther" xml:space="preserve">This commit has no other containing branches to show.</x:String>
+  <x:String x:Key="Text.TreeGit.CommandLogs.FailedSuffix" xml:space="preserve"> ✕ · View command log</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.Unavailable" xml:space="preserve">Branch information is unavailable. Search again.</x:String>
+  <x:String x:Key="Text.TreeGit.Config.Changed" xml:space="preserve">Another program changed the configuration. Reopen repository settings.</x:String>
+  <x:String x:Key="Text.TreeGit.Config.RestoreFailed" xml:space="preserve">Some settings could not be restored after saving failed. Check the repository configuration file.</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.ShowAll" xml:space="preserve">Show all {0} branches containing this commit</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.NotContained" xml:space="preserve">No known local or remote branch contains this commit</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.None" xml:space="preserve">No branch</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.UpdateIncomplete" xml:space="preserve">The update is not finished. Reopen TreeGit. If it still cannot open, download the package from the project page and extract it to a new folder. Your settings and repositories will be kept.</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.RecoveryPending" xml:space="preserve">The update did not finish; the previous version has been kept. Close other TreeGit windows or related terminals, then reopen TreeGit to resume recovery.</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.Incomplete" xml:space="preserve">Some TreeGit files are missing or incomplete. Extract the complete package and try again. Your settings and repositories will be kept.</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.NotWritable" xml:space="preserve">TreeGit cannot save the files it needs. Move the complete application folder to a writable location and try again.</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.OpenFailed" xml:space="preserve">TreeGit could not open normally. Try again. If the problem continues, keep your data folder and extract a fresh copy of the latest package.</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.Changed" xml:space="preserve">This branch changed. The original commit is selected; search for branches again.</x:String>
+  <x:String x:Key="Text.TreeGit.Search.CommitUnavailable" xml:space="preserve">This commit is no longer available. Search again.</x:String>
+  <x:String x:Key="Text.TreeGit.Links.InvalidName" xml:space="preserve">A commit-link name cannot be empty or contain line breaks.</x:String>
+  <x:String x:Key="Text.TreeGit.Links.DuplicateName" xml:space="preserve">Duplicate commit-link name: </x:String>
+  <x:String x:Key="Text.TreeGit.Links.InvalidPattern" xml:space="preserve">Check the commit-link pattern and URL template: </x:String>
+  <x:String x:Key="Text.TreeGit.Config.SaveFailedPrefix" xml:space="preserve">Unable to save repository settings: </x:String>
+  <x:String x:Key="Text.TreeGit.Links.SaveFailedPrefix" xml:space="preserve">Unable to save commit links: </x:String>
+  <x:String x:Key="Text.TreeGit.Branches.Title" xml:space="preserve">Branches containing this commit ({0})</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.Empty" xml:space="preserve">No known branch contains this commit</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.NoMatch" xml:space="preserve">No matching branches</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.CopyHint" xml:space="preserve">Click a branch name to copy it. Remote branches reflect the latest fetch.</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.FetchHint" xml:space="preserve">Remote branches reflect the latest fetch.</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.SelectContaining" xml:space="preserve">Select a branch that contains this commit.</x:String>
+  <x:String x:Key="Text.TreeGit.Stage.Failed" xml:space="preserve">Staging did not finish. Check free disk space and file access, then retry.</x:String>
+  <x:String x:Key="Text.TreeGit.Unstage.Failed" xml:space="preserve">Unstaging did not finish. Check free disk space and file access, then retry.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Username" xml:space="preserve">Username</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.UsernameHint" xml:space="preserve">Username</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.OptionalPassword" xml:space="preserve">Password (optional)</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.PasswordHint" xml:space="preserve">Password</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.TogglePassword" xml:space="preserve">Show / hide password</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Authentication" xml:space="preserve">Repository authentication</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Context" xml:space="preserve">Repository: {0}
+Server: {1}</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Retry" xml:space="preserve">Incorrect username or password. Try again.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.InvalidInput" xml:space="preserve">Enter a username. Username and password cannot contain line breaks or NUL characters.</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.AddressHint" xml:space="preserve">Hexadecimal address</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.First" xml:space="preserve">First difference</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.Previous" xml:space="preserve">Previous difference</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.Next" xml:space="preserve">Next difference</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.Last" xml:space="preserve">Last difference</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.GoTo" xml:space="preserve">Go to</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.SeparateWindow" xml:space="preserve">Separate window</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.Loading" xml:space="preserve">Reading and comparing binary files…</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.OldPrefix" xml:space="preserve">Old version · </x:String>
+  <x:String x:Key="Text.TreeGit.Binary.NewPrefix" xml:space="preserve">New version · </x:String>
+  <x:String x:Key="Text.TreeGit.Binary.Summary" xml:space="preserve">Old: {0:N0} bytes    New: {1:N0} bytes    Different: {2:N0} bytes · Same-offset comparison (read-only)</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.ByteCount" xml:space="preserve"> · {0:N0} bytes</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.WorkingTree" xml:space="preserve">Working tree</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.Index" xml:space="preserve">Staging area</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.WindowTitle" xml:space="preserve">TreeGit · Binary comparison</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.Offset" xml:space="preserve">Offset</x:String>
+  <x:String x:Key="Text.TreeGit.Search" xml:space="preserve">Search</x:String>
+  <x:String x:Key="Text.TreeGit.Search.Label" xml:space="preserve">Search:</x:String>
+  <x:String x:Key="Text.TreeGit.Search.Scope" xml:space="preserve">Search scope</x:String>
+  <x:String x:Key="Text.TreeGit.Search.ContainingBranches" xml:space="preserve">Branch</x:String>
+  <x:String x:Key="Text.TreeGit.History.Description" xml:space="preserve">Description</x:String>
+  <x:String x:Key="Text.TreeGit.History.Date" xml:space="preserve">Date</x:String>
+  <x:String x:Key="Text.TreeGit.History.Author" xml:space="preserve">Author</x:String>
+  <x:String x:Key="Text.TreeGit.History.Commit" xml:space="preserve">Commit</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.Local" xml:space="preserve">Local</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.Remote" xml:space="preserve">Remote</x:String>
+  <x:String x:Key="Text.TreeGit.Search.NotVisible" xml:space="preserve">This result is not visible. Scroll to its row first.</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.OpenListFirst" xml:space="preserve">Open the containing-branches list first.</x:String>
+  <x:String x:Key="Text.TreeGit.History.ShowRemotes" xml:space="preserve">Show remote branches</x:String>
+  <x:String x:Key="Text.TreeGit.History.DateOrder" xml:space="preserve">Sort by date</x:String>
+  <x:String x:Key="Text.TreeGit.History.TopoOrder" xml:space="preserve">Sort topologically</x:String>
+  <x:String x:Key="Text.TreeGit.History.Graph" xml:space="preserve">Graph</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.File" xml:space="preserve">File (F)</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.NewTab" xml:space="preserve">New tab</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.OpenClone" xml:space="preserve">Open / clone repository</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Quit" xml:space="preserve">Quit</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Edit" xml:space="preserve">Edit (E)</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Preferences" xml:space="preserve">Preferences</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Repository" xml:space="preserve">Repository (R)</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Title" xml:space="preserve">Repository settings</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Explorer" xml:space="preserve">Open in file manager</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Terminal" xml:space="preserve">Open terminal</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Actions" xml:space="preserve">Actions (A)</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Fetch" xml:space="preserve">Fetch</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Pull" xml:space="preserve">Pull</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Push" xml:space="preserve">Push</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.NewBranch" xml:space="preserve">New branch</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.NewTag" xml:space="preserve">New tag</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Advanced" xml:space="preserve">Advanced actions</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.AddSubmodule" xml:space="preserve">Add submodule</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.AddWorktree" xml:space="preserve">Add worktree</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.ApplyPatch" xml:space="preserve">Apply patch</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Bisect" xml:space="preserve">Bisect</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.GitFlow" xml:space="preserve">Git flow</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.GoToHead" xml:space="preserve">Go to current commit</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Reflog" xml:space="preserve">Recover lost commits</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.CommandLog" xml:space="preserve">Command log</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Statistics" xml:space="preserve">Statistics</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Cleanup" xml:space="preserve">Clean repository</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Tools" xml:space="preserve">Tools (T)</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Mcp" xml:space="preserve">MCP · AI connection</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.SshKeys" xml:space="preserve">SSH keys</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Credentials" xml:space="preserve">Repository credentials</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.ExternalTools" xml:space="preserve">External tools</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Help" xml:space="preserve">Help (H)</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Diagnostics" xml:space="preserve">Diagnostics and data</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Hotkeys" xml:space="preserve">Keyboard shortcuts</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.About" xml:space="preserve">About TreeGit</x:String>
+  <x:String x:Key="Text.TreeGit.Tabs.OpenRepositories" xml:space="preserve">Open repositories</x:String>
+  <x:String x:Key="Text.TreeGit.Mcp.Description" xml:space="preserve">Add the configuration below to an AI client that supports stdio MCP. AI can open repositories, inspect history and differences, and control TreeGit. Read/write access is enabled by default, including staging, committing, pushing, resetting and branch management. Operations appear in TreeGit and its command log.</x:String>
+  <x:String x:Key="Text.TreeGit.Mcp.ReadOnly" xml:space="preserve">Read-only connection (no Git writes)</x:String>
+  <x:String x:Key="Text.TreeGit.Mcp.Ready" xml:space="preserve">Local service ready · stdio · Current Windows user · No login needed</x:String>
+  <x:String x:Key="Text.TreeGit.Mcp.CopyConfig" xml:space="preserve">Copy connection configuration</x:String>
+  <x:String x:Key="Text.TreeGit.Mcp.Copied" xml:space="preserve">Connection configuration copied. Copy it again if the portable folder moves.</x:String>
+  <x:String x:Key="Text.TreeGit.Close" xml:space="preserve">Close</x:String>
+  <x:String x:Key="Text.TreeGit.Tabs.FileStatus" xml:space="preserve">File status</x:String>
+  <x:String x:Key="Text.TreeGit.Tabs.History" xml:space="preserve">Log / History</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Title" xml:space="preserve">Repository credentials</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Description" xml:space="preserve">HTTPS credentials apply only to this repository and the selected remote. Passwords and tokens are stored in Windows Credential Manager.
+Configure SSH keys in the remote settings.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.OptionalToken" xml:space="preserve">Password or access token (optional)</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.SystemAuth" xml:space="preserve">Use system authentication / OAuth (Git Credential Manager)</x:String>
+  <x:String x:Key="Text.TreeGit.Save" xml:space="preserve">Save</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Forget" xml:space="preserve">Clear saved credentials</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.SelectHttp" xml:space="preserve">Select an HTTP(S) remote. SSH remotes use their SSH key settings and automatic authentication dialog.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Exists" xml:space="preserve">Credentials are saved. Enter a new password to replace them, or clear them to be prompted next time.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.None" xml:space="preserve">No saved credentials. You can also enter them automatically on the next remote operation.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.UsernameRequired" xml:space="preserve">Enter a username; the password may be empty.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.ModeSaveFailed" xml:space="preserve">Unable to save authentication mode for this repository.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.SystemModeSaved" xml:space="preserve">System authentication / OAuth is enabled for this repository. The next network operation will start the existing authentication flow.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Saved" xml:space="preserve">Credentials saved for this repository.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Cleared" xml:space="preserve">Credentials cleared. Authentication will be requested on the next remote operation.</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.Add" xml:space="preserve">Add remote repository</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.Edit" xml:space="preserve">Edit remote repository</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.UrlHint" xml:space="preserve">HTTPS / SSH URL or local repository path</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.KeyHint" xml:space="preserve">Leave empty to use the default OpenSSH key or agent</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Name" xml:space="preserve">Name</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.Url" xml:space="preserve">Remote repository URL</x:String>
+  <x:String x:Key="Text.TreeGit.BrowseEllipsis" xml:space="preserve">Browse…</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.SelectKey" xml:space="preserve">Select SSH private key</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.OptionalKey" xml:space="preserve">SSH private key (optional)</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.Authentication" xml:space="preserve">Authentication options</x:String>
+  <x:String x:Key="Text.TreeGit.Ok" xml:space="preserve">OK</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.InvalidName" xml:space="preserve">Enter a valid remote name using letters, numbers, underscores, dots or hyphens.</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.NameExists" xml:space="preserve">A remote with this name already exists.</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.InvalidUrl" xml:space="preserve">Enter a valid remote URL or local repository path.</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.KeyMissing" xml:space="preserve">The specified SSH private key file was not found.</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.SaveFailed" xml:space="preserve">Saving failed. See the repository command log.</x:String>
+  <x:String x:Key="Text.TreeGit.Cancel" xml:space="preserve">Cancel</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Remotes" xml:space="preserve">Remote repositories</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Advanced" xml:space="preserve">Advanced</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Path" xml:space="preserve">Path</x:String>
+  <x:String x:Key="Text.TreeGit.Add" xml:space="preserve">Add</x:String>
+  <x:String x:Key="Text.TreeGit.Edit" xml:space="preserve">Edit</x:String>
+  <x:String x:Key="Text.TreeGit.Remove" xml:space="preserve">Remove</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Ignore" xml:space="preserve">Repository ignore list</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.GlobalIdentity" xml:space="preserve">Use global user settings</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.FullName" xml:space="preserve">Full name:</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Email" xml:space="preserve">Email address:</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Identity" xml:space="preserve">Committer identity</x:String>
+  <x:String x:Key="Text.TreeGit.Delete" xml:space="preserve">Delete</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.CommitLinks" xml:space="preserve">Commit text links</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Automatic" xml:space="preserve">Automatic</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.DefaultRemote" xml:space="preserve">Default remote:</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.MergeMode" xml:space="preserve">Merge mode:</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.ProxyHint" xml:space="preserve">Leave empty to inherit the global proxy</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.HttpProxy" xml:space="preserve">HTTP proxy:</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Prune" xml:space="preserve">Prune deleted remote-branch references when fetching</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.AutoRefresh" xml:space="preserve">Refresh file status automatically</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.BackgroundFetch" xml:space="preserve">Allow background fetch (requires global setting)</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.SyncMerge" xml:space="preserve">Synchronization and merge</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.SigningKeyHint" xml:space="preserve">Leave empty to use the global signing key</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.SigningKey" xml:space="preserve">Signing key:</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.SignCommits" xml:space="preserve">Sign commits</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.SignTags" xml:space="preserve">Sign tags</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Signing" xml:space="preserve">Commit and tag signing</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.ConfirmSubmodule" xml:space="preserve">Ask before automatically updating submodules</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.RecursiveSubmodule" xml:space="preserve">Update submodules recursively</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.SubmoduleUpdate" xml:space="preserve">Submodule updates</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.AddTemplate" xml:space="preserve">Add commit template</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.EditTemplate" xml:space="preserve">Edit commit template</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Content" xml:space="preserve">Content</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.Templates" xml:space="preserve">Commit templates</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.EditConfig" xml:space="preserve">Edit configuration file…</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.Remove" xml:space="preserve">Remove remote repository</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.RemovePrefix" xml:space="preserve">Remove remote configuration “</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.RemoveSuffix" xml:space="preserve">”. The remote repository and local commits will be kept.</x:String>
+  <x:String x:Key="Text.TreeGit.Links.Add" xml:space="preserve">Add commit text link</x:String>
+  <x:String x:Key="Text.TreeGit.Links.Edit" xml:space="preserve">Edit commit text link</x:String>
+  <x:String x:Key="Text.TreeGit.Links.Pattern" xml:space="preserve">Matching pattern</x:String>
+  <x:String x:Key="Text.TreeGit.Links.UrlTemplate" xml:space="preserve">URL template</x:String>
+  <x:String x:Key="Text.TreeGit.OperationIncomplete" xml:space="preserve">Operation incomplete</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.DiscardChanges" xml:space="preserve">Discard changes</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.Discard" xml:space="preserve">Discard</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.Terminal" xml:space="preserve">Terminal</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.CommandLine" xml:space="preserve">Terminal</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.Browse" xml:space="preserve">Browse</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.Explorer" xml:space="preserve">Explorer</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.Settings" xml:space="preserve">Settings</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.RepoTools" xml:space="preserve">Repository tools</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.Tools" xml:space="preserve">Tools</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.MoreActions" xml:space="preserve">More actions</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.Remotes" xml:space="preserve">Remotes</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.More" xml:space="preserve">More</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.Filter" xml:space="preserve">Filter branches</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.Current" xml:space="preserve">Currently checked out</x:String>
+  <x:String x:Key="Text.TreeGit.Stashes.Filter" xml:space="preserve">Filter stashes</x:String>
+  <x:String x:Key="Text.TreeGit.Changes.Unstaged" xml:space="preserve">Unstaged files</x:String>
+  <x:String x:Key="Text.TreeGit.Changes.StageAll" xml:space="preserve">Stage all</x:String>
+  <x:String x:Key="Text.TreeGit.Changes.StageSelected" xml:space="preserve">Stage selected</x:String>
+  <x:String x:Key="Text.TreeGit.Changes.Staged" xml:space="preserve">Staged files</x:String>
+  <x:String x:Key="Text.TreeGit.Changes.UnstageAll" xml:space="preserve">Unstage all</x:String>
+  <x:String x:Key="Text.TreeGit.Changes.UnstageSelected" xml:space="preserve">Unstage selected</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.Language" xml:space="preserve">语言/Language</x:String>
+  <x:String x:Key="Text.TreeGit.Branches.Group" xml:space="preserve">{0} ({1})</x:String>
+  <x:String x:Key="Text.TreeGit.Language.SaveFailed" xml:space="preserve">The language setting could not be saved; the previous language has been restored. Check folder write access and free disk space, then try again.</x:String>
+  <x:String x:Key="Text.TreeGit.RestartRequired" xml:space="preserve">Restart required</x:String>
+  <x:String x:Key="Text.TreeGit.ApiKey.SystemKeychain" xml:space="preserve">System Keychain</x:String>
+  <x:String x:Key="Text.TreeGit.ApiKey.PlainText" xml:space="preserve">Plain Text</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.GitConfiguration">Use Git settings</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.MergeNotSaved">The merge result was not saved or still has unresolved conflicts. Review it in TreeGit before marking it resolved.</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.CannotOpen">The selected tool could not be opened. Check its path in Preferences, or select TreeGit.</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.AddToIgnore">Adding Ignored File(s) ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.AddSubmodule">Adding submodule...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.AddRemote">Adding remote ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Apply">Apply patch...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Archive">Archiving ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.AddWorktree">Adding a new worktree ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.ApplyStash">Applying stash: {0}</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.ChangeSubmoduleUrl">Change submodule&#x27;s url...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.CheckoutAndFastForward">Checkout and Fast-Forward &#x27;{0}&#x27; ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Checkout">Checkout &#x27;{0}&#x27; ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.CheckoutAsWorktree">Checkout branch &#x27;{0}&#x27; as worktree ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.CheckoutBranchFromStash">Checkout branch from stash...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.CheckoutDetached">Checkout Commit &#x27;{0}&#x27; ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.CheckoutRemoteBranchAsWorktree">Checkout branch &#x27;{0}&#x27; as worktree ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.CherryPick">Cherry-Pick commit(s) ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Cleanup">Cleanup (GC &amp; prune) ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.ClearStashes">Clear all stashes...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Clone">Clone ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.CreateTag">Create tag...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.DeinitSubmodule">De-initialize Submodule</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.DeleteBranch">Deleting branch...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.DeleteMultipleBranches">Deleting multiple branches...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.DeleteMultipleTags">Deleting multiple tags...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.DeleteRemote">Deleting remote ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.DeleteSubmodule">Deleting submodule ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.DeleteTag">Deleting tag &#x27;{0}&#x27; ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.EditRemote">Editing remote &#x27;{0}&#x27; ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.DropStash">Dropping stash: {0}</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.ExecuteCustomAction">Run custom action ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.FetchInto">Fast-Forward ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.GitFlowFinish">Git Flow - Finish {0} ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.GitFlowStart">Git Flow - Start {0}{1} ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Init">Initialize git repository at: &#x27;{0}&#x27;</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.InitGitFlow">Init git-flow ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.LFSFetch">Fetching LFS objects from remote ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.LFSPrune">LFS prune ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.LFSPush">Push LFS objects to remote ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.LFSTrackCustomPattern">Adding custom LFS tracking pattern ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.LFSPull">Pull LFS objects from remote ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.MoveSubmodule">Moving submodule ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.PruneRemote">Run `prune` on remote ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.PruneWorktrees">Prune worktrees ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.PushRevision">Push {0} -&gt; {1} ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Push">Push {0} -&gt; {1} ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.PushTag">Pushing tag ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.RemoveWorktree">Remove worktree ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.RenameBranch">Rename &#x27;{0}&#x27;</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Reset">Reset current branch to {0} ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.ResetWithoutCheckout">Reset {0} to {1} ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Revert">Revert commit &#x27;{0}&#x27; ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.ScanRepositories">Scan repositories under &#x27;{0}&#x27; ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.ScanRepositories.Register">Registering ({0}/{1}) {2}...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.ScanRepositories.Folder">Scanning {0}...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.SetPushURL">Set PushURL for &#x27;{0}&#x27; ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.SetSubmoduleBranch">Set submodule&#x27;s branch ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.SetUpstream">Setting upstream...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.StashChanges">Stash changes ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.TrustRepository">Adding &#x27;{0}&#x27; into git global `safe.directory` ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.TrustRepository.Open">Opening &#x27;{0}&#x27; ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Discard.All">Discard all local changes ...</x:String>
+  <x:String x:Key="Text.TreeGit.Progress.Discard.Count">Discard total {0} changes ...</x:String>
+  <x:String x:Key="Text.TreeGit.Message.RemoteNameFormat" xml:space="preserve">Enter a valid remote name.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.RemoteNameExists" xml:space="preserve">A remote with this name already exists.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.RemoteUrlFormat" xml:space="preserve">Enter a valid repository URL.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.RemoteUrlExists" xml:space="preserve">A remote with this URL already exists.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.SSHKeyMissing" xml:space="preserve">The SSH private key was not found.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.RepositoryUrl" xml:space="preserve">Enter a valid repository URL.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.WorktreeContext" xml:space="preserve">Reopen the repository and try again.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.WorktreePath" xml:space="preserve">Choose a worktree folder.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.PathNotEmpty" xml:space="preserve">Choose an empty folder.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.BranchExistsNamed" xml:space="preserve">Branch “{0}” already exists.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ContextMissing" xml:space="preserve">Reopen the repository and try again.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.PatchRequired" xml:space="preserve">Choose a patch file.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.FileMissing" xml:space="preserve">File “{0}” was not found.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ClipboardUnavailable" xml:space="preserve">The clipboard is unavailable.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ClipboardNoPatch" xml:space="preserve">The clipboard does not contain a valid patch.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ArchiveSaved" xml:space="preserve">Archive saved to: {0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.CheckoutContext" xml:space="preserve">Reopen the repository and try again.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.BranchNameFormat" xml:space="preserve">Enter a valid branch name.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.BranchExists" xml:space="preserve">A branch with this name already exists.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.BranchContext" xml:space="preserve">Reopen the repository and try again.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.CloneUrl" xml:space="preserve">Enter a valid repository URL.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.PathMissing" xml:space="preserve">The folder was not found.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.TagNameFormat" xml:space="preserve">Enter a valid tag name.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.TagExists" xml:space="preserve">A tag with this name already exists.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.FeaturePrefix" xml:space="preserve">Enter a valid feature prefix ending with /.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ReleasePrefix" xml:space="preserve">Enter a valid release prefix ending with /.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.HotfixPrefix" xml:space="preserve">Enter a valid hotfix prefix ending with /.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.FlowSameBranch" xml:space="preserve">Development and production branches must have different names.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.TagPrefix" xml:space="preserve">Enter a valid tag prefix.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.BranchExistsAlt" xml:space="preserve">A branch with this name already exists.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.WatcherFailed" xml:space="preserve">Changes in “{0}” cannot be monitored. Press F5 to refresh manually.
+
+{1}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.LFSEnabled" xml:space="preserve">LFS enabled.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.LFSTracked" xml:space="preserve">LFS tracking enabled: {0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.LFSLocked" xml:space="preserve">File locked: {0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.LFSUnlocked" xml:space="preserve">File unlocked: {0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.FirstCommitBranch" xml:space="preserve">Create the first commit before adding a branch.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.FirstCommitTag" xml:space="preserve">Create the first commit before adding a tag.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.PatchSaveFailed" xml:space="preserve">The patch could not be saved: {0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.FileSaveFailed" xml:space="preserve">The file could not be saved: {0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.AIConfig" xml:space="preserve">Check the AI service configuration.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.NoStagedFiles" xml:space="preserve">Stage the files you want to commit first.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.BisectRunning" xml:space="preserve">Finish or abort the current bisect before starting another.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.UncommittedChanges" xml:space="preserve">Commit, stash or discard your local changes first.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.RebaseStart" xml:space="preserve">Commit “{0}” cannot be used as the start of an interactive rebase.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ConflictMixed" xml:space="preserve">Select conflicted files separately from other changes.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.FlowNoBranch" xml:space="preserve">Create a branch before initializing Git Flow.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.PatchFile" xml:space="preserve">Patch file</x:String>
+  <x:String x:Key="Text.TreeGit.Message.AllFiles" xml:space="preserve">All files</x:String>
+  <x:String x:Key="Text.TreeGit.Message.PatchSaved" xml:space="preserve">Patch saved.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.PatchSavedAlt" xml:space="preserve">Patch saved.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ResetSucceeded" xml:space="preserve">Reset to the selected commit.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ThemeFile" xml:space="preserve">Theme configuration file</x:String>
+  <x:String x:Key="Text.TreeGit.Message.GitExecutable" xml:space="preserve">Git executable</x:String>
+  <x:String x:Key="Text.TreeGit.Message.GPGProgram" xml:space="preserve">GPG executable</x:String>
+  <x:String x:Key="Text.TreeGit.Message.Executable" xml:space="preserve">Executable or script</x:String>
+  <x:String x:Key="Text.TreeGit.Message.UnnamedAction" xml:space="preserve">Unnamed global action</x:String>
+  <x:String x:Key="Text.TreeGit.Message.Pick" xml:space="preserve">Use this commit</x:String>
+  <x:String x:Key="Text.TreeGit.Message.Edit" xml:space="preserve">Pause to amend this commit</x:String>
+  <x:String x:Key="Text.TreeGit.Message.Reword" xml:space="preserve">Edit the commit message</x:String>
+  <x:String x:Key="Text.TreeGit.Message.Squash" xml:space="preserve">Combine with the previous commit</x:String>
+  <x:String x:Key="Text.TreeGit.Message.Fixup" xml:space="preserve">Combine with the previous commit and discard this message</x:String>
+  <x:String x:Key="Text.TreeGit.Message.Drop" xml:space="preserve">Remove commit</x:String>
+  <x:String x:Key="Text.TreeGit.Message.SelectChangedLine" xml:space="preserve">Select at least one changed line.</x:String>
+  <x:String x:Key="Text.TreeGit.Search.MatchCase" xml:space="preserve">Match case</x:String>
+  <x:String x:Key="Text.TreeGit.Search.WholeWords" xml:space="preserve">Match whole words</x:String>
+  <x:String x:Key="Text.TreeGit.Search.Regex" xml:space="preserve">Use regular expressions</x:String>
+  <x:String x:Key="Text.TreeGit.Search.Previous" xml:space="preserve">Find previous (Shift+F3)</x:String>
+  <x:String x:Key="Text.TreeGit.Search.Next" xml:space="preserve">Find next (F3)</x:String>
+  <x:String x:Key="Text.TreeGit.Global" xml:space="preserve">GLOBAL</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.NotConfigured">Choose a comparison tool and its executable in Preferences.</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.GitDiffMissing">No comparison tool is configured in Git. Choose TreeGit or configure another tool in Preferences.</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.GitMergeMissing">No merge tool is configured in Git. Choose TreeGit or configure another tool in Preferences.</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.ConsoleUnsupported">“{0}” requires an interactive terminal. Choose a graphical comparison tool in Preferences.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.CloneFolderSelect">The clone folder could not be selected: {0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ThemeFileSelect">The theme file could not be selected: {0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.GitSelect">The Git executable could not be selected: {0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.GpgSelect">The GPG executable could not be selected: {0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ShellSelect">The terminal could not be selected: {0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.MergeSelect">The comparison tool could not be selected: {0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.ActionSelect">The action executable could not be selected: {0}</x:String>
+  <x:String x:Key="Text.TreeGit.Message.InvalidBranchNamed">“{0}” is not a valid branch name.</x:String>
+  <x:String x:Key="Text.TreeGit.Message.CopyFailed">The text could not be copied: {0}</x:String>
+  <x:String x:Key="Text.TreeGit.Search.NoMatches">No matches found</x:String>
+  <x:String x:Key="Text.TreeGit.Search.OneMatch">1 match</x:String>
+  <x:String x:Key="Text.TreeGit.Search.Matches">{0} matches</x:String>
+  <x:String x:Key="Text.TreeGit.Search.Position">{0} of {1}</x:String>
+  <x:String x:Key="Text.TreeGit.Search.Error">Search error: {0}</x:String>
+  <x:String x:Key="Text.TreeGit.Config.ReadFailed">Repository settings could not be read. Check Git and the configuration file, then reopen this window.</x:String>
+  <x:String x:Key="Text.TreeGit.Repository.Missing">The repository folder is unavailable. Check its location or remove it from the repository list.</x:String>
+  <x:String x:Key="Text.TreeGit.Repository.PathMissing">The repository folder is unavailable. Check its location.</x:String>
+  <x:String x:Key="Text.TreeGit.Repository.Invalid">The selected folder is not a valid Git repository.</x:String>
+  <x:String x:Key="Text.TreeGit.Query.CommitsFailed">The commit history could not be read: {0}</x:String>
+  <x:String x:Key="Text.TreeGit.Query.RebaseFailed">The commits for interactive rebase could not be read: {0}</x:String>
+  <x:String x:Key="Text.TreeGit.GitFlow.InvalidType">Select a valid Git Flow branch type.</x:String>
+  <x:String x:Key="Text.TreeGit.Template.New">New template</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.MergeDraftPreserved">Your edits were kept in the working tree. The file has not been staged.</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.MergeDraftSaved">Could not automatically restore {0}. Check the current file and the recovery files at: {1}</x:String>
 </ResourceDictionary>

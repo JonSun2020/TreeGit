@@ -1,0 +1,23 @@
+{
+  "en_US": {
+    "TreeGit.Startup.UpdateIncomplete": "The update is not finished. Reopen TreeGit. If it still cannot open, download the package from the project page and extract it to a new folder. Your settings and repositories will be kept.",
+    "TreeGit.Startup.RecoveryPending": "The update did not finish; the previous version has been kept. Close other TreeGit windows or related terminals, then reopen TreeGit to resume recovery.",
+    "TreeGit.Startup.Incomplete": "Some TreeGit files are missing or incomplete. Extract the complete package and try again. Your settings and repositories will be kept.",
+    "TreeGit.Startup.NotWritable": "TreeGit cannot save the files it needs. Move the complete application folder to a writable location and try again.",
+    "TreeGit.Startup.OpenFailed": "TreeGit could not open normally. Try again. If the problem continues, keep your data folder and extract a fresh copy of the latest package."
+  },
+  "zh_CN": {
+    "TreeGit.Startup.UpdateIncomplete": "更新尚未完成。请重新打开 TreeGit；如仍无法打开，可从项目主页下载软件包解压到新文件夹。原有配置和仓库不会被删除。",
+    "TreeGit.Startup.RecoveryPending": "更新未完成，旧版文件已保留。请先关闭其他 TreeGit 窗口或相关终端，再重新打开 TreeGit，程序将继续恢复。",
+    "TreeGit.Startup.Incomplete": "TreeGit 文件不完整。请完整解压软件包后重新打开。原有配置和仓库不会被删除。",
+    "TreeGit.Startup.NotWritable": "TreeGit 无法写入所需文件。请将完整的软件文件夹移到有写入权限的位置后重新打开。",
+    "TreeGit.Startup.OpenFailed": "TreeGit 未能正常打开。请重新打开后再试；如果仍有问题，请保留 data 文件夹并重新完整解压最新版。"
+  },
+  "zh_TW": {
+    "TreeGit.Startup.UpdateIncomplete": "更新尚未完成。請重新開啟 TreeGit；若仍無法開啟，可從專案首頁下載軟體包並解壓縮至新資料夾。原有設定與儲存庫不會被刪除。",
+    "TreeGit.Startup.RecoveryPending": "更新未完成，舊版檔案已保留。請先關閉其他 TreeGit 視窗或相關終端機，再重新開啟 TreeGit，程式將繼續還原。",
+    "TreeGit.Startup.Incomplete": "TreeGit 檔案不完整。請完整解壓縮軟體包後重新開啟。原有設定與儲存庫不會被刪除。",
+    "TreeGit.Startup.NotWritable": "TreeGit 無法寫入所需檔案。請將完整的軟體資料夾移至具有寫入權限的位置後重新開啟。",
+    "TreeGit.Startup.OpenFailed": "TreeGit 未能正常開啟。請重新開啟後再試；若問題持續，請保留 data 資料夾並重新完整解壓縮最新版。"
+  }
+}

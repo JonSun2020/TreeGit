@@ -24,7 +24,7 @@ namespace SourceGit.ViewModels
 
         public override async Task<bool> Sure()
         {
-            ProgressDescription = $"Revert commit '{Target.SHA}' ...";
+            SetProgressDescription("TreeGit.Progress.Revert", Target.SHA);
             return await RunGitActionAsync($"Revert '{Target.SHA}'", log => new Commands.Revert(_repo.FullPath, Target.SHA, AutoCommit)
                 .Use(log)
                 .ExecAsync(), [(Target.SHA, 0)]);

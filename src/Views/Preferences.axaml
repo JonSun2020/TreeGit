@@ -1,4 +1,4 @@
-<v:ChromelessWindow xmlns="https://github.com/avaloniaui"
+﻿<v:ChromelessWindow xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -47,19 +47,7 @@
             <TextBlock Classes="tab_header" Text="{DynamicResource Text.Preferences.General}"/>
           </TabItem.Header>
           <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-          <Grid Margin="8" RowDefinitions="32,32,32,32,32,32,32,32,32,32,32,Auto" ColumnDefinitions="Auto,*">
-            <TextBlock Grid.Row="0" Grid.Column="0"
-                       Text="{DynamicResource Text.Preferences.General.Locale}"
-                       HorizontalAlignment="Right"
-                       Margin="0,0,16,0"/>
-            <ComboBox Grid.Row="0" Grid.Column="1"
-                      MinHeight="28"
-                      Padding="8,0"
-                      HorizontalAlignment="Stretch"
-                      ItemsSource="{Binding Source={x:Static m:Locale.Supported}}"
-                      DisplayMemberBinding="{Binding Name, x:DataType=m:Locale}"
-                      SelectedItem="{Binding Locale, Mode=TwoWay, Converter={x:Static c:StringConverters.ToLocale}}"/>
-
+          <Grid Margin="8" RowDefinitions="0,32,32,32,32,32,32,32,32,32,32,Auto" ColumnDefinitions="Auto,*">
             <TextBlock Grid.Row="1" Grid.Column="0"
                        Text="{DynamicResource Text.Preferences.General.DateFormat}"
                        HorizontalAlignment="Right"
@@ -626,7 +614,7 @@
               <Border Grid.Row="1" Grid.Column="0"
                       Height="32"
                       Margin="0,0,16,0"
-                      IsVisible="{Binding ExternalMergeToolType, Converter={x:Static c:IntConverters.IsGreaterThanZero}}">
+                      IsVisible="{Binding ExternalMergeToolUsesExecutable}">
                 <TextBlock Text="{DynamicResource Text.Preferences.DiffMerge.Path}"
                            HorizontalAlignment="Right" />
               </Border>
@@ -635,7 +623,7 @@
                        CornerRadius="3"
                        Text="{Binding ExternalMergeToolPath, Mode=TwoWay}"
                        Watermark="{DynamicResource Text.Preferences.DiffMerge.Path.Placeholder}"
-                       IsVisible="{Binding ExternalMergeToolType, Converter={x:Static c:IntConverters.IsGreaterThanZero}}">
+                       IsVisible="{Binding ExternalMergeToolUsesExecutable}">
                 <TextBox.InnerRightContent>
                   <Button Classes="icon_button" Width="30" Height="30" Click="SelectExternalMergeTool">
                     <Path Data="{StaticResource Icons.Folder.Open}" Fill="{DynamicResource Brush.FG1}"/>
@@ -646,7 +634,7 @@
               <Border Grid.Row="2" Grid.Column="0"
                       Height="32"
                       Margin="0,0,16,0"
-                      IsVisible="{Binding ExternalMergeToolType, Converter={x:Static c:IntConverters.IsGreaterThanZero}}">
+                      IsVisible="{Binding ExternalMergeToolUsesExecutable}">
                 <TextBlock Text="{DynamicResource Text.Preferences.DiffMerge.DiffArgs}"
                            HorizontalAlignment="Right" />
               </Border>
@@ -654,7 +642,7 @@
                        Height="28"
                        CornerRadius="3"
                        Text="{Binding ExternalMergeToolDiffArgs, Mode=TwoWay}"
-                       IsVisible="{Binding ExternalMergeToolType, Converter={x:Static c:IntConverters.IsGreaterThanZero}}">
+                       IsVisible="{Binding ExternalMergeToolUsesExecutable}">
                 <TextBox.InnerRightContent>
                   <Border Width="28" Height="28" Background="Transparent" ToolTip.Tip="{DynamicResource Text.Preferences.DiffMerge.DiffArgs.Tip}">
                     <Path Width="14" Height="14" Data="{StaticResource Icons.Info}" Fill="{DynamicResource Brush.FG1}" Opacity="0.8"/>
@@ -665,7 +653,7 @@
               <Border Grid.Row="3" Grid.Column="0"
                       Height="32"
                       Margin="0,0,16,0"
-                      IsVisible="{Binding ExternalMergeToolType, Converter={x:Static c:IntConverters.IsGreaterThanZero}}">
+                      IsVisible="{Binding ExternalMergeToolUsesExecutable}">
                 <TextBlock Text="{DynamicResource Text.Preferences.DiffMerge.MergeArgs}"
                            HorizontalAlignment="Right" />
               </Border>
@@ -673,7 +661,7 @@
                        Height="28"
                        CornerRadius="3"
                        Text="{Binding ExternalMergeToolMergeArgs, Mode=TwoWay}"
-                       IsVisible="{Binding ExternalMergeToolType, Converter={x:Static c:IntConverters.IsGreaterThanZero}}">
+                       IsVisible="{Binding ExternalMergeToolUsesExecutable}">
                 <TextBox.InnerRightContent>
                   <Border Width="28" Height="28" Background="Transparent" ToolTip.Tip="{DynamicResource Text.Preferences.DiffMerge.MergeArgs.Tip}">
                     <Path Width="14" Height="14" Data="{StaticResource Icons.Info}" Fill="{DynamicResource Brush.FG1}" Opacity="0.8"/>

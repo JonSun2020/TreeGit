@@ -169,14 +169,14 @@ try:
     result={'windows_vault_roundtrip':True,'same_server_different_repository_accounts':seen,'actual_gui_git_fetch_authentication':True,'erase':True}
     if prompt_mode:
         events=Path(str(fixture)+'.events').read_text(encoding='utf-8').splitlines()
-        assert events.count('combined-dialog') == 12 and events.count('topmost-combined-dialog') == 12,events
+        assert events.count('combined-dialog') == 12 and events.count('scoped-combined-dialog') == 12,events
         assert events.count('visibility-toggle') == 12,events
         assert events.count('retry-message') == 6,events
         assert 'username-dialog' not in events and 'password-dialog' not in events,events
         result['automatic_missing_credential_dialog']=events
         result['expired_credential_reprompts_and_retries']=True
         result['upstream_native_fetch_reprompts_and_retries']=True
-        result['all_twelve_combined_authentication_prompts_stay_topmost']=True
+        result['all_twelve_combined_authentication_prompts_stay_above_treegit_only']=True
         result['username_and_password_in_one_window']=True
         result['empty_password_authenticates_and_is_saved']=True
         result['cancel_does_not_prompt_again_or_store_credentials']=True

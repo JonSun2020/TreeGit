@@ -230,7 +230,7 @@ try:
             check(object_format + ': one selectable document contains every label value and full message',
                   {'CommitLabel', 'ParentLabel', 'AuthorLabel', 'DateLabel', 'CommitterLabel', 'CommitSHA', 'ParentSHA', 'Author', 'Date', 'Committer', 'Message'} <= {v['name'] for v in document()['spans']} and '完整正文 / UTF-8 🙂' in initial)
             check(object_format + ': complete commit SHA formatting is unchanged', span('CommitSHA')['text'] == head + ' [' + head[:10] + ']')
-            check(object_format + ': parent labels and unique abbreviations are correct', span('ParentLabel')['text'] == '父级：' and span('CommitterLabel')['text'] == '提交者：' and all(span('ParentSHA', sha)['text'] == short for sha, short in expected_parents.items()))
+            check(object_format + ': parent labels and unique abbreviations are correct', span('ParentLabel')['text'] == '父级: ' and span('CommitterLabel')['text'] == '提交者: ' and all(span('ParentSHA', sha)['text'] == short for sha, short in expected_parents.items()))
             check(object_format + ': distinct author and committer identities remain correct', span('Author')['text'] == git('show', '-s', '--format=%an <%ae>', head) and span('Committer')['text'] == git('show', '-s', '--format=%cn <%ce>', head))
             pointer(point(1, True)); key(0x41, ctrl=True); clear_clipboard(); key(0x43, ctrl=True)
             until(lambda: clipboard() == initial)

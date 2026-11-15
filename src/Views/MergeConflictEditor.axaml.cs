@@ -499,6 +499,7 @@ namespace SourceGit.Views
 
         protected override void OnClosed(EventArgs e)
         {
+            App.LocaleChanged -= RefreshLocalizedText;
             if (DataContext is ViewModels.MergeConflictEditor vm) vm.PropertyChanged -= OnEditorStateChanged;
             base.OnClosed(e);
             GC.Collect();
@@ -507,6 +508,9 @@ namespace SourceGit.Views
         protected override void OnLoaded(RoutedEventArgs e)
         {
             base.OnLoaded(e);
+            App.LocaleChanged -= RefreshLocalizedText;
+            App.LocaleChanged += RefreshLocalizedText;
+            RefreshLocalizedText();
             if (DataContext is ViewModels.MergeConflictEditor vm)
             {
                 vm.PropertyChanged += OnEditorStateChanged;
@@ -532,6 +536,8 @@ namespace SourceGit.Views
                 }
             }
         }
+
+        private void RefreshLocalizedText() => (DataContext as ViewModels.MergeConflictEditor)?.RefreshLocalizedText();
 
         private void OnGotoPrevConflict(object sender, RoutedEventArgs e) => GotoConflict(false, e);
         private void OnGotoNextConflict(object sender, RoutedEventArgs e) => GotoConflict(true, e);

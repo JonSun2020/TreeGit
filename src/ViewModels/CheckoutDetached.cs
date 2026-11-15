@@ -1,4 +1,4 @@
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 namespace SourceGit.ViewModels
 {
@@ -45,7 +45,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = $"Checkout Commit '{_revision}' ...";
+            SetProgressDescription("TreeGit.Progress.CheckoutDetached", _revision);
 
             var log = _repo.CreateLog("Checkout Commit");
             Use(log);

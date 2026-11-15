@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
 namespace SourceGit.ViewModels
@@ -26,7 +26,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = "Adding custom LFS tracking pattern ...";
+            SetProgressDescription("TreeGit.Progress.LFSTrackCustomPattern");
 
             var log = _repo.CreateLog("LFS Add Custom Pattern");
             Use(log);

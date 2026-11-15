@@ -288,6 +288,20 @@ namespace SourceGit.Views
             }
         }
 
+        protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            base.OnAttachedToVisualTree(e);
+            Models.CommitGraph.PaletteChanged += OnPaletteChanged;
+        }
+
+        protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+        {
+            Models.CommitGraph.PaletteChanged -= OnPaletteChanged;
+            base.OnDetachedFromVisualTree(e);
+        }
+
+        private void OnPaletteChanged() => InvalidateMeasure();
+
         protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
         {
             base.OnPropertyChanged(change);

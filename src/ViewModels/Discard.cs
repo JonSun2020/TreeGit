@@ -72,7 +72,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = _changes == null ? "Discard all local changes ..." : $"Discard total {_changes.Count} changes ...";
+            SetProgressDescription(_changes == null ? "TreeGit.Progress.Discard.All" : "TreeGit.Progress.Discard.Count", _changes?.Count ?? 0);
 
             var log = _repo.CreateLog("Discard Changes");
             Use(log);

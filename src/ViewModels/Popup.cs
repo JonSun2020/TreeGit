@@ -110,9 +110,34 @@ namespace SourceGit.ViewModels
 
         public string ProgressDescription
         {
-            get => _progressDescription;
-            set => SetProperty(ref _progressDescription, value);
+            get
+            {
+                var localized = System.Threading.Volatile.Read(ref _localizedProgress);
+                return localized == null ? _progressDescription : App.Text(localized.Key, localized.Arguments);
+            }
+            set
+            {
+                var wasLocalized = System.Threading.Interlocked.Exchange(ref _localizedProgress, null) != null;
+                if (!SetProperty(ref _progressDescription, value) && wasLocalized) OnPropertyChanged();
+            }
         }
+
+        protected void SetProgressDescription(string key, params object[] arguments)
+        {
+            System.Threading.Volatile.Write(ref _localizedProgress, new LocalizedProgressText(key, arguments));
+            OnPropertyChanged(nameof(ProgressDescription));
+        }
+
+        public void RefreshLocalizedText()
+        {
+            OnPropertyChanged(nameof(DialogTitle));
+            OnPropertyChanged(nameof(UsesDialogTitle));
+            OnPropertyChanged(nameof(ProgressDescription));
+            if (HasErrors && !InProgress) ValidateAllProperties();
+        }
+
+        private sealed record LocalizedProgressText(string Key, object[] Arguments);
+        private LocalizedProgressText _localizedProgress;
 
         [UnconditionalSuppressMessage("AssemblyLoadTrimming", "IL2026:RequiresUnreferencedCode")]
         public bool Check()

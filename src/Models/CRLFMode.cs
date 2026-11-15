@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 
 namespace SourceGit.Models
 {
-    public class CRLFMode(string name, string value, string desc)
+    public class CRLFMode(string name, string value, string desc) : LocalizedOption
     {
         private string ResourceKey => "Options.CRLFMode." + Value;
         public string DisplayName => App.Text(ResourceKey + ".Name");

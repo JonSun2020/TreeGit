@@ -29,7 +29,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = "Fast-Forward ...";
+            SetProgressDescription("TreeGit.Progress.FetchInto");
 
             var log = _repo.CreateLog($"Fetch Into '{Local.FriendlyName}'");
             Use(log);

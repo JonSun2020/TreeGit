@@ -347,7 +347,9 @@ namespace SourceGit.Views
             if (!properties.IsLeftButtonPressed && !properties.IsRightButtonPressed) return;
             var row = source as DataGridRow ?? source.FindAncestorOfType<DataGridRow>();
             if (e.Pointer.Type == PointerType.Mouse && source is not DataGridCell && source.FindAncestorOfType<DataGridCell>() == null &&
-                (source is DataGridRowsPresenter || row != null))
+                (source == this || source.FindAncestorOfType<DataGrid>() == this) &&
+                source is not ScrollBar and not DataGridColumnHeader && source.FindAncestorOfType<ScrollBar>() == null &&
+                source.FindAncestorOfType<DataGridColumnHeader>() == null)
             {
                 // A recycled row's empty surface can hit the presenter instead
                 // of a cell. Forward only to a current, visible cell so the grid
@@ -1126,7 +1128,7 @@ namespace SourceGit.Views
                 }
                 catch (Exception exception)
                 {
-                    repo.SendNotification($"Failed to save as patch: {exception.Message}", true);
+                    repo.SendNotification(App.Text("TreeGit.Message.PatchSaveFailed", exception.Message), true);
                 }
 
                 e.Handled = true;
@@ -1520,7 +1522,7 @@ namespace SourceGit.Views
                 }
                 catch (Exception exception)
                 {
-                    repo.SendNotification($"Failed to save as patch: {exception.Message}", true);
+                    repo.SendNotification(App.Text("TreeGit.Message.PatchSaveFailed", exception.Message), true);
                 }
 
                 e.Handled = true;
@@ -2074,7 +2076,7 @@ namespace SourceGit.Views
 
             var on = await new Commands.QuerySingleCommit(repo.FullPath, start).GetResultAsync();
             if (on == null)
-                repo.SendNotification($"Commit '{start}' is not a valid revision for `git rebase -i`!", true);
+                repo.SendNotification(App.Text("TreeGit.Message.RebaseStart", start), true);
             else
                 await this.ShowDialogAsync(new ViewModels.InteractiveRebase(repo, on, prefill));
         }

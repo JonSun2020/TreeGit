@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
@@ -111,20 +111,20 @@ namespace SourceGit.ViewModels
         public static ValidationResult ValidateRemote(string remote, ValidationContext _)
         {
             if (!Models.Remote.IsValidURL(remote))
-                return new ValidationResult("Invalid remote repository URL format");
+                return new ValidationResult(App.Text("TreeGit.Message.CloneUrl"));
             return ValidationResult.Success;
         }
 
         public static ValidationResult ValidateParentFolder(string folder, ValidationContext _)
         {
             if (!Directory.Exists(folder))
-                return new ValidationResult("Given path can NOT be found");
+                return new ValidationResult(App.Text("TreeGit.Message.PathMissing"));
             return ValidationResult.Success;
         }
 
         public override async Task<bool> Sure()
         {
-            ProgressDescription = "Clone ...";
+            SetProgressDescription("TreeGit.Progress.Clone");
 
             var log = new CommandLog("Clone");
             Use(log);

@@ -40,7 +40,7 @@ namespace SourceGit.Views
             }
             catch (Exception ex)
             {
-                await new Alert().ShowAsync(this, $"Failed to select default clone directory: {ex.Message}", true);
+                await new Alert().ShowAsync(this, App.Text("TreeGit.Message.CloneFolderSelect", ex.Message), true);
             }
 
             e.Handled = true;

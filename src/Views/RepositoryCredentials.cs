@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -10,36 +10,35 @@ namespace SourceGit.Views
     {
         public RepositoryCredentials(ViewModels.Repository repo)
         {
-            Title = "仓库认证 / Repository credentials";
+            App.BindText(this, TitleProperty, "TreeGit.Credentials.Title");
             Width = 520;
             SizeToContent = SizeToContent.Height;
             CanResize = false;
             CloseOnESC = true;
-            Topmost = true;
             ShowActivated = true;
             Opened += (_, _) => Activate();
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             var panel = new StackPanel { Margin = new Thickness(24), Spacing = 12 };
-            panel.Children.Add(new TextBlock { Text = "仓库认证", FontSize = 20 });
+            panel.Children.Add(new TextBlock { [!Avalonia.Controls.TextBlock.TextProperty] = App.TextBinding("TreeGit.Credentials.Authentication"), FontSize = 20 });
             panel.Children.Add(new TextBlock { Text = repo.FullPath, TextWrapping = Avalonia.Media.TextWrapping.Wrap });
-            panel.Children.Add(new TextBlock { Text = "HTTPS 账号只用于当前仓库和所选远程。密码/令牌保存到 Windows 凭据管理器。\nSSH 密钥仍在原有远程配置中设置。", TextWrapping = Avalonia.Media.TextWrapping.Wrap });
+            panel.Children.Add(new TextBlock { [!Avalonia.Controls.TextBlock.TextProperty] = App.TextBinding("TreeGit.Credentials.Description"), TextWrapping = Avalonia.Media.TextWrapping.Wrap });
             var remotes = new ComboBox { ItemsSource = new Commands.QueryRemotes(repo.FullPath).GetResult(), DisplayMemberBinding = new Avalonia.Data.Binding("Name"), HorizontalAlignment = HorizontalAlignment.Stretch };
-            var username = new TextBox { Name = "CredentialUsername", Height = 32, Watermark = "用户名 / Username" };
-            var password = new TextBox { Name = "CredentialPassword", Height = 32, Watermark = "密码或访问令牌（可留空）", PasswordChar = '*' };
+            var username = new TextBox { Name = "CredentialUsername", Height = 32, [!Avalonia.Controls.TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Credentials.UsernameHint") };
+            var password = new TextBox { Name = "CredentialPassword", Height = 32, [!Avalonia.Controls.TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Credentials.OptionalToken"), PasswordChar = '*' };
             var showPassword = new ToggleButton { Classes = { "toggle_untracked" }, Width = 26, Height = 14 };
-            ToolTip.SetTip(showPassword, "显示 / 隐藏密码");
+            ToolTip.SetTip(showPassword, App.Text("TreeGit.Credentials.TogglePassword"));
             password.InnerRightContent = showPassword;
             showPassword.IsCheckedChanged += (_, _) => password.RevealPassword = showPassword.IsChecked == true;
-            var useManager = new CheckBox { Name = "CredentialMode", Content = new TextBlock { Text = "使用原有系统认证 / OAuth（Git Credential Manager）", TextWrapping = Avalonia.Media.TextWrapping.Wrap }, IsChecked = Native.RepositoryCredentials.UsesCredentialManager(repo.FullPath) };
+            var useManager = new CheckBox { Name = "CredentialMode", Content = new TextBlock { [!Avalonia.Controls.TextBlock.TextProperty] = App.TextBinding("TreeGit.Credentials.SystemAuth"), TextWrapping = Avalonia.Media.TextWrapping.Wrap }, IsChecked = Native.RepositoryCredentials.UsesCredentialManager(repo.FullPath) };
             var message = new TextBlock { Name = "CredentialStatus", TextWrapping = Avalonia.Media.TextWrapping.Wrap };
-            var save = new Button { Name = "ConfirmCredentials", Content = "保存", IsDefault = true, Classes = { "flat", "primary" } };
-            var forget = new Button { Content = "清除已保存认证", Classes = { "flat" } };
-            var close = new Button { Content = "关闭", Classes = { "flat" } };
+            var save = new Button { Name = "ConfirmCredentials", [!Avalonia.Controls.ContentControl.ContentProperty] = App.TextBinding("TreeGit.Save"), IsDefault = true, Classes = { "flat", "primary" } };
+            var forget = new Button { [!Avalonia.Controls.ContentControl.ContentProperty] = App.TextBinding("TreeGit.Credentials.Forget"), Classes = { "flat" } };
+            var close = new Button { [!Avalonia.Controls.ContentControl.ContentProperty] = App.TextBinding("TreeGit.Close"), Classes = { "flat" } };
             Uri SelectedUri()
             {
                 if (remotes.SelectedItem is Models.Remote r && Uri.TryCreate(r.URL, UriKind.Absolute, out var uri) && uri.Scheme is "https" or "http")
                     return uri;
-                throw new InvalidOperationException("请选择 HTTP(S) 远程；SSH 远程使用原有的 SSH 密钥配置和自动认证窗口。");
+                throw new InvalidOperationException(App.Text("TreeGit.Credentials.SelectHttp"));
             }
             var loadingPassword = false;
             var passwordEdited = false;
@@ -65,7 +64,7 @@ namespace SourceGit.Views
                 {
                     var existing = Native.RepositoryCredentials.Get(repo.FullPath, SelectedUri());
                     username.Text = existing?.Username ?? string.Empty;
-                    message.Text = existing.HasValue ? "已有认证。填写新密码可覆盖；清除后下次访问会重新弹窗。" : "尚未保存认证。也可以在下次访问远程时自动输入。";
+                    message.Text = existing.HasValue ? App.Text("TreeGit.Credentials.Exists") : App.Text("TreeGit.Credentials.None");
                 }
                 catch (Exception ex) { message.Text = ex.Message; }
             };
@@ -84,7 +83,7 @@ namespace SourceGit.Views
                     if (!manager)
                     {
                         if (string.IsNullOrWhiteSpace(enteredUser))
-                            throw new InvalidOperationException("请输入账号，密码可以留空。");
+                            throw new InvalidOperationException(App.Text("TreeGit.Credentials.UsernameRequired"));
                         remoteUri = SelectedUri();
                         previous = Native.RepositoryCredentials.Get(repo.FullPath, remoteUri);
                         if (!editedPassword && previous.HasValue && previous.Value.Username == enteredUser)
@@ -93,7 +92,7 @@ namespace SourceGit.Views
                     using var watcher = repo.LockWatcher();
                     using var transaction = new Models.RepositoryConfigurationTransaction(repo.FullPath, repo.Settings.StoragePath);
                     if (!await new Commands.Config(repo.FullPath, transaction.GitConfigPath) { RaiseError = false }.SetAsync("sourcegit.credentialmanager", manager ? "true" : "false"))
-                        throw new InvalidOperationException("无法保存此仓库的认证模式。");
+                        throw new InvalidOperationException(App.Text("TreeGit.Credentials.ModeSaveFailed"));
                     if (!manager) Native.RepositoryCredentials.Save(repo.FullPath, remoteUri, enteredUser, enteredPassword);
                     try { transaction.Commit(); }
                     catch
@@ -110,7 +109,7 @@ namespace SourceGit.Views
                     password.Text = string.Empty;
                     loadingPassword = false;
                     passwordEdited = false;
-                    message.Text = manager ? "已切换到此仓库的系统认证 / OAuth 模式。下次联网操作会启动原有认证流程。" : "已保存此仓库的认证。";
+                    message.Text = manager ? App.Text("TreeGit.Credentials.SystemModeSaved") : App.Text("TreeGit.Credentials.Saved");
                 }
                 catch (Exception ex) { message.Text = ex.Message; }
                 finally { saving = false; UpdateEnabled(); }
@@ -121,7 +120,7 @@ namespace SourceGit.Views
                 {
                     Native.RepositoryCredentials.Forget(repo.FullPath, SelectedUri());
                     password.Text = string.Empty;
-                    message.Text = "已清除。下次访问远程时会自动弹出认证窗口。";
+                    message.Text = App.Text("TreeGit.Credentials.Cleared");
                 }
                 catch (Exception ex) { message.Text = ex.Message; }
             };

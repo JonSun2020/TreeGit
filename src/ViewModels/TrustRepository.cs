@@ -1,4 +1,4 @@
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 namespace SourceGit.ViewModels
 {
@@ -43,7 +43,7 @@ namespace SourceGit.ViewModels
             var log = new CommandLog("Trust Repository");
             Use(log);
 
-            ProgressDescription = $"Adding '{SafeDirectory}' into git global `safe.directory` ...";
+            SetProgressDescription("TreeGit.Progress.TrustRepository", SafeDirectory);
             var added = await new Commands.AddSafeDirectory(_pageId, SafeDirectory).Use(log).ExecAsync();
             if (!added)
             {
@@ -51,7 +51,7 @@ namespace SourceGit.ViewModels
                 return false;
             }
 
-            ProgressDescription = $"Opening '{TargetPath}' ...";
+            SetProgressDescription("TreeGit.Progress.TrustRepository.Open", TargetPath);
 
             var root = TargetPath;
             var isBare = await new Commands.IsBareRepository(TargetPath).GetResultAsync();

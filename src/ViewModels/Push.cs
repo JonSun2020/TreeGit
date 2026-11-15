@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Threading;
@@ -173,7 +173,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = $"Push {_selectedLocalBranch.Name} -> {_selectedRemoteBranch.FriendlyName} ...";
+            SetProgressDescription("TreeGit.Progress.Push", _selectedLocalBranch.Name, _selectedRemoteBranch.FriendlyName);
 
             var log = _repo.CreateLog("Push");
             Use(log);

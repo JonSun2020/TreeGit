@@ -59,6 +59,7 @@ namespace SourceGit.Views
         {
             base.OnAttachedToVisualTree(e);
             _attached = true;
+            App.LocaleChanged += OnLocaleChanged;
             ViewModels.Preferences.Instance.PropertyChanged += OnPreferencesChanged;
             AttachDetail(DataContext as ViewModels.CommitDetail);
         }
@@ -66,6 +67,7 @@ namespace SourceGit.Views
         protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
         {
             _attached = false;
+            App.LocaleChanged -= OnLocaleChanged;
             ViewModels.Preferences.Instance.PropertyChanged -= OnPreferencesChanged;
             AttachDetail(null);
             StopDrag(); SetHoveredParent(null);
@@ -107,6 +109,7 @@ namespace SourceGit.Views
             if (string.IsNullOrEmpty(e.PropertyName) || e.PropertyName is nameof(ViewModels.CommitDetail.Commit) or nameof(ViewModels.CommitDetail.ParentRevisions) or nameof(ViewModels.CommitDetail.DisplayMessage)) Rebuild();
         }
         private void OnParentChanged(object sender, PropertyChangedEventArgs e) { if (e.PropertyName == nameof(Models.CommitParent.ShortSHA)) Rebuild(); }
+        private void OnLocaleChanged() => Rebuild();
         private void OnPreferencesChanged(object sender, PropertyChangedEventArgs e)
         {
             if (string.IsNullOrEmpty(e.PropertyName) || e.PropertyName is nameof(ViewModels.Preferences.Locale) or nameof(ViewModels.Preferences.DateTimeFormat) or nameof(ViewModels.Preferences.Use24Hours))

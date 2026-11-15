@@ -46,7 +46,7 @@ namespace SourceGit.ViewModels
         public static ValidationResult ValidateRepoPath(string folder, ValidationContext _)
         {
             if (!Directory.Exists(folder))
-                return new ValidationResult("Given path can NOT be found");
+                return new ValidationResult(App.Text("TreeGit.Message.PathMissing"));
             return ValidationResult.Success;
         }
 

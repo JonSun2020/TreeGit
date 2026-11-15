@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Tasks;
 
@@ -74,11 +74,11 @@ namespace SourceGit.ViewModels
             if (ctx.ObjectInstance is CreateTag creator)
             {
                 if (!Models.RefName.IsValidTagName(name))
-                    return new ValidationResult("Bad tag name format!");
+                    return new ValidationResult(App.Text("TreeGit.Message.TagNameFormat"));
 
                 var found = creator._repo.Tags.Find(x => x.Name == name);
                 if (found != null)
-                    return new ValidationResult("A tag with same name already exists!");
+                    return new ValidationResult(App.Text("TreeGit.Message.TagExists"));
             }
             return ValidationResult.Success;
         }
@@ -86,7 +86,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = "Create tag...";
+            SetProgressDescription("TreeGit.Progress.CreateTag");
 
             var remotes = PushToRemotes ? _repo.Remotes : null;
             var log = _repo.CreateLog("Create Tag");

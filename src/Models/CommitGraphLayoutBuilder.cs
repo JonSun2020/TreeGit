@@ -32,25 +32,21 @@ namespace SourceGit.Models
 
             var reserveFirst = focused.Count > 0;
             var incoming = new List<RowLane>();
-            var previousColors = new HashSet<int>();
             var maxColumn = 0;
-
-            int ChooseColor(HashSet<int> occupied)
+            if (reserveFirst) graph._branchNeighbors.Add([]);
+            int NewBranch()
             {
-                var begin = reserveFirst && Pens.Count > 1 ? 1 : 0;
-                for (var color = begin; color < Pens.Count; color++)
-                    if (!occupied.Contains(color) && !previousColors.Contains(color)) return color;
-                for (var color = begin; color < Pens.Count; color++)
-                    if (!occupied.Contains(color)) return color;
-                return begin;
+                var identity = graph._branchNeighbors.Count;
+                graph._branchNeighbors.Add([]);
+                return identity;
             }
 
-            RowLane NewLane(string next, int column, int color, bool primary, Point start)
+            RowLane NewLane(string next, int column, int color, bool primary, Point start, int branch)
             {
-                var path = new Path(color, true);
+                var path = new Path(color, true) { Branch = branch };
                 path.Points.Add(start);
                 graph.Paths.Add(path);
-                return new RowLane { Next = next, Column = column, Color = color, Primary = primary, Path = path };
+                return new RowLane { Next = next, Column = column, Color = color, Primary = primary, Path = path, Branch = branch };
             }
 
             for (var row = 0; row < commits.Count; row++)
@@ -62,8 +58,7 @@ namespace SourceGit.Models
                 var nextColumn = reserveFirst ? 1 : 0;
                 var outgoing = new List<RowLane>();
                 var matched = new List<RowLane>();
-                var occupied = incoming.Select(l => l.Color).ToHashSet();
-                if (reserveFirst) occupied.Add(0);
+                graph.RecordNeighbors(incoming.Select(l => (l.Column, l.Branch)));
                 var continuingIncoming = commit.Parents.Count == 0 ? null : incoming
                     .OrderBy(l => l.Column)
                     .FirstOrDefault(l => l.Next == commit.SHA && (!primary || l.Primary));
@@ -94,18 +89,20 @@ namespace SourceGit.Models
                 }
 
                 if (nodeColumn < 0) nodeColumn = nextColumn++;
-                var nodeColor = primary ? 0 : matched.Count > 0 ? matched[0].Color : ChooseColor(occupied);
-                occupied.Add(nodeColor);
+                var nodeBranch = primary ? 0 : matched.Count > 0 ? matched[0].Branch : NewBranch();
+                var nodeColor = primary ? 0 : matched.Count > 0 ? matched[0].Color : Math.Min(1, Pens.Count - 1);
                 var node = new Point(FirstColumnX + nodeColumn * ColumnWidth, centerY);
                 commit.IsHighlightedInGraph = true;
                 commit.Color = nodeColor;
                 graph.Dots.Add(new Dot
                 {
                     Center = node,
+                    Branch = nodeBranch,
                     Color = nodeColor,
                     IsHighlighted = true,
                     Type = commit.IsCurrentHead ? DotType.Head : commit.Parents.Count > 1 ? DotType.Merge : DotType.Default,
                 });
+                graph._branchCommits.Add((commit, nodeBranch));
                 maxColumn = Math.Max(maxColumn, nodeColumn);
 
                 foreach (var lane in outgoing)
@@ -113,8 +110,8 @@ namespace SourceGit.Models
 
                 if (commit.Parents.Count > 0)
                 {
-                    var continuation = matched.Find(l => l.Color == nodeColor && (!primary || l.Primary))
-                        ?? NewLane(commit.Parents[0], nodeColumn, nodeColor, primary, node);
+                    var continuation = matched.Find(l => l.Branch == nodeBranch && (!primary || l.Primary))
+                        ?? NewLane(commit.Parents[0], nodeColumn, nodeColor, primary, node, nodeBranch);
                     continuation.Next = commit.Parents[0];
                     continuation.Primary = primary;
                     continuation.Column = nodeColumn;
@@ -130,7 +127,7 @@ namespace SourceGit.Models
                             if (shared != null)
                             {
                                 if (shared.Column == nodeColumn) continue;
-                                var link = new Path(shared.Color, true);
+                                var link = new Path(shared.Color, true) { Branch = shared.Branch };
                                 link.Points.Add(new Point(node.X, centerY - 0.5 / DefaultRowHeight));
                                 graph.Paths.Add(link);
                                 AppendPoint(link, new Point(FirstColumnX + shared.Column * ColumnWidth, row + 1 - 2.0 / DefaultRowHeight));
@@ -138,9 +135,8 @@ namespace SourceGit.Models
                             }
                             else
                             {
-                                var color = ChooseColor(occupied);
-                                occupied.Add(color);
-                                var lane = NewLane(parent, nextColumn++, color, false, new Point(node.X, centerY - 0.5 / DefaultRowHeight));
+                                var lane = NewLane(parent, nextColumn++, Math.Min(1, Pens.Count - 1), false,
+                                    new Point(node.X, centerY - 0.5 / DefaultRowHeight), NewBranch());
                                 var x = FirstColumnX + lane.Column * ColumnWidth;
                                 AppendPoint(lane.Path, new Point(x, row + 1 - 2.0 / DefaultRowHeight));
                                 AppendPoint(lane.Path, new Point(x, row + 1));
@@ -151,12 +147,13 @@ namespace SourceGit.Models
                     }
                 }
 
-                previousColors = occupied;
+                graph.RecordNeighbors(outgoing.Select(l => (l.Column, l.Branch)).Append((nodeColumn, nodeBranch)));
                 incoming = outgoing;
             }
 
             var descriptionLeft = Math.Max(20, FirstColumnX + maxColumn * ColumnWidth + 8);
             foreach (var commit in commits) commit.LeftMargin = descriptionLeft;
+            graph.UpdatePalette();
             return graph;
         }
 
@@ -202,6 +199,7 @@ namespace SourceGit.Models
             public string Next;
             public int Column;
             public int Color;
+            public int Branch;
             public bool Primary;
             public Path Path;
         }

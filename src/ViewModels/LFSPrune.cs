@@ -12,7 +12,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = "LFS prune ...";
+            SetProgressDescription("TreeGit.Progress.LFSPrune");
 
             var log = _repo.CreateLog("LFS Prune");
             Use(log);

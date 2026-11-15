@@ -65,7 +65,7 @@ namespace SourceGit.Models
             {
                 var actual = File.Exists(entry.Target) ? File.ReadAllBytes(entry.Target) : null;
                 if (!Same(entry.Original, actual))
-                    throw new IOException("配置文件已被其他程序修改，请重新打开仓库设置。");
+                    throw new IOException(App.Text("TreeGit.Config.Changed"));
             }
 
             try
@@ -96,7 +96,7 @@ namespace SourceGit.Models
                     catch (Exception rollbackError) { errors.Add(rollbackError); }
                 }
                 if (errors.Count > 1)
-                    throw new AggregateException("保存失败，部分配置未能还原。请检查仓库配置文件。", errors);
+                    throw new AggregateException(App.Text("TreeGit.Config.RestoreFailed"), errors);
                 throw;
             }
         }

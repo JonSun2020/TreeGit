@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -92,7 +92,7 @@ namespace SourceGit.ViewModels
                 return false;
             }
 
-            ProgressDescription = App.Text("Merge.Progress", Into);
+            SetProgressDescription("Merge.Progress", Into);
             var log = _repo.CreateLog($"Merging '{_sourceName}' into '{Into}'");
             Use(log);
             try

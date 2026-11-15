@@ -22,7 +22,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = "Pull LFS objects from remote ...";
+            SetProgressDescription("TreeGit.Progress.LFSPull");
 
             var log = _repo.CreateLog("LFS Pull");
             Use(log);

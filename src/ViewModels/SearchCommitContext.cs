@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Threading;
@@ -74,7 +75,6 @@ namespace SourceGit.ViewModels
                 if (SetProperty(ref _selected, value))
                 {
                     if (_histories.IsSearchingCommits) _histories.ShowSearchCommit(value);
-                    else if (value != null) _histories.NavigateTo(value.SHA);
                 }
             }
         }
@@ -88,7 +88,7 @@ namespace SourceGit.ViewModels
         public void OpenInHistory(Models.Commit commit, string branch = null)
         {
             if (branch != null && commit?.SearchBranches?.Branches.Exists(b => b.FullName == branch) != true)
-                throw new ArgumentException("请选择确实包含该提交的分支。");
+                throw new ArgumentException(App.Text("TreeGit.Branches.SelectContaining"));
             if (commit != null)
                 _histories.RevealSearchCommit(commit, branch);
         }
@@ -106,6 +106,9 @@ namespace SourceGit.ViewModels
 
         public void StartSearch()
         {
+            _hasRequestedSearch = true;
+            _isStale = false;
+            _histories.InvalidateSearchDetail();
             if (_cancellation is { IsCancellationRequested: false })
                 _cancellation.Cancel();
             IsQuerying = false;
@@ -120,6 +123,9 @@ namespace SourceGit.ViewModels
             }
 
             IsQuerying = true;
+#if INTEGRATION_TESTS
+            QueryCount++;
+#endif
 
             var cancellation = new CancellationTokenSource();
             _cancellation = cancellation;
@@ -127,6 +133,8 @@ namespace SourceGit.ViewModels
             var filter = _filter;
             var method = (Models.CommitSearchMethod)_method;
             var onlyCurrentBranch = _onlySearchCurrentBranch;
+            var graph = _histories.Commits?.ToList() ?? [];
+            var locals = _histories.Repository.Branches.Where(b => b.IsLocal && !b.IsDetachedHead).ToList();
 
             Task.Run(async () =>
             {
@@ -190,8 +198,18 @@ namespace SourceGit.ViewModels
                     if (token.IsCancellationRequested) return;
                     var branchNames = await new Commands.QuerySearchBranchNames(_repo) { CancellationToken = token }.GetResultAsync(result).ConfigureAwait(false);
                     if (branchNames.Count != result.Count) throw new InvalidOperationException();
+                    var origins = result.Count == 0 ? new Dictionary<string, string>() :
+                        await new Commands.QueryLocalCommitOrigins(_repo) { CancellationToken = token }
+                            .GetResultAsync(new HashSet<string>(locals.Select(b => b.FullName), StringComparer.Ordinal)).ConfigureAwait(false);
+                    var graphPositions = Models.CommitBranchDetails.IndexGraph(graph);
                     foreach (var commit in result)
-                        if (branchNames.TryGetValue(commit.SHA, out var coverage)) commit.SearchBranches = coverage;
+                    {
+                        if (!branchNames.TryGetValue(commit.SHA, out var coverage)) continue;
+                        var origin = origins.TryGetValue(commit.SHA, out var reference) ? locals.Find(b => b.FullName == reference) : null;
+                        var details = new Models.CommitBranchDetails(commit, coverage, graph, origin, graphPositions);
+                        commit.SearchBranchDetails = details;
+                        commit.SearchBranches = details.Coverage;
+                    }
 
                     Dispatcher.UIThread.Post(() =>
                     {
@@ -199,15 +217,12 @@ namespace SourceGit.ViewModels
                             return;
 
                         IsQuerying = false;
-                        if (_histories.IsSearchingCommits)
-                        {
-                            var selectedSHA = Selected?.SHA;
-                            Results = result;
-                            if (method == Models.CommitSearchMethod.BySHA && result.Count == 1)
-                                Selected = result[0];
-                            else
-                                Selected = result.Find(c => c.SHA == selectedSHA);
-                        }
+                        var selectedSHA = Selected?.SHA;
+                        Results = result;
+                        if (method == Models.CommitSearchMethod.BySHA && result.Count == 1)
+                            Selected = result[0];
+                        else
+                            Selected = result.Find(c => c.SHA == selectedSHA);
                     });
                 }
                 catch (Exception) when (token.IsCancellationRequested) { }
@@ -235,6 +250,32 @@ namespace SourceGit.ViewModels
             });
         }
 
+        public void Resume()
+        {
+            if (!_hasRequestedSearch || _isStale) StartSearch();
+        }
+
+        public void Suspend() => Suggestions = null;
+
+        public void InvalidateResults()
+        {
+            if (!_hasRequestedSearch) return;
+            _isStale = true;
+            _authors = null;
+            _worktreeFiles = null;
+            if (_refreshQueued || !_histories.IsSearchingCommits) return;
+            _refreshQueued = true;
+            Dispatcher.UIThread.Post(() =>
+            {
+                _refreshQueued = false;
+                if (_isStale && _histories.IsSearchingCommits) StartSearch();
+            }, DispatcherPriority.Background);
+        }
+
+#if INTEGRATION_TESTS
+        public int QueryCount { get; private set; }
+#endif
+
         public void EndSearch()
         {
             if (_cancellation is { IsCancellationRequested: false })
@@ -248,7 +289,9 @@ namespace SourceGit.ViewModels
             Selected = null;
             Suggestions = null;
             Results = null;
-            GC.Collect();
+            _hasRequestedSearch = false;
+            _isStale = false;
+            _histories.InvalidateSearchDetail();
         }
 
         private void UpdateSuggestions()
@@ -366,5 +409,8 @@ namespace SourceGit.ViewModels
         private bool _requestingAuthors = false;
         private List<Models.User> _authors = null;
         private List<object> _suggestions = null;
+        private bool _hasRequestedSearch;
+        private bool _isStale;
+        private bool _refreshQueued;
     }
 }

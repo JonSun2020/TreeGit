@@ -1,11 +1,13 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 using Avalonia.Collections;
+using Avalonia.Controls;
 using Avalonia.Threading;
 
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -46,6 +48,27 @@ namespace SourceGit.ViewModels
         {
             get => _uiStates;
         }
+
+        public GridLength ChangesPanelWidth
+        {
+            get
+            {
+                var legacy = Preferences.Instance.Layout.CommitDetailChangesLeftWidth;
+                var width = _uiStates?.ChangesPanelWidth ?? (legacy.IsAbsolute ? legacy.Value : 400);
+                return new GridLength(double.IsFinite(width) && width >= 300 && width <= 8192 ? width : 400);
+            }
+            set
+            {
+                if (_uiStates == null || !value.IsAbsolute || !double.IsFinite(value.Value) || value.Value < 300 || value.Value > 8192 ||
+                    _uiStates.ChangesPanelWidth == value.Value) return;
+                _uiStates.ChangesPanelWidth = value.Value;
+                OnPropertyChanged();
+                _changesWidthSave?.Dispose();
+                _changesWidthSave = DispatcherTimer.RunOnce(() => _uiStates.Save(), TimeSpan.FromMilliseconds(250));
+            }
+        }
+
+        private IDisposable _changesWidthSave;
 
         public Models.GitFlow GitFlow
         {
@@ -542,7 +565,7 @@ namespace SourceGit.ViewModels
             }
             catch (Exception ex)
             {
-                SendNotification($"Failed to start watcher for repository: '{FullPath}'. You may need to press 'F5' to refresh repository manually!\n\nReason: {ex.Message}", true);
+                SendNotification(App.Text("TreeGit.Message.WatcherFailed", FullPath, ex.Message), true);
             }
 
             _historyFilterMode = _uiStates.GetHistoryFilterMode();
@@ -571,7 +594,9 @@ namespace SourceGit.ViewModels
 
         public void Close()
         {
+            _changesWidthSave?.Dispose();
             SaveUIState();
+            _histories?.SearchCommitContext.EndSearch();
             var commitMessage = _workingCopy.CommitMessage;
 
             var mergeMessage = Path.Combine(GitDir, "MERGE_MSG");
@@ -679,7 +704,7 @@ namespace SourceGit.ViewModels
             var log = CreateLog("Install LFS");
             var succ = await new Commands.LFS(FullPath).Use(log).InstallAsync();
             if (succ)
-                SendNotification("LFS enabled successfully!");
+                SendNotification(App.Text("TreeGit.Message.LFSEnabled"));
 
             log.Complete();
         }
@@ -692,7 +717,7 @@ namespace SourceGit.ViewModels
                 .TrackAsync(pattern, isFilenameMode);
 
             if (succ)
-                SendNotification($"Tracking successfully! Pattern: {pattern}");
+                SendNotification(App.Text("TreeGit.Message.LFSTracked", pattern));
 
             log.Complete();
             return succ;
@@ -706,7 +731,7 @@ namespace SourceGit.ViewModels
                 .LockAsync(remote, path);
 
             if (succ)
-                SendNotification($"Lock file successfully! File: {path}");
+                SendNotification(App.Text("TreeGit.Message.LFSLocked", path));
 
             log.Complete();
             return succ;
@@ -720,7 +745,7 @@ namespace SourceGit.ViewModels
                 .UnlockAsync(remote, path, force);
 
             if (succ && notify)
-                SendNotification($"Unlock file successfully! File: {path}");
+                SendNotification(App.Text("TreeGit.Message.LFSUnlocked", path));
 
             log.Complete();
             return succ;
@@ -1144,8 +1169,10 @@ namespace SourceGit.ViewModels
 
             var containing = new HashSet<string>(StringComparer.Ordinal);
             foreach (var branch in details.Coverage.Branches) containing.Add(branch.FullName);
+            var primary = details.Coverage.Branches.Find(b => b.IsLocal && details.Coverage.IsPrimaryBranch(b)) ??
+                details.Coverage.Branches.Find(details.Coverage.IsPrimaryBranch);
             var focus = _historyNavigationCommit == commit.SHA ? FindHistoryBranch(commit.SHA, containing) :
-                Models.BranchSelection.Choose(_branches, commit.SHA, containing, preferLocal: true);
+                primary ?? Models.BranchSelection.Choose(_branches, commit.SHA, containing, preferLocal: true);
             HistoryBranchSelectionRequested?.Invoke(focus);
             SidebarCommitBranches = details;
             CommitBranchHighlightsRequested?.Invoke(details);
@@ -1158,7 +1185,7 @@ namespace SourceGit.ViewModels
                 var preferred = _branches.Find(b => b.FullName == _historyNavigationBranch && containing.Contains(b.FullName));
                 if (preferred != null) return preferred;
                 _historyNavigationBranch = string.Empty;
-                SendNotification("该分支已变化，已定位原提交；请重新搜索分支列表。", true);
+                SendNotification(App.Text("TreeGit.Branches.Changed"), true);
             }
             return Models.BranchSelection.Choose(_branches, sha, containing);
         }
@@ -1417,10 +1444,14 @@ namespace SourceGit.ViewModels
 
                     SetRefreshFailure("branches", false);
                     Remotes = remotes;
+                    var searchChanged = _hasBranchSnapshot && !_branches.ConvertAll(b => (b.FullName, b.Head, b.Upstream, b.IsCurrent))
+                        .SequenceEqual(branches.ConvertAll(b => (b.FullName, b.Head, b.Upstream, b.IsCurrent)));
+                    _hasBranchSnapshot = true;
                     Branches = branches;
                     CurrentBranch = branches.Find(x => x.IsCurrent);
                     LocalBranchTrees = builder.Locals;
                     RemoteBranchTrees = builder.Remotes;
+                    if (searchChanged) _histories?.SearchCommitContext.InvalidateResults();
 
                     ValidateHistoryFilters(true);
 
@@ -1463,13 +1494,18 @@ namespace SourceGit.ViewModels
 
             Task.Run(async () =>
             {
-                var tags = await new Commands.QueryTags(FullPath).GetResultAsync().ConfigureAwait(false);
+                var query = new Commands.QueryTags(FullPath) { CancellationToken = token };
+                var tags = await query.GetResultAsync().ConfigureAwait(false);
+                if (!query.Succeeded) return;
                 Dispatcher.UIThread.Invoke(() =>
                 {
                     if (token.IsCancellationRequested)
                         return;
 
+                    var searchChanged = _hasTagSnapshot && !_tags.ConvertAll(t => (t.Name, t.SHA)).SequenceEqual(tags.ConvertAll(t => (t.Name, t.SHA)));
+                    _hasTagSnapshot = true;
                     Tags = tags;
+                    if (searchChanged) _histories?.SearchCommitContext.InvalidateResults();
                     VisibleTags = BuildVisibleTags();
                     ValidateHistoryFilters(false);
                 });
@@ -1593,7 +1629,7 @@ namespace SourceGit.ViewModels
                             !commits.Exists(c => c.SHA == graphView.NavigationCommit))
                         {
                             CancelHistoryNavigation();
-                            SendNotification("该提交已不可用，请重新搜索。", true);
+                            SendNotification(App.Text("TreeGit.Search.CommitUnavailable"), true);
                         }
                         if (!string.IsNullOrEmpty(graphView.NavigationCommit) && _historyNavigationCommit == graphView.NavigationCommit &&
                             !_histories.IsSearchingCommits && (_navigateToCommitDelayed == graphView.NavigationCommit ||
@@ -1748,7 +1784,7 @@ namespace SourceGit.ViewModels
         {
             if (_currentBranch == null)
             {
-                SendNotification("Git cannot create a branch before your first commit.", true);
+                SendNotification(App.Text("TreeGit.Message.FirstCommitBranch"), true);
                 return;
             }
 
@@ -1823,7 +1859,7 @@ namespace SourceGit.ViewModels
         {
             if (_currentBranch == null)
             {
-                SendNotification("Git cannot create a tag before your first commit.", true);
+                SendNotification(App.Text("TreeGit.Message.FirstCommitTag"), true);
                 return;
             }
 
@@ -2315,6 +2351,8 @@ namespace SourceGit.ViewModels
         private string _filter = string.Empty;
         private List<Models.Remote> _remotes = [];
         private List<Models.Branch> _branches = [];
+        private bool _hasBranchSnapshot;
+        private bool _hasTagSnapshot;
         private Models.Branch _currentBranch = null;
         private List<BranchTreeNode> _localBranchTrees = [];
         private List<BranchTreeNode> _remoteBranchTrees = [];

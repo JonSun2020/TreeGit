@@ -15,7 +15,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = $"Dropping stash: {Stash.Name}";
+            SetProgressDescription("TreeGit.Progress.DropStash", Stash.Name);
 
             var log = _repo.CreateLog("Drop Stash");
             Use(log);

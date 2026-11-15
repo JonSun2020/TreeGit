@@ -9,5 +9,7 @@
     <Compile Include="UiStartupProbe.cs" />
     <Compile Include="../src/Native/UiStartup.cs" />
     <Compile Include="../src/Models/TreeGitRelease.cs" />
+    <Compile Include="../src/Models/Locales.cs" />
+    <EmbeddedResource Include="../src/Resources/Locales/Bootstrap.json" LogicalName="SourceGit.Resources.Locales.Bootstrap.json" />
   </ItemGroup>
 </Project>

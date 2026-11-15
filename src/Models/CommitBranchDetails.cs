@@ -16,13 +16,15 @@ namespace SourceGit.Models
             App.Text(IsInferred ? "CommitBranches.Estimated" : "CommitBranches.LocalRecord", Primary.FriendlyName);
         public Commit DisplayCommit { get; }
 
-        public CommitBranchDetails(Commit commit, SearchBranchCoverage coverage, List<Commit> graph, Branch recordedOrigin)
+        public CommitBranchDetails(Commit commit, SearchBranchCoverage coverage, List<Commit> graph, Branch recordedOrigin,
+            Dictionary<string, int> graphPositions = null)
         {
-            Commit = new Commit { SHA = commit.SHA, Subject = commit.Subject, SearchBranches = coverage };
-            Coverage = coverage;
-            var graphCommit = graph.Find(c => c.SHA == commit.SHA) ?? commit;
-            Primary = recordedOrigin ?? ChooseGraphBranch(graphCommit, graph, coverage.Branches);
+            graphPositions ??= IndexGraph(graph);
+            var graphCommit = graphPositions.TryGetValue(commit.SHA, out var position) ? graph[position] : commit;
+            Primary = recordedOrigin ?? ChooseGraphBranch(graphCommit, graph, coverage.Branches, graphPositions);
             IsInferred = recordedOrigin == null;
+            Coverage = new SearchBranchCoverage(coverage.Branches, Primary, IsInferred);
+            Commit = new Commit { SHA = commit.SHA, Subject = commit.Subject, SearchBranches = Coverage };
             DisplayCommit = new Commit { SHA = commit.SHA, Color = graphCommit.Color };
             if (Primary != null)
                 DisplayCommit.Decorators.Add(new Decorator
@@ -33,10 +35,15 @@ namespace SourceGit.Models
                 });
         }
 
-        internal static Branch ChooseGraphBranch(Commit commit, List<Commit> graph, List<Branch> containing)
+        internal static Dictionary<string, int> IndexGraph(List<Commit> graph)
         {
             var positions = new Dictionary<string, int>(StringComparer.Ordinal);
             for (var i = 0; i < graph.Count; i++) positions[graph[i].SHA] = i;
+            return positions;
+        }
+
+        internal static Branch ChooseGraphBranch(Commit commit, List<Commit> graph, List<Branch> containing, Dictionary<string, int> positions)
+        {
             bool SameLine(Branch branch)
             {
                 if (!positions.TryGetValue(branch.Head, out var position) || graph[position].Color != commit.Color) return false;

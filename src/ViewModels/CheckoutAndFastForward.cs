@@ -1,4 +1,4 @@
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 namespace SourceGit.ViewModels
 {
@@ -41,7 +41,7 @@ namespace SourceGit.ViewModels
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
-            ProgressDescription = $"Checkout and Fast-Forward '{LocalBranch.Name}' ...";
+            SetProgressDescription("TreeGit.Progress.CheckoutAndFastForward", LocalBranch.Name);
 
             var log = _repo.CreateLog($"Checkout and Fast-Forward '{LocalBranch.Name}' ...");
             Use(log);

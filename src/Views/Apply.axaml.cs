@@ -30,7 +30,7 @@ namespace SourceGit.Views
             var options = new FilePickerOpenOptions()
             {
                 AllowMultiple = false,
-                FileTypeFilter = [new FilePickerFileType("Patch File") { Patterns = ["*.patch", "*.diff"] }]
+                FileTypeFilter = [new FilePickerFileType(App.Text("TreeGit.Message.PatchFile")) { Patterns = ["*.patch", "*.diff"] }]
             };
 
             var selected = await topLevel.StorageProvider.OpenFilePickerAsync(options);
