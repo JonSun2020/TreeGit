@@ -365,6 +365,7 @@ try:
     assert 0 <= cycles <= 300, 'Choose between 0 and 300 soak cycles'
     samples = []
     records.append({'soakCycles': cycles, 'samples': samples})
+    peak_threads = 0
     for cycle in range(cycles):
         tool('ui_select_commit', repo=str(repo), revision=head)
         wait(lambda: state()['detailCommit'] == head and state()['detailChanges'])
@@ -387,16 +388,21 @@ try:
         tool('ui_window', state='maximized' if cycle % 2 else 'normal')
         tool('ui_refresh', repo=str(repo))
         wait(lambda: not state()['graphLoading'])
+        observed = menu('inspect')['resources']
+        peak_threads = max(peak_threads, observed['threads'])
         if cycle % 10 == 0 or cycle == cycles - 1:
-            sample = menu('inspect')['resources']
+            sample = observed
             sample['cycle'] = cycle
+            sample['peakThreads'] = peak_threads
             sample['temporaryBytes'] = sum(path.stat().st_size for path in temp_root.rglob('*') if path.is_file() and not path.is_symlink())
             samples.append(sample)
             check(f'soak {cycle}: temporary files remain bounded', sample['temporaryBytes'] < 2 * 1024 ** 3)
             # Windows grows its worker pool while loading comparisons. Those workers
             # own thread, event and completion-port handles; bound that capacity too,
             # instead of confusing a small bounded pool expansion with leaked files.
-            extra_threads = max(0, sample['threads'] - samples[0]['threads'])
+            # Completion handles may remain cached after a worker retires, so
+            # account for the peak observed on every cycle, not just this instant.
+            extra_threads = max(0, peak_threads - samples[0]['threads'])
             check(f'soak {cycle}: owned threads remain bounded', extra_threads <= 16)
             handle_budget = 40 + extra_threads * 8
             check(f"soak {cycle}: owned handles remain bounded ({sample['handles']} versus {samples[0]['handles']}, allowance {handle_budget})",
