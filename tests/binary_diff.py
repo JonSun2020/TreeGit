@@ -223,5 +223,6 @@ p.stdin.close(); p.wait(timeout=10)
 # A following scenario uses a different isolated snapshot directory. Close only
 # this exact owned QA GUI so its old TEMP cannot leak into the next scenario.
 close_owned_gui(exe,gui_pid)
+gui_pid = None
 (out/'binary-results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'repo':str(repo),'exe':str(exe),'ownedSnapshotCount':len(owned_snapshots),'remainingSnapshots':[str(p) for p in owned_snapshots if p.exists()]},ensure_ascii=False,indent=2),encoding='utf-8')
 print('PASSED',len(checks))

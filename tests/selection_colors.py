@@ -183,7 +183,7 @@ try:
         tool('ui_diff', repo=str(repo), action='select', source='history', file='firmware.bin')
         until(lambda: tool('ui_diff', repo=str(repo), action='state').get('status') == 'ready')
         tool('ui_diff', repo=str(repo), action='window')
-        until(lambda: any(d['type'] == 'BinaryDiffWindow' for d in tool('ui_state')['dialogs']))
+        until(lambda: any(d['title'] == 'TreeGit · 二进制对比' for d in tool('ui_state')['dialogs']))
         capture('binary-diff', active=True)
         tool('ui_command', command='close_dialog')
         check('public binary example renders the built-in comparison', True)
