@@ -14,6 +14,7 @@ exe = Path(sys.argv[1]).resolve()
 out = Path(sys.argv[2]).resolve(); out.mkdir(parents=True, exist_ok=True)
 repo = Path(tempfile.mkdtemp(prefix='TreeGit search ')).resolve()
 checks = []
+popup_bounds = []
 
 def git(*args):
     p = subprocess.run([shutil.which('git'), *args], cwd=repo, capture_output=True, text=True, encoding='utf-8')
@@ -328,9 +329,12 @@ try:
         for _ in range(50):
             popup=tool('ui_search',{'repo':str(repo)})['branchPopup']
             bounds=popup and popup['bounds']
-            if bounds and bounds['right']>bounds['x'] and bounds['bottom']>bounds['y']:break
+            # Win32 constrains the popup after its first size is measured.
+            # Wait for actual placement, rather than asserting on that first
+            # intermediate rectangle. Persistent overflow still fails below.
+            if bounds and bounds['right']>bounds['x'] and bounds['bottom']>bounds['y'] and bounds['x']>=bounds['screenX'] and bounds['y']>=bounds['screenY'] and bounds['right']<=bounds['screenRight'] and bounds['bottom']<=bounds['screenBottom']:break
             time.sleep(.1)
-        else:raise AssertionError(popup)
+        popup_bounds.append({'zoom':zoom,'bounds':bounds})
         check('coverage popup fits the screen at zoom'+str(zoom),bounds['x']>=bounds['screenX'] and bounds['y']>=bounds['screenY'] and bounds['right']<=bounds['screenRight'] and bounds['bottom']<=bounds['screenBottom'])
         time.sleep(.3)
         (out/('containing-branches-zoom'+str(zoom)+'.png')).write_bytes(tool('ui_screenshot',{'window':'active'}))
@@ -346,7 +350,7 @@ except BaseException as error:
     failure=repr(error)
     raise
 finally:
-    (out/'search-results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'repo':str(repo),'exe':str(exe),'failure':failure},ensure_ascii=False,indent=2),'utf-8')
+    (out/'search-results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'popupBounds':popup_bounds,'repo':str(repo),'exe':str(exe),'failure':failure},ensure_ascii=False,indent=2),'utf-8')
     p.stdin.close();p.wait(timeout=15)
     if gui_pid:
         code="$p=Get-Process -Id "+str(gui_pid)+" -ErrorAction SilentlyContinue; if($p){if($p.Path -ne '"+str(exe).replace("'","''")+"'){throw 'Wrong QA process'};if(-not $p.CloseMainWindow()){throw 'Owned QA window did not close'};if(-not $p.WaitForExit(15000)){throw 'Owned QA window did not exit'}}"
