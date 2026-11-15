@@ -160,9 +160,21 @@ namespace SourceGit.Automation
                 var grid = window.GetVisualDescendants().OfType<DataGrid>().Single(g => g.IsEffectivelyVisible && (action == "history_click_blank" ? g.Name == "CommitListContainer" : g.Name == "SearchResults"));
                 grid.UpdateLayout();
                 var row = grid.GetVisualDescendants().OfType<DataGridRow>().First(r => r.IsEffectivelyVisible && r.DataContext is Models.Commit && r.DataContext != grid.SelectedItem);
+                grid.ScrollIntoView(row.DataContext, grid.Columns[index]);
+                grid.UpdateLayout();
                 var cells = row.GetVisualDescendants().OfType<DataGridCell>().Where(c => c.IsEffectivelyVisible && c.Bounds.Width > 1).OrderBy(c => c.TranslatePoint(default, row)?.X).ToArray();
                 var cell = cells[index];
-                var position = cell.TranslatePoint(new Point(cell.Bounds.Width - 2, cell.Bounds.Height / 2), window) ?? throw new InvalidOperationException("Cell has no window coordinates.");
+                var cellStart = cell.TranslatePoint(default, window) ?? throw new InvalidOperationException("Cell has no window coordinates.");
+                var gridStart = grid.TranslatePoint(default, window) ?? throw new InvalidOperationException("Grid has no window coordinates.");
+                var visible = new Rect(cellStart, cell.Bounds.Size).Intersect(new Rect(gridStart, grid.Bounds.Size)).Intersect(new Rect(window.ClientSize));
+                foreach (var bar in grid.GetVisualDescendants().OfType<ScrollBar>().Where(b => b.IsEffectivelyVisible && b.Orientation == Avalonia.Layout.Orientation.Vertical))
+                {
+                    var start = bar.TranslatePoint(default, window);
+                    if (start.HasValue && start.Value.X > visible.Left && start.Value.X < visible.Right)
+                        visible = new Rect(visible.TopLeft, new Size(start.Value.X - visible.Left, visible.Height));
+                }
+                if (visible.Width < 4 || visible.Height < 4) throw new InvalidOperationException("Blank cell space did not receive input.");
+                var position = new Point(visible.Right - 2, visible.Center.Y);
                 var hit = window.InputHitTest(position) as Control ?? throw new InvalidOperationException("Blank cell space did not receive input.");
                 if (hit != grid && hit.FindAncestorOfType<DataGrid>() != grid)
                     throw new InvalidOperationException("The rendered hit-test scene has not caught up with the table layout.");

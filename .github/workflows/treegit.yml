@@ -190,6 +190,9 @@ jobs:
             ${{ runner.temp }}/localization-ui-results/*.json
             ${{ runner.temp }}/localization-ui-results/*.png
             ${{ runner.temp }}/localization-ui-results/*.log
+            ${{ runner.temp }}/localization-ui-results/search-interaction/*.json
+            ${{ runner.temp }}/localization-ui-results/search-interaction/*.png
+            ${{ runner.temp }}/localization-ui-results/search-interaction/*.log
             ${{ runner.temp }}/external-tool-results/*.json
   portable:
     runs-on: windows-latest

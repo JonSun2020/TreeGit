@@ -473,6 +473,11 @@ namespace SourceGit.Views
                 menu.Close();
                 e.Handled = true;
             }
+            if (!e.Handled && DataContext is ViewModels.MergeConflictEditor vm && !string.IsNullOrEmpty(vm.Error))
+            {
+                vm.ClearErrorMessage();
+                e.Handled = true;
+            }
         }
 
         private void OnEditorLayoutUpdated(object sender, EventArgs e)

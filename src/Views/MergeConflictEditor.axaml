@@ -249,8 +249,7 @@
                 Margin="0"
                 HorizontalAlignment="Center"
                 Content="{DynamicResource Text.Sure}"
-                Command="{Binding ClearErrorMessage}"
-                HotKey="Escape"/>
+                Command="{Binding ClearErrorMessage}"/>
       </StackPanel>
     </Border>
 
