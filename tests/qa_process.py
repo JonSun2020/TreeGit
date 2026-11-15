@@ -44,3 +44,60 @@ def close_owned_gui(exe, pid):
     literal = str(exe).replace("'", "''")
     script = "$p=Get-Process -Id " + str(int(pid)) + " -ErrorAction SilentlyContinue;if($p){if($p.Path -ne '" + literal + "'){throw 'Unexpected process; left unchanged'};$null=$p.CloseMainWindow();if(-not $p.WaitForExit(15000)){$p.Kill();$p.WaitForExit()}}"
     subprocess.run(['powershell', '-NoProfile', '-Command', script], check=True, capture_output=True, timeout=30)
+
+
+def owned_handle_types(exe, pid):
+    """Count one verified Windows QA process's handles; never close its handles."""
+    import collections
+    import ctypes as c
+    from ctypes import wintypes as w
+    assert os.name == 'nt'
+    kernel, nt = c.WinDLL('kernel32', use_last_error=True), c.WinDLL('ntdll')
+    class Entry(c.Structure):
+        _fields_ = [('object', c.c_void_p), ('pid', c.c_size_t), ('handle', c.c_size_t),
+                    ('access', w.ULONG), ('trace', w.USHORT), ('type', w.USHORT), ('attributes', w.ULONG), ('reserved', w.ULONG)]
+    class Unicode(c.Structure):
+        _fields_ = [('length', w.USHORT), ('maximum', w.USHORT), ('buffer', c.c_void_p)]
+    nt.NtQuerySystemInformation.argtypes = [w.ULONG, c.c_void_p, w.ULONG, c.POINTER(w.ULONG)]
+    nt.NtQuerySystemInformation.restype = w.LONG
+    nt.NtQueryObject.argtypes = [w.HANDLE, w.ULONG, c.c_void_p, w.ULONG, c.POINTER(w.ULONG)]
+    nt.NtQueryObject.restype = w.LONG
+    kernel.OpenProcess.argtypes = [w.DWORD, w.BOOL, w.DWORD]
+    kernel.OpenProcess.restype = w.HANDLE
+    kernel.QueryFullProcessImageNameW.argtypes = [w.HANDLE, w.DWORD, w.LPWSTR, c.POINTER(w.DWORD)]
+    kernel.DuplicateHandle.argtypes = [w.HANDLE, w.HANDLE, w.HANDLE, c.POINTER(w.HANDLE), w.DWORD, w.BOOL, w.DWORD]
+    kernel.CloseHandle.argtypes = [w.HANDLE]
+    process = kernel.OpenProcess(0x1040, False, int(pid))
+    assert process, c.WinError(c.get_last_error())
+    try:
+        image, length = c.create_unicode_buffer(32768), w.DWORD(32768)
+        assert kernel.QueryFullProcessImageNameW(process, 0, image, c.byref(length))
+        assert Path(image.value).resolve() == Path(exe).resolve(), 'Unexpected QA process; handles left unchanged'
+        needed, size = w.ULONG(), 2 ** 20
+        while True:
+            assert size <= 64 * 2 ** 20
+            data = c.create_string_buffer(size)
+            status = nt.NtQuerySystemInformation(64, data, size, c.byref(needed))
+            if status == 0: break
+            assert status & 0xffffffff == 0xc0000004, hex(status & 0xffffffff)
+            size = max(size * 2, needed.value + 4096)
+        count = c.c_size_t.from_buffer(data).value
+        assert 2 * c.sizeof(c.c_size_t) + count * c.sizeof(Entry) <= size
+        entries = (Entry * count).from_buffer(data, 2 * c.sizeof(c.c_size_t))
+        counts = collections.Counter(e.type for e in entries if e.pid == pid)
+        names = {}
+        for entry in entries:
+            if entry.pid != pid or entry.type in names: continue
+            duplicate = w.HANDLE()
+            if not kernel.DuplicateHandle(process, w.HANDLE(entry.handle), w.HANDLE(-1), c.byref(duplicate), 0, False, 2): continue
+            try:
+                value = c.create_string_buffer(4096)
+                if nt.NtQueryObject(duplicate, 2, value, len(value), c.byref(needed)) == 0:
+                    text = Unicode.from_buffer(value)
+                    names[entry.type] = c.wstring_at(text.buffer, text.length // 2)
+            finally:
+                kernel.CloseHandle(duplicate)
+        assert 'File' in names.values(), 'File handle accounting is unavailable'
+        return {names.get(key, str(key)): value for key, value in counts.items()}
+    finally:
+        kernel.CloseHandle(process)

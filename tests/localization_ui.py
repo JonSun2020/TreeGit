@@ -396,15 +396,22 @@ try:
             sample['peakThreads'] = peak_threads
             sample['temporaryBytes'] = sum(path.stat().st_size for path in temp_root.rglob('*') if path.is_file() and not path.is_symlink())
             samples.append(sample)
+            if os.name == 'nt':
+                from qa_process import owned_handle_types
+                sample['handleTypes'] = owned_handle_types(exe, pid)
+                check(f'soak {cycle}: open files remain bounded', sample['handleTypes']['File'] <= samples[0]['handleTypes']['File'] + 8)
             check(f'soak {cycle}: temporary files remain bounded', sample['temporaryBytes'] < 2 * 1024 ** 3)
             # Windows grows its worker pool while loading comparisons. Those workers
             # own thread, event and completion-port handles; bound that capacity too,
             # instead of confusing a small bounded pool expansion with leaked files.
             # Completion handles may remain cached after a worker retires, so
             # account for the peak observed on every cycle, not just this instant.
+            # The independent file-handle cap remains tight; allow a small
+            # native event/completion cache even when a short-lived worker was
+            # created and retired between our samples.
             extra_threads = max(0, peak_threads - samples[0]['threads'])
             check(f'soak {cycle}: owned threads remain bounded', extra_threads <= 16)
-            handle_budget = 40 + extra_threads * 8
+            handle_budget = 64 + extra_threads * 8
             check(f"soak {cycle}: owned handles remain bounded ({sample['handles']} versus {samples[0]['handles']}, allowance {handle_budget})",
                   sample['handles'] <= samples[0]['handles'] + handle_budget)
             check(f'soak {cycle}: resident memory remains bounded', sample['workingSet'] <= samples[0]['workingSet'] + 256 * 1024 ** 2)

@@ -282,6 +282,11 @@ namespace SourceGit.Commands
                 start.StandardErrorEncoding = Encoding.UTF8;
             }
 
+            // Background reads (including diff/status inside submodules) must
+            // not refresh an index under a foreground Git operation. Required
+            // locks for explicit writes are unaffected by this setting.
+            start.Environment["GIT_OPTIONAL_LOCKS"] = "0";
+
             // Force using this app as SSH askpass program
             start.Environment["SSH_ASKPASS"] = selfExecFile; // Raw executable path, including spaces, is required by exec.
             start.Environment["SSH_ASKPASS_REQUIRE"] = "prefer";

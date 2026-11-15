@@ -298,7 +298,21 @@ try:
     shot('unsaved-close')
     press('BtnNo');wait_for(lambda:not any(d['type']=='Confirm' for d in tool('ui_state')['dialogs']))
     check('Cancel keeps unsaved text and the editor open',dialog() is not None and action('read')['text']==expected+'x')
-    press('SaveMergeResult');wait_for(lambda: dialog() is None)
+    # A real Windows reader without delete sharing briefly blocks ReplaceFile.
+    # Hold only this owned fixture, and release our own handle while the normal
+    # save handler runs. The editor must recover without repeating git add.
+    assert path.resolve().is_relative_to(root) and not path.is_symlink()
+    kernel=ctypes.WinDLL('kernel32',use_last_error=True)
+    kernel.CreateFileW.argtypes=[wintypes.LPCWSTR,wintypes.DWORD,wintypes.DWORD,ctypes.c_void_p,wintypes.DWORD,wintypes.DWORD,wintypes.HANDLE]
+    kernel.CreateFileW.restype=wintypes.HANDLE
+    kernel.CloseHandle.argtypes=[wintypes.HANDLE]
+    reader=kernel.CreateFileW(str(path),0x80000000,1,None,3,0x80,None)
+    assert reader and reader!=ctypes.c_void_p(-1).value,ctypes.WinError(ctypes.get_last_error())
+    release_reader=threading.Timer(.6,lambda:kernel.CloseHandle(reader))
+    release_reader.start()
+    try:press('SaveMergeResult');wait_for(lambda: dialog() is None)
+    finally:release_reader.join()
+    check('save tolerates a temporary Windows reader without losing the result',not git('ls-files','-u','--',file).stdout)
     check('the actual Save and Stage button closes the editor after success',True)
     wanted=b'\xef\xbb\xbf'+(expected+'x').encode('utf-8')
     check('save preserves UTF-8 BOM, CRLF and the missing final newline',path.read_bytes()==wanted)

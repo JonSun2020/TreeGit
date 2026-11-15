@@ -210,7 +210,28 @@ namespace SourceGit.ViewModels
                 { Error = "MergeConflictEditor.FileChanged"; return false; }
                 if (await new Commands.QueryConflictEntries(_repo.FullPath, _filePath).GetResultAsync() != _expectedIndex)
                 { Error = "MergeConflictEditor.StateChanged"; return false; }
-                File.Replace(temporary, path, null);
+                for (var attempt = 0; ; attempt++)
+                {
+                    try { File.Replace(temporary, path, null); break; }
+                    catch (IOException error) when (OperatingSystem.IsWindows() && attempt < 4 &&
+                        (error.HResult & 0xffff) is 32 or 33 or 1175 && File.Exists(temporary))
+                    {
+                        // A background Git reader or scanner can briefly deny
+                        // deletion on Windows. Retry only this uncompleted file
+                        // replacement, after rechecking every protected input;
+                        // the index write below is still executed exactly once.
+                        await Task.Delay(50 << attempt);
+                        if ((File.GetAttributes(CheckedPath()) & (FileAttributes.ReadOnly | FileAttributes.ReparsePoint)) != 0 ||
+                            (File.GetAttributes(temporary) & FileAttributes.ReparsePoint) != 0)
+                            throw;
+                        if (!(await File.ReadAllBytesAsync(path)).AsSpan().SequenceEqual(_expectedBytes))
+                        { Error = "MergeConflictEditor.FileChanged"; return false; }
+                        if (await new Commands.QueryConflictEntries(_repo.FullPath, _filePath).GetResultAsync() != _expectedIndex)
+                        { Error = "MergeConflictEditor.StateChanged"; return false; }
+                        if (!(await File.ReadAllBytesAsync(temporary)).AsSpan().SequenceEqual(content))
+                            throw;
+                    }
+                }
                 temporary = null;
                 _expectedBytes = content;
                 var command = new Commands.Command
