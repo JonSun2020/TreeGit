@@ -138,6 +138,7 @@ try:
         scope = state()['commitBranchHighlights']
         levels = {r['reference']: r['level'] for r in scope['local'] + scope['remote']}
         check(theme + ' local tracking branch and its containing remote share the primary background', levels == {'refs/heads/main': 2, 'refs/remotes/origin/main': 2})
+        until(lambda: 'settings.json' in (state()['detailChanges'] or []))
         tool('ui_diff', repo=str(repo), action='select', source='history', file='settings.json')
         capture('theme-' + theme.lower())
         if theme == 'Light':
@@ -158,6 +159,7 @@ try:
     until(lambda: not state()['searchQuerying'] and state()['searchResultCount'] == 1)
     tool('ui_search', repo=str(repo), select=target)
     until(lambda: state()['searchSelected'] == target and not state()['detailBranchesLoading'])
+    until(lambda: 'settings.json' in (state()['detailChanges'] or []))
     tool('ui_diff', repo=str(repo), action='select', source='history', file='settings.json')
     capture('containing-branches')
     if gallery:
