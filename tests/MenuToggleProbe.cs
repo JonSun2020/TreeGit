@@ -75,7 +75,22 @@ namespace SourceGit.Automation
             var source = selected.GetVisualDescendants().OfType<Control>().FirstOrDefault(c => c.Name == "PART_HeaderPresenter") ?? selected;
             var point = source.TranslatePoint(new Point(source.Bounds.Width / 2, source.Bounds.Height / 2), window) ?? default;
             object searchClick = null;
-            if (action.StartsWith("sidebar_", StringComparison.Ordinal))
+            if (action == "fit_desktop")
+            {
+                var screen = window.Screens.ScreenFromWindow(window) ?? window.Screens.Primary;
+                if (screen != null)
+                {
+                    var width = screen.WorkingArea.Width / screen.Scaling - 32;
+                    var height = screen.WorkingArea.Height / screen.Scaling - 64;
+                    window.MinWidth = Math.Min(window.MinWidth, width);
+                    window.MinHeight = Math.Min(window.MinHeight, height);
+                    window.Width = Math.Min(window.Width, width);
+                    window.Height = Math.Min(window.Height, height);
+                    window.Position = screen.WorkingArea.Position + new PixelPoint(8, 8);
+                    window.InvalidateVisual();
+                }
+            }
+            else if (action.StartsWith("sidebar_", StringComparison.Ordinal))
             {
                 var view = window.GetVisualDescendants().OfType<Views.Repository>().First(v => v.IsEffectivelyVisible && v.DataContext is ViewModels.Repository);
                 var repo = (ViewModels.Repository)view.DataContext;
@@ -187,6 +202,7 @@ namespace SourceGit.Automation
                 Pointer.Capture(null);
                 if (action == "search_doubletap_blank") hit.RaiseEvent(new TappedEventArgs(Gestures.DoubleTappedEvent, pressed));
                 searchClick = new { expected = ((Models.Commit)row.DataContext).SHA, selected = (grid.SelectedItem as Models.Commit)?.SHA,
+                    windowSize = window.ClientSize.ToString(),
                     hit = hit.GetType().Name, hitCell = hitCell == cell, position = position.ToString(), cell = Bounds(cell),
                     ancestors = hit.GetVisualAncestors().Select(v => v.GetType().Name + ":" + (v as Control)?.Name).ToArray() };
             }

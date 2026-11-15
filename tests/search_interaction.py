@@ -123,6 +123,10 @@ try:
             tool('ui_window', locale=locale, theme=theme, zoom=1, width=1280, height=820, state='normal')
             for width in [1024, 1280]:
                 tool('ui_window', width=width)
+                if os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ.get('RUNNER_OS') == 'Windows':
+                    # Hosted desktops can be narrower than the product's minimum
+                    # window. Keep actual routed hit testing on the visible desktop.
+                    probe('fit_desktop')
                 time.sleep(.2)
                 for column in range(1, 5):
                     click = probe('search_click_blank', column)['searchClick']
