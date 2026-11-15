@@ -179,7 +179,7 @@ namespace SourceGit.Views
                 {
                     if (IsLoaded && navigation == _navigationRevision)
                         PageViewport.Offset = default;
-                }, DispatcherPriority.Loaded);
+                }, DispatcherPriority.ContextIdle);
             }
         }
 
