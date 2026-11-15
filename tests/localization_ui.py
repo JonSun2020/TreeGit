@@ -364,6 +364,7 @@ try:
     cycles = int(sys.argv[3]) if len(sys.argv) > 3 else 0
     assert 0 <= cycles <= 300, 'Choose between 0 and 300 soak cycles'
     samples = []
+    records.append({'soakCycles': cycles, 'samples': samples})
     for cycle in range(cycles):
         tool('ui_select_commit', repo=str(repo), revision=head)
         wait(lambda: state()['detailCommit'] == head and state()['detailChanges'])
@@ -392,10 +393,16 @@ try:
             sample['temporaryBytes'] = sum(path.stat().st_size for path in temp_root.rglob('*') if path.is_file() and not path.is_symlink())
             samples.append(sample)
             check(f'soak {cycle}: temporary files remain bounded', sample['temporaryBytes'] < 2 * 1024 ** 3)
-            check(f'soak {cycle}: owned handles remain bounded', sample['handles'] <= samples[0]['handles'] + 40)
+            # Windows grows its worker pool while loading comparisons. Those workers
+            # own thread, event and completion-port handles; bound that capacity too,
+            # instead of confusing a small bounded pool expansion with leaked files.
+            extra_threads = max(0, sample['threads'] - samples[0]['threads'])
+            check(f'soak {cycle}: owned threads remain bounded', extra_threads <= 16)
+            handle_budget = 40 + extra_threads * 8
+            check(f"soak {cycle}: owned handles remain bounded ({sample['handles']} versus {samples[0]['handles']}, allowance {handle_budget})",
+                  sample['handles'] <= samples[0]['handles'] + handle_budget)
             check(f'soak {cycle}: resident memory remains bounded', sample['workingSet'] <= samples[0]['workingSet'] + 256 * 1024 ** 2)
     if cycles:
-        records.append({'soakCycles': cycles, 'samples': samples})
         check('the soak preserves repository data', before == [git('rev-parse', 'HEAD'), git('ls-files', '--stage'), git('status', '--porcelain')])
         tool('ui_window', width=1280, height=820, state='normal')
     # A second, explicit mutation fixture exercises real conflict state. The

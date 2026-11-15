@@ -156,7 +156,13 @@ for command in ['external_diff']:
         dialogs = tool('ui_state')['dialogs']
         if dialogs: break
         time.sleep(.1)
-    check(command+' uses a normal unsupported information dialog', len(dialogs) == 1 and dialogs[0]['type'] == 'Alert' and dialogs[0]['message'] == '暂未支持')
+    check(command+' opens the built-in comparison by default', len(dialogs) == 1 and dialogs[0]['type'] == 'InternalDiffWindow')
+    for _ in range(100):
+        active = tool('ui_layout', {'window':'active'})
+        if active['diffs']: break
+        time.sleep(.1)
+    check('the built-in comparison displays binary content without another independent-window command',
+          bool(active['diffs']) and not any(b['text'] == '独立窗口' for b in active['buttons']))
     (out/(command+'.png')).write_bytes(tool('ui_screenshot', {'window':'active'}))
     tool('ui_command', {'command':'close_dialog'})
 

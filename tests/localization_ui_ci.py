@@ -13,7 +13,7 @@ try:
         'Repositories': [], 'RestoreOnStartup': True}]}), encoding='utf-8')
     subprocess.run([sys.executable, str(Path(__file__).with_name('localization_ui.py')), str(exe), str(out), '30'], check=True)
     result = json.loads((out / 'results.json').read_text(encoding='utf-8'))
-    assert result['passed'] >= 500 and result['failure'] is None, result
+    assert result['passed'] >= 551 and result['failure'] is None, result
     search_out = out / 'search-interaction'
     subprocess.run([sys.executable, str(Path(__file__).with_name('search_interaction.py')), str(exe), str(search_out)], check=True)
     search_result = json.loads((search_out / 'results.json').read_text(encoding='utf-8'))
