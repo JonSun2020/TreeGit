@@ -269,7 +269,7 @@ try:
         wait(lambda: not state()['searchActive'] and unattached in (state()['selectedCommits'] or []))
         check(locale + ' search navigation selects the actual commit', state()['detailCommit'] == unattached)
         tool('ui_select_commit', repo=str(repo), revision=head)
-        wait(lambda: state()['detailCommit'] == head and state()['detailChanges'])
+        wait(lambda: state()['detailCommit'] == head and 'demo.bin' in (state()['detailChanges'] or []))
         tool('ui_diff', repo=str(repo), action='select', file='demo.bin', source='history')
         wait(lambda: tool('ui_diff', repo=str(repo), action='state').get('status') == 'ready')
         for command, page in [('preferences', 'general'), ('preferences', 'appearance'), ('preferences', 'git'),

@@ -471,6 +471,9 @@ namespace SourceGit.ViewModels
 
         private void Refresh()
         {
+            if (_cancellationSource is { IsCancellationRequested: false })
+                _cancellationSource.Cancel();
+
             _requestingRevisionFiles = false;
             _revisionFiles = null;
 
@@ -481,22 +484,20 @@ namespace SourceGit.ViewModels
             RevisionFileSearchFilter = string.Empty;
             RevisionFileSearchSuggestion = null;
             ScrollOffset = Vector.Zero;
+            Changes = [];
+            VisibleChanges = [];
+            ChangeSelection = new(null);
 
             if (_commit == null)
             {
                 RefreshBranchDetails(null, default);
                 RefreshParentRevisions(null, default);
-                Changes = [];
-                VisibleChanges = [];
-                ChangeSelection = new(null);
                 return;
             }
 
-            if (_cancellationSource is { IsCancellationRequested: false })
-                _cancellationSource.Cancel();
-
             _cancellationSource = new CancellationTokenSource();
             var token = _cancellationSource.Token;
+            var selectedCommit = _commit;
 
             RefreshBranchDetails(_commit, token);
             RefreshParentRevisions(_commit, token);
@@ -523,39 +524,33 @@ namespace SourceGit.ViewModels
 
             Task.Run(async () =>
             {
-                var signInfo = await new Commands.QueryCommitSignInfo(_repo.FullPath, _commit.SHA, !_repo.HasAllowedSignersFile)
+                var signInfo = await new Commands.QueryCommitSignInfo(_repo.FullPath, selectedCommit.SHA, !_repo.HasAllowedSignersFile)
                     .GetResultAsync()
                     .ConfigureAwait(false);
 
                 if (!token.IsCancellationRequested)
-                    Dispatcher.UIThread.Post(() => SignInfo = signInfo);
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (token.IsCancellationRequested || _commit?.SHA != selectedCommit.SHA) return;
+                        SignInfo = signInfo;
+                    });
             }, token);
 
             Task.Run(async () =>
             {
-                var changes = await new Commands.CompareRevisions(_repo.FullPath, _commit.FirstParentToCompare, _commit.SHA)
+                var changes = await new Commands.CompareRevisions(_repo.FullPath, selectedCommit.FirstParentToCompare, selectedCommit.SHA)
                     .ReadAsync()
                     .ConfigureAwait(false);
-
-                var visible = changes;
-                if (!string.IsNullOrWhiteSpace(_searchChangeFilter))
-                {
-                    visible = new List<Models.Change>();
-                    foreach (var c in changes)
-                    {
-                        if (c.Path.Contains(_searchChangeFilter, StringComparison.OrdinalIgnoreCase))
-                            visible.Add(c);
-                    }
-                }
 
                 if (!token.IsCancellationRequested)
                 {
                     Dispatcher.UIThread.Post(() =>
                     {
+                        if (token.IsCancellationRequested || _commit?.SHA != selectedCommit.SHA) return;
                         Changes = changes;
-                        VisibleChanges = visible;
+                        RefreshVisibleChanges();
 
-                        if (visible.Count == 0)
+                        if (VisibleChanges.Count == 0)
                             ChangeSelection = new(null);
                         else
                             ChangeSelection = new(VisibleChanges.GetRange(0, 1));
