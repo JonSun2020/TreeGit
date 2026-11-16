@@ -5,6 +5,8 @@ The default regression requires integration diagnostics; --gallery captures the
 normal portable program without enabling test interfaces in the release.
 """
 import base64
+import ctypes
+from ctypes import wintypes
 import json
 import os
 from pathlib import Path
@@ -82,6 +84,16 @@ def select(sha):
 
 
 def capture(name, active=False):
+    # Park the CI pointer on the owned caption so tooltips cannot cover code.
+    if gallery and pid:
+        api = ctypes.WinDLL('user32', use_last_error=True)
+        api.GetForegroundWindow.restype = wintypes.HWND
+        api.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+        api.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
+        hwnd, owner, rect = api.GetForegroundWindow(), wintypes.DWORD(), wintypes.RECT()
+        api.GetWindowThreadProcessId(hwnd, ctypes.byref(owner))
+        if owner.value == pid and api.GetWindowRect(hwnd, ctypes.byref(rect)):
+            api.SetCursorPos((rect.left + rect.right) // 2, rect.top + 8)
     time.sleep(.3)
     (out / (name + '.png')).write_bytes(tool('ui_screenshot', **({'window': 'active'} if active else {})))
 
@@ -195,10 +207,10 @@ try:
         git('add', 'readme.txt')
         tool('ui_refresh', repo=str(repo))
         tool('ui_working_copy', repo=str(repo), message='完善示例参数\n\n说明修改目的，检查暂存内容后提交。')
+        tool('ui_diff', repo=str(repo), action='select', source='staged', file='readme.txt')
         tool('ui_select_view', repo=str(repo), view='commit')
         until(lambda: (state().get('workingCopyState') or {}).get('composition', {}).get('identity') == 'TreeGit Demo <demo@example.invalid>')
-        until(lambda: state()['workingCopyState']['composition']['commitEnabled'])
-        tool('ui_diff', repo=str(repo), action='select', source='staged', file='readme.txt')
+        until(lambda: state()['workingCopyState']['composition']['visible'] and state()['workingCopyState']['composition']['commitEnabled'])
         capture('commit-page')
         check('public commit page shows the identity and enabled staged draft without committing', git('rev-parse', 'HEAD') == binary_head)
 
