@@ -67,6 +67,8 @@ def owned_handle_types(exe, pid):
     kernel.QueryFullProcessImageNameW.argtypes = [w.HANDLE, w.DWORD, w.LPWSTR, c.POINTER(w.DWORD)]
     kernel.DuplicateHandle.argtypes = [w.HANDLE, w.HANDLE, w.HANDLE, c.POINTER(w.HANDLE), w.DWORD, w.BOOL, w.DWORD]
     kernel.CloseHandle.argtypes = [w.HANDLE]
+    kernel.GetFileType.argtypes = [w.HANDLE]
+    kernel.GetFileType.restype = w.DWORD
     process = kernel.OpenProcess(0x1040, False, int(pid))
     assert process, c.WinError(c.get_last_error())
     try:
@@ -85,19 +87,24 @@ def owned_handle_types(exe, pid):
         assert 2 * c.sizeof(c.c_size_t) + count * c.sizeof(Entry) <= size
         entries = (Entry * count).from_buffer(data, 2 * c.sizeof(c.c_size_t))
         counts = collections.Counter(e.type for e in entries if e.pid == pid)
-        names = {}
+        names, file_kinds = {}, collections.Counter()
         for entry in entries:
-            if entry.pid != pid or entry.type in names: continue
+            if entry.pid != pid or (entry.type in names and names[entry.type] != 'File'): continue
             duplicate = w.HANDLE()
             if not kernel.DuplicateHandle(process, w.HANDLE(entry.handle), w.HANDLE(-1), c.byref(duplicate), 0, False, 2): continue
             try:
-                value = c.create_string_buffer(4096)
-                if nt.NtQueryObject(duplicate, 2, value, len(value), c.byref(needed)) == 0:
-                    text = Unicode.from_buffer(value)
-                    names[entry.type] = c.wstring_at(text.buffer, text.length // 2)
+                if entry.type not in names:
+                    value = c.create_string_buffer(4096)
+                    if nt.NtQueryObject(duplicate, 2, value, len(value), c.byref(needed)) == 0:
+                        text = Unicode.from_buffer(value)
+                        names[entry.type] = c.wstring_at(text.buffer, text.length // 2)
+                if names.get(entry.type) == 'File':
+                    # Windows also calls active Git stdin/stdout pipes "File".
+                    # Classify without querying pipe names (which can block).
+                    file_kinds[{1: 'DiskFile', 2: 'CharacterFile', 3: 'PipeFile'}.get(kernel.GetFileType(duplicate), 'OtherFile')] += 1
             finally:
                 kernel.CloseHandle(duplicate)
         assert 'File' in names.values(), 'File handle accounting is unavailable'
-        return {names.get(key, str(key)): value for key, value in counts.items()}
+        return {**{names.get(key, str(key)): value for key, value in counts.items()}, **file_kinds}
     finally:
         kernel.CloseHandle(process)

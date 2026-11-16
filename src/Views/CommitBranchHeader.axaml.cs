@@ -30,7 +30,7 @@ namespace SourceGit.Views
             var size = TopLevel.GetTopLevel(this)?.ClientSize ?? new Size(1024, 768);
             var context = new ViewModels.SearchBranches(details.Commit, true);
             var content = new SearchBranches { DataContext = context, Width = Math.Min(380, Math.Max(220, size.Width / zoom - 48)), MaxHeight = Math.Min(420, Math.Max(140, size.Height / zoom - 80)) };
-            var flyout = new Flyout { Content = content, Placement = PlacementMode.BottomEdgeAlignedLeft };
+            var flyout = SearchBranches.CreateFlyout(MoreCommitBranches, content);
             _flyout = flyout;
             context.BranchChosen += async branch => { await this.CopyTextAsync(branch.FriendlyName); flyout.Hide(); };
             flyout.Closed += (_, _) => { if (_flyout == flyout) _flyout = null; };

@@ -399,7 +399,7 @@ try:
             if os.name == 'nt':
                 from qa_process import owned_handle_types
                 sample['handleTypes'] = owned_handle_types(exe, pid)
-                check(f'soak {cycle}: open files remain bounded', sample['handleTypes']['File'] <= samples[0]['handleTypes']['File'] + 8)
+                check(f'soak {cycle}: open disk files remain bounded', sample['handleTypes'].get('DiskFile', 0) <= samples[0]['handleTypes'].get('DiskFile', 0) + 8)
             check(f'soak {cycle}: temporary files remain bounded', sample['temporaryBytes'] < 2 * 1024 ** 3)
             # Windows grows its worker pool while loading comparisons. Those workers
             # own thread, event and completion-port handles; bound that capacity too,

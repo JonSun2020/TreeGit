@@ -137,7 +137,7 @@ namespace SourceGit.Views
             var zoom = ViewModels.Preferences.Instance.Zoom;
             var size = TopLevel.GetTopLevel(this)?.ClientSize ?? new Size(1024, 768);
             _branchPopup = new SearchBranches { DataContext = context, Width = Math.Min(380, Math.Max(220, size.Width / zoom - 48)), MaxHeight = Math.Min(420, Math.Max(140, size.Height / zoom - 80)) };
-            var flyout = new Flyout { Content = _branchPopup, Placement = PlacementMode.BottomEdgeAlignedLeft };
+            var flyout = SearchBranches.CreateFlyout(BranchPopupAnchor, _branchPopup);
             _branchFlyout = flyout;
             void SearchChanged(object _, System.ComponentModel.PropertyChangedEventArgs e)
             {
