@@ -261,6 +261,9 @@ def merge(revision, mode=None):
     wait_for(lambda: state()['mergeDialog']['testing'] != 'Testing')
 
 def confirm():
+    # Earlier rejection scenarios deliberately leave the notification-details
+    # flyout open. Dismiss it before targeting the real main-window button.
+    command('clear_notifications')
     before = state()['pendingDialogAttemptVersion']
     press('ConfirmPopup')
     wait_for(lambda: state()['pendingDialogAttemptVersion'] > before)

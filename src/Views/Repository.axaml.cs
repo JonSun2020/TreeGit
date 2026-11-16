@@ -188,6 +188,7 @@ namespace SourceGit.Views
 
         private void OnHistoryBranchSelection(Models.Branch branch)
         {
+            if (DataContext is ViewModels.Repository owner) owner.RememberSidebarBranch(branch);
             LocalBranchTree.UnselectAll();
             RemoteBranchTree.UnselectAll();
             TagsList.UnselectAll();
@@ -324,18 +325,21 @@ namespace SourceGit.Views
 
         private void OnLocalBranchTreeSelectionChanged(object _1, RoutedEventArgs _2)
         {
+            if (LocalBranchTree.SelectedBranch is { } branch && DataContext is ViewModels.Repository repo) repo.RememberSidebarBranch(branch);
             RemoteBranchTree.UnselectAll();
             TagsList.UnselectAll();
         }
 
         private void OnRemoteBranchTreeSelectionChanged(object _1, RoutedEventArgs _2)
         {
+            if (RemoteBranchTree.SelectedBranch is { } branch && DataContext is ViewModels.Repository repo) repo.RememberSidebarBranch(branch);
             LocalBranchTree.UnselectAll();
             TagsList.UnselectAll();
         }
 
         private void OnTagsSelectionChanged(object _1, RoutedEventArgs _2)
         {
+            if (DataContext is ViewModels.Repository repo) repo.RememberSidebarBranch(null);
             LocalBranchTree.UnselectAll();
             RemoteBranchTree.UnselectAll();
         }

@@ -374,6 +374,64 @@ try:
           inferred['inferred'] and inferred['primary'] in inferred['branches'] and
           state()['searchResults'][0]['branch'] == inferred['primary'].removeprefix('refs/heads/').removeprefix('refs/remotes/') and
           wait(highlights).get(inferred['primary']) == 2)
+
+    # History and file status share one last-used surface. Search has its own
+    # selection; changing its commit/file must not overwrite that shared state.
+    repo = root / 'Navigation state'
+    repo.mkdir()
+    git('init', '-b', 'main'); git('config', 'user.name', 'TreeGit Demo'); git('config', 'user.email', 'demo@example.invalid')
+    for name in ['a.bin', 'z.bin']: (repo / name).write_bytes(bytes(range(64)))
+    git('add', '.'); git('commit', '-m', 'Navigation base')
+    git('checkout', '-b', 'history/view')
+    for name in ['a.bin', 'z.bin']: (repo / name).write_bytes(b'\0' + bytes(range(1, 65)))
+    git('commit', '-am', 'Earlier selected revision'); earlier = git('rev-parse', 'HEAD')
+    git('checkout', 'main')
+    for name in ['a.bin', 'z.bin']: (repo / name).write_bytes(b'\0' + bytes(range(2, 66)))
+    git('commit', '-am', 'Latest revision'); latest = git('rev-parse', 'HEAD')
+    (repo / '.git/sourcegit.uistates').write_text(json.dumps({'IsLocalBranchesExpandedInSideBar': True,
+        'ExpandedBranchNodesInSideBar': ['refs/heads/history']}), encoding='utf-8')
+    tool('ui_open_repository', repo=str(repo)); tool('ui_graph', repo=str(repo), mode='all', showRemotes=True)
+    wait(lambda: not state()['graphLoading'])
+
+    def selected_binary(file, revision=None):
+        view = tool('ui_diff', repo=str(repo), action='state')
+        return view if view.get('status') == 'ready' and view.get('file') == file and (revision is None or view.get('newRevision') == revision) else None
+
+    for selected, file, other in [(earlier, 'z.bin', latest), (latest, 'a.bin', earlier)]:
+        tool('ui_select_view', repo=str(repo), view='history')
+        tool('ui_select_commit', repo=str(repo), revision=selected)
+        wait(lambda: state()['detailCommit'] == selected and file in (state()['detailChanges'] or []) and not state()['detailBranchesLoading'])
+        tool('ui_diff', repo=str(repo), action='select', source='history', file=file)
+        wait(lambda: selected_binary(file, selected))
+        branch = state()['sidebarSelectedBranch']
+        tool('ui_search', repo=str(repo), query=other, method='sha')
+        wait(lambda: not state()['searchQuerying'] and state()['searchResultCount'] == 1)
+        tool('ui_search', repo=str(repo), select=other)
+        wait(lambda: 'a.bin' in (state()['detailChanges'] or []))
+        tool('ui_diff', repo=str(repo), action='select', source='history', file='a.bin')
+        wait(lambda: selected_binary('a.bin', other))
+        tool('ui_select_view', repo=str(repo), view='history')
+        wait(lambda: state()['detailCommit'] == selected and selected_binary(file, selected))
+        check(file + ' returning from search restores the exact history row', state()['historySelectedCommits'] == [selected])
+        check(file + ' returning from search restores its selected sidebar branch', branch is not None and state()['sidebarSelectedBranch'] == branch)
+        check(file + ' returning from search restores the actual binary file and revision', bool(selected_binary(file, selected)))
+        tool('ui_select_view', repo=str(repo), view='search')
+        wait(lambda: state()['detailCommit'] == other and selected_binary('a.bin', other))
+        check(file + ' search keeps its own selected commit and file', state()['searchSelected'] == other)
+        tool('ui_select_view', repo=str(repo), view='history')
+
+    (repo / 'z.bin').write_bytes(b'\0' + bytes(range(3, 67)))
+    tool('ui_refresh', repo=str(repo)); tool('ui_working_copy', repo=str(repo))
+    wait(lambda: 'z.bin' in state()['workingCopyState']['unstaged'])
+    tool('ui_diff', repo=str(repo), action='select', source='unstaged', file='z.bin')
+    wait(lambda: selected_binary('z.bin'))
+    tool('ui_search', repo=str(repo), query=earlier, method='sha')
+    wait(lambda: not state()['searchQuerying'] and state()['searchResultCount'] == 1)
+    tool('ui_search', repo=str(repo), select=earlier)
+    tool('ui_select_view', repo=str(repo), view='history')
+    wait(lambda: state()['detailView'] == 'WorkingCopy' and selected_binary('z.bin'))
+    check('file status and history restore their one shared last file selection', state()['workingCopyState']['selectedUnstaged'] == ['z.bin'])
+    check('page switching never changes the checked-out branch or HEAD', git('branch', '--show-current') == 'main' and git('rev-parse', 'HEAD') == latest)
 except BaseException:
     failure = traceback.format_exc()
     if pid:

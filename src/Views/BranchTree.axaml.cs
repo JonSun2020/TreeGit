@@ -383,6 +383,8 @@ namespace SourceGit.Views
             BranchesPresenter.SelectedItem = null;
         }
 
+        public Models.Branch SelectedBranch => (BranchesPresenter.SelectedItem as ViewModels.BranchTreeNode)?.Backend as Models.Branch;
+
         public void SetCommitHighlights(Models.CommitBranchDetails details)
         {
             if (_nodes == null) return;

@@ -143,7 +143,7 @@ namespace SourceGit.ViewModels
             var wasSearching = _histories.IsSearchingCommits;
             _histories.IsSearchingCommits = false;
             SelectedViewIndex = 0;
-            if ((wasSearching || _histories.IsWorkingCopySelected) && _histories.Commits.Count > 0)
+            if (!wasSearching && _histories.IsWorkingCopySelected && _histories.Commits.Count > 0)
                 _histories.SelectedCommits = [_histories.Commits.Find(c => c.IsCurrentHead) ?? _histories.Commits[0]];
         }
 
@@ -1126,6 +1126,7 @@ namespace SourceGit.ViewModels
 
         public void CancelHistoryNavigation()
         {
+            _historySidebarPreferredBranch = string.Empty;
             _historySidebarSelectionCommit = string.Empty;
             if (!string.IsNullOrEmpty(_historyNavigationCommit) && _navigateToCommitDelayed == _historyNavigationCommit)
                 _navigateToCommitDelayed = string.Empty;
@@ -1136,6 +1137,20 @@ namespace SourceGit.ViewModels
         public event Action<Models.Branch> HistoryBranchSelectionRequested;
         public event Action<Models.CommitBranchDetails> CommitBranchHighlightsRequested;
         public Models.CommitBranchDetails SidebarCommitBranches { get; private set; }
+        internal string SidebarSelectedBranchReference { get; private set; }
+        private string _historySidebarPreferredBranch = string.Empty;
+
+        internal void RememberSidebarBranch(Models.Branch branch) => SidebarSelectedBranchReference = branch?.FullName;
+
+        internal void RestoreHistorySidebar(string reference, Models.Commit commit, Models.CommitBranchDetails details)
+        {
+            CancelHistoryNavigation();
+            _historySidebarSelectionCommit = commit?.SHA ?? string.Empty;
+            _historySidebarPreferredBranch = reference ?? string.Empty;
+            SidebarCommitBranches = details;
+            HistoryBranchSelectionRequested?.Invoke(_branches.Find(branch => branch.FullName == reference));
+            CommitBranchHighlightsRequested?.Invoke(details);
+        }
 
         public void ClearCommitBranchHighlights(string keepCommit = null)
         {
@@ -1171,8 +1186,9 @@ namespace SourceGit.ViewModels
             foreach (var branch in details.Coverage.Branches) containing.Add(branch.FullName);
             var primary = details.Coverage.Branches.Find(b => b.IsLocal && details.Coverage.IsPrimaryBranch(b)) ??
                 details.Coverage.Branches.Find(details.Coverage.IsPrimaryBranch);
-            var focus = _historyNavigationCommit == commit.SHA ? FindHistoryBranch(commit.SHA, containing) :
-                primary ?? Models.BranchSelection.Choose(_branches, commit.SHA, containing, preferLocal: true);
+            var focus = _branches.Find(branch => branch.FullName == _historySidebarPreferredBranch) ??
+                (_historyNavigationCommit == commit.SHA ? FindHistoryBranch(commit.SHA, containing) :
+                primary ?? Models.BranchSelection.Choose(_branches, commit.SHA, containing, preferLocal: true));
             HistoryBranchSelectionRequested?.Invoke(focus);
             SidebarCommitBranches = details;
             CommitBranchHighlightsRequested?.Invoke(details);

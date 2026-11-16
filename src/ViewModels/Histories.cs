@@ -30,6 +30,8 @@ namespace SourceGit.ViewModels
                 if (value == _isSearchingCommits) return;
                 if (value)
                 {
+                    _historyBeforeSearch = new HistoryNavigationState([.. _selectedCommits], DetailContext,
+                        IsWorkingCopySelected, IsCollapseDetails, _repo.SidebarSelectedBranchReference);
                     _repo.ClearCommitBranchHighlights();
                     _repo.CancelHistoryNavigation();
                     _repo.SelectedViewIndex = 0;
@@ -37,7 +39,6 @@ namespace SourceGit.ViewModels
                 else
                 {
                     _searchCommitContext.Suspend();
-                    if (ReferenceEquals(DetailContext, _searchDetailContext)) DetailContext = Models.Null.Instance;
                 }
 
                 SetProperty(ref _isSearchingCommits, value);
@@ -48,6 +49,8 @@ namespace SourceGit.ViewModels
                     ShowSearchCommit(_searchCommitContext.Selected);
                     _searchCommitContext.Resume();
                 }
+                else
+                    RestoreHistoryNavigation();
             }
         }
 
@@ -70,12 +73,37 @@ namespace SourceGit.ViewModels
             _repo.RequestCommitBranchSelection(commit);
             if (commit == null) _searchDetailContext = null;
             else if (_searchDetailContext?.Commit?.SHA != commit.SHA)
-                _searchDetailContext = new CommitDetail(_repo, _commitDetailSharedData) { Commit = commit };
+                _searchDetailContext = new CommitDetail(_repo, _searchDetailSharedData) { Commit = commit };
             DetailContext = (object)_searchDetailContext ?? Models.Null.Instance;
             if (_searchDetailContext?.BranchDetails is { } details) _repo.SynchronizeCommitBranchSelection(commit, details);
         }
 
         public void InvalidateSearchDetail() => _searchDetailContext = null;
+
+        private void RestoreHistoryNavigation()
+        {
+            var saved = _historyBeforeSearch;
+            _historyBeforeSearch = null;
+            if (saved == null) return;
+            var selected = saved.Commits.Select(commit => _commits.Find(c => c.SHA == commit.SHA) ?? commit).ToList();
+            var ignored = _ignoreSelectionChange;
+            _ignoreSelectionChange = true;
+            try
+            {
+                SelectedCommits = selected;
+                IsWorkingCopySelected = saved.WorkingCopy;
+                IsCollapseDetails = saved.Collapsed;
+                // Reuse the context, including its selected file, diff and tab.
+                // A new graph model for the same SHA refreshes only metadata.
+                DetailContext = saved.Details;
+                if (saved.Details is CommitDetail detail && selected.Count == 1)
+                    detail.Commit = selected[0];
+            }
+            finally { _ignoreSelectionChange = ignored; }
+            var restored = saved.Details as CommitDetail;
+            _repo.RestoreHistorySidebar(saved.SidebarBranch, restored?.Commit, restored?.BranchDetails);
+            _repo.NotifyNavigationTabsChanged();
+        }
 
         public bool EnableTopoOrder
         {
@@ -426,6 +454,7 @@ namespace SourceGit.ViewModels
         {
             _repo = repo;
             _commitDetailSharedData = new CommitDetailSharedData();
+            _searchDetailSharedData = new CommitDetailSharedData();
             _searchCommitContext = new SearchCommitContext(repo.FullPath, this);
         }
 
@@ -799,6 +828,9 @@ namespace SourceGit.ViewModels
         private bool _isSearchingCommits = false;
         private SearchCommitContext _searchCommitContext = null;
         private CommitDetail _searchDetailContext;
+        private CommitDetailSharedData _searchDetailSharedData;
+        private sealed record HistoryNavigationState(List<Models.Commit> Commits, object Details, bool WorkingCopy, bool Collapsed, string SidebarBranch);
+        private HistoryNavigationState _historyBeforeSearch;
 
         private GridLength _leftArea = new(1, GridUnitType.Star);
         private GridLength _rightArea = new(1, GridUnitType.Star);

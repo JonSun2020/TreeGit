@@ -282,6 +282,7 @@ namespace SourceGit.Automation
                                     changes = r.StashesPage.Changes?.Select(c => c.Path).ToArray(), diff = r.StashesPage.DiffContext?.Title },
                                 selectedCommits = r.Histories?.SelectedCommits.Select(c => c.SHA).ToArray(),
                                 historySelectedCommits = historyList?.SelectedItems.OfType<Models.Commit>().Select(c => c.SHA).ToArray(),
+                                sidebarSelectedBranch = r.SidebarSelectedBranchReference,
                                 historyVisible = historyList?.IsEffectivelyVisible,
                                 detailCommit = r.GetSelectedCommitInHistory()?.SHA,
                                 detailBranchesLoading = (r.Histories?.DetailContext as ViewModels.CommitDetail)?.IsBranchDetailsLoading,
