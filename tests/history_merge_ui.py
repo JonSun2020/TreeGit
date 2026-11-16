@@ -260,10 +260,10 @@ def merge(revision, mode=None):
     if mode is not None: command('merge_options', mode=mode)
     wait_for(lambda: state()['mergeDialog']['testing'] != 'Testing')
 
-def confirm():
+def confirm(clear_notices=True):
     # Earlier rejection scenarios deliberately leave the notification-details
     # flyout open. Dismiss it before targeting the real main-window button.
-    command('clear_notifications')
+    if clear_notices: command('clear_notifications')
     before = state()['pendingDialogAttemptVersion']
     press('ConfirmPopup')
     wait_for(lambda: state()['pendingDialogAttemptVersion'] > before)
@@ -533,20 +533,20 @@ try:
 
     refresh(); wait_for(lambda: any(b['reference'] == 'refs/heads/ff-target' and b['head'] == base for b in state()['loadedBranches']))
     command('clear_notifications'); command('checkout_fast_forward_dialog', base='refs/heads/ff-target', to='refs/remotes/origin/ff-safe')
-    git('branch', '-f', 'ff-target', main); confirm()
+    git('branch', '-f', 'ff-target', main); confirm(clear_notices=False)
     wait_for(lambda: not state()['pendingDialogInProgress'] and tool('ui_state')['activePage']['notifications'] > 0)
     check('stale fast-forward dialog cannot reset newer local commits', git('rev-parse', 'ff-target').stdout.strip() == main and git('symbolic-ref', '--short', 'HEAD').stdout.strip() == 'main')
     cancel(); git('branch', '-f', 'ff-target', base); refresh()
     wait_for(lambda: any(b['reference'] == 'refs/heads/ff-target' and b['head'] == base for b in state()['loadedBranches']))
     write('draft.txt', 'preserved on fast forward\n'); refresh()
-    command('checkout_fast_forward_dialog', base='refs/heads/ff-target', to='refs/remotes/origin/ff-safe'); confirm(); completed()
+    command('checkout_fast_forward_dialog', base='refs/heads/ff-target', to='refs/remotes/origin/ff-safe'); confirm(clear_notices=False); completed()
     check('real fast-forward advances the selected branch and restores local edits', git('rev-parse', 'ff-target').stdout.strip() == safe_sha and git('symbolic-ref', '--short', 'HEAD').stdout.strip() == 'ff-target' and (repo / 'draft.txt').read_text() == 'preserved on fast forward\n' and not git('stash', 'list').stdout)
     git('checkout', 'main'); reset()
 
     checkout_hook = repo / '.git/hooks/post-checkout'
     checkout_hook.write_text('#!/bin/sh\necho "checkout hook rejected" >&2\nexit 1\n', encoding='utf-8')
     write('draft.txt', 'recoverable after hook failure\n'); refresh()
-    command('checkout_dialog', to='refs/heads/safe'); confirm()
+    command('checkout_dialog', to='refs/heads/safe'); confirm(clear_notices=False)
     wait_for(lambda: not state()['pendingDialogInProgress'] and state()['pendingDialog'] == 'Checkout' and state()['workingCopySelected'])
     check('a hook failure after checkout keeps the local edit recoverable and refreshes the true branch', git('symbolic-ref', '--short', 'HEAD').stdout.strip() == 'safe' and bool(git('stash', 'list').stdout) and state()['workingCopySelected'])
     checkout_hook.unlink(); cancel(); wait_for(lambda: state()['logs']['active'] == 0)
@@ -557,7 +557,7 @@ try:
     git('push', 'origin', pulled_head + ':refs/heads/main')
     write('draft.txt', 'staged pull draft\n'); git('add', 'draft.txt'); write('future.txt', 'preserve pull collision\n')
     pull_index = git('ls-files', '--stage').stdout; refresh()
-    command('pull_dialog'); confirm()
+    command('pull_dialog'); confirm(clear_notices=False)
     wait_for(lambda: state()['pendingDialog'] == 'Pull' and not state()['pendingDialogInProgress'] and state()['logs']['active'] == 0)
     check('failed pull restores staged local edits and preserves colliding untracked files', git('rev-parse', 'HEAD').stdout.strip() == main and git('ls-files', '--stage').stdout == pull_index and (repo / 'draft.txt').read_text() == 'staged pull draft\n' and (repo / 'future.txt').read_text() == 'preserve pull collision\n' and not git('stash', 'list').stdout)
     check('failed pull removes its temporary metadata files', not list((repo / '.git').glob('treegit-pull-*')))
@@ -566,13 +566,14 @@ try:
     write('draft.txt', 'old pull stash\n'); git('stash', 'push', '-m', 'Older pull stash'); old_pull_stash = git('rev-parse', 'refs/stash').stdout.strip()
     write('draft.txt', 'pull interrupted draft\n'); git('add', 'draft.txt'); network_index = git('ls-files', '--stage').stdout
     git('remote', 'set-url', 'origin', str(root / 'unavailable.git')); refresh()
-    command('pull_dialog'); confirm()
+    command('pull_dialog'); confirm(clear_notices=False)
     wait_for(lambda: state()['pendingDialog'] == 'Pull' and not state()['pendingDialogInProgress'] and state()['logs']['active'] == 0)
     check('unavailable remote restores local bytes and index without touching an older stash', (repo / 'draft.txt').read_text() == 'pull interrupted draft\n' and git('ls-files', '--stage').stdout == network_index and git('rev-parse', 'refs/stash').stdout.strip() == old_pull_stash)
     cancel(); git('remote', 'set-url', 'origin', str(remote)); reset()
 
     write('draft.txt', 'preserved on successful pull\n'); git('add', 'draft.txt'); refresh()
     command('pull_dialog')
+    wait_for(lambda: state()['pendingDialog'] == 'Pull' and not state()['pendingDialogInProgress'])
     check('earlier error notices remain available before retrying the pull', tool('ui_state')['activePage']['notifications'] >= 4)
     wait_for(lambda: len(buttons := [b for b in layout()['buttons'] if b['name'] in ['ConfirmPopup', 'CancelPopup']]) == 2 and
              all(not b['outsideParentBorder'] and b['parentBorderHeight'] >= 150 for b in buttons))
