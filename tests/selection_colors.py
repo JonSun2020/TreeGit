@@ -190,6 +190,18 @@ try:
         tool('ui_command', command='close_dialog')
         check('public binary example renders the built-in comparison', True)
 
+        # Show the complete commit page with fictional identity and draft only.
+        (repo / 'readme.txt').write_text('TreeGit interface demonstration\nReady for the next change\n', encoding='utf-8')
+        git('add', 'readme.txt')
+        tool('ui_refresh', repo=str(repo))
+        tool('ui_working_copy', repo=str(repo), message='完善示例参数\n\n说明修改目的，检查暂存内容后提交。')
+        tool('ui_select_view', repo=str(repo), view='commit')
+        until(lambda: (state().get('workingCopyState') or {}).get('composition', {}).get('identity') == 'TreeGit Demo <demo@example.invalid>')
+        until(lambda: state()['workingCopyState']['composition']['commitEnabled'])
+        tool('ui_diff', repo=str(repo), action='select', source='staged', file='readme.txt')
+        capture('commit-page')
+        check('public commit page shows the identity and enabled staged draft without committing', git('rev-parse', 'HEAD') == binary_head)
+
         repo = root / 'Merge Demo'
         repo.mkdir()
         git('init', '-b', 'main'); git('config', 'user.name', 'TreeGit Demo'); git('config', 'user.email', 'demo@example.invalid')

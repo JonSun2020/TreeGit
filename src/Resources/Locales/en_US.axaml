@@ -1776,4 +1776,14 @@ Configure SSH keys in the remote settings.</x:String>
   <x:String x:Key="Text.TreeGit.Template.New">New template</x:String>
   <x:String x:Key="Text.TreeGit.Tool.MergeDraftPreserved">Your edits were kept in the working tree. The file has not been staged.</x:String>
   <x:String x:Key="Text.TreeGit.Tool.MergeDraftSaved">Could not automatically restore {0}. Check the current file and the recovery files at: {1}</x:String>
+  <x:String x:Key="Text.TreeGit.Tabs.Commit">Commit</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.NoStagedFiles">No staged files</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.IdentityLoading">Loading commit identity…</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.IdentityMissing">Set a name and email in Repository settings</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.PushAfter">Push immediately</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.History.Button">Recent commit messages</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.History.Loading">Loading commit messages…</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.History.Empty">No commit messages yet</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.History.Error">Could not load commit messages. Close and try again.</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.SkipHooks">Bypass commit hooks</x:String>
 </ResourceDictionary>

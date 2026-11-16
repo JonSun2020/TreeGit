@@ -120,6 +120,9 @@
           <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Fetch}" Click="OnTreeGitFetch"/><MenuItem Header="{DynamicResource Text.TreeGit.Menu.Pull}" Click="OnTreeGitPull"/><MenuItem Header="{DynamicResource Text.TreeGit.Menu.Push}" Click="OnTreeGitPush"/>
           <MenuItem Header="{DynamicResource Text.TreeGit.Menu.NewBranch}" Click="OnTreeGitBranch"/><MenuItem Header="{DynamicResource Text.TreeGit.Menu.NewTag}" Click="OnTreeGitTag"/>
           <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Advanced}">
+            <MenuItem Header="{DynamicResource Text.WorkingCopy.Amend}" x:Name="GitAction_amend" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="{DynamicResource Text.WorkingCopy.ResetAuthor}" x:Name="GitAction_reset_author" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="{DynamicResource Text.ConventionalCommit}" x:Name="GitAction_conventional" Click="OnTreeGitExtraAction"/>
             <MenuItem Header="{DynamicResource Text.TreeGit.Menu.AddSubmodule}" x:Name="GitAction_submodule" Click="OnTreeGitExtraAction"/>
             <MenuItem Header="{DynamicResource Text.TreeGit.Menu.AddWorktree}" x:Name="GitAction_worktree" Click="OnTreeGitExtraAction"/>
             <MenuItem Header="Git LFS" x:Name="GitAction_lfs" Click="OnTreeGitExtraAction"/>

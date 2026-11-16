@@ -6,7 +6,7 @@ namespace SourceGit.Commands
 {
     public class Commit : Command
     {
-        public Commit(string repo, string message, bool signOff, bool noVerify, bool amend, bool resetAuthor)
+        public Commit(string repo, string message, bool signOff, bool noVerify, bool amend, bool resetAuthor, bool allowEmpty = true)
         {
             _tmpFile = Path.GetTempFileName();
             _message = message;
@@ -15,7 +15,7 @@ namespace SourceGit.Commands
             Context = repo;
 
             var builder = new StringBuilder();
-            builder.Append("commit --allow-empty --file=");
+            builder.Append(allowEmpty ? "commit --allow-empty --file=" : "commit --file=");
             builder.Append(_tmpFile.Quoted());
             builder.Append(' ');
 

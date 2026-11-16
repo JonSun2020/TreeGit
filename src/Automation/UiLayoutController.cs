@@ -285,6 +285,8 @@ namespace SourceGit.Automation
                     visible = b.IsEffectivelyVisible && b.Bounds.Width > 0 && b.Bounds.Height > 0, enabled = b.IsEnabled,
                     orientation = b.Orientation.ToString(), value = b.Value, minimum = b.Minimum, maximum = b.Maximum,
                     owner = b.GetVisualAncestors().OfType<UserControl>().FirstOrDefault()?.GetType().Name, bounds = Bounds(b) }).ToArray(),
+                commitSeparators = controls.OfType<Views.CommitOptionSeparator>().Where(separator => separator.IsEffectivelyVisible)
+                    .Select(separator => new { bounds = Bounds(separator), columns = new[] { separator.SideSpace, 3, separator.SideSpace } }).ToArray(),
                 bottomTabs = controls.OfType<Button>().Where(b => b.Classes.Contains("treegit_bottom_tab") && b.IsEffectivelyVisible)
                     .Select(b => new { text = b.Content as string, active = b.Classes.Contains("active"), bounds = Bounds(b),
                         content = b.GetVisualDescendants().OfType<TextBlock>().Select(t => Bounds(t)).ToArray() }).ToArray()

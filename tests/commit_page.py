@@ -1,0 +1,233 @@
+"""Verify separate search, history and original complete commit pages.
+
+Runs only in an isolated integration application using routed button clicks.
+"""
+import base64
+import json
+import os
+from pathlib import Path
+import queue
+import shutil
+import signal
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+import traceback
+from qa_cleanup import new_fixture, remove_fixture
+
+exe, out = (Path(v).resolve() for v in sys.argv[1:3])
+out.mkdir(parents=True, exist_ok=True)
+root = new_fixture(out, 'TreeGit search interaction ')
+repo = root / 'demo'
+repo.mkdir()
+profile = exe.parent / 'data/preference.json' if os.name == 'nt' else root / 'config/SourceGit/preference.json'
+profile.parent.mkdir(parents=True, exist_ok=True)
+backup = profile.read_bytes() if profile.exists() else None
+if backup:
+    saved = json.loads(backup.decode('utf-8-sig'))
+    assert not saved.get('RepositoryNodes') and all(not w.get('Repositories') for w in saved.get('Workspaces', []))
+temp = new_fixture(Path(tempfile.gettempdir()), 'TreeGit search input temp ')
+env = {**os.environ, 'TREEGIT_TEST_MENU_PROBE': '1', 'XDG_CONFIG_HOME': str(root / 'config'),
+       'XDG_CACHE_HOME': str(root / 'cache'), 'GIT_CONFIG_GLOBAL': str(root / 'gitconfig'), 'GIT_CONFIG_NOSYSTEM': '1',
+       'TMPDIR': str(temp), 'TEMP': str(temp), 'TMP': str(temp)}
+checks, records = [], []
+process = None
+pid = None
+failure = None
+responses = queue.Queue()
+sequence = 0
+
+
+def git(*args, **kwargs):
+    if isinstance(kwargs.get('input'), str):
+        kwargs['input'] = kwargs['input'].encode('utf-8')
+    return subprocess.check_output([shutil.which('git'), '-C', str(repo), *args], env=env, **kwargs).decode('utf-8').strip()
+
+
+def rpc(method, params):
+    global sequence
+    sequence += 1
+    process.stdin.write(json.dumps({'jsonrpc': '2.0', 'id': sequence, 'method': method, 'params': params}) + '\n')
+    process.stdin.flush()
+    answer = json.loads(responses.get(timeout=40))
+    assert answer.get('id') == sequence and 'error' not in answer, answer
+    return answer['result']
+
+
+def tool(name, **args):
+    for attempt in range(30):
+        result = rpc('tools/call', {'name': name, 'arguments': args})
+        # This guard runs before raising any input event. A just-switched, occluded
+        # Windows table may need another compositor frame; never send to a stale hit.
+        if (name == 'ui_layout' and args.get('action') == 'test_menu' and result.get('isError') and
+                result.get('content') in [[{'type': 'text', 'text': message}] for message in [
+                    'The rendered hit-test scene has not caught up with the table layout.', 'Blank cell space did not receive input.']] and attempt < 29):
+            time.sleep(.1)
+            continue
+        break
+    assert not result.get('isError'), result
+    return base64.b64decode(result['content'][0]['data']) if name == 'ui_screenshot' else json.loads(result['content'][0]['text'])
+
+
+def probe(action='inspect', column=0):
+    return tool('ui_layout', action='test_menu', text=action, value=column)
+
+
+def state():
+    return next(r for r in tool('ui_state')['repositories'] if Path(r['repo']).resolve() == repo)
+
+
+def wait(predicate):
+    for _ in range(150):
+        result = predicate()
+        if result:
+            return result
+        time.sleep(.08)
+    raise AssertionError('Expected search state did not appear')
+
+
+def check(name, condition, details=None):
+    assert condition, (name, details)
+    checks.append(name)
+    print('PASS', name, flush=True)
+
+
+try:
+    profile.write_text(json.dumps({'Locale': 'zh_CN', 'Theme': 'Light', 'Check4UpdatesOnStartup': False, 'EnableAutoFetch': False}), encoding='utf-8')
+    git('init', '-b', 'main'); git('config', 'user.name', 'TreeGit Demo'); git('config', 'user.email', 'demo@example.invalid')
+    for name in ['staged.txt', 'draft.txt']: (repo / name).write_text('initial\n', encoding='utf-8')
+    git('add', '.'); git('commit', '-m', 'Initial demo'); initial = git('rev-parse', 'HEAD')
+    remote=root/'remote.git';git('init','--bare',str(remote));git('remote','add','origin',str(remote));git('push','-u','origin','main')
+    (repo/'.git/sourcegit.uistates').write_text(json.dumps({'EnableSignOffForCommit':False}),encoding='utf-8')
+    (repo / 'staged.txt').write_text('ready change\n', encoding='utf-8'); (repo / 'draft.txt').write_text('keep unstaged\n', encoding='utf-8')
+    process = subprocess.Popen([str(exe), '--mcp'], env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+        stderr=(out / 'mcp.log').open('w', encoding='utf-8'), text=True, encoding='utf-8', creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
+    threading.Thread(target=lambda: [responses.put(v) for v in process.stdout], daemon=True).start()
+    rpc('initialize', {'protocolVersion': '2025-11-25'}); pid = tool('ui_state')['processId']
+    tool('ui_open_repository', repo=str(repo)); tool('ui_select_view', repo=str(repo), view='history')
+    wait(lambda: not state()['graphLoading'])
+    def composition(): return (state().get('workingCopyState') or {}).get('composition')
+    def composer_visible(): return bool(composition() and composition()['visible'])
+    def commit_page(): tool('ui_select_view', repo=str(repo), view='commit'); wait(composer_visible)
+    def draft(message): tool('ui_working_copy', repo=str(repo), message=message); commit_page()
+    def folded_geometry():
+        split = next(s for s in tool('ui_layout')['splitters'] if s['owner'] == 'Histories' and s['row'] == 1 and s['visible'])
+        return split['actualRows'][2]
+    probe('history_pending')
+    wait(lambda: state()['workingCopySelected'])
+    check('clicking uncommitted changes stays in history and only shows files/diffs', state()['view'] == 0 and not composer_visible() and state()['detailView'] == 'WorkingCopy')
+    tool('ui_diff', repo=str(repo), action='select', source='unstaged', file='draft.txt')
+    for locale, label, tabs in [('zh_CN', '无暂存文件', ['搜索', '日志 / 历史', '提交']),
+            ('zh_TW', '無暫存檔案', ['搜尋', '記錄／歷史', '提交']), ('en_US', 'No staged files', ['Search', 'Log / History', 'Commit'])]:
+        tool('ui_window', locale=locale, width=1280, height=820, zoom=1)
+        # Exercise the actual history toggle and bottom tab handlers, not just VM navigation.
+        probe('page_tab', 1); probe('history_pending'); probe('history_collapse', 1)
+        wait(lambda: state()['detailsCollapsed'])
+        check(locale + ' collapsed uncommitted details occupy only their header', folded_geometry() <= 29 and not composer_visible() and not any(b['name']=='StageAllChanges' for b in tool('ui_layout')['buttons']))
+        if locale == 'zh_CN': (out/'history-collapsed.png').write_bytes(tool('ui_screenshot'))
+        probe('page_tab', 0)
+        tool('ui_search', repo=str(repo), query='Initial demo', method='message')
+        wait(lambda: not state()['searchQuerying'] and state()['searchResultCount'] == 1)
+        tool('ui_search', repo=str(repo), select=initial); probe('page_tab', 1)
+        wait(lambda: state()['detailsCollapsed'] and folded_geometry() <= 29)
+        time.sleep(.25)
+        check(locale + ' search round-trip keeps details folded and the file selected', state()['detailsCollapsed'] and state()['workingCopySelected'] and state()['workingCopyState']['selectedUnstaged'] == ['draft.txt'] and folded_geometry() <= 29)
+        tool('ui_refresh', repo=str(repo)); wait(lambda: not state()['graphLoading'])
+        check(locale + ' refresh does not unfold cached history details', state()['detailsCollapsed'] and folded_geometry() <= 29)
+        probe('page_tab', 2); wait(composer_visible)
+        check(locale + ' tab order is search, history, commit', [t['text'] for t in tool('ui_layout')['bottomTabs']] == tabs)
+        check(locale + ' commit tab opens the complete original page', state()['view'] == 1 and tool('ui_layout')['bottomTabs'][2]['active'])
+        for theme in ['Light', 'Dark', 'Blue']:
+            tool('ui_window', theme=theme)
+            wait(lambda: composition() and composition()['maskText'] == label)
+            c=composition(); check(locale + ' ' + theme + ' empty-index editor and commit are disabled', not c['inputEnabled'] and not c['commitEnabled'] and c['maskVisible'], c)
+        probe('page_tab', 1); wait(lambda: state()['view'] == 0)
+        check(locale + ' opening commit does not change the collapsed history layout', state()['detailsCollapsed'] and folded_geometry() <= 29 and not composer_visible())
+        probe('history_collapse', 0)
+    tool('ui_window', locale='zh_CN', theme='Light')
+    probe('commit_toolbar'); wait(composer_visible)
+    wait(lambda: composition() and composition()['identity']=='TreeGit Demo <demo@example.invalid>' and composition()['pushTarget']=='origin/main')
+    check('commit header shows the actual repository name and email', composition()['identity']=='TreeGit Demo <demo@example.invalid>')
+    check('top-left commit button opens the same complete commit page', state()['view'] == 1 and tool('ui_layout')['bottomTabs'][2]['active'])
+    draft('Preserved commit draft')
+    check('draft cannot enable an empty-index commit', not composition()['commitEnabled'] and git('rev-parse', 'HEAD') == initial)
+    git('add', 'staged.txt'); tool('ui_refresh', repo=str(repo)); wait(lambda: composition() and composition()['commitEnabled'])
+    check('staging enables editor and commit without losing the draft', composition()['inputEnabled'] and not composition()['maskVisible'] and composition()['inputText'] == 'Preserved commit draft')
+    git('reset', '--', 'staged.txt'); tool('ui_refresh', repo=str(repo)); wait(lambda: composition() and composition()['maskVisible'])
+    check('unstaging restores the mask while preserving the draft', not composition()['inputEnabled'] and not composition()['commitEnabled'] and composition()['inputText'] == 'Preserved commit draft')
+    git('add', 'staged.txt'); tool('ui_refresh', repo=str(repo)); wait(lambda: composition() and composition()['commitEnabled'])
+    probe('page_tab',0);probe('commit_hidden');time.sleep(.15)
+    check('hidden commit controls cannot submit from the search page',git('rev-parse','HEAD')==initial)
+    probe('page_tab',2);wait(composer_visible)
+    for locale in ['zh_CN', 'zh_TW', 'en_US']:
+        tool('ui_window', locale=locale, width=1024, height=720, zoom=1)
+        layout=tool('ui_layout'); records.append({'locale':locale,'dropdownText':[t for t in layout['localizedTexts'] if t['context']=='ChangeListOption' and t['text'] in ['All changes','Sort by path','全部变更','按路径排序','所有變更','依路徑排序']]}); button=next(b for b in layout['buttons'] if b['name'] == 'CommitStagedButton')['bounds']
+        check(locale+' recessed separators keep equal nonzero side spacing',len(layout['commitSeparators'])==2 and all(c['columns'][0]>0 and abs(c['columns'][0]-c['columns'][2])<.1 and c['columns'][1]==3 for c in layout['commitSeparators']))
+        choice_texts=[t for t in layout['localizedTexts'] if t['context']=='ChangeListOption']
+        check(locale + ' dropdown labels fit their actual rendered bounds', len(choice_texts)==2 and all(t['textWidth'] <= t['width']+.75 and t['textHeight'] <= t['height']+.75 for t in choice_texts), choice_texts)
+        check(locale+' footer keeps sign-off visible', any(t['text'] == next(e.text for e in __import__('xml.etree.ElementTree',fromlist=['parse']).parse(Path(__file__).resolve().parents[1]/('src/Resources/Locales/'+locale+'.axaml')).getroot() if e.attrib.get('{http://schemas.microsoft.com/winfx/2006/xaml}Key')=='Text.WorkingCopy.SignOff') for t in layout['localizedTexts']))
+        check(locale + ' commit button fits above the bottom tabs', button['x'] >= 0 and button['x']+button['width'] <= layout['window']['width'] and button['y']+button['height'] <= min(t['bounds']['y'] for t in layout['bottomTabs']), button)
+        (out / (locale + '-complete-commit-page.png')).write_bytes(tool('ui_screenshot'))
+    tool('ui_window', locale='zh_CN', width=1280, height=820)
+    probe('commit_staged'); wait(lambda: git('rev-parse', 'HEAD') != initial and composition() and not state()['workingCopyState']['committing'])
+    check('actual commit button commits only the staged file', git('diff-tree', '--no-commit-id', '--name-only', '-r', 'HEAD') == 'staged.txt')
+    check('commit preserves unstaged content', git('diff', '--name-only') == 'draft.txt' and (repo/'draft.txt').read_text() == 'keep unstaged\n')
+    check('commit preserves the prepared message', git('log', '-1', '--format=%s') == 'Preserved commit draft')
+    wait(lambda: composition() and composition()['maskVisible'])
+    check('successful commit restores disabled empty-index state', not composition()['inputEnabled'] and not composition()['commitEnabled'] and not composition()['inputText'])
+    check('unchecked sign-off does not add a trailer', 'Signed-off-by:' not in git('log','-1','--format=%B'))
+    check('displayed identity matches the real commit identity',git('log','-1','--format=%cn <%ce>')==composition()['identity'])
+    check('unchecked immediate push does not change the remote',git('--git-dir='+str(remote),'rev-parse','refs/heads/main')==initial)
+    (out/'commit-empty-index.png').write_bytes(tool('ui_screenshot'))
+    probe('page_tab', 1); probe('history_pending'); wait(lambda: state()['workingCopySelected'])
+    check('uncommitted history still has no composer after a real commit', state()['view'] == 0 and not composer_visible())
+    (out/'history-pending-files.png').write_bytes(tool('ui_screenshot'))
+    (repo/'staged.txt').write_text('second ready change\n',encoding='utf-8');git('add','staged.txt');tool('ui_refresh',repo=str(repo));draft('Commit and push')
+    wait(lambda: composition() and composition()['commitEnabled']);probe('commit_push_after',1);probe('commit_signoff',1);(out/'footer-checked.png').write_bytes(tool('ui_screenshot'));probe('commit_staged')
+    wait(lambda: not state()['workingCopyState']['committing'] and git('--git-dir='+str(remote),'rev-parse','refs/heads/main')==git('rev-parse','HEAD'))
+    check('immediate push checkbox pushes the new commit to the displayed target',git('log','-1','--format=%s')=='Commit and push' and composition()['pushTarget']=='origin/main')
+    check('sign-off checkbox adds the configured repository identity', 'Signed-off-by: TreeGit Demo <demo@example.invalid>' in git('log','-1','--format=%B'))
+    probe('commit_push_after',0);probe('commit_signoff',0)
+    repo=root/'new-repository';repo.mkdir();git('init','-b','main');git('config','user.name','TreeGit Demo');git('config','user.email','demo@example.invalid')
+    (repo/'first.txt').write_text('first commit content\n',encoding='utf-8');tool('ui_open_repository',repo=str(repo));commit_page()
+    wait(lambda: composition() and composition()['maskVisible']);check('new repositories also disable the empty-index composer',not composition()['inputEnabled'] and not composition()['commitEnabled'])
+    git('add','first.txt');tool('ui_refresh',repo=str(repo));draft('First UI commit 中文');wait(lambda: composition() and composition()['commitEnabled']);probe('commit_staged')
+    wait(lambda: composition() and not state()['workingCopyState']['committing'] and composition()['maskVisible'])
+    check('complete commit page creates the first commit',git('rev-list','--count','HEAD')=='1' and git('log','-1','--format=%s')=='First UI commit 中文')
+except BaseException:
+    failure = traceback.format_exc()
+    if pid:
+        try: (out / 'failure.png').write_bytes(tool('ui_screenshot'))
+        except Exception: pass
+        try: (out / 'failure-state.json').write_text(json.dumps(tool('ui_state'), ensure_ascii=False, indent=2), encoding='utf-8')
+        except Exception: pass
+    raise
+finally:
+    if pid:
+        if os.name == 'posix':
+            path = Path('/proc') / str(pid) / 'exe'
+            if path.exists():
+                assert path.resolve() == exe
+                os.kill(pid, signal.SIGTERM)
+                wait(lambda: not path.exists())
+        else:
+            command = f"$p=Get-Process -Id {pid} -ErrorAction SilentlyContinue;if($p){{if($p.Path -ne '{str(exe).replace(chr(39), chr(39)*2)}'){{throw 'Unexpected test process'}};$null=$p.CloseMainWindow();if(-not $p.WaitForExit(5000)){{$p.Kill();$p.WaitForExit()}}}}"
+            subprocess.run(['powershell', '-NoProfile', '-EncodedCommand', base64.b64encode(command.encode('utf-16-le')).decode()], check=True, capture_output=True)
+    if process and process.poll() is None:
+        process.stdin.close()
+        try: process.wait(timeout=5)
+        except subprocess.TimeoutExpired: process.kill(); process.wait()
+    if backup is not None: profile.write_bytes(backup)
+    elif profile.exists(): profile.unlink()
+    (out / 'results.json').write_text(json.dumps({'passed': len(checks), 'checks': checks, 'records': records, 'failure': failure}, ensure_ascii=False, indent=2), encoding='utf-8')
+    for attempt in range(30):
+        try:
+            remove_fixture(root, out, 'TreeGit search interaction ')
+            break
+        except PermissionError:
+            if attempt == 29: raise
+            time.sleep(.1)
+    remove_fixture(temp, temp.parent, 'TreeGit search input temp ')
+print(json.dumps({'passed': len(checks), 'failure': failure}))

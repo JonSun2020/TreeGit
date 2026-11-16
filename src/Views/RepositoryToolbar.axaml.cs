@@ -1,4 +1,5 @@
-﻿using System;
+using System.Linq;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -23,6 +24,22 @@ namespace SourceGit.Views
             var e = new RoutedEventArgs();
             switch (action)
             {
+                case "amend":
+                case "reset_author":
+                    if (DataContext is ViewModels.Repository amendRepo && !amendRepo.IsBare)
+                    {
+                        amendRepo.SelectedViewIndex = 1;
+                        amendRepo.WorkingCopy.UseAmend = true;
+                        amendRepo.WorkingCopy.ResetAuthor = action == "reset_author";
+                    }
+                    break;
+                case "conventional":
+                    if (DataContext is ViewModels.Repository commitRepo && !commitRepo.IsBare)
+                    {
+                        commitRepo.SelectedViewIndex = 1;
+                        Avalonia.Threading.Dispatcher.UIThread.Post(() => this.FindAncestorOfType<Repository>()?.GetVisualDescendants().OfType<WorkingCopy>().FirstOrDefault(view => !view.IsOverview && view.IsEffectivelyVisible)?.OpenConventionalCommit());
+                    }
+                    break;
                 case "gitflow": OpenGitFlowMenu(anchor, e); break;
                 case "lfs": OpenGitLFSMenu(anchor, e); break;
                 case "bisect": StartBisect(anchor, e); break;

@@ -21,13 +21,26 @@ namespace SourceGit.Models
         public static string Normalize(string key)
             => Supported.Find(locale => string.Equals(locale.Key, key, StringComparison.OrdinalIgnoreCase))?.Key ?? "en_US";
 
+        public static string FromSystemCulture(CultureInfo culture = null)
+        {
+            var name = (culture ?? CultureInfo.CurrentUICulture).Name.Replace('_', '-');
+            if (!name.Equals("zh", StringComparison.OrdinalIgnoreCase) && !name.StartsWith("zh-", StringComparison.OrdinalIgnoreCase))
+                return "en_US";
+            var parts = name.Split('-');
+            foreach (var part in parts)
+                if (part.Equals("Hant", StringComparison.OrdinalIgnoreCase)) return "zh_TW";
+                else if (part.Equals("Hans", StringComparison.OrdinalIgnoreCase)) return "zh_CN";
+            foreach (var part in parts)
+                if (part.Equals("TW", StringComparison.OrdinalIgnoreCase) || part.Equals("HK", StringComparison.OrdinalIgnoreCase) || part.Equals("MO", StringComparison.OrdinalIgnoreCase))
+                    return "zh_TW";
+            return "zh_CN";
+        }
+
         // Bootstrap errors must respect the saved language before Avalonia and
         // its compiled dictionaries can be initialized.
         public static string BootstrapText(string key, string root = null)
         {
-            var language = CultureInfo.CurrentUICulture.Name.StartsWith("zh", StringComparison.OrdinalIgnoreCase)
-                ? CultureInfo.CurrentUICulture.Name.Contains("TW", StringComparison.OrdinalIgnoreCase) || CultureInfo.CurrentUICulture.Name.Contains("HK", StringComparison.OrdinalIgnoreCase) ? "zh_TW" : "zh_CN"
-                : "en_US";
+            var language = FromSystemCulture();
             try
             {
                 var directory = Path.Combine(root ?? AppContext.BaseDirectory, "data");

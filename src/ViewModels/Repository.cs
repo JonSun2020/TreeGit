@@ -126,25 +126,25 @@ namespace SourceGit.ViewModels
             }
         }
 
-        public bool IsFileStatusTabSelected => SelectedViewIndex == 1 || (SelectedViewIndex == 0 && _histories is { IsSearchingCommits: false, IsWorkingCopySelected: true });
-        public bool IsHistoryTabSelected => SelectedViewIndex == 0 && _histories is { IsSearchingCommits: false, IsWorkingCopySelected: false };
+        public bool IsCommitTabSelected => SelectedViewIndex == 1;
+        public bool IsFileStatusTabSelected => IsCommitTabSelected;
+        public bool IsHistoryTabSelected => SelectedViewIndex == 0 && _histories is { IsSearchingCommits: false };
         public bool IsSearchTabSelected => SelectedViewIndex == 0 && _histories is { IsSearchingCommits: true };
 
         public void NotifyNavigationTabsChanged()
         {
             OnPropertyChanged(nameof(IsFileStatusTabSelected));
+            OnPropertyChanged(nameof(IsCommitTabSelected));
             OnPropertyChanged(nameof(IsHistoryTabSelected));
             OnPropertyChanged(nameof(IsSearchTabSelected));
+            OnPropertyChanged(nameof(IsWorkingCopyVisible));
         }
 
         public void ShowHistoryPage()
         {
             CancelHistoryNavigation();
-            var wasSearching = _histories.IsSearchingCommits;
             _histories.IsSearchingCommits = false;
             SelectedViewIndex = 0;
-            if (!wasSearching && _histories.IsWorkingCopySelected && _histories.Commits.Count > 0)
-                _histories.SelectedCommits = [_histories.Commits.Find(c => c.IsCurrentHead) ?? _histories.Commits[0]];
         }
 
         public void ShowWorkingCopyOverview()
@@ -240,6 +240,7 @@ namespace SourceGit.ViewModels
                 {
                     if (_histories != null)
                         _histories.CurrentBranch = value;
+                    _workingCopy?.RefreshCommitPushTarget();
 
                     if (value != null && !value.Head.Equals(oldHead, StringComparison.Ordinal) && _workingCopy is { UseAmend: true })
                         _workingCopy.UseAmend = false;
@@ -1186,9 +1187,9 @@ namespace SourceGit.ViewModels
             foreach (var branch in details.Coverage.Branches) containing.Add(branch.FullName);
             var primary = details.Coverage.Branches.Find(b => b.IsLocal && details.Coverage.IsPrimaryBranch(b)) ??
                 details.Coverage.Branches.Find(details.Coverage.IsPrimaryBranch);
-            var focus = _branches.Find(branch => branch.FullName == _historySidebarPreferredBranch) ??
-                (_historyNavigationCommit == commit.SHA ? FindHistoryBranch(commit.SHA, containing) :
-                primary ?? Models.BranchSelection.Choose(_branches, commit.SHA, containing, preferLocal: true));
+            var focus = _historyNavigationCommit == commit.SHA ? FindHistoryBranch(commit.SHA, containing) :
+                _branches.Find(branch => branch.FullName == _historySidebarPreferredBranch) ??
+                primary ?? Models.BranchSelection.Choose(_branches, commit.SHA, containing, preferLocal: true);
             HistoryBranchSelectionRequested?.Invoke(focus);
             SidebarCommitBranches = details;
             CommitBranchHighlightsRequested?.Invoke(details);
@@ -1213,6 +1214,9 @@ namespace SourceGit.ViewModels
             _historySidebarSelectionCommit = string.Empty;
             Filter = string.Empty;
             ShowHistoryPage();
+            // Double-clicking a result is a new navigation, rather than a
+            // return to the history selection saved before entering search.
+            _historySidebarPreferredBranch = string.Empty;
             if (_uiStates.HistoryFilters.Count > 0) ClearHistoryFilters();
             _uiStates.HistoryShowFlags &= ~(Models.HistoryShowFlags.FirstParentOnly | Models.HistoryShowFlags.SimplifyByDecoration);
             _histories.BranchDisplayMode = 0;

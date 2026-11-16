@@ -213,11 +213,11 @@ namespace SourceGit.Views
 
         private ViewModels.Repository _historySelectionSource;
 
-        private void OnShowWorkingCopyOverview(object sender, RoutedEventArgs e)
+        private void OnShowCommit(object sender, RoutedEventArgs e)
         {
             if (DataContext is ViewModels.Repository { IsBare: false } repo)
             {
-                repo.ShowWorkingCopyOverview();
+                repo.SelectedViewIndex = 1;
             }
         }
 

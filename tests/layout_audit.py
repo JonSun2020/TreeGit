@@ -349,10 +349,10 @@ try:
     sweep('search', '搜索', True)
     repo_tool('ui_working_copy')
     repo_tool('ui_diff', action='select', source='unstaged', file='text.txt')
-    sweep('working-copy-overview', '文件状态', True)
-    # Full commit editor and overview are distinct existing entry points.
+    sweep('working-copy-overview', '日志 / 历史', True)
+    # The commit tab opens the complete original editor.
     repo_tool('ui_select_view', view='working_copy')
-    sweep('commit-editor', '文件状态', True)
+    sweep('commit-editor', '提交', True)
     # Exercise the actual UI click handlers, then restore the fixture's original
     # index. This checks operation targets as well as geometry after dragging.
     repo_tool('ui_diff', action='select', source='unstaged', file='text.txt')
@@ -402,7 +402,7 @@ try:
     time.sleep(.5)
     repo_tool('ui_diff', action='select', source='unstaged', file='firmware.bin')
     wait_for(lambda: repo_tool('ui_diff')['status'] != 'not_binary')
-    sweep('binary-diff', '文件状态', True)
+    sweep('binary-diff', '日志 / 历史', True)
     repo_tool('ui_diff', action='window')
     inspect('binary-window', capture=True, active=True)
     for zoom in [1, 2]:
@@ -416,7 +416,7 @@ try:
     tool('ui_command', {'command': 'close_dialog'})
     repo_tool('ui_diff', action='select', source='unstaged', file='image.png')
     wait_for(lambda: any(p['type'] == 'ImageDiffView' for p in tool('ui_layout')['panes']))
-    sweep('image-diff', '文件状态', True)
+    sweep('image-diff', '日志 / 历史', True)
     stash = repo_tool('ui_stashes')['stashes'][0]['sha']
     repo_tool('ui_stashes', action='select', stash=stash)
     wait_for(lambda: repo_tool('ui_stashes').get('changes'))
@@ -425,12 +425,12 @@ try:
     for theme, zoom in [('Light', .75), ('Dark', 1), ('Blue', 1.25), ('Light', 1.5), ('Dark', 2), ('Blue', 2.5)]:
         tool('ui_window', {'theme': theme, 'zoom': zoom, 'state': 'maximized'})
         repo_tool('ui_working_copy')
-        sweep(f'zoom-{theme}-{zoom}', '文件状态', True)
+        sweep(f'zoom-{theme}-{zoom}', '日志 / 历史', True)
         geometry = tool('ui_layout')
         viewport = next(s for s in geometry['scrolls'] if s['name'] == 'PageViewport' and s['visible'])
         if viewport['extent']['width'] > viewport['viewport']['width'] + 1 or viewport['extent']['height'] > viewport['viewport']['height'] + 1:
             tool('ui_layout', {'action': 'scroll', 'scroller': viewport['index'], 'dx': 5000, 'dy': 5000})
-            geometry = inspect(f'zoom-{theme}-{zoom}-scroll-end', '文件状态', capture=True)
+            geometry = inspect(f'zoom-{theme}-{zoom}-scroll-end', '日志 / 历史', capture=True)
             last = next(s for s in geometry['scrolls'] if s['index'] == viewport['index'])
             check(f'zoom-{theme}-{zoom}: overflow is reachable by scrolling',
                   abs(last['offset']['x'] + last['viewport']['width'] - last['extent']['width']) < 1.1 and abs(last['offset']['y'] + last['viewport']['height'] - last['extent']['height']) < 1.1)
@@ -440,7 +440,7 @@ try:
             check(f'zoom-{theme}-{zoom}: new page starts at its own top left', fresh['offset']['x'] == 0 and fresh['offset']['y'] == 0, fresh)
             repo_tool('ui_working_copy')
     tool('ui_window', {'theme': 'Blue', 'zoom': 1, 'state': 'normal', 'width': 1024, 'height': 640})
-    inspect('minimum-normal-window', '文件状态', capture=True)
+    inspect('minimum-normal-window', '日志 / 历史', capture=True)
     tool('ui_window', {'state': 'maximized'})
     sidebar = next(s for s in tool('ui_layout')['splitters'] if s['owner'] == 'Repository' and s['visible'])
     tool('ui_layout', {'action': 'drag', 'splitter': sidebar['index'], 'dx': 100})
@@ -449,7 +449,7 @@ try:
     tool('ui_window', {'zoom': 2.5})
     time.sleep(.1)
     tool('ui_window', {'zoom': 1})
-    restored_layout = inspect('sidebar-zoom-roundtrip', '文件状态', capture=True)
+    restored_layout = inspect('sidebar-zoom-roundtrip', '日志 / 历史', capture=True)
     restored_sidebar = next(s for s in restored_layout['splitters'] if s['owner'] == 'Repository' and s['visible'])
     check('zoom roundtrip preserves the user sidebar width', abs(restored_layout['preferredSidebarWidth'] - preferred_sidebar) < 1.1 and abs(restored_sidebar['actualColumns'][0] - preferred_sidebar) < 1.1)
     tool('ui_layout', {'action': 'restore', 'splitter': sidebar['index'], 'columns': sidebar['columns'], 'rows': sidebar['rows']})

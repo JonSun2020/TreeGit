@@ -221,6 +221,7 @@ namespace SourceGit.Automation
                             var repositoryView = mainWindow.GetVisualDescendants().OfType<Views.Repository>().FirstOrDefault(v => v.DataContext == r);
                             var historyList = repositoryView?.GetVisualDescendants().OfType<Views.HistoriesCommitList>().FirstOrDefault();
                             var pendingRow = repositoryView?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Name == "WorkingCopyRow");
+                            var workingCopyView = repositoryView?.GetVisualDescendants().OfType<Views.WorkingCopy>().FirstOrDefault(v => v.IsEffectivelyVisible);
                             var commitMenu = historyList?.FindAncestorOfType<Views.Histories>()?.OpenCommitMenu;
                             var searchResults = r.Histories?.SearchCommitContext.Results;
                             return new
@@ -254,6 +255,7 @@ namespace SourceGit.Automation
                                         x = item.PointToScreen(new Point(item.Bounds.Width / 2, item.Bounds.Height / 2)).X,
                                         y = item.PointToScreen(new Point(item.Bounds.Width / 2, item.Bounds.Height / 2)).Y }).ToArray() },
                                 workingCopyState = r.WorkingCopy == null ? null : new { staging = r.WorkingCopy.IsStaging, unstaging = r.WorkingCopy.IsUnstaging,
+                                    composition = workingCopyView?.CompositionState,
                                     committing = r.WorkingCopy.IsCommitting, canChangeIndex = r.WorkingCopy.CanChangeIndex,
                                     message = r.WorkingCopy.CommitMessage,
                                     staged = r.WorkingCopy.Staged.Take(256).Select(c => c.Path).ToArray(), unstaged = r.WorkingCopy.Unstaged.Take(256).Select(c => c.Path).ToArray(),
@@ -261,6 +263,7 @@ namespace SourceGit.Automation
                                 ahead = r.CurrentBranch?.Ahead.Count ?? 0,
                                 behind = r.CurrentBranch?.Behind.Count ?? 0,
                                 workingCopySelected = r.Histories?.IsWorkingCopySelected,
+                                detailsCollapsed = r.Histories?.IsCollapseDetails,
                                 searchActive = r.Histories?.IsSearchingCommits,
                                 searchQuerying = r.Histories?.SearchCommitContext.IsQuerying,
                                 searchFailed = r.Histories?.SearchCommitContext.HasError,
@@ -1113,7 +1116,7 @@ namespace SourceGit.Automation
             if (name == "ui_select_view")
             {
                 var view = Text(args, "view");
-                var index = view switch { "history" or "search" => 0, "working_copy" => 1, "stashes" => 2, _ => throw new ArgumentException("Unknown view.") };
+                var index = view switch { "history" or "search" => 0, "commit" or "working_copy" => 1, "stashes" => 2, _ => throw new ArgumentException("Unknown view.") };
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     if (repo.IsBare && index != 0)
@@ -1122,7 +1125,7 @@ namespace SourceGit.Automation
                     else if (view == "history") repo.ShowHistoryPage();
                     else repo.SelectedViewIndex = index;
                 });
-                return new { selected = index, repo = path };
+                return new { selected = repo.SelectedViewIndex, repo = path, workingCopy = repo.Histories.IsWorkingCopySelected };
             }
             if (name == "ui_select_commit")
             {
@@ -1133,7 +1136,7 @@ namespace SourceGit.Automation
                 var sha = resolved.StdOut.Trim();
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    repo.SelectedViewIndex = 0;
+                    repo.ShowHistoryPage();
                     // Preserve the user's navigation intent while the graph
                     // and branch snapshot load independently. A deferred row
                     // selection does not generate a pointer/keyboard event.

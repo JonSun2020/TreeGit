@@ -29,7 +29,7 @@ namespace SourceGit.ViewModels
         public bool HasRemotes
         {
             get => _hasRemotes;
-            set => SetProperty(ref _hasRemotes, value);
+            set { if (SetProperty(ref _hasRemotes, value)) RefreshCommitPushTarget(); }
         }
 
         public bool HasUnsolvedConflicts
@@ -75,12 +75,6 @@ namespace SourceGit.ViewModels
             }
         }
 
-        public bool EnableSignOff
-        {
-            get => _repo.UIStates.EnableSignOffForCommit;
-            set => _repo.UIStates.EnableSignOffForCommit = value;
-        }
-
         public bool NoVerifyOnCommit
         {
             get => _repo.UIStates.NoVerifyOnCommit;
@@ -90,6 +84,12 @@ namespace SourceGit.ViewModels
                 _repo.UIStates.NoVerifyOnCommit = value;
                 OnPropertyChanged();
             }
+        }
+
+        public bool EnableSignOff
+        {
+            get => _repo.UIStates.EnableSignOffForCommit;
+            set { if (_repo.UIStates.EnableSignOffForCommit != value) { _repo.UIStates.EnableSignOffForCommit = value; OnPropertyChanged(); } }
         }
 
         public bool UseAmend
@@ -198,10 +198,58 @@ namespace SourceGit.ViewModels
             private set
             {
                 if (SetProperty(ref _staged, value))
+                {
                     OnPropertyChanged(nameof(StagedCountInfo));
+                    OnPropertyChanged(nameof(HasStagedFiles));
+                }
             }
         }
 
+        public bool HasStagedFiles => _staged.Count > 0;
+        public bool PushAfterCommit { get => _pushAfterCommit; set => SetProperty(ref _pushAfterCommit, value); }
+        public string CommitPushTarget { get => _commitPushTarget; private set { if (SetProperty(ref _commitPushTarget, value)) RefreshCommitLabels(); } }
+        public string PushAfterCommitText => App.Text("TreeGit.Commit.PushAfter");
+        public string CommitBranchDisplay => string.IsNullOrEmpty(CommitPushTarget) ? _repo.CurrentBranch?.Name ?? string.Empty : CommitPushTarget;
+        public string CommitterIdentity { get => _committerIdentity; private set { if (SetProperty(ref _committerIdentity, value)) OnPropertyChanged(nameof(HasCommitterIdentity)); } }
+        public bool HasCommitterIdentity => !string.IsNullOrWhiteSpace(_committerIdentity);
+        public bool IsCommitterIdentityLoading { get => _identityLoading; private set => SetProperty(ref _identityLoading, value); }
+        public void RefreshCommitLabels() => OnPropertyChanged(nameof(PushAfterCommitText));
+
+        public void RefreshCommitPushTarget()
+        {
+            if (!_repo.IsWorkingCopyVisible) return;
+            try
+            {
+                CommitPushTarget = _hasRemotes && _repo.CurrentBranch is { IsDetachedHead: false } branch
+                    ? new Push(_repo, branch).SelectedRemoteBranch?.FriendlyName ?? string.Empty : string.Empty;
+            }
+            catch (Exception error) { CommitPushTarget = string.Empty; Native.OS.LogException(error); }
+            OnPropertyChanged(nameof(CommitBranchDisplay));
+        }
+
+        public async Task RefreshCommitterIdentityAsync(bool force = false)
+        {
+            if (!force && (_identityLoading && _identityRevision > 0 || DateTime.UtcNow - _identityReadAt < TimeSpan.FromSeconds(30))) return;
+            var revision = ++_identityRevision;
+            IsCommitterIdentityLoading = true;
+            try
+            {
+                var identity = await new Commands.QueryCommitterIdentity(_repo.FullPath).GetResultAsync();
+                if (revision == _identityRevision) CommitterIdentity = identity;
+            }
+            catch (Exception error) { Native.OS.LogException(error); }
+            finally
+            {
+                if (revision == _identityRevision) { IsCommitterIdentityLoading = false; _identityReadAt = DateTime.UtcNow; }
+            }
+        }
+
+        private bool _pushAfterCommit;
+        private string _commitPushTarget = string.Empty;
+        private string _committerIdentity = string.Empty;
+        private bool _identityLoading = true;
+        private int _identityRevision;
+        private DateTime _identityReadAt;
         public List<Models.Change> VisibleStaged
         {
             get => _visibleStaged;
@@ -750,7 +798,7 @@ namespace SourceGit.ViewModels
                 _repo.UIStates.RecentCommitMessages.Clear();
         }
 
-        public async Task CommitAsync(bool autoStage, bool autoPush)
+        public async Task CommitAsync(bool autoStage, bool autoPush, bool requireStagedFiles = false)
         {
             if (!CanChangeIndex || string.IsNullOrWhiteSpace(_commitMessage))
                 return;
@@ -787,6 +835,11 @@ namespace SourceGit.ViewModels
             {
                 if ((!autoStage && _staged.Count == 0) || (autoStage && _cached.Count == 0))
                 {
+                    if (requireStagedFiles)
+                    {
+                        _repo.MarkWorkingCopyDirtyManually();
+                        return;
+                    }
                     var rs = await App.AskConfirmEmptyCommitAsync(_cached.Count > 0, _selectedUnstaged is { Count: > 0 });
                     if (rs == Models.ConfirmEmptyCommitResult.Cancel)
                         return;
@@ -810,7 +863,7 @@ namespace SourceGit.ViewModels
                     return;
 
                 log = _repo.CreateLog("Commit");
-                var succ = await new Commands.Commit(_repo.FullPath, _commitMessage, EnableSignOff, NoVerifyOnCommit, _useAmend, _resetAuthor)
+                var succ = await new Commands.Commit(_repo.FullPath, _commitMessage, EnableSignOff, NoVerifyOnCommit, _useAmend, _resetAuthor, !requireStagedFiles)
                         .Use(log)
                         .RunAsync();
 

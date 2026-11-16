@@ -5,8 +5,18 @@ using System.Linq;
 
 namespace SourceGit.Models
 {
+    public sealed class ChangeListOption(string resourceKey) : LocalizedOption
+    {
+        public string DisplayName => App.Text(resourceKey);
+    }
+
     public static class ChangeListOptions
     {
+        public static readonly ChangeListOption[] StatusFilters =
+            [new("UI.AllChanges"), new("UI.Conflicts"), new("UI.Modified"), new("UI.Untracked")];
+        public static readonly ChangeListOption[] SortOrders =
+            [new("UI.SortPath"), new("UI.SortName"), new("UI.SortStatus")];
+
         public static List<Change> Apply(List<Change> changes, string text, int status, int order, bool staged)
         {
             IEnumerable<Change> query = changes;

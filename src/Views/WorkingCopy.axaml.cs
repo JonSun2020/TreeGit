@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Threading;
 using System.Text;
 
 using Avalonia.Controls;
@@ -21,21 +23,171 @@ namespace SourceGit.Views
         public static readonly Avalonia.StyledProperty<bool> IsOverviewProperty = Avalonia.AvaloniaProperty.Register<WorkingCopy, bool>(nameof(IsOverview));
         public bool IsOverview { get => GetValue(IsOverviewProperty); set => SetValue(IsOverviewProperty, value); }
 
+        public object CompositionState => new
+        {
+            visible = IsEffectivelyVisible && !IsOverview,
+            overview = IsOverview,
+            inputEnabled = InlineCommitMessage.IsEffectivelyEnabled,
+            inputText = InlineCommitMessage.CommitMessage,
+            maskVisible = NoStagedFilesMask.IsEffectivelyVisible,
+            maskText = NoStagedFilesLabel.Text,
+            commitEnabled = CommitStagedButton.IsEffectivelyEnabled,
+            commitVisible = CommitStagedButton.IsEffectivelyVisible,
+            optionsVisible = false,
+            height = MainLayout.RowDefinitions[2].ActualHeight,
+            identity = CommitIdentityLabel.Text,
+            identityLoading = (DataContext as ViewModels.WorkingCopy)?.IsCommitterIdentityLoading,
+            pushTarget = (DataContext as ViewModels.WorkingCopy)?.CommitPushTarget,
+            recentMessagesOpen = _recentHistoryFlyout?.IsOpen == true,
+            recentMessages = _recentMessagesView?.Inspect(),
+        };
+
         protected override void OnPropertyChanged(Avalonia.AvaloniaPropertyChangedEventArgs change)
         {
             base.OnPropertyChanged(change);
             if (change.Property == IsOverviewProperty && MainLayout != null)
             {
-                MainLayout.RowDefinitions = new RowDefinitions(IsOverview ? "*,0,0,0" : "*,4,128,40");
+                MainLayout.RowDefinitions = new RowDefinitions(IsOverview ? "*,0,0,0" : "*,4,128,Auto");
                 MainLayout.RowDefinitions[0].MinHeight = 265;
-                if (!IsOverview) MainLayout.RowDefinitions[2].MinHeight = 80;
+                if (!IsOverview) { MainLayout.RowDefinitions[2].MinHeight = 80; MainLayout.RowDefinitions[3].MinHeight = 40; }
                 foreach (var child in MainLayout.Children)
                     if (Grid.GetRow(child) > 0) child.IsVisible = !IsOverview;
                 if (IsOverview)
                 {
                     OverviewEmptyHint.IsVisible = false;
                 }
+                UpdateCommitHotkeys();
             }
+            else if (change.Property == IsVisibleProperty && MainLayout != null)
+            {
+                if (!IsVisible) { _recentHistoryCancellation?.Cancel(); _recentHistoryFlyout?.Hide(); }
+                UpdateCommitHotkeys();
+                RefreshCommitContext();
+            }
+        }
+
+        protected override void OnLoaded(RoutedEventArgs e)
+        {
+            base.OnLoaded(e);
+            UpdateCommitHotkeys();
+            App.LocaleChanged += OnCommitLocaleChanged;
+            RefreshCommitContext();
+        }
+
+        private void OnCommitLocaleChanged() => (DataContext as ViewModels.WorkingCopy)?.RefreshCommitLabels();
+        private void RefreshCommitContext()
+        {
+            if (IsLoaded && IsVisible && !IsOverview && DataContext is ViewModels.WorkingCopy vm)
+            {
+                _ = vm.RefreshCommitterIdentityAsync(true);
+                vm.RefreshCommitPushTarget();
+            }
+        }
+
+        internal RecentCommitMessages RecentMessagesView => _recentMessagesView;
+        internal bool IsLoadingHistoryPopupVisible => _recentHistoryFlyout?.IsOpen == true && (_recentMessagesView?.DataContext as ViewModels.RecentCommitMessages)?.IsLoading == true;
+        private ScreenBoundFlyout _recentHistoryFlyout;
+        private RecentCommitMessages _recentMessagesView;
+        private CancellationTokenSource _recentHistoryCancellation;
+
+        private async void OnOpenRecentCommitMessages(object sender, RoutedEventArgs e)
+        {
+            e.Handled = true;
+            if (_recentHistoryFlyout?.IsOpen == true) { _recentHistoryFlyout.Hide(); return; }
+            if (_recentHistoryCancellation != null) { _recentHistoryCancellation.Cancel(); return; }
+            if (sender is not Button anchor || DataContext is not ViewModels.WorkingCopy vm || !vm.HasStagedFiles || !vm.CanChangeIndex) return;
+            var owner = TopLevel.GetTopLevel(this);
+            if (owner == null) return;
+            var zoom = Math.Max(.5, ViewModels.Preferences.Instance.Zoom);
+            var model = new ViewModels.RecentCommitMessages();
+            var view = new RecentCommitMessages { DataContext = model, Width = Math.Min(620, Math.Max(220, owner.ClientSize.Width / zoom - 64)), MaxHeight = Math.Min(420, Math.Max(80, owner.ClientSize.Height / zoom - 64)) };
+            var flyout = new ScreenBoundFlyout { Content = view, OverlayDismissEventPassThrough = false };
+            var cancellation = new CancellationTokenSource();
+            var finished = false;
+            _recentHistoryFlyout = flyout;
+            _recentMessagesView = view;
+            _recentHistoryCancellation = cancellation;
+            EventHandler<PointerPressedEventArgs> pendingPress = (_, press) =>
+            {
+                if (press.Source is Avalonia.Visual visual && (visual == anchor || visual.GetVisualAncestors().Any(parent => parent == anchor))) press.Handled = true;
+                cancellation.Cancel();
+            };
+            owner.AddHandler(InputElement.PointerPressedEvent, pendingPress, RoutingStrategies.Tunnel, handledEventsToo: true);
+            view.MessageChosen += message =>
+            {
+                flyout.Hide();
+                if (DataContext == vm && vm.HasStagedFiles && vm.CanChangeIndex && IsEffectivelyVisible)
+                    InlineCommitMessage.InsertAtCaret(message);
+            };
+            flyout.Closed += (_, _) =>
+            {
+                cancellation.Cancel();
+                if (finished) cancellation.Dispose();
+                if (_recentHistoryFlyout == flyout) { _recentHistoryFlyout = null; _recentMessagesView = null; _recentHistoryCancellation = null; }
+            };
+            try
+            {
+                var query = new Commands.QueryRecentCommitMessages(vm.Repository.FullPath);
+                query.CancellationToken = cancellation.Token;
+                var messages = await query.GetResultAsync();
+                if (_recentHistoryFlyout == flyout && !cancellation.IsCancellationRequested && DataContext == vm && IsEffectivelyVisible)
+                {
+                    model.Complete(messages, !query.Succeeded);
+                    flyout.ShowAt(anchor);
+                }
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception error)
+            {
+                Native.OS.LogException(error);
+                if (_recentHistoryFlyout == flyout && !cancellation.IsCancellationRequested && IsEffectivelyVisible)
+                {
+                    model.Complete([], true);
+                    flyout.ShowAt(anchor);
+                }
+            }
+            finally
+            {
+                owner.RemoveHandler(InputElement.PointerPressedEvent, pendingPress);
+                finished = true;
+                if (!flyout.IsOpen)
+                {
+                    cancellation.Dispose();
+                    if (_recentHistoryFlyout == flyout) { _recentHistoryFlyout = null; _recentMessagesView = null; _recentHistoryCancellation = null; }
+                }
+            }
+        }
+
+        internal void OpenConventionalCommit()
+        {
+            InlineCommitMessage.OpenConventionalCommitHelper();
+        }
+
+        private void OnCancelAmend(object sender, RoutedEventArgs e)
+        {
+            if (DataContext is ViewModels.WorkingCopy vm) vm.UseAmend = false;
+            e.Handled = true;
+        }
+
+        private void UpdateCommitHotkeys()
+        {
+            if (CommitStagedButton == null) return;
+            var modifier = OperatingSystem.IsMacOS() ? "Cmd" : "Ctrl";
+            var enabled = IsLoaded && IsVisible && !IsOverview;
+            CommitStagedButton.HotKey = enabled ? KeyGesture.Parse(modifier + "+Enter") : null;
+            CommitWithAutoStageHotkey.HotKey = enabled ? KeyGesture.Parse(modifier + "+Shift+Enter") : null;
+            CommitWithPushButton.HotKey = enabled ? KeyGesture.Parse(modifier + "+Alt+Enter") : null;
+        }
+
+        protected override void OnUnloaded(RoutedEventArgs e)
+        {
+            _recentHistoryCancellation?.Cancel();
+            _recentHistoryFlyout?.Hide();
+            App.LocaleChanged -= OnCommitLocaleChanged;
+            CommitStagedButton.HotKey = null;
+            CommitWithAutoStageHotkey.HotKey = null;
+            CommitWithPushButton.HotKey = null;
+            base.OnUnloaded(e);
         }
 
         private void OnMainLayoutSizeChanged(object sender, SizeChangedEventArgs e)
@@ -280,33 +432,40 @@ namespace SourceGit.Views
 
         private async void OnCommit(object _, RoutedEventArgs e)
         {
+            if (IsOverview || !IsEffectivelyVisible) return;
             if (App.GetLauncher() is { CommandPalette: { } } launcher)
                 return;
 
-            if (DataContext is ViewModels.WorkingCopy vm)
-                await vm.CommitAsync(false, false);
+            if (DataContext is ViewModels.WorkingCopy { HasStagedFiles: true, HasUnsolvedConflicts: false } vm)
+            {
+                await vm.RefreshCommitterIdentityAsync(true);
+                vm.RefreshCommitPushTarget();
+                await vm.CommitAsync(false, vm.PushAfterCommit && vm.HasRemotes && !vm.UseAmend, true);
+            }
 
             e.Handled = true;
         }
 
         private async void OnCommitWithAutoStage(object _, RoutedEventArgs e)
         {
+            if (IsOverview || !IsEffectivelyVisible) return;
             if (App.GetLauncher() is { CommandPalette: { } } launcher)
                 return;
 
-            if (DataContext is ViewModels.WorkingCopy vm)
-                await vm.CommitAsync(true, false);
+            if (DataContext is ViewModels.WorkingCopy { HasStagedFiles: true, HasUnsolvedConflicts: false } vm)
+                await vm.CommitAsync(true, false, true);
 
             e.Handled = true;
         }
 
         private async void OnCommitWithPush(object _, RoutedEventArgs e)
         {
+            if (IsOverview || !IsEffectivelyVisible) return;
             if (App.GetLauncher() is { CommandPalette: { } } launcher)
                 return;
 
-            if (DataContext is ViewModels.WorkingCopy vm)
-                await vm.CommitAsync(false, true);
+            if (DataContext is ViewModels.WorkingCopy { HasStagedFiles: true, HasUnsolvedConflicts: false } vm)
+                await vm.CommitAsync(false, true, true);
 
             e.Handled = true;
         }

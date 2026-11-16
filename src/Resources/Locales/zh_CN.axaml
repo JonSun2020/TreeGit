@@ -1780,4 +1780,14 @@ SSH 密钥仍在原有远程配置中设置。</x:String>
   <x:String x:Key="Text.TreeGit.Template.New">新模板</x:String>
   <x:String x:Key="Text.TreeGit.Tool.MergeDraftPreserved">编辑内容已保留在工作区，文件仍未暂存。</x:String>
   <x:String x:Key="Text.TreeGit.Tool.MergeDraftSaved">未能自动恢复 {0}，请检查当前文件及以下位置的恢复文件：{1}</x:String>
+  <x:String x:Key="Text.TreeGit.Tabs.Commit">提交</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.NoStagedFiles">无暂存文件</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.IdentityLoading">正在读取提交账号…</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.IdentityMissing">未配置提交账号，请在仓库设置中填写姓名和邮箱</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.PushAfter">立即推送</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.History.Button">历史提交说明</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.History.Loading">正在读取提交说明…</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.History.Empty">暂无历史提交说明</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.History.Error">读取提交说明失败，请关闭后重试</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.SkipHooks">绕过提交钩子</x:String>
 </ResourceDictionary>

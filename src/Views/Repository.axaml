@@ -504,9 +504,9 @@
                 </Grid>
               </Border>
 
-              <!-- Local Changes Page -->
+              <!-- Complete commit page; history keeps its original file/diff overview. -->
               <Border IsVisible="{Binding IsWorkingCopyVisible, Mode=OneWay}" PropertyChanged="OnRightPagePropertyChanged">
-                <v:WorkingCopy DataContext="{Binding WorkingCopy, Mode=OneWay}"/>
+                <v:WorkingCopy IsVisible="{Binding Repository.IsWorkingCopyVisible, Mode=OneWay}" DataContext="{Binding WorkingCopy, Mode=OneWay}"/>
               </Border>
 
               <!-- Stashes Page -->
@@ -524,7 +524,7 @@
                 </Border>
               </Border>
             </Grid>
-          </v:ContentViewport><StackPanel Grid.Row="1" Orientation="Horizontal" Background="{DynamicResource Brush.ToolBar}"><Button Classes="treegit_bottom_tab" Content="{DynamicResource Text.TreeGit.Tabs.FileStatus}" Click="OnShowWorkingCopyOverview" Classes.active="{Binding IsFileStatusTabSelected}"/><Button Classes="treegit_bottom_tab" Content="{DynamicResource Text.TreeGit.Tabs.History}" Click="OnShowHistory" Classes.active="{Binding IsHistoryTabSelected}"/><Button Classes="treegit_bottom_tab" Content="{DynamicResource Text.TreeGit.Search}" Click="OnShowSearch" Classes.active="{Binding IsSearchTabSelected}"/></StackPanel></Grid></Grid>
+          </v:ContentViewport><StackPanel Grid.Row="1" Orientation="Horizontal" Background="{DynamicResource Brush.ToolBar}"><Button Classes="treegit_bottom_tab" Content="{DynamicResource Text.TreeGit.Search}" Click="OnShowSearch" Classes.active="{Binding IsSearchTabSelected}"/><Button Classes="treegit_bottom_tab" Content="{DynamicResource Text.TreeGit.Tabs.History}" Click="OnShowHistory" Classes.active="{Binding IsHistoryTabSelected}"/><Button Classes="treegit_bottom_tab" Content="{DynamicResource Text.TreeGit.Tabs.Commit}" Click="OnShowCommit" Classes.active="{Binding IsCommitTabSelected}" IsEnabled="{Binding !IsBare}"/></StackPanel></Grid></Grid>
         </Grid>
       </Border>
     </Border>

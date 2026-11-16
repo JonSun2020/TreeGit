@@ -25,6 +25,17 @@ for name in files:
             former = '{Binding Source={x:Static vm:Preferences.Instance}'
             if missing[former] == 1:
                 del missing[former]
+            if name == 'src/Views/WorkingCopy.axaml':
+                # The confirmed composer removes the options dropdown; these
+                # commands remain available in the advanced operation menu.
+                menu = (root/'src/Views/Launcher.axaml').read_text(encoding='utf-8-sig')
+                handler = (root/'src/Views/RepositoryToolbar.axaml.cs').read_text(encoding='utf-8-sig')
+                for binding, action, assignment in [
+                    ('{Binding UseAmend, Mode=TwoWay}', 'amend', 'amendRepo.WorkingCopy.UseAmend = true;'),
+                    ('{Binding ResetAuthor, Mode=TwoWay}', 'reset_author', 'amendRepo.WorkingCopy.ResetAuthor = action == "reset_author";')]:
+                    assert f'x:Name="GitAction_{action}" Click="OnTreeGitExtraAction"' in menu
+                    assert f'case "{action}":' in handler and assignment in handler
+                    missing.pop(binding, None)
         assert not missing, (name,label,dict(missing))
         checks.append(f'{name}: all original {label} retained')
 for p in (root/'src/Resources/Locales').glob('*.axaml'):

@@ -1,0 +1,31 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:m="using:SourceGit.Models" xmlns:vm="using:SourceGit.ViewModels"
+             x:Class="SourceGit.Views.RecentCommitMessages" x:DataType="vm:RecentCommitMessages"
+             Background="{DynamicResource Brush.Popup}" Foreground="{DynamicResource Brush.FG1}">
+  <UserControl.Styles>
+    <Style Selector="Button.commit_message_choice">
+      <Setter Property="Background" Value="Transparent"/><Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/>
+      <Setter Property="Padding" Value="10,7"/><Setter Property="HorizontalAlignment" Value="Stretch"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/><Setter Property="FocusAdorner" Value="{x:Null}"/>
+      <Setter Property="Template"><ControlTemplate><Border x:Name="MessageRow" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+        <ContentPresenter Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}" Foreground="{TemplateBinding Foreground}" HorizontalContentAlignment="Stretch"/>
+      </Border></ControlTemplate></Setter>
+    </Style>
+    <Style Selector="Button.commit_message_choice:pointerover, Button.commit_message_choice:focus-visible, Button.commit_message_choice:pressed">
+      <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.SelectionSecondary}"/>
+      <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionSecondaryForeground}"/>
+    </Style>
+  </UserControl.Styles>
+  <Grid MinHeight="28">
+    <TextBlock Text="{DynamicResource Text.TreeGit.Commit.History.Loading}" IsVisible="{Binding IsLoading}" Margin="10"/>
+    <TextBlock Text="{DynamicResource Text.TreeGit.Commit.History.Empty}" IsVisible="{Binding IsEmpty}" Margin="10"/>
+    <TextBlock Text="{DynamicResource Text.TreeGit.Commit.History.Error}" IsVisible="{Binding HasError}" TextWrapping="Wrap" Margin="10"/>
+    <ScrollViewer x:Name="MessageScroll" IsVisible="{Binding HasMessages}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,12,0">
+      <ItemsControl ItemsSource="{Binding Messages}">
+        <ItemsControl.ItemTemplate><DataTemplate x:DataType="m:RecentCommitMessage">
+          <Button Classes="commit_message_choice" Click="OnMessageChosen"><TextBlock Text="{Binding DisplayMessage}" TextWrapping="Wrap"/></Button>
+        </DataTemplate></ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

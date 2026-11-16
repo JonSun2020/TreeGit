@@ -849,7 +849,7 @@ namespace SourceGit.ViewModels
 
         private bool _isLoading = true;
         private bool _isReadonly = true;
-        private string _locale = "zh_CN";
+        private string _locale = Models.Locale.FromSystemCulture();
         private string _theme = "Light";
         private string _themeOverrides = string.Empty;
         private string _defaultFontFamily = string.Empty;

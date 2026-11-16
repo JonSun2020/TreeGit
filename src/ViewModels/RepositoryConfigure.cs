@@ -305,6 +305,8 @@ namespace SourceGit.ViewModels
                 settings.BackgroundFetchEnabled = staged.BackgroundFetchEnabled;
                 settings.CommitTemplates = staged.CommitTemplates;
                 settings.MarkSaved(content);
+                _ = _repo.WorkingCopy?.RefreshCommitterIdentityAsync(true);
+                _repo.WorkingCopy?.RefreshCommitPushTarget();
                 if (linksChanged)
                 {
                     _repo.IssueTrackers.Clear();

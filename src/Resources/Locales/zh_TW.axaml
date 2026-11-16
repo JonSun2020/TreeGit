@@ -1835,4 +1835,14 @@ SSH 金鑰仍在遠端設定中設定。</x:String>
   <x:String x:Key="Text.TreeGit.Template.New">新範本</x:String>
   <x:String x:Key="Text.TreeGit.Tool.MergeDraftPreserved">編輯內容已保留在工作目錄中，檔案尚未暫存。</x:String>
   <x:String x:Key="Text.TreeGit.Tool.MergeDraftSaved">未能自動還原 {0}，請檢查目前檔案及以下位置的復原檔案：{1}</x:String>
+  <x:String x:Key="Text.TreeGit.Tabs.Commit">提交</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.NoStagedFiles">無暫存檔案</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.IdentityLoading">正在讀取提交帳號…</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.IdentityMissing">未設定提交帳號，請在儲存庫設定中填寫姓名與電子郵件</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.PushAfter">立即推送</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.History.Button">歷史提交說明</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.History.Loading">正在讀取提交說明…</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.History.Empty">暫無歷史提交說明</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.History.Error">讀取提交說明失敗，請關閉後重試</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.SkipHooks">繞過提交掛鉤</x:String>
 </ResourceDictionary>

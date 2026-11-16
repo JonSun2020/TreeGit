@@ -44,6 +44,10 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/localization_ui_ci.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/localization-ui-results"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/commit_page.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/commit-page-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/recent_commit_messages.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/recent-messages-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/external_tools.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/external-tool-results" --recovery-state-change
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify large query output and malformed authentication settings
@@ -190,6 +194,12 @@ jobs:
             ${{ runner.temp }}/localization-ui-results/*.json
             ${{ runner.temp }}/localization-ui-results/*.png
             ${{ runner.temp }}/localization-ui-results/*.log
+            ${{ runner.temp }}/commit-page-results/*.json
+            ${{ runner.temp }}/commit-page-results/*.png
+            ${{ runner.temp }}/commit-page-results/*.log
+            ${{ runner.temp }}/recent-messages-results/*.json
+            ${{ runner.temp }}/recent-messages-results/*.png
+            ${{ runner.temp }}/recent-messages-results/*.log
             ${{ runner.temp }}/localization-ui-results/search-interaction/*.json
             ${{ runner.temp }}/localization-ui-results/search-interaction/*.png
             ${{ runner.temp }}/localization-ui-results/search-interaction/*.log

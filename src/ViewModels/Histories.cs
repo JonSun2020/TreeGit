@@ -267,6 +267,7 @@ namespace SourceGit.ViewModels
                 {
                     _repo.NotifyNavigationTabsChanged();
                     OnPropertyChanged(nameof(DetailsMinimumHeight));
+                    OnPropertyChanged(nameof(DetailsToolbarMargin));
                 }
             }
         }
@@ -414,6 +415,7 @@ namespace SourceGit.ViewModels
         }
 
         public double DetailsMinimumHeight => _isCollapseDetails ? 28 : IsWorkingCopySelected ? 268 : 280;
+        public Thickness DetailsToolbarMargin => new(0, IsWorkingCopySelected && !_isCollapseDetails ? 6 : 0, 4, 0);
 
         public GridLength BottomArea
         {
@@ -446,6 +448,7 @@ namespace SourceGit.ViewModels
                     OnPropertyChanged(nameof(TopArea));
                     OnPropertyChanged(nameof(BottomArea));
                     OnPropertyChanged(nameof(DetailsMinimumHeight));
+                    OnPropertyChanged(nameof(DetailsToolbarMargin));
                 }
             }
         }

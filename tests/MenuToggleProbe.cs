@@ -17,8 +17,9 @@ using Avalonia.VisualTree;
 
 namespace SourceGit.Automation
 {
-    // Routed input only: this probe never moves the OS pointer or invokes a
-    // repository command. It is absent from normal and portable builds.
+    // Routed input only: this probe never moves the OS pointer. Repository
+    // actions run only through the real buttons in an isolated fixture.
+    // It is absent from normal and portable builds.
     internal static class MenuToggleProbe
     {
         private static readonly Avalonia.Input.Pointer Pointer = new(7, PointerType.Mouse, true);
@@ -58,8 +59,8 @@ namespace SourceGit.Automation
             window.IsHitTestVisible = true;
             _phase = action;
             var index = args.TryGetProperty("value", out var value) ? value.GetInt32() : 0;
-            if (index < 0 || index >= headers.Length) throw new ArgumentOutOfRangeException(nameof(index));
-            var selected = headers[index];
+            if (index < 0 || index >= headers.Length && !action.StartsWith("recent_", StringComparison.Ordinal)) throw new ArgumentOutOfRangeException(nameof(index));
+            var selected = headers[Math.Min(index, headers.Length - 1)];
             object Bounds(Control control)
             {
                 if (control == null) return null;
@@ -263,11 +264,85 @@ namespace SourceGit.Automation
             else if (action == "outside") window.RaiseEvent(new PointerPressedEventArgs(window, Pointer, window,
                 new Point(window.Bounds.Width / 2, window.Bounds.Height - 40), (ulong)Environment.TickCount64,
                 new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None, 1));
+            else if (action == "page_tab")
+            {
+                var tabs = window.GetVisualDescendants().OfType<Button>().Where(b => b.Classes.Contains("treegit_bottom_tab") && b.IsEffectivelyVisible).ToArray();
+                if (tabs.Length != 3 || index >= tabs.Length) throw new InvalidOperationException("Expected search, history and commit tabs.");
+                if (!tabs[index].IsEffectivelyEnabled) throw new InvalidOperationException("The requested page is disabled.");
+                tabs[index].RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            }
+            else if (action == "history_pending")
+            {
+                var pending = window.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "WorkingCopyRow" && b.IsEffectivelyVisible);
+                pending.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            }
+            else if (action == "history_collapse")
+            {
+                var collapse = window.GetVisualDescendants().OfType<ToggleButton>().Single(b => b.Name == "CollapseDetailsButton" && b.IsEffectivelyVisible);
+                collapse.SetCurrentValue(ToggleButton.IsCheckedProperty, index != 0);
+            }
+            else if (action == "commit_toolbar")
+            {
+                var toolbar = window.GetVisualDescendants().OfType<Views.RepositoryToolbar>().Single(t => t.IsEffectivelyVisible);
+                var commit = toolbar.GetVisualDescendants().OfType<Button>().First(b => b.IsEffectivelyVisible);
+                commit.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            }
+            else if (action == "commit_push_after")
+            {
+                var checkbox = window.GetVisualDescendants().OfType<CheckBox>().Single(c => c.Name == "PushImmediatelyCheckBox" && c.IsEffectivelyVisible);
+                if (!checkbox.IsEffectivelyEnabled) throw new InvalidOperationException("Push-after-commit is disabled.");
+                checkbox.SetCurrentValue(ToggleButton.IsCheckedProperty, index != 0);
+            }
+            else if (action == "commit_hidden")
+            {
+                var hidden = window.GetVisualDescendants().OfType<Views.WorkingCopy>().Single(v => !v.IsOverview && !v.IsEffectivelyVisible);
+                var commit = hidden.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "CommitStagedButton");
+                commit.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            }
+            else if (action == "commit_staged")
+            {
+                var commit = window.GetVisualDescendants().OfType<Button>().Single(b => b.Name == "CommitStagedButton" && b.IsEffectivelyVisible);
+                if (!commit.IsEffectivelyEnabled) throw new InvalidOperationException("The staged commit button is disabled.");
+                commit.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            }
+            else if (action == "commit_signoff")
+            {
+                var signoff = window.GetVisualDescendants().OfType<CheckBox>().Single(button => button.Name == "SignOffCheckBox" && button.IsEffectivelyVisible);
+                signoff.SetCurrentValue(ToggleButton.IsCheckedProperty, index != 0);
+            }
+            else if (action.StartsWith("recent_", StringComparison.Ordinal))
+            {
+                var working = window.GetVisualDescendants().OfType<Views.WorkingCopy>().Single(view => !view.IsOverview && view.IsEffectivelyVisible);
+                if (action == "recent_toggle")
+                    working.GetVisualDescendants().OfType<Button>().Single(button => button.Name == "RecentCommitMessagesButton").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                else if (action == "recent_caret")
+                {
+                    var editor = working.GetVisualDescendants().OfType<Views.CommitMessageTextBox>().Single();
+                    if (index > (editor.Text?.Length ?? 0)) throw new ArgumentOutOfRangeException(nameof(index));
+                    editor.CaretIndex = index; editor.SelectionStart = editor.SelectionEnd = index;
+                }
+                else if (action == "recent_outside")
+                {
+                    var overlay = window.GetVisualDescendants().OfType<Control>().Last(control => control.GetType().Name == "LightDismissOverlayLayer");
+                    overlay.RaiseEvent(new PointerPressedEventArgs(overlay, Pointer, window, new Point(1, 1), (ulong)Environment.TickCount64,
+                        new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None, 1));
+                }
+                else
+                {
+                    var view = working.RecentMessagesView ?? throw new InvalidOperationException("Recent commit messages are closed.");
+                    var rows = view.GetVisualDescendants().OfType<Button>().Where(button => button.Classes.Contains("commit_message_choice")).ToArray();
+                    if (index >= rows.Length) throw new ArgumentOutOfRangeException(nameof(index));
+                    if (action == "recent_choose") rows[index].RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    else if (action == "recent_hover") ((IPseudoClasses)rows[index].Classes).Set(":pointerover", true);
+                    else throw new ArgumentException("Unknown recent-message fixture action.");
+                }
+            }
             else if (action is not ("inspect" or "finish" or "catalog")) throw new ArgumentException("Unsupported menu fixture action.");
             window.UpdateLayout();
             using var currentProcess = System.Diagnostics.Process.GetCurrentProcess();
             return new
             {
+                loadingHistoryPopupVisible = window.GetVisualDescendants().OfType<Views.WorkingCopy>().Any(view => view.IsLoadingHistoryPopupVisible),
                 resources = new { workingSet = currentProcess.WorkingSet64, privateBytes = currentProcess.PrivateMemorySize64,
                     handles = currentProcess.HandleCount, threads = currentProcess.Threads.Count },
                 menuOpen = menu.IsOpen,

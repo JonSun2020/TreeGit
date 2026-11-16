@@ -118,6 +118,9 @@ namespace SourceGit.Views
         public static readonly StyledProperty<IBrush> GuideLineBrushProperty =
             AvaloniaProperty.Register<CommitMessageTextBox, IBrush>(nameof(GuideLineBrush), Brushes.Gray);
 
+        public static readonly StyledProperty<bool> ShowSubjectGuideProperty = AvaloniaProperty.Register<CommitMessageTextBox, bool>(nameof(ShowSubjectGuide), true);
+        public bool ShowSubjectGuide { get => GetValue(ShowSubjectGuideProperty); set => SetValue(ShowSubjectGuideProperty, value); }
+
         public IBrush GuideLineBrush
         {
             get => GetValue(GuideLineBrushProperty);
@@ -142,6 +145,7 @@ namespace SourceGit.Views
         public override void Render(DrawingContext context)
         {
             base.Render(context);
+            if (!ShowSubjectGuide) return;
 
             var font = FontFamily ?? FontFamily.Default;
             var pen = new Pen(GuideLineBrush) { DashStyle = DashStyle.Dash };
@@ -259,7 +263,7 @@ namespace SourceGit.Views
             {
                 WarnSubjectLength = _subjectLen > _subjectGuideLen;
             }
-            else if (change.Property == SubjectEndYProperty)
+            else if (change.Property == SubjectEndYProperty || change.Property == ShowSubjectGuideProperty)
             {
                 InvalidateVisual();
             }
@@ -455,6 +459,19 @@ namespace SourceGit.Views
 
     public partial class CommitMessageToolBox : UserControl
     {
+        public static readonly StyledProperty<bool> ShowToolbarProperty = AvaloniaProperty.Register<CommitMessageToolBox, bool>(nameof(ShowToolbar), true);
+        public bool ShowToolbar { get => GetValue(ShowToolbarProperty); set => SetValue(ShowToolbarProperty, value); }
+        public static readonly StyledProperty<bool> ShowSubjectGuideProperty = AvaloniaProperty.Register<CommitMessageToolBox, bool>(nameof(ShowSubjectGuide), true);
+        public bool ShowSubjectGuide { get => GetValue(ShowSubjectGuideProperty); set => SetValue(ShowSubjectGuideProperty, value); }
+        public void OpenRecentMessages(Button anchor) => OnOpenCommitMessagePicker(anchor, new RoutedEventArgs());
+        public void OpenConventionalCommitHelper() => OnOpenConventionalCommitHelper(this, new RoutedEventArgs());
+        public void InsertAtCaret(string message)
+        {
+            if (!Editor.IsEffectivelyEnabled) return;
+            Editor.SelectedText = message;
+            Editor.Focus();
+        }
+
         public static readonly DirectProperty<CommitMessageToolBox, bool> ShowAdvancedOptionsProperty =
             AvaloniaProperty.RegisterDirect<CommitMessageToolBox, bool>(
                 nameof(ShowAdvancedOptions),

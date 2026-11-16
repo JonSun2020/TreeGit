@@ -12,7 +12,7 @@
           BorderThickness="1"
           BorderBrush="{DynamicResource Brush.Border2}"
           CornerRadius="4">
-    <Grid RowDefinitions="*,24">
+    <Grid RowDefinitions="*,Auto">
       <Grid Grid.Row="0">
         <v:CommitMessageTextBox x:Name="Editor"
                                 Classes="no_border no_background"
@@ -21,6 +21,7 @@
                                 Text="{Binding #ThisControl.CommitMessage, Mode=TwoWay}"
                                 Watermark="{DynamicResource Text.CommitMessageTextBox.Placeholder}"
                                 SubjectGuideLength="{Binding Source={x:Static vm:Preferences.Instance}, Path=SubjectGuideLength, Mode=OneWay}"
+                                ShowSubjectGuide="{Binding #ThisControl.ShowSubjectGuide}"
                                 GuideLineBrush="{DynamicResource Brush.Border2}"
                                 FontFamily="{DynamicResource Fonts.Monospace}">
           <v:CommitMessageTextBox.Styles>
@@ -84,6 +85,7 @@
       </Grid>
 
       <Border Grid.Row="1"
+              Height="24" IsVisible="{Binding #ThisControl.ShowToolbar}"
               Background="{DynamicResource Brush.Window}"
               BorderThickness="0,1,0,0"
               BorderBrush="{DynamicResource Brush.Border2}"
@@ -110,27 +112,7 @@
             <Path Width="13" Height="13" Margin="0,1,0,0" Data="{StaticResource Icons.CommitMessageGenerator}"/>
           </Button>
 
-          <StackPanel Grid.Column="3"
-                      Margin="0,0,6,0"
-                      HorizontalAlignment="Right" VerticalAlignment="Stretch"
-                      Orientation="Horizontal">
-            <TextBlock Classes="info_label"
-                       FontSize="13"
-                       HorizontalAlignment="Left"
-                       Text="{DynamicResource Text.CommitMessageTextBox.SubjectCount}"/>
-            <TextBlock Margin="8,0,0,0"
-                       FontSize="11"
-                       Text="{Binding #Editor.SubjectLength}"
-                       Foreground="{Binding #Editor.WarnSubjectLength, Converter={x:Static c:BoolConverters.IsWarningToBrush}, Mode=OneWay}"
-                       VerticalAlignment="Center"/>
-            <TextBlock FontSize="11"
-                       Text="/"
-                       VerticalAlignment="Center"/>
-            <TextBlock FontSize="11"
-                       Text="{Binding #Editor.SubjectGuideLength, Mode=OneWay}"
-                       VerticalAlignment="Center"/>
-            <Path Width="10" Height="10" Margin="4,0,0,0" Data="{StaticResource Icons.Error}" Fill="DarkGoldenrod" IsVisible="{Binding #Editor.WarnSubjectLength, Mode=OneWay}"/>
-          </StackPanel>
+
         </Grid>
       </Border>
     </Grid>
