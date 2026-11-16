@@ -1,0 +1,18 @@
+{
+  "zipSHA256": "f21387ca45926f821ea685e713fde65370f21f515c4c468f1b110400a0069fd4",
+  "source": "a42354ed84ac2cb8eb7b2c7555a46650461b9a84",
+  "packageRun": "43872228777",
+  "integrationTests": false,
+  "version": "2026.24.5",
+  "galleryRun": 43875010105,
+  "fictionalDataOnly": true,
+  "privacyReviewed": true,
+  "files": {
+    "branch-highlights.png": "59ce7f773d2e26557d7e037025d9b5f97c58c05f46b494c2b00b0a114277af05",
+    "branch-search.png": "ade751be1764bd403636dee9848d8d7b8317f21e5e5559a20dba2baec97c8a31",
+    "binary-diff.png": "267f14051dc40ad74e4f2e4b2e51e41d365e3d254243b6a8087ae0df27e3cb7b",
+    "merge-editor.png": "2def71867bced8385ccec6180fb385afd5eb3d21851659b6b87cd6a11ac5cc62",
+    "commit-page.png": "8c6914ec87be6ff7dd8235d8f41fe4682d6477f71f505821ae13354c6a0d150d",
+    "theme-dark.png": "89ce3bb9545727d248e9ff54bdbcbcd44b78bd0a46c8eef736b3de899df3025d"
+  }
+}
