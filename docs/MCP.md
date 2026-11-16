@@ -23,7 +23,7 @@ TreeGit 是一个 **MCP 服务端**。AI 客户端通过 stdio 连接，再由�
 | --- | --- |
 | `ui_state` / `ui_screenshot` | 查看真实窗口、仓库标签、分支、图谱及弹窗状态；获取窗口图片 |
 | `ui_open_repository` | 打开或切换已有仓库 |
-| `ui_select_view` / `ui_select_commit` | 切换历史、工作副本、贮藏及提交详情 |
+| `ui_select_view` / `ui_select_commit` | 切换搜索、历史、提交页（`commit`）、贮藏及提交详情 |
 | `ui_working_copy` | 打开工作区概览；按路径和状态筛选，按路径、名称或状态排序，编辑提交草稿；不自动提交 |
 | `ui_search` | 打开搜索页，按提交信息、作者、SHA、路径或内容搜索并选择结果 |
 | `ui_tabs` | 列出标签及加载状态、打开仓库下拉列表、选择、移动或关闭标签 |

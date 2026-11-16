@@ -213,7 +213,13 @@ def inspect(label, selected=None, capture=False, active=False):
             for content in tab['content']:
                 dx = abs(content['x'] + content['width'] / 2 - b['x'] - b['width'] / 2)
                 dy = abs(content['y'] + content['height'] / 2 - b['y'] - b['height'] / 2)
-                check(label + ': centered ' + tab['text'], dx < 1.1 and dy < 1.1, {'dx': dx, 'dy': dy})
+                # Bounds are in scaled window coordinates. Text layout can
+                # round its center by half a local DIP; at 250% zoom that is
+                # 1.25 window units, rather than an actual alignment change.
+                tx = max(1.1, .51 * b['width'] / b['localWidth'])
+                ty = max(1.1, .51 * b['height'] / b['localHeight'])
+                check(label + ': centered ' + tab['text'], dx < tx and dy < ty,
+                      {'dx': dx, 'dy': dy, 'toleranceX': tx, 'toleranceY': ty})
     probe = status.get('layoutProbe', {})
     check(label + ': staging actions remain in their panels', not probe.get('stageButtonsOutsidePanel'), probe.get('stageButtonsOutsidePanel'))
     if active and status['dialogs']:
