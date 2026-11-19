@@ -38,7 +38,8 @@ jobs:
         with:
           python-version: '3.13'
       - name: Install the image reader for radio-button pixel checks
-        run: python -m pip install --only-binary=:all: Pillow==12.2.0
+        run: |
+          python -m pip install --only-binary=:all: Pillow==12.2.0
       - name: Verify GUI without an installed Git
         shell: pwsh
         run: |
