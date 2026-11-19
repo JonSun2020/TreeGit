@@ -34,6 +34,11 @@ jobs:
           dotnet build src/SourceGit.csproj -c Debug -p:EnableIntegrationTests=true -v:q
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           dotnet build tests/CancellationHelper.csproj -c Release -o "$env:RUNNER_TEMP/cancellation-helper" -v:q
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Install the image reader for radio-button pixel checks
+        run: python -m pip install --only-binary=:all: Pillow==12.2.0
       - name: Verify GUI without an installed Git
         shell: pwsh
         run: |

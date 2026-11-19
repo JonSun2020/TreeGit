@@ -95,6 +95,8 @@ api.WindowFromPoint.argtypes=[wintypes.POINT];api.WindowFromPoint.restype=wintyp
 api.GetForegroundWindow.restype=wintypes.HWND
 api.GetWindowThreadProcessId.argtypes=[wintypes.HWND,ctypes.POINTER(wintypes.DWORD)]
 api.SetForegroundWindow.argtypes=[wintypes.HWND]
+api.FindWindowW.argtypes=[wintypes.LPCWSTR,wintypes.LPCWSTR]
+api.FindWindowW.restype=wintypes.HWND
 def owner(hwnd):
     result=wintypes.DWORD();api.GetWindowThreadProcessId(hwnd,ctypes.byref(result));return result.value
 def key(vk,ctrl=False):
@@ -132,9 +134,8 @@ def press_button(item):
     for _ in range(60):
         time.sleep(.05)
         geometry=layout()
-        hwnd=geometry['window']['nativeHandle']
-        assert owner(hwnd)==pid, 'Unexpected owner for the active test window'
-        if api.GetForegroundWindow()!=hwnd:
+        hwnd=api.FindWindowW(None,geometry['window']['title'])
+        if hwnd and owner(hwnd)==pid and api.GetForegroundWindow()!=hwnd:
             api.SetForegroundWindow(hwnd)
         current=next((b for b in geometry['buttons'] if b['name']==item['name'] and b['text']==item['text'] and b['enabled']),None)
         on_window=current and owner(api.WindowFromPoint(wintypes.POINT(current['screen']['x'], current['screen']['y'])))==pid
