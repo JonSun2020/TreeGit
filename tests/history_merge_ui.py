@@ -569,10 +569,14 @@ try:
     git('push', 'origin', pulled_head + ':refs/heads/main')
     write('draft.txt', 'staged pull draft\n'); git('add', 'draft.txt'); write('future.txt', 'preserve pull collision\n')
     pull_index = git('ls-files', '--stage').stdout; refresh()
+    notices_before_pull = tool('ui_state')['activePage']['notifications']
     command('pull_dialog'); confirm(clear_notices=False)
     wait_for(lambda: state()['pendingDialog'] == 'Pull' and not state()['pendingDialogInProgress'] and state()['logs']['active'] == 0)
     check('failed pull restores staged local edits and preserves colliding untracked files', git('rev-parse', 'HEAD').stdout.strip() == main and git('ls-files', '--stage').stdout == pull_index and (repo / 'draft.txt').read_text() == 'staged pull draft\n' and (repo / 'future.txt').read_text() == 'preserve pull collision\n' and not git('stash', 'list').stdout)
     check('failed pull removes its temporary metadata files', not list((repo / '.git').glob('treegit-pull-*')))
+    failed_result = state()['pendingOperation']
+    check('the pull error is available in the completed operation panel',
+          failed_result['resultVisible'] and failed_result['canClose'] and not failed_result['succeeded'])
     cancel(); reset()
 
     write('draft.txt', 'old pull stash\n'); git('stash', 'push', '-m', 'Older pull stash'); old_pull_stash = git('rev-parse', 'refs/stash').stdout.strip()
@@ -586,10 +590,11 @@ try:
     write('draft.txt', 'preserved on successful pull\n'); git('add', 'draft.txt'); refresh()
     command('pull_dialog')
     wait_for(lambda: state()['pendingDialog'] == 'Pull' and not state()['pendingDialogInProgress'])
-    check('earlier error notices remain available before retrying the pull', tool('ui_state')['activePage']['notifications'] >= 4)
+    check('failed pulls report in their own panel without stacking new notifications',
+          tool('ui_state')['activePage']['notifications'] <= notices_before_pull)
     wait_for(lambda: len(buttons := [b for b in layout()['buttons'] if b['name'] in ['ConfirmPopup', 'CancelPopup']]) == 2 and
              all(not b['outsideParentBorder'] and b['parentBorderHeight'] >= 150 for b in buttons))
-    shot('pull-with-error-notices')
+    shot('pull-after-retry')
     confirm(); completed()
     check('successful pull integrates the fetched update and restores staged work', git('rev-parse', 'HEAD').stdout.strip() == pulled_head and (repo / 'draft.txt').read_text() == 'preserved on successful pull\n' and 'draft.txt' in git('diff', '--cached', '--name-only').stdout.splitlines() and not git('stash', 'list').stdout)
     check('successful pull leaves no private snapshot or message files', not list((repo / '.git').glob('treegit-pull-*')))

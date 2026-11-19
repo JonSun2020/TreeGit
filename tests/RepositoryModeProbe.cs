@@ -10,6 +10,7 @@ namespace SourceGit.Native
     internal static class OS
     {
         public static string GitExecutable { get; set; }
+        public static void TerminateProcess(Process process) => process.Kill(entireProcessTree: true);
     }
 }
 
