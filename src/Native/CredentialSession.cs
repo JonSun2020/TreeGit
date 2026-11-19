@@ -2,6 +2,8 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -59,6 +61,20 @@ namespace SourceGit.Native
         private static string EventName(string id, string kind) => "Local\\TreeGit.Credential." + id + "." + kind;
         private static EventWaitHandle Create(string id, string kind) => new(false, EventResetMode.ManualReset, EventName(id, kind));
         internal static string PipeName(string id) => "TreeGit.Credential." + id;
+
+        internal static NamedPipeServerStream CreatePipeServer(string name, int instances)
+        {
+            // Windows may give an elevated process the Administrators group as its token owner.
+            // The account SID identifies the same person in both TreeGit and a Git helper.
+            using var identity = WindowsIdentity.GetCurrent();
+            var user = identity.User ?? throw new UnauthorizedAccessException();
+            var security = new PipeSecurity();
+            security.SetOwner(user);
+            security.SetAccessRuleProtection(true, false);
+            security.AddAccessRule(new PipeAccessRule(user, PipeAccessRights.FullControl, AccessControlType.Allow));
+            return NamedPipeServerStreamAcl.Create(name, PipeDirection.InOut, instances,
+                PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 0, 0, security);
+        }
         internal static string CurrentId => Environment.GetEnvironmentVariable(EnvironmentKey);
         internal static bool IsValid(string id) => Guid.TryParseExact(id, "N", out _);
         internal bool WasCancelled => _cancel.WaitOne(0);
@@ -106,9 +122,13 @@ namespace SourceGit.Native
 
         internal static async Task<CredentialDialogMessage> ExchangeAsync(string id, CredentialDialogMessage message, int connectionTimeout = 10000, bool launch = false)
         {
-            using var pipe = new NamedPipeClientStream(".", PipeName(id) + (launch ? ".launch" : string.Empty), PipeDirection.InOut, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+            using var pipe = new NamedPipeClientStream(".", PipeName(id) + (launch ? ".launch" : string.Empty),
+                PipeDirection.InOut, PipeOptions.Asynchronous, TokenImpersonationLevel.Identification);
             using var timeout = new CancellationTokenSource(connectionTimeout);
             await pipe.ConnectAsync(timeout.Token).ConfigureAwait(false);
+            using var identity = WindowsIdentity.GetCurrent();
+            if (identity.User == null || !identity.User.Equals(pipe.GetAccessControl().GetOwner(typeof(SecurityIdentifier))))
+                throw new UnauthorizedAccessException();
             using var writer = new StreamWriter(pipe, new UTF8Encoding(false), 4096, true) { AutoFlush = true };
             using var reader = new StreamReader(pipe, Encoding.UTF8, false, 4096, true);
             await writer.WriteLineAsync(JsonSerializer.Serialize(message, CredentialDialogJson.Default.CredentialDialogMessage)).ConfigureAwait(false);
@@ -149,8 +169,7 @@ namespace SourceGit.Native
             {
                 while (!_stopLaunch.IsCancellationRequested)
                 {
-                    using var pipe = new NamedPipeServerStream(PipeName(Id) + ".launch", PipeDirection.InOut, 1,
-                        PipeTransmissionMode.Byte, PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+                    using var pipe = CreatePipeServer(PipeName(Id) + ".launch", 1);
                     await pipe.WaitForConnectionAsync(_stopLaunch.Token).ConfigureAwait(false);
                     using var reader = new StreamReader(pipe, Encoding.UTF8, false, 4096, true);
                     await using var writer = new StreamWriter(pipe, new UTF8Encoding(false), 4096, true) { AutoFlush = true };

@@ -82,9 +82,8 @@ namespace SourceGit.Views
             {
                 while (!_stop.IsCancellationRequested)
                 {
-                    var pipe = new NamedPipeServerStream(Native.CredentialSession.PipeName(_id), PipeDirection.InOut,
-                        NamedPipeServerStream.MaxAllowedServerInstances, PipeTransmissionMode.Byte,
-                        PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+                    var pipe = Native.CredentialSession.CreatePipeServer(Native.CredentialSession.PipeName(_id),
+                        NamedPipeServerStream.MaxAllowedServerInstances);
                     try { await pipe.WaitForConnectionAsync(_stop.Token).ConfigureAwait(false); }
                     catch { pipe.Dispose(); throw; }
                     _ = HandleAsync(pipe);
