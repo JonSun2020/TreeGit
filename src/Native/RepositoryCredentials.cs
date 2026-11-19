@@ -337,7 +337,10 @@ namespace SourceGit.Native
             catch (Exception ex)
             {
 #if INTEGRATION_TESTS
-                Tests.AskpassProbe.Trace("helper-error-" + ex.GetType().Name);
+                // Preserve method names for isolated test diagnostics without logging input or paths.
+                var frames = new System.Diagnostics.StackTrace(ex, false).GetFrames();
+                var methods = Array.ConvertAll(frames, frame => frame.GetMethod()?.Name);
+                Tests.AskpassProbe.Trace("helper-error-" + ex.GetType().Name + "-" + string.Join("/", methods));
 #endif
                 // Never include credential input or exception data in protocol output.
                 Console.Error.WriteLine("TreeGit credential storage failed: " + ex.GetType().Name);

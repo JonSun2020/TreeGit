@@ -22,7 +22,7 @@ out = Path(sys.argv[2]).resolve()
 profile = IsolatedProfile(source_exe, out)
 app = profile.reset()
 (app/'data/preference.json').write_text(json.dumps({
-    'Locale':'zh_CN', 'Check4UpdatesOnStartup':False,
+    'Locale':'zh_CN', 'Check4UpdatesOnStartup':False, 'EnableAutoFetch':False,
     'GitInstallPath':str(source/'git/cmd/git.exe')}), 'utf-8')
 exe = app/source_exe.name
 root = new_fixture(out,prefix='TreeGit HTTPS LFS authentication ')
