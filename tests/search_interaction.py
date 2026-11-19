@@ -281,13 +281,17 @@ try:
         return {b['reference']: b['level'] for b in scope['local'] + scope['remote']}
 
     def inspect_pair(label):
-        levels = wait(highlights)
+        # Expanding the local and remote trees schedules their row rebuilds separately.
+        expected_rows = pair | {'refs/heads/main', 'refs/heads/derived/child', 'refs/remotes/other/feature/origin'}
+        levels = wait(lambda: rows if (rows := highlights()) and expected_rows.issubset(rows) else None)
         check(label + ' paints both tracked refs deeply and other containing refs lightly',
               {r for r, level in levels.items() if level == 2} == pair and
               levels.get('refs/heads/main') == 1 and levels.get('refs/heads/derived/child') == 1 and
               levels.get('refs/remotes/other/feature/origin') == 1, levels)
-        visual = probe()
-        names = [b for b in visual['sidebarBranches'] if b['reference'] in pair]
+        def measured_pair():
+            names = [b for b in probe()['sidebarBranches'] if b['reference'] in pair]
+            return names if len(names) == 2 and all(b['weights'] for b in names) else None
+        names = wait(measured_pair)
         check(label + ' does not bold sidebar names to represent the origin pair', len(names) == 2 and
               all(b['weights'] and not b['bold'] for b in names), names)
 
