@@ -230,6 +230,7 @@ jobs:
         shell: pwsh
         run: dotnet run --project tests/MergeConflictProbe.csproj -c Release -- "$env:RUNNER_TEMP/merge-model-results"
       - name: Package
+        id: package
         shell: pwsh
         run: |
           ./package-treegit.ps1 -Source "$env:RUNNER_TEMP/TreeGit" -Destination .
@@ -298,6 +299,7 @@ jobs:
           python tests/repository_open_failures.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/repository-open-results" "$env:RUNNER_TEMP/git-delay-proxy/GitDelayProxy.exe"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Capture public interface examples using fictional data only
+        if: ${{ !cancelled() && steps.package.outcome == 'success' }}
         shell: pwsh
         run: python tests/selection_colors.py "$env:RUNNER_TEMP/TreeGit/TreeGit.exe" "$env:RUNNER_TEMP/public-gallery" --gallery
       - uses: actions/upload-artifact@v4

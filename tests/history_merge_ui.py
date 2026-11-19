@@ -267,7 +267,19 @@ def confirm(clear_notices=True):
     before = state()['pendingDialogAttemptVersion']
     press('ConfirmPopup')
     wait_for(lambda: state()['pendingDialogAttemptVersion'] > before)
-def completed(): wait_for(lambda: state()['pendingDialog'] is None)
+def completed():
+    def completion_state():
+        current = state()
+        if current['pendingDialog'] is None:
+            return 'closed'
+        operation = current.get('pendingOperation')
+        if operation and operation['resultVisible'] and operation['canClose']:
+            assert operation['succeeded'] and not operation['canCancel'], operation
+            return 'review'
+
+    if wait_for(completion_state) == 'review':
+        press('CloseOperation')
+        wait_for(lambda: state()['pendingDialog'] is None)
 def error(): return wait_for(lambda: (state()['mergeDialog'] or {}).get('error'))
 def cancel():
     wait_for(lambda: not state()['pendingDialogInProgress'])
