@@ -139,7 +139,14 @@ def button(name):
 def cancel():
     button('CancelPopup'); wait_for(lambda: page()['pendingDialog'] is None)
 def confirm(branch):
-    button('ConfirmPopup'); wait_for(lambda: page()['pendingDialog'] is None)
+    button('ConfirmPopup')
+    def finished():
+        operation = page()['pendingOperation']
+        return operation if operation and operation['canClose'] else None
+    result = wait_for(finished)
+    assert result['succeeded'] and result['resultVisible'] and not result['canCancel'], result
+    button('CloseOperation')
+    wait_for(lambda: page()['pendingDialog'] is None)
     wait_for(lambda: not state()['graphLoading'] and state()['branch']==branch)
 def refresh():
     tool('ui_refresh', {'repo':str(repo)})
