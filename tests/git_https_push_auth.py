@@ -222,8 +222,23 @@ try:
             outer=item['outer']
             with Image.open(io.BytesIO(base64.b64decode(result['content'][0]['data']))) as image:
                 glyph=image.crop((round(outer['x']),round(outer['y']),round(outer['right']),round(outer['y']+outer['height']))).convert('RGB')
-            assert glyph.getpixel((glyph.width//2,glyph.height//2))==tuple(bytes.fromhex(blue_dot[-6:]))
-            assert any(rgb==(0,120,215) for _,rgb in glyph.getcolors()),'Missing blue ring around the deep blue dot'
+            center=tuple(bytes.fromhex(blue_dot[-6:]))
+            assert glyph.getpixel((glyph.width//2,glyph.height//2))==center
+            fill=tuple(bytes.fromhex(radio_color(item['ring'])[-6:]))
+            edge=tuple(bytes.fromhex(radio_color(item['edge'])[-6:]))
+            # At fractional coordinates the thin annulus blends the approved fill and outline.
+            # Require visible blue outside the dot in each quadrant, including keyboard focus.
+            quadrants=set()
+            for y in range(glyph.height):
+                for x in range(glyph.width):
+                    dx=(x+.5)/glyph.width-.5
+                    dy=(y+.5)/glyph.height-.5
+                    if not .32**2 <= dx*dx+dy*dy <= .5**2: continue
+                    rgb=glyph.getpixel((x,y))
+                    if (rgb[2]>=center[2]+40 and rgb[1]>=center[1]+12 and
+                        all(min(a,b)-12<=v<=max(a,b)+12 for v,a,b in zip(rgb,fill,edge))):
+                        quadrants.add((dx>=0,dy>=0))
+            assert len(quadrants)==4, ('Incomplete blue ring',fill,edge,quadrants,glyph.getcolors())
         for theme,fill,ink in [('Light','#FFA7E1A7','#FF123E34'),('Dark','#FF31743A','#FFFFFFFF'),('Blue','#FF0078D7','#FFFFFFFF')]:
             tool('ui_window',{'theme':theme})
             for form in ['stash_dialog','pull_dialog']:
