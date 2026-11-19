@@ -131,8 +131,14 @@ def press_button(item):
     stable=0
     for _ in range(60):
         time.sleep(.05)
-        current=next((b for b in layout()['buttons'] if b['name']==item['name'] and b['text']==item['text'] and b['enabled']),None)
-        stable=stable+1 if current and current['bounds']==item['bounds'] and current['screen']==item['screen'] else 0
+        geometry=layout()
+        hwnd=geometry['window']['nativeHandle']
+        assert owner(hwnd)==pid, 'Unexpected owner for the active test window'
+        if api.GetForegroundWindow()!=hwnd:
+            api.SetForegroundWindow(hwnd)
+        current=next((b for b in geometry['buttons'] if b['name']==item['name'] and b['text']==item['text'] and b['enabled']),None)
+        on_window=current and owner(api.WindowFromPoint(wintypes.POINT(current['screen']['x'], current['screen']['y'])))==pid
+        stable=stable+1 if on_window and current['bounds']==item['bounds'] and current['screen']==item['screen'] else 0
         if current:item=current
         if stable>=3:break
     assert current and stable>=3 and item['screen'], 'Button did not settle before the click'

@@ -16,6 +16,7 @@ import tempfile
 import threading
 import time
 import urllib.parse
+from qa_git_http import serve_git_backend
 
 source_exe = Path(sys.argv[1]).resolve()
 out = Path(sys.argv[2]).resolve()
@@ -81,32 +82,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if delayed_advertisement['count'] == 2:
                 advertisement_waiting.set()
                 time.sleep(3)
-        cgi = dict(env,GIT_PROJECT_ROOT=project.as_posix(),GIT_HTTP_EXPORT_ALL='1',
-            REQUEST_METHOD=self.command,PATH_INFO=urllib.parse.unquote(parsed.path),
-            QUERY_STRING=parsed.query,CONTENT_TYPE=self.headers.get('Content-Type',''),
-            CONTENT_LENGTH=str(len(body)),REMOTE_USER='alice',REMOTE_ADDR='127.0.0.1',
-            SERVER_PROTOCOL='HTTP/1.1',SERVER_NAME='127.0.0.1',SERVER_PORT=str(server.server_port),HTTPS='on')
-        if self.headers.get('Git-Protocol'):
-            cgi['HTTP_GIT_PROTOCOL'] = self.headers['Git-Protocol']
-        response = subprocess.run(['git','http-backend'],input=body,env=cgi,cwd=project,
-                                  capture_output=True,timeout=30)
-        headers,separator,data = response.stdout.partition(b'\r\n\r\n')
-        if not separator:
-            headers,separator,data = response.stdout.partition(b'\n\n')
-        if response.returncode or not separator:
-            backend_errors.append(response.stderr.decode('utf-8','replace'))
-            self.send_error(500)
-            return
-        fields = [line.split(':',1) for line in headers.decode('ascii').splitlines() if ':' in line]
-        status = next((int(value.strip().split()[0]) for name,value in fields if name.lower()=='status'),200)
-        self.send_response(status)
-        for name,value in fields:
-            if name.lower() not in ['status','content-length','connection','transfer-encoding']:
-                self.send_header(name,value.strip())
-        self.send_header('Content-Length',str(len(data)))
-        self.end_headers()
-        try:self.wfile.write(data)
-        except (BrokenPipeError,ConnectionResetError,ssl.SSLError):pass
+        serve_git_backend(self, project, env, body, backend_errors)
 
     do_GET = serve
     do_POST = serve

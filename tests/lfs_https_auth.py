@@ -14,6 +14,7 @@ import threading
 import time
 from pathlib import Path
 from qa_profile import IsolatedProfile
+from qa_git_http import serve_git_backend
 from qa_cleanup import remove_fixture, new_fixture
 
 source_exe = Path(sys.argv[1]).resolve()
@@ -41,6 +42,8 @@ def git(*args):
     return r.stdout.strip()
 
 git('init','-b','main')
+git('init','--bare','-b','main',str(root/'repo.git'))
+git('--git-dir='+str(root/'repo.git'),'config','http.receivepack','true')
 git('config','user.name','LFS HTTPS QA')
 git('config','user.email','lfs@example.invalid')
 git('lfs','install','--local')
@@ -62,6 +65,7 @@ subprocess.run([str(openssl),'req','-x509','-newkey','rsa:2048','-nodes','-days'
 env['GIT_SSL_CAINFO'] = str(certificate)
 requests = []
 uploads = []
+backend_errors = []
 checks = []
 
 class Handler(http.server.BaseHTTPRequestHandler):
@@ -78,6 +82,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.send_response(401)
             self.send_header('WWW-Authenticate','Basic realm="TreeGit LFS QA"')
             self.end_headers()
+            return
+        if self.path.startswith('/repo.git/info/refs?') or self.path == '/repo.git/git-receive-pack':
+            serve_git_backend(self, root, env, raw, backend_errors)
             return
         if self.path.endswith('/objects/batch'):
             batch = json.loads(raw)
@@ -98,6 +105,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header('Content-Length',str(len(data)))
         self.end_headers()
         self.wfile.write(data)
+
+    do_GET = do_POST
 
     def do_PUT(self):
         data = self.rfile.read(int(self.headers['Content-Length']))
@@ -181,6 +190,7 @@ try:
         except (FileNotFoundError,PermissionError,json.JSONDecodeError):
             time.sleep(.05)
     assert native and native.get('operationResult') and len(uploads)>=2,native
+    assert not backend_errors, backend_errors
     checks.append('Native LFS upload replaces an expired stored credential and closes only after exact-byte transfer')
     print('PASS',checks[-1],flush=True)
     assert git('rev-parse','HEAD') == head and git('status','--porcelain') == ''
