@@ -48,12 +48,12 @@ namespace SourceGit.Views
 
         internal void PrepareSessionRequest(Native.CredentialDialogMessage request)
         {
-            var repeated = IsVerifying || request.Retry;
             if (IsVerifying || request.Retry && !ValidationMessage.IsVisible) SessionFailed("TreeGit.Credentials.Retry");
             if (IsCredentialPrompt && string.IsNullOrEmpty(TxtUsername.Text)) TxtUsername.Text = request.Username ?? string.Empty;
             Activate();
 #if INTEGRATION_TESTS
-            if (_loaded && repeated) Tests.AskpassProbe.OnLoaded(this, () => EnterPassword(null, null));
+            // LFS may retry within its own command after the rejection has already enabled input.
+            if (_loaded) Tests.AskpassProbe.OnLoaded(this, () => EnterPassword(null, null));
 #endif
         }
 

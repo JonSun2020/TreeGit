@@ -276,8 +276,8 @@
     </v:ContentViewport>
 
     <!-- Options -->
-    <Grid Grid.Row="3" ColumnDefinitions="*,Auto,Auto" Margin="8,0,8,8">
-      <WrapPanel Grid.Column="0" Orientation="Horizontal">
+    <Grid Grid.Row="3" RowDefinitions="Auto,Auto" RowSpacing="4" Margin="8,0,8,8">
+      <WrapPanel Orientation="Horizontal">
         <CheckBox Content="{DynamicResource Text.InteractiveRebase.AutoStash}"
                   VerticalAlignment="Center"
                   IsChecked="{Binding AutoStash, Mode=TwoWay}"/>
@@ -288,8 +288,10 @@
                   IsChecked="{Binding NoVerify, Mode=TwoWay}"/>
       </WrapPanel>
 
-      <Button Grid.Column="1" Classes="flat primary dialog_action" MinWidth="80" Content="{DynamicResource Text.Start}" Click="OnStartJobs"/>
-      <Button Grid.Column="2" Classes="flat" Margin="8,0,0,0" MinWidth="80" Content="{DynamicResource Text.Cancel}" Click="CloseWindow"/>
+      <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+        <Button Classes="flat primary dialog_action" MinWidth="80" Content="{DynamicResource Text.Start}" Click="OnStartJobs"/>
+        <Button Classes="flat" MinWidth="80" Content="{DynamicResource Text.Cancel}" Click="CloseWindow"/>
+      </StackPanel>
     </Grid>
 
     <!-- Progress -->
