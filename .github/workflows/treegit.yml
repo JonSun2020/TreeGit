@@ -34,37 +34,6 @@ jobs:
           dotnet build src/SourceGit.csproj -c Debug -p:EnableIntegrationTests=true -v:q
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           dotnet build tests/CancellationHelper.csproj -c Release -o "$env:RUNNER_TEMP/cancellation-helper" -v:q
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.13'
-      - name: Install the image reader for radio-button pixel checks
-        run: |
-          python -m pip install --only-binary=:all: Pillow==12.2.0
-      - name: Verify GUI without an installed Git
-        shell: pwsh
-        run: |
-          . ./build/git-runtime.ps1
-          $null=Initialize-TreeGitRuntime -Destination src/bin/Debug/net10.0/git -CacheDirectory "$env:RUNNER_TEMP/component-cache" -LockFile ./build/git-runtime.lock.json -Notices ./docs/GIT-COMPONENTS.md
-          New-Item -ItemType Directory -Path src/bin/Debug/net10.0/data -Force | Out-Null
-          python tests/git_runtime.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/runtime-ui-results" (Get-Command git.exe).Source
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/ssh-keygen-results" --keygen
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/replay-safety-results" --replays
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-      - name: Verify rejecting push hooks never replay and LFS authentication remains usable
-        shell: pwsh
-        run: |
-          python tests/push_hook_failure.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/push-hook-native"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python tests/push_hook_failure.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/push-hook-action" --mcp-action
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python tests/push_hook_failure.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/push-hook-run" --mcp-run
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python tests/lfs_https_auth.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/lfs-https-results"
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python tests/git_https_push_auth.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/git-https-push-results" --operation-panels
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify menu header toggling and outlines with routed and native input
         shell: pwsh
         run: python tests/menu_toggle.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/menu-toggle-results"
@@ -133,6 +102,18 @@ jobs:
       - name: Verify exact remote branches and complete cancelled operation logs
         shell: pwsh
         run: python tests/remote_query_cancellation.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/remote-query-results" --operations
+      - name: Verify GUI without an installed Git
+        shell: pwsh
+        run: |
+          . ./build/git-runtime.ps1
+          $null=Initialize-TreeGitRuntime -Destination src/bin/Debug/net10.0/git -CacheDirectory "$env:RUNNER_TEMP/component-cache" -LockFile ./build/git-runtime.lock.json -Notices ./docs/GIT-COMPONENTS.md
+          New-Item -ItemType Directory -Path src/bin/Debug/net10.0/data -Force | Out-Null
+          python tests/git_runtime.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/runtime-ui-results" (Get-Command git.exe).Source
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/ssh-keygen-results" --keygen
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/command_pipes.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/replay-safety-results" --replays
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify native rebase recovery and commit-draft preservation
         shell: pwsh
         run: python tests/rebase_safety.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/rebase-safety-results"
@@ -162,6 +143,25 @@ jobs:
           python tests/local_auth_failure.py src/bin/Debug/net10.0/SourceGit.exe "${{ runner.temp }}/local-auth-action" --mcp-action
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/local_auth_failure.py src/bin/Debug/net10.0/SourceGit.exe "${{ runner.temp }}/local-auth-run" --mcp-run
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Install the image reader for radio-button pixel checks
+        run: |
+          python -m pip install --only-binary=:all: Pillow==12.2.0
+      - name: Verify rejecting push hooks never replay and LFS authentication remains usable
+        shell: pwsh
+        run: |
+          python tests/push_hook_failure.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/push-hook-native"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/push_hook_failure.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/push-hook-action" --mcp-action
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/push_hook_failure.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/push-hook-run" --mcp-run
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/lfs_https_auth.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/lfs-https-results"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tests/git_https_push_auth.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/git-https-push-results" --operation-panels
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         if: always()
