@@ -28,7 +28,7 @@
 
 ## 下载与使用
 
-下载 [最新 Windows x64 便携版](https://github.com/JonSun2020/TreeGit/releases/latest)，解压后运行 `TreeGit/TreeGit.exe`。包含 Git 与运行时，无需额外安装 .NET；校验值见 [Releases](https://github.com/JonSun2020/TreeGit/releases/latest)。现有用户可通过“帮助 → 检查更新”升级。
+下载 [TreeGit 2026.24.6 · Windows x64](https://github.com/JonSun2020/TreeGit/releases/download/treegit-v2026.24.6/TreeGit-2026.24.6-Windows-x64.zip)，解压后运行 `TreeGit/TreeGit.exe`。包含 Git 与运行时，无需额外安装 .NET；校验值见 [Releases](https://github.com/JonSun2020/TreeGit/releases/latest)。现有用户可通过“帮助 → 检查更新”升级。
 
 AI 连接：在“工具 → MCP · AI 连接”复制配置。详见 [MCP 使用说明](docs/MCP.md)。
 

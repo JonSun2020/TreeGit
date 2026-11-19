@@ -1,20 +1,20 @@
 {
   "version": "2026.24.6",
-  "source": "340d933f7af7fbe335f0be7b9a04836829dcfbe7",
-  "zipSHA256": "ab786474474fdb864757fe0d02beb83e178806a87c0dcccf005edf623b54ae0a",
-  "packageRun": "44504399125",
-  "galleryRun": 44504399125,
+  "source": "7f923e850f0df75ff085990c2385672359cf3313",
+  "zipSHA256": "165bb425f330dbae28782b52622344aa0d39c56c7b42d88032a21962d34ba899",
+  "packageRun": "44510401730",
+  "galleryRun": 44510401730,
   "integrationTests": false,
   "fictionalDataOnly": true,
   "privacyReviewed": true,
   "files": {
-    "binary-diff.png": "b06fa5efa482d05e28b880e2f50b10640dbccc0815eb98c60c9260d726070c78",
-    "branch-highlights.png": "26dfca95cea1404a8b21105d06308ce1817b1e574d7c1985525d0b48b8c584de",
-    "branch-search.png": "5b2e0129073942c2e9837bf07eba02b002a92dabd261d9a13e339a65cffa69d5",
+    "binary-diff.png": "4bb51b3555d330c922e6a805cf0c03553afbc6170571f694e8faf06ca87445d9",
+    "branch-highlights.png": "0c7dcac44fed2cb887cda6410ed5891fba45cf14dcf346e5e4f56d04bbfef760",
+    "branch-search.png": "d3ca668b42195f3f1562141962528cdf436cb69c4c247c0be2daaf729a3638fd",
     "commit-page.png": "c6576bce6404e54b115f24ff576c0c1fcc67e4569d9d9266b21028a3396e8e5f",
-    "merge-editor.png": "cdf0d655a274bed3be0559bfb4f6c30c79fd1584c92d5ce27032312fc173dce7",
+    "merge-editor.png": "163e0bd397fa17540b9ce9424399d278233d9ab9a6c859204758706976371712",
     "pull-options.png": "269aed9c6422b825adc4edc45fcb4b00bda94560ef215a64e17f6aff36dfd87e",
-    "text-comparison.png": "e40b8d766ba4ed4f05343a2f01a0b8aaf458debdd421779f29066f592a337272",
-    "theme-dark.png": "fa3e30b339b18b6681b58d2355a9e2941dca3ccfec151d16327731bc60607b35"
+    "text-comparison.png": "9b342857f3b7779aee967e9b45e3424bfece3823c7dff2f61f0a049b04bd7459",
+    "theme-dark.png": "b4ed347bf1e6c3477dcec6e45a77581c3d9fdb415e2a8cee8e631a1f982941dd"
   }
 }
