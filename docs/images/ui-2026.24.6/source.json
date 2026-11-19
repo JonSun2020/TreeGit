@@ -1,0 +1,20 @@
+{
+  "version": "2026.24.6",
+  "source": "340d933f7af7fbe335f0be7b9a04836829dcfbe7",
+  "zipSHA256": "ab786474474fdb864757fe0d02beb83e178806a87c0dcccf005edf623b54ae0a",
+  "packageRun": "44504399125",
+  "galleryRun": 44504399125,
+  "integrationTests": false,
+  "fictionalDataOnly": true,
+  "privacyReviewed": true,
+  "files": {
+    "binary-diff.png": "b06fa5efa482d05e28b880e2f50b10640dbccc0815eb98c60c9260d726070c78",
+    "branch-highlights.png": "26dfca95cea1404a8b21105d06308ce1817b1e574d7c1985525d0b48b8c584de",
+    "branch-search.png": "5b2e0129073942c2e9837bf07eba02b002a92dabd261d9a13e339a65cffa69d5",
+    "commit-page.png": "c6576bce6404e54b115f24ff576c0c1fcc67e4569d9d9266b21028a3396e8e5f",
+    "merge-editor.png": "cdf0d655a274bed3be0559bfb4f6c30c79fd1584c92d5ce27032312fc173dce7",
+    "pull-options.png": "269aed9c6422b825adc4edc45fcb4b00bda94560ef215a64e17f6aff36dfd87e",
+    "text-comparison.png": "e40b8d766ba4ed4f05343a2f01a0b8aaf458debdd421779f29066f592a337272",
+    "theme-dark.png": "fa3e30b339b18b6681b58d2355a9e2941dca3ccfec151d16327731bc60607b35"
+  }
+}
