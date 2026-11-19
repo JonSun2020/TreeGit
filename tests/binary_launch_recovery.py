@@ -1,6 +1,7 @@
 """A real refused CreateProcess must leave a useful binary view and a working retry."""
 import json, os, queue, subprocess, sys, tempfile, threading, time
 from pathlib import Path
+from qa_process import close_owned_gui
 
 exe=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
 assert (exe.parent/'data').is_dir(),'Use an isolated portable application'
@@ -31,6 +32,7 @@ def tool(name,args=None):
     return json.loads(result['content'][0]['text'])
 try:
     rpc('initialize',{'protocolVersion':'2025-11-25'});pid=tool('ui_state')['processId']
+    tool('ui_window',{'locale':'zh_CN'})
     tool('ui_open_repository',{'repo':str(repo)});tool('ui_command',{'repo':str(repo),'command':'repository_settings'})
     result_file=Path(str(fixture)+'.result');deadline=time.monotonic()+35
     while not result_file.exists() and time.monotonic()<deadline:time.sleep(.03)
@@ -53,11 +55,7 @@ finally:
     try:p.wait(timeout=10)
     except subprocess.TimeoutExpired:p.kill();p.wait()
     if pid:
-        literal=str(exe).replace("'","''")
-        script=("$p=Get-Process -Id "+str(pid)+" -ErrorAction SilentlyContinue;if($p){"
-                "if($p.Path -ne '"+literal+"'){throw 'Unexpected owned app'};$null=$p.CloseMainWindow();"
-                "if(-not $p.WaitForExit(15000)){$p.Kill();$p.WaitForExit();throw 'Owned GUI did not exit'}};exit 0")
-        subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)
+        close_owned_gui(exe,pid)
     record['remainingSnapshots']=[str(d) for d in snapshots.glob('TreeGit-binary-*')]
     (out/'binary-launch-results.json').write_text(json.dumps(record,ensure_ascii=False,indent=2),'utf-8')
     assert not record['remainingSnapshots'],record['remainingSnapshots']

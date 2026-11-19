@@ -62,6 +62,7 @@ namespace SourceGit.ViewModels
                 {
                     var names = await new Commands.QuerySearchBranchNames(_repo.FullPath) { CancellationToken = token }
                         .GetResultAsync([commit]).ConfigureAwait(false);
+                    token.ThrowIfCancellationRequested();
                     if (!names.TryGetValue(commit.SHA, out var coverage)) throw new InvalidOperationException("Branch query did not complete.");
                     var recorded = await origins.ConfigureAwait(false);
                     var origin = recorded.TryGetValue(commit.SHA, out var reference) ? locals.Find(b => b.FullName == reference) : null;
@@ -74,6 +75,7 @@ namespace SourceGit.ViewModels
                     });
                 }
                 catch (OperationCanceledException) { }
+                catch (Exception) when (token.IsCancellationRequested) { }
                 catch (Exception error)
                 {
                     Native.OS.LogException(error);

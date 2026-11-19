@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.IO;
@@ -122,6 +122,12 @@ namespace SourceGit.ViewModels
             return ValidationResult.Success;
         }
 
+        public override Task<bool> VerifyCredentialsAsync()
+        {
+            var clone = new Commands.Clone(_pageId, _parentFolder, _remote, _local, _useSSH ? _sshKey : "", _extraArgs);
+            return VerifyRemoteAsync(_parentFolder, new Models.Remote { URL = _remote, PrivateSSHKey = _useSSH ? _sshKey : null }, scope: clone.CredentialScope, useManager: _useCredentialManager);
+        }
+
         public override async Task<bool> Sure()
         {
             SetProgressDescription("TreeGit.Progress.Clone");
@@ -131,101 +137,113 @@ namespace SourceGit.ViewModels
 
             _cancellation = new CancellationTokenSource();
             var token = _cancellation.Token;
-
-            var succ = await new Commands.Clone(_pageId, _parentFolder, _remote, _local, _useSSH ? _sshKey : "", _extraArgs) { UseCredentialManager = _useCredentialManager }
-                .WithCancellation(token)
-                .Use(log)
-                .ExecAsync();
-            if (!succ || token.IsCancellationRequested)
-                return false;
-
-            var path = _parentFolder;
-            if (!string.IsNullOrEmpty(_local))
+            try
             {
-                path = Path.GetFullPath(Path.Combine(path, _local));
-            }
-            else
-            {
-                var name = Path.GetFileName(_remote)!;
-                if (name.EndsWith(".git", StringComparison.Ordinal))
-                    name = name.Substring(0, name.Length - 4);
-                else if (name.EndsWith(".bundle", StringComparison.Ordinal))
-                    name = name.Substring(0, name.Length - 7);
-
-                path = Path.GetFullPath(Path.Combine(path, name));
-            }
-
-            if (!Directory.Exists(path))
-            {
-                Models.Notification.Send(_pageId, $"Folder '{path}' can NOT be found", true);
-                return false;
-            }
-
-            if (_useSSH && !string.IsNullOrEmpty(_sshKey))
-            {
-                await new Commands.Config(path)
+                var succ = await new Commands.Clone(_pageId, _parentFolder, _remote, _local, _useSSH ? _sshKey : "", _extraArgs) { UseCredentialManager = _useCredentialManager }
+                    .WithCancellation(token)
                     .Use(log)
-                    .SetAsync("remote.origin.sshkey", _sshKey);
-            }
+                    .ExecAsync();
+                if (!succ || token.IsCancellationRequested)
+                    return false;
 
-            if (!_useSSH && _useCredentialManager)
-            {
-                await new Commands.Config(path).Use(log).SetAsync("sourcegit.credentialmanager", "true");
-                Native.RepositoryCredentials.SetCredentialManagerMode(path, true);
-            }
-
-            if (InitAndUpdateSubmodules && !token.IsCancellationRequested)
-            {
-                var submodules = await new Commands.QueryUpdatableSubmodules(path, true).GetResultAsync();
-                if (submodules.Count > 0)
-                    await new Commands.Submodule(path)
-                        .WithCancellation(token)
-                        .Use(log)
-                        .UpdateAsync(submodules, true, true, false);
-            }
-
-            log.Complete();
-
-            RepositoryNode parent = null;
-            if (_selectedGroupIndex == 0) // Auto (Based-on Default Clone Dir)
-            {
-                if (!string.IsNullOrEmpty(_defaultCloneDir))
+                var path = _parentFolder;
+                if (!string.IsNullOrEmpty(_local))
                 {
-                    var normalizedDefaultCloneDir = _defaultCloneDir.Replace('\\', '/').TrimEnd('/') + "/";
-                    var normalizedParentFolder = _parentFolder.Replace('\\', '/').TrimEnd('/') + "/";
-                    if (normalizedParentFolder.Length > normalizedDefaultCloneDir.Length &&
-                        normalizedParentFolder.StartsWith(normalizedDefaultCloneDir, StringComparison.Ordinal))
+                    path = Path.GetFullPath(Path.Combine(path, _local));
+                }
+                else
+                {
+                    var name = Path.GetFileName(_remote)!;
+                    if (name.EndsWith(".git", StringComparison.Ordinal))
+                        name = name.Substring(0, name.Length - 4);
+                    else if (name.EndsWith(".bundle", StringComparison.Ordinal))
+                        name = name.Substring(0, name.Length - 7);
+
+                    path = Path.GetFullPath(Path.Combine(path, name));
+                }
+
+                if (!Directory.Exists(path))
+                {
+                    Models.Notification.Send(_pageId, App.Text("TreeGit.Repository.Missing"), true);
+                    return false;
+                }
+
+                var setupSucceeded = true;
+                if (_useSSH && !string.IsNullOrEmpty(_sshKey))
+                {
+                    setupSucceeded = await new Commands.Config(path)
+                        .Use(log)
+                        .SetAsync("remote.origin.sshkey", _sshKey);
+                }
+
+                if (!_useSSH && _useCredentialManager)
+                {
+                    var modeSaved = await new Commands.Config(path).Use(log).SetAsync("sourcegit.credentialmanager", "true");
+                    setupSucceeded &= modeSaved;
+                    if (modeSaved) Native.RepositoryCredentials.SetCredentialManagerMode(path, true);
+                }
+                if (!setupSucceeded) OnCommandFailed(App.Text("TreeGit.Clone.SettingsIncomplete"));
+
+                if (InitAndUpdateSubmodules && !token.IsCancellationRequested)
+                {
+                    var query = new Commands.QueryUpdatableSubmodules(path, true) { Log = log, CancellationToken = token };
+                    var submodules = await query.GetResultAsync();
+                    var modulesUpdated = query.Succeeded;
+                    if (modulesUpdated && submodules.Count > 0)
+                        modulesUpdated = await new Commands.Submodule(path)
+                            .WithCancellation(token)
+                            .Use(log)
+                            .UpdateAsync(submodules, true, true, false);
+                    if (!modulesUpdated && !token.IsCancellationRequested) OnCommandFailed(App.Text("Repository.SubmodulesPending"));
+                    setupSucceeded &= modulesUpdated;
+                }
+
+                RepositoryNode parent = null;
+                if (_selectedGroupIndex == 0) // Auto (Based-on Default Clone Dir)
+                {
+                    if (!string.IsNullOrEmpty(_defaultCloneDir))
                     {
-                        var relativePath = normalizedParentFolder.Substring(normalizedDefaultCloneDir.Length);
-                        parent = Preferences.Instance.FindOrCreateGroupRecursive(relativePath.TrimEnd('/'));
+                        var normalizedDefaultCloneDir = _defaultCloneDir.Replace('\\', '/').TrimEnd('/') + "/";
+                        var normalizedParentFolder = _parentFolder.Replace('\\', '/').TrimEnd('/') + "/";
+                        if (normalizedParentFolder.Length > normalizedDefaultCloneDir.Length &&
+                            normalizedParentFolder.StartsWith(normalizedDefaultCloneDir, StringComparison.Ordinal))
+                        {
+                            var relativePath = normalizedParentFolder.Substring(normalizedDefaultCloneDir.Length);
+                            parent = Preferences.Instance.FindOrCreateGroupRecursive(relativePath.TrimEnd('/'));
+                        }
                     }
                 }
-            }
-            else if (_selectedGroupIndex > 0 && _selectedGroupIndex < Groups.Count) // Existing group
-            {
-                parent = Preferences.Instance.FindNode(Groups[_selectedGroupIndex].Id);
-            }
-
-            var node = Preferences.Instance.FindOrAddNodeByRepositoryPath(path, parent, true);
-            node.Bookmark = _bookmark;
-            await node.UpdateStatusAsync(false, null);
-
-            var launcher = App.GetLauncher();
-            LauncherPage page = null;
-            foreach (var one in launcher.Pages)
-            {
-                if (one.Node.Id == _pageId)
+                else if (_selectedGroupIndex > 0 && _selectedGroupIndex < Groups.Count) // Existing group
                 {
-                    page = one;
-                    break;
+                    parent = Preferences.Instance.FindNode(Groups[_selectedGroupIndex].Id);
                 }
+
+                var node = Preferences.Instance.FindOrAddNodeByRepositoryPath(path, parent, true);
+                node.Bookmark = _bookmark;
+                await node.UpdateStatusAsync(false, null);
+
+                var launcher = App.GetLauncher();
+                LauncherPage page = null;
+                foreach (var one in launcher.Pages)
+                {
+                    if (one.Node.Id == _pageId)
+                    {
+                        page = one;
+                        break;
+                    }
+                }
+
+                Welcome.Instance.Refresh();
+                launcher.OpenRepositoryInTab(node, page);
+
+                return setupSucceeded && !token.IsCancellationRequested;
             }
-
-            Welcome.Instance.Refresh();
-            launcher.OpenRepositoryInTab(node, page);
-
-            _cancellation = null;
-            return true;
+            finally
+            {
+                log.Complete();
+                _cancellation.Dispose();
+                _cancellation = null;
+            }
         }
 
         public override void Terminate()

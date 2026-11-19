@@ -31,6 +31,13 @@ namespace SourceGit.Native
 
         public void SetupApp(AppBuilder builder)
         {
+#if INTEGRATION_TESTS
+            if (Automation.LocalAuditHost.IsEnabled)
+            {
+                builder.With(new Win32PlatformOptions { OverlayPopups = true, RenderingMode = [Win32RenderingMode.Software] });
+                return;
+            }
+#endif
             // Native popup windows can remain above unrelated applications.
             // Menus, combo boxes, flyouts and tooltips belong to their own window.
             builder.With(new Win32PlatformOptions { OverlayPopups = true });
@@ -38,6 +45,27 @@ namespace SourceGit.Native
 
         [DllImport("user32.dll")]
         private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct OwnerRectangle { public int Left, Top, Right, Bottom; }
+
+        [DllImport("user32.dll")]
+        private static extern bool GetWindowRect(IntPtr window, out OwnerRectangle rectangle);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsIconic(IntPtr window);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsWindowVisible(IntPtr window);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetWindow(IntPtr window, uint command);
+
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr window);
 
         [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
         private static extern IntPtr SetWindowLongPtr(IntPtr window, int index, IntPtr value);
@@ -70,6 +98,17 @@ namespace SourceGit.Native
                 // topmost. Switching applications moves the whole group behind.
                 if (IntPtr.Size == 8) SetWindowLongPtr(handle, -8 /* GWLP_HWNDPARENT */, owner);
                 else SetWindowLong(handle, -8, owner.ToInt32());
+                window.Closing += (_, args) =>
+                {
+                    // The credential UI lives in a helper process. Hand focus back
+                    // before its foreground HWND disappears, unless the user left it.
+                    if (!args.Cancel && GetForegroundWindow() == handle && GetWindow(handle, 4 /* GW_OWNER */) == owner &&
+                        GetWindowThreadProcessId(owner, out var current) != 0 && current == expected && IsWindowVisible(owner) && !IsIconic(owner))
+                        SetForegroundWindow(owner);
+                };
+                if (window is Views.ChromelessWindow prompt)
+                    prompt.SetExternalMovementBounds(() => IsWindowVisible(owner) && !IsIconic(owner) && GetWindowThreadProcessId(owner, out var current) != 0 && current == expected && GetWindowRect(owner, out var rect)
+                        ? new PixelRect(rect.Left, rect.Top, Math.Max(1, rect.Right - rect.Left), Math.Max(1, rect.Bottom - rect.Top)) : null);
             }
             catch (Exception error) when (error is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
             {
@@ -80,6 +119,9 @@ namespace SourceGit.Native
 
         public void SetupWindow(Window window)
         {
+#if INTEGRATION_TESTS
+            Automation.LocalAuditHost.Attach(window);
+#endif
             window.ExtendClientAreaChromeHints = ExtendClientAreaChromeHints.NoChrome;
             window.ExtendClientAreaToDecorationsHint = true;
             window.BorderThickness = new Thickness(1);
@@ -460,10 +502,10 @@ namespace SourceGit.Native
 
         public static void FixWindowFrame(Window w)
         {
-            if (w.WindowState == WindowState.Maximized)
+            if (w.WindowState is WindowState.Maximized or WindowState.FullScreen)
             {
                 w.BorderThickness = new Thickness(0);
-                w.Padding = new Thickness(8, 6, 8, 8);
+                w.Padding = w.WindowState == WindowState.Maximized ? w.OffScreenMargin : default;
             }
             else
             {
@@ -480,7 +522,8 @@ namespace SourceGit.Native
                 if (platformHandle == null)
                     return;
 
-                var margins = new MARGINS { cxLeftWidth = 1, cxRightWidth = 1, cyTopHeight = 1, cyBottomHeight = 1 };
+                var margins = w.WindowState == WindowState.Normal ?
+                    new MARGINS { cxLeftWidth = 1, cxRightWidth = 1, cyTopHeight = 1, cyBottomHeight = 1 } : default;
                 DwmExtendFrameIntoClientArea(platformHandle.Handle, ref margins);
             }, DispatcherPriority.Render);
         }

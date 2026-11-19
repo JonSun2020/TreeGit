@@ -13,7 +13,7 @@
       <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.TabActive}"/>
     </Style>
   </UserControl.Styles>
-  <Grid ColumnDefinitions="Auto,*,Auto">
+  <Grid x:Name="TabDropArea" ColumnDefinitions="Auto,*,Auto" DragDrop.AllowDrop="True" DragDrop.DragOver="OnTabDragOver" DragDrop.DragLeave="OnTabDragLeave" DragDrop.Drop="DropTab">
     <RepeatButton Grid.Column="0" Classes="icon_button" Width="18" Height="28" Margin="0,2,0,0" Click="ScrollTabsLeft" IsVisible="{Binding #ThisControl.IsScrollButtonVisible}">
       <Path Width="8" Height="14" Stretch="Fill" Fill="{DynamicResource Brush.TreeGit.ChromeForeground}" Data="{StaticResource Icons.TriangleLeft}"/>
     </RepeatButton>
@@ -48,7 +48,7 @@
 
           <ListBox.ItemTemplate>
             <DataTemplate DataType="vm:LauncherPage">
-              <v:LauncherTabSizeBox UseFixedWidth="{Binding Source={x:Static vm:Preferences.Instance}, Path=UseFixedTabWidth}" Padding="0,0,0,0" PointerPressed="OnPointerPressedTab" PointerMoved="OnPointerMovedOverTab" PointerReleased="OnPointerReleasedTab" ContextRequested="OnTabContextRequested" DragDrop.AllowDrop="True" DragDrop.Drop="DropTab" Classes="treegit_repository_tab">
+              <v:LauncherTabSizeBox UseFixedWidth="{Binding Source={x:Static vm:Preferences.Instance}, Path=UseFixedTabWidth}" Padding="0,0,0,0" PointerPressed="OnPointerPressedTab" PointerMoved="OnPointerMovedOverTab" PointerReleased="OnPointerReleasedTab" ContextRequested="OnTabContextRequested" Classes="treegit_repository_tab">
                 <ToolTip.Tip>
                   <Grid>
                     <TextBlock Text="{DynamicResource Text.Welcome}" IsVisible="{Binding !Node.IsRepository}"/>
@@ -71,7 +71,7 @@
 
                   <TextBlock Grid.Column="1" HorizontalAlignment="Stretch" VerticalAlignment="Center" Foreground="{Binding $parent[ListBoxItem].Foreground}" FontSize="{Binding Source={x:Static vm:Preferences.Instance}, Path=DefaultFontSize, Converter={x:Static c:DoubleConverters.Decrease}}" TextAlignment="Left" Text="TreeGit" IsVisible="{Binding !Node.IsRepository}" IsHitTestVisible="False" Margin="4,0"/>
 
-                  <ContentControl Grid.Column="2" IsVisible="{Binding Node.IsRepository}" Content="{Binding LoadedRepository}" IsHitTestVisible="False" Margin="4,0"><ContentControl.DataTemplates><DataTemplate DataType="vm:Repository"><Border Classes="treegit_tab_sync_badge" Background="#7A869A" CornerRadius="2" Padding="3,1" VerticalAlignment="Center" IsVisible="{Binding CurrentBranch.TrackStatusDescription, Converter={x:Static c:StringConverters.IsNotNullOrWhitespace}, FallbackValue=False, TargetNullValue=False}"><TextBlock Text="{Binding CurrentBranch.TrackStatusDescription}" Foreground="White" FontSize="11"/></Border></DataTemplate></ContentControl.DataTemplates></ContentControl><Button Grid.Column="3" Classes="icon_button treegit_tab_close" Width="14" Height="12" Margin="12,0" Click="OnCloseTab">
+                  <ContentControl Grid.Column="2" IsVisible="{Binding Node.IsRepository}" Content="{Binding LoadedRepository}" IsHitTestVisible="False" Margin="4,0"><ContentControl.DataTemplates><DataTemplate DataType="vm:Repository"><Border Classes="treegit_tab_sync_badge" Background="#7A869A" CornerRadius="2" Padding="3,1" VerticalAlignment="Center" IsVisible="{Binding CurrentBranch.TrackStatusDescription, Converter={x:Static c:StringConverters.IsNotNullOrWhitespace}, FallbackValue=False, TargetNullValue=False}"><TextBlock Text="{Binding CurrentBranch.TrackStatusDescription}" Foreground="White" FontSize="11"/></Border></DataTemplate></ContentControl.DataTemplates></ContentControl><Button Grid.Column="3" Classes="icon_button treegit_tab_close" Width="14" Height="12" Margin="12,0,6,0" Click="OnCloseTab">
                     <ToolTip.Tip>
                       <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="{DynamicResource Text.PageTabBar.Tab.Close}" VerticalAlignment="Center"/>
@@ -121,5 +121,9 @@
         <Path Width="9" Height="6" Fill="{DynamicResource Brush.TreeGit.ChromeForeground}" Stretch="Fill" Data="M0 0L10 0L5 6z"/>
       </Button>
     </StackPanel>
+    <Canvas Grid.ColumnSpan="3" IsHitTestVisible="False" ZIndex="100">
+      <Border x:Name="TabInsertionMarker" IsVisible="False" Width="5" Height="26" CornerRadius="1"
+              Background="{DynamicResource Brush.Accent}" BorderBrush="{DynamicResource Brush.TreeGit.ChromeForeground}" BorderThickness="1"/>
+    </Canvas>
   </Grid>
 </UserControl>

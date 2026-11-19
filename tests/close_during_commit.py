@@ -1,6 +1,7 @@
 """Closing a tab must not detach a still-running native commit and its editable state."""
 import json, os, queue, subprocess, sys, tempfile, threading, time
 from pathlib import Path
+from qa_process import close_owned_gui
 
 exe = Path(sys.argv[1]).resolve(); out = Path(sys.argv[2]).resolve(); out.mkdir(parents=True, exist_ok=True)
 root = Path(tempfile.mkdtemp(prefix='TreeGit close while committing ')).resolve(); repo = root/'repo'; repo.mkdir()
@@ -50,7 +51,4 @@ finally:
         p.stdin.close()
         try:p.wait(timeout=10)
         except subprocess.TimeoutExpired:p.kill();p.wait()
-    if pid:
-        literal=str(exe).replace("'","''")
-        script="$p=Get-Process -Id "+str(pid)+" -ErrorAction SilentlyContinue;if($p){if($p.Path -ne '"+literal+"'){throw 'Wrong owned process'};$null=$p.CloseMainWindow();if(-not $p.WaitForExit(15000)){$p.Kill();$p.WaitForExit();throw 'Owned QA window did not exit normally'}};exit 0"
-        subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)
+    if pid:close_owned_gui(exe,pid)

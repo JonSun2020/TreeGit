@@ -17,6 +17,7 @@ namespace SourceGit.Commands
             public string StdErr { get; set; } = string.Empty;
             public int? ExitCode { get; set; }
             public string UserMessage { get; set; }
+            public bool AuthenticationCancelled { get; set; }
 
             internal bool IsSilentFailure => !IsSuccess && string.IsNullOrEmpty(StdOut) && string.IsNullOrEmpty(StdErr);
 
@@ -45,9 +46,49 @@ namespace SourceGit.Commands
         public CancellationToken CancellationToken { get; set; } = CancellationToken.None;
         public bool RaiseError { get; set; } = true;
         public Models.ICommandLog Log { get; set; } = null;
+        internal bool IgnoreOperationCancellation { get; set; }
         public string FailureMessage { get; private set; } = string.Empty;
         public int? LastExitCode { get; private set; }
         protected bool IsAuthenticationRetry { get; set; }
+        public bool WasAuthenticationCancelled { get; private set; }
+        internal bool WasCredentialAccepted { get; private set; }
+        private protected Native.CredentialSession AuthenticationSession;
+
+        private protected async Task<bool> RetryAuthenticationAsync(int exitCode, string error, bool allowed, bool requireTransportExit)
+        {
+            WasAuthenticationCancelled = AuthenticationSession?.WasCancelled == true ||
+                error.Contains(Native.CredentialSession.CancelMarker, StringComparison.Ordinal) ||
+                error.Contains("told us to quit", StringComparison.OrdinalIgnoreCase) ||
+                error.Contains("User canceled authentication", StringComparison.OrdinalIgnoreCase) ||
+                error.Contains("User cancelled authentication", StringComparison.OrdinalIgnoreCase);
+            WasCredentialAccepted |= AuthenticationSession?.WasAccepted == true;
+#if INTEGRATION_TESTS
+            Tests.AskpassProbe.Trace($"transport-exit-{exitCode}-cancel-{WasAuthenticationCancelled}-event-{AuthenticationSession?.WasCancelled}-marker-{error.Contains(Native.CredentialSession.CancelMarker, StringComparison.Ordinal)}-quit-{error.Contains("told us to quit", StringComparison.OrdinalIgnoreCase)}-accepted-{WasCredentialAccepted}");
+#endif
+            if (WasAuthenticationCancelled) { Log?.MarkAuthenticationCancelled(); return false; }
+            if (exitCode == 0)
+            {
+                if (AuthenticationSession != null) await AuthenticationSession.NotifyAsync("accepted").ConfigureAwait(false);
+                if (allowed) Log?.ReportAuthenticationState("Authenticated");
+                return false;
+            }
+            var timedOut = AuthenticationSession?.WasTimedOut == true;
+            var rejected = Native.RepositoryCredentials.IsAuthenticationFailure(error);
+            var connectionFailure = AuthenticationSession is { HasPrompt: true, WasAccepted: false } &&
+                (error.Contains("fatal: unable to access", StringComparison.OrdinalIgnoreCase) ||
+                 error.Contains("Could not resolve hostname", StringComparison.OrdinalIgnoreCase) ||
+                 error.Contains("Connection timed out", StringComparison.OrdinalIgnoreCase));
+            if (!allowed || !OperatingSystem.IsWindows() ||
+                !(timedOut || (!requireTransportExit || exitCode == 128) && (rejected || connectionFailure))) return false;
+            if (AuthenticationSession != null)
+            {
+                Log?.ReportAuthenticationState(timedOut ? "VerificationTimeout" : rejected ? "AuthenticationFailed" : "ConnectionFailed");
+                await AuthenticationSession.NotifyAsync(timedOut ? "timeout" : rejected ? "rejected" : "error").ConfigureAwait(false);
+                AuthenticationSession.ResetTimeout();
+            }
+            IsAuthenticationRetry = true;
+            return true;
+        }
         // Local hooks can emit authentication errors too. Only replay a transport
         // operation; never repeat a rejected local mutation automatically.
         protected virtual bool SupportsAuthenticationRetry => false;
@@ -55,7 +96,25 @@ namespace SourceGit.Commands
 
         public async Task<bool> ExecAsync()
         {
+            if (!IgnoreOperationCancellation && Log?.OperationCancellation.IsCancellationRequested == true)
+            {
+                FailureMessage = "Operation cancelled.";
+                return false;
+            }
             IsAuthenticationRetry = false;
+            WasAuthenticationCancelled = false;
+            var originalCancellation = CancellationToken;
+            using var operationCancellation = SupportsAuthenticationRetry && Log?.OperationCancellation.CanBeCanceled == true ?
+                CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, Log.OperationCancellation) : null;
+            if (operationCancellation != null) CancellationToken = operationCancellation.Token;
+            using var session = OperatingSystem.IsWindows() && SupportsAuthenticationRetry ? new Native.CredentialSession(state => Log?.ReportAuthenticationState(state)) : null;
+            AuthenticationSession = session;
+            try { return await ExecWithAuthenticationAsync(session).ConfigureAwait(false); }
+            finally { AuthenticationSession = null; CancellationToken = originalCancellation; }
+        }
+
+        private async Task<bool> ExecWithAuthenticationAsync(Native.CredentialSession session)
+        {
             while (true)
             {
                 FailureMessage = string.Empty;
@@ -75,6 +134,7 @@ namespace SourceGit.Commands
                 try
                 {
                     Native.ProcessLauncher.Start(proc);
+                    session?.Bind(proc);
 
                 }
                 catch (Exception e)
@@ -113,6 +173,7 @@ namespace SourceGit.Commands
                 {
                     captured.Process = null;
                 }
+                session?.Unbind();
 
                 Log?.AppendLine(string.Empty);
 
@@ -122,6 +183,10 @@ namespace SourceGit.Commands
                     return false;
                 }
                 LastExitCode = proc.ExitCode;
+                string authenticationError;
+                lock (errs) authenticationError = errs.ToString().Trim();
+                if (await RetryAuthenticationAsync(proc.ExitCode, authenticationError, SupportsAuthenticationRetry, RequiresAuthenticationTransportExitCode).ConfigureAwait(false)) continue;
+                if (WasAuthenticationCancelled) { FailureMessage = string.Empty; return false; }
                 if (proc.ExitCode != 0)
                 {
                     string errMsg;
@@ -129,18 +194,13 @@ namespace SourceGit.Commands
                     FailureMessage = errMsg[..Math.Min(errMsg.Length, 65536)];
                     // Git rejects/erases an invalid HTTP credential before returning this
                     // error. Keep requesting corrected credentials until success or cancellation.
-                    if (SupportsAuthenticationRetry && (!RequiresAuthenticationTransportExitCode || proc.ExitCode == 128) &&
-                        !errMsg.Contains("ref updates aborted by hook", StringComparison.OrdinalIgnoreCase) &&
-                        OperatingSystem.IsWindows() && Native.RepositoryCredentials.IsAuthenticationFailure(errMsg))
-                    {
-                        Log?.AppendLine("Authentication was rejected; requesting updated credentials.");
-                        IsAuthenticationRetry = true;
-                        continue;
-                    }
                     if (RaiseError)
                     {
                         if (!string.IsNullOrEmpty(errMsg))
-                            RaiseException(errMsg);
+                        {
+                            Log?.MarkFailed(errMsg);
+                            if (Log?.HasOperationPanel != true) RaiseException(errMsg);
+                        }
                     }
 
                     return false;
@@ -183,15 +243,43 @@ namespace SourceGit.Commands
             return rs;
         }
 
-        protected async Task<Result> ReadToEndAsync(bool retrySilentFailure = false)
+        protected async Task<Result> ReadToEndAsync(bool retrySilentFailure = false, Encoding outputEncoding = null)
+        {
+            var originalCancellation = CancellationToken;
+            using var operationCancellation = !IgnoreOperationCancellation && SupportsAuthenticationRetry && Log?.OperationCancellation.CanBeCanceled == true ?
+                CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, Log.OperationCancellation) : null;
+            if (operationCancellation != null) CancellationToken = operationCancellation.Token;
+            using var session = OperatingSystem.IsWindows() && SupportsAuthenticationRetry ? new Native.CredentialSession(state => Log?.ReportAuthenticationState(state)) : null;
+            AuthenticationSession = session;
+            IsAuthenticationRetry = false;
+            WasAuthenticationCancelled = false;
+            try
+            {
+                if (session == null)
+                    return await ReadToEndAttemptAsync(retrySilentFailure, outputEncoding).ConfigureAwait(false);
+                while (true)
+                {
+                    var result = await ReadToEndAttemptAsync(retrySilentFailure, outputEncoding).ConfigureAwait(false);
+                    if (await RetryAuthenticationAsync(result.ExitCode ?? -1, result.StdErr, true, RequiresAuthenticationTransportExitCode).ConfigureAwait(false)) continue;
+                    result.AuthenticationCancelled = WasAuthenticationCancelled;
+                    if (WasAuthenticationCancelled) { result.IsSuccess = false; result.StdErr = string.Empty; }
+                    return result;
+                }
+            }
+            finally { session?.Unbind(); AuthenticationSession = null; CancellationToken = originalCancellation; }
+        }
+
+        private async Task<Result> ReadToEndAttemptAsync(bool retrySilentFailure, Encoding outputEncoding)
         {
             CancellationToken.ThrowIfCancellationRequested();
             using var proc = new Process();
             proc.StartInfo = CreateGitStartInfo(true);
+            if (outputEncoding != null) proc.StartInfo.StandardOutputEncoding = outputEncoding;
 
             try
             {
                 Native.ProcessLauncher.Start(proc);
+                AuthenticationSession?.Bind(proc);
             }
             catch (Exception e)
             {
@@ -208,6 +296,7 @@ namespace SourceGit.Commands
             var error = proc.StandardError.ReadToEndAsync(CancellationToken);
             var exited = proc.WaitForExitAsync(CancellationToken);
             await Task.WhenAll(output, error, exited).ConfigureAwait(false);
+            AuthenticationSession?.Unbind();
             rs.StdOut = await output.ConfigureAwait(false);
             rs.StdErr = await error.ConfigureAwait(false);
 
@@ -216,7 +305,7 @@ namespace SourceGit.Commands
             if (retrySilentFailure && rs.IsSilentFailure)
             {
                 await Task.Delay(100, CancellationToken).ConfigureAwait(false);
-                return await ReadToEndAsync().ConfigureAwait(false);
+                return await ReadToEndAttemptAsync(false, outputEncoding).ConfigureAwait(false);
             }
             return rs;
         }
@@ -299,6 +388,7 @@ namespace SourceGit.Commands
                 start.Environment["TREEGIT_REBASE_MESSAGE_GIT_DIR"] = EditorMessageGitDirectory;
             }
             start.Environment["SOURCEGIT_CREDENTIAL_SCOPE"] = CredentialScope ?? WorkingDirectory ?? Context;
+            AuthenticationSession?.Configure(start);
             if (!OperatingSystem.IsLinux())
                 start.Environment["DISPLAY"] = "required";
 
@@ -322,11 +412,12 @@ namespace SourceGit.Commands
             }
 
             // Force the C locale on Unix, so that git's output (including fatal errors) can always be parsed.
-            if (!OperatingSystem.IsWindows())
+            if (!OperatingSystem.IsWindows() || Log?.HasOperationPanel == true)
             {
-                start.Environment.Add("LANG", "C");
-                start.Environment.Add("LC_ALL", "C");
+                start.Environment["LANG"] = "C";
+                start.Environment["LC_ALL"] = "C";
             }
+            if (Log?.HasOperationPanel == true && redirect) start.Environment["GIT_LFS_FORCE_PROGRESS"] = "1";
 
             // Working directory
             if (!string.IsNullOrEmpty(WorkingDirectory))
@@ -344,6 +435,7 @@ namespace SourceGit.Commands
         {
             if (line == null)
                 return;
+            line = Native.RepositoryCredentials.RedactLog(line);
 
             Log?.AppendLine(line);
 

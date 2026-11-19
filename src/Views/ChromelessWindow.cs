@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Specialized;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -8,7 +9,7 @@ using Avalonia.Threading;
 
 namespace SourceGit.Views
 {
-    public class ChromelessWindow : Window
+    public partial class ChromelessWindow : Window
     {
         public bool UseSystemWindowFrame
         {
@@ -25,8 +26,10 @@ namespace SourceGit.Views
 
         public ChromelessWindow()
         {
+            if (this is not Views.Launcher) Classes.Add("dialog_selections");
             Focusable = true;
             Native.OS.SetupForWindow(this);
+            InitializeOwnedWindowDragging();
             PositionChanged += (_, _) => UpdateEdgeSnapInsets();
             Resized += (_, _) =>
             {
@@ -37,10 +40,21 @@ namespace SourceGit.Views
 
         public void BeginMoveWindow(object _, PointerPressedEventArgs e)
         {
-            if (e.ClickCount == 1)
+            if (e.ClickCount == 1 && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            {
+                if (BeginOwnedWindowDrag(e)) return;
                 BeginMoveDrag(e);
+            }
 
             e.Handled = true;
+        }
+
+        public new void Activate()
+        {
+#if INTEGRATION_TESTS
+            if (OperatingSystem.IsWindows() && Automation.LocalAuditHost.IsEnabled) return;
+#endif
+            base.Activate();
         }
 
         public void MaximizeOrRestoreWindow(object _, TappedEventArgs e)
@@ -55,7 +69,10 @@ namespace SourceGit.Views
 
         protected override void OnOpened(EventArgs e)
         {
+            DialogButtons.Apply(this);
             base.OnOpened(e);
+            Dispatcher.UIThread.Post(() => { if (IsVisible) DialogButtons.Apply(this); }, DispatcherPriority.Loaded);
+            AttachMovementOwner();
             if (!CanResize || this is Launcher) return;
             var screen = Screens.ScreenFromWindow(this) ?? Screens.Primary;
             if (screen == null) return;
@@ -72,6 +89,18 @@ namespace SourceGit.Views
         }
 
         private bool _secondaryPositionPending;
+        private OverlayLayer _popupLayer;
+        private Border _windowSurface;
+
+        internal void RepaintPopupBackground() => _windowSurface?.InvalidateVisual();
+
+        private void OnOverlayChildrenChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            // Repaint the underlying surface when an overlay is removed. Its
+            // antialiased edge can extend beyond the last layout rectangle.
+            if (e.OldItems != null || e.Action == NotifyCollectionChangedAction.Reset)
+                RepaintPopupBackground();
+        }
 
         private void ScheduleSecondaryWindowPosition()
         {
@@ -94,6 +123,11 @@ namespace SourceGit.Views
         protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
         {
             base.OnApplyTemplate(e);
+            if (_popupLayer != null) _popupLayer.Children.CollectionChanged -= OnOverlayChildrenChanged;
+            _windowSurface = e.NameScope.Find<Border>("PART_ContentRoot");
+            var presenter = e.NameScope.Find<Control>("PART_ContentPresenter");
+            _popupLayer = presenter == null ? null : OverlayLayer.GetOverlayLayer(presenter);
+            if (_popupLayer != null) _popupLayer.Children.CollectionChanged += OnOverlayChildrenChanged;
 
             if (Classes.Contains("custom_window_frame") && CanResize)
             {
@@ -124,15 +158,17 @@ namespace SourceGit.Views
         {
             base.OnLoaded(e);
 
-            if (OperatingSystem.IsWindows())
+            if (OperatingSystem.IsWindows() && this is not OwnedNativeWindow)
                 Native.Win64Utilities.FixWindowFrame(this);
         }
 
         protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
         {
+            UpdateOwnedWindowBounds(change);
             base.OnPropertyChanged(change);
 
-            if (OperatingSystem.IsWindows() && change.Property == WindowStateProperty)
+            if (OperatingSystem.IsWindows() && this is not OwnedNativeWindow &&
+                (change.Property == WindowStateProperty || change.Property == OffScreenMarginProperty))
                 Native.Win64Utilities.FixWindowFrame(this);
 
             if (change.Property == WindowStateProperty)

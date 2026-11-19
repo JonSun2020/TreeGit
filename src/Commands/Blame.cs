@@ -17,7 +17,7 @@ namespace SourceGit.Commands
             RaiseError = false;
 
             var builder = new StringBuilder();
-            builder.Append("blame -f -t ");
+            builder.Append("blame --encoding=UTF-8 -f -t ");
             if (ignoreWhitespace)
                 builder.Append("-w ");
             builder.Append(revision).Append(" -- ").Append(file.Quoted());
@@ -27,7 +27,8 @@ namespace SourceGit.Commands
 
         public async Task<Models.BlameData> ReadAsync()
         {
-            var rs = await ReadToEndAsync().ConfigureAwait(false);
+            // Keep each byte intact until the Git metadata and source line are separated.
+            var rs = await ReadToEndAsync(outputEncoding: Encoding.Latin1).ConfigureAwait(false);
             if (!rs.IsSuccess)
                 return _result;
 
@@ -70,11 +71,12 @@ namespace SourceGit.Commands
                 return;
 
             // Force using `\n` as line-ending
-            _content.Append(match.Groups[5].Value).Append('\n');
+            var content = match.Groups[5].Value;
+            _content.Append(Ascii.IsValid(content) ? content : Models.DisplayEncoding.Decode(Encoding.Latin1.GetBytes(content))).Append('\n');
 
             var commit = match.Groups[1].Value;
-            var file = match.Groups[2].Value.Trim();
-            var author = match.Groups[3].Value;
+            var file = DecodeMetadata(match.Groups[2].Value).Trim();
+            var author = DecodeMetadata(match.Groups[3].Value);
             var timestamp = ulong.Parse(match.Groups[4].Value);
 
             var info = new Models.BlameLineInfo()
@@ -95,6 +97,9 @@ namespace SourceGit.Commands
                 _minSHALen = Math.Min(_minSHALen, commit.Length);
             }
         }
+
+        private static string DecodeMetadata(string raw) =>
+            Ascii.IsValid(raw) ? raw : Encoding.UTF8.GetString(Encoding.Latin1.GetBytes(raw));
 
         private readonly Models.BlameData _result = new Models.BlameData();
         private readonly StringBuilder _content = new StringBuilder();

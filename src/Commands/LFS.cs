@@ -12,7 +12,8 @@ namespace SourceGit.Commands
             Args.StartsWith("lfs pull ", System.StringComparison.Ordinal) ||
             Args.StartsWith("lfs push ", System.StringComparison.Ordinal) ||
             Args.StartsWith("lfs lock ", System.StringComparison.Ordinal) ||
-            Args.StartsWith("lfs unlock ", System.StringComparison.Ordinal);
+            Args.StartsWith("lfs unlock ", System.StringComparison.Ordinal) ||
+            Args.StartsWith("lfs locks ", System.StringComparison.Ordinal);
 
         public LFS(string repo)
         {
@@ -37,16 +38,16 @@ namespace SourceGit.Commands
             return await ExecAsync().ConfigureAwait(false);
         }
 
-        public async Task FetchAsync(string remote)
+        public async Task<bool> FetchAsync(string remote)
         {
             Args = $"lfs fetch {remote}";
-            await ExecAsync().ConfigureAwait(false);
+            return await ExecAsync().ConfigureAwait(false);
         }
 
-        public async Task PullAsync(string remote)
+        public async Task<bool> PullAsync(string remote)
         {
             Args = $"lfs pull {remote}";
-            await ExecAsync().ConfigureAwait(false);
+            return await ExecAsync().ConfigureAwait(false);
         }
 
         public async Task<bool> PushAsync(string remote)

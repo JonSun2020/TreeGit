@@ -800,6 +800,7 @@ namespace SourceGit.ViewModels
 
         public async Task CommitAsync(bool autoStage, bool autoPush, bool requireStagedFiles = false)
         {
+            var stageSelectedAfterAuthentication = false;
             if (!CanChangeIndex || string.IsNullOrWhiteSpace(_commitMessage))
                 return;
 
@@ -847,7 +848,7 @@ namespace SourceGit.ViewModels
                     if (rs == Models.ConfirmEmptyCommitResult.StageAllAndCommit)
                         autoStage = true;
                     else if (rs == Models.ConfirmEmptyCommitResult.StageSelectedAndCommit)
-                        if (!await StageChangesAsync(_selectedUnstaged.Changes, null)) return;
+                        stageSelectedAfterAuthentication = true;
                 }
             }
 
@@ -857,6 +858,20 @@ namespace SourceGit.ViewModels
             CommandLog log = null;
             try
             {
+                if (autoPush && _repo.Remotes.Count > 0)
+                {
+                    var pushBranch = _repo.CurrentBranch;
+                    if (pushBranch == null)
+                        pushBranch = new Models.Branch() { Name = await new Commands.QueryCurrentBranch(_repo.FullPath).GetResultAsync() };
+                    var push = new Push(_repo, pushBranch);
+                    var verification = new Commands.VerifyPushCredentials(_repo.FullPath, push.SelectedRemote);
+                    if (!await verification.VerifyAsync())
+                    {
+                        if (!verification.WasAuthenticationCancelled) _repo.SendNotification(App.Text("TreeGit.Credentials.PushUnavailable"), true);
+                        return;
+                    }
+                }
+                if (stageSelectedAfterAuthentication && !await StageChangesAsync(_selectedUnstaged.Changes, null)) return;
                 _repo.UIStates.AddRecentCommitMessage(_commitMessage);
 
                 if (autoStage && _visibleUnstaged.Count > 0 && !await StageChangesAsync(_visibleUnstaged, null))

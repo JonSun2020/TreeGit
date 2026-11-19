@@ -54,6 +54,10 @@ namespace SourceGit.Native
                 start.Environment["LOCAL"] = local;
                 start.Environment["REMOTE"] = remote;
                 start.Environment["MERGED"] = merged;
+                // The worker already receives absolute Windows paths. Prevent
+                // Git's MSYS shell from rewriting native switches such as
+                // Visual Studio's /m into paths inside the Git installation.
+                if (OperatingSystem.IsWindows()) start.Environment["MSYS2_ARG_CONV_EXCL"] = "*";
                 using var process = ProcessLauncher.Start(start);
                 if (process == null) return 1;
                 process.WaitForExit();

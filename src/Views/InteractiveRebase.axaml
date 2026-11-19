@@ -288,16 +288,16 @@
                   IsChecked="{Binding NoVerify, Mode=TwoWay}"/>
       </WrapPanel>
 
-      <Button Grid.Column="1" Classes="flat primary" MinWidth="80" Content="{DynamicResource Text.Start}" Click="OnStartJobs"/>
+      <Button Grid.Column="1" Classes="flat primary dialog_action" MinWidth="80" Content="{DynamicResource Text.Start}" Click="OnStartJobs"/>
       <Button Grid.Column="2" Classes="flat" Margin="8,0,0,0" MinWidth="80" Content="{DynamicResource Text.Cancel}" Click="CloseWindow"/>
     </Grid>
 
     <!-- Progress -->
-    <ProgressBar x:Name="Running"
+    <v:ActivityProgressBar x:Name="Running"
                  Grid.Row="4"
                  Margin="8,0,8,12"
                  Background="{DynamicResource Brush.FG2}"
-                 Foreground="{DynamicResource Brush.Accent}"
+                 Foreground="{DynamicResource Brush.TreeGit.WelcomeToolbarIcon}"
                  Minimum="0"
                  Maximum="100"
                  IsVisible="False"/>

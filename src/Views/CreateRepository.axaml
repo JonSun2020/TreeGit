@@ -1,0 +1,63 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SourceGit.ViewModels"
+             xmlns:v="using:SourceGit.Views"
+             x:Class="SourceGit.Views.CreateRepository"
+             x:DataType="vm:CreateRepository">
+  <StackPanel Spacing="10" Margin="8,4">
+    <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
+      <TextBlock Margin="0,0,10,8" VerticalAlignment="Center" Text="{DynamicResource Text.TreeGit.CreateRepository.Parent}"/>
+      <TextBox Grid.Column="1" x:Name="CreateRepositoryParent" MinHeight="30" Margin="0,0,0,8"
+               IsEnabled="{Binding CanEditParentFolder}" Text="{Binding ParentFolder, Mode=TwoWay}">
+        <TextBox.InnerRightContent>
+          <Button Classes="icon_button" Width="28" Height="28" Click="OnChooseParent">
+            <Path Width="14" Height="14" Fill="{DynamicResource Brush.FG1}" Data="{StaticResource Icons.Folder.Open}"/>
+          </Button>
+        </TextBox.InnerRightContent>
+      </TextBox>
+      <TextBlock Grid.Row="1" Margin="0,0,10,0" VerticalAlignment="Center" Text="{DynamicResource Text.TreeGit.CreateRepository.Name}"/>
+      <TextBox Grid.Row="1" Grid.Column="1" x:Name="CreateRepositoryName" MinHeight="30"
+               IsEnabled="{Binding CanEditName}" Text="{Binding Name, Mode=TwoWay}"/>
+    </Grid>
+    <CheckBox x:Name="CreateRepositoryGitHub" IsEnabled="{Binding CanChangeRemoteChoice}" IsChecked="{Binding CreateOnGitHub, Mode=TwoWay}">
+      <TextBlock Text="{DynamicResource Text.TreeGit.CreateRepository.GitHub}" TextWrapping="Wrap"/>
+    </CheckBox>
+    <StackPanel IsVisible="{Binding CreateOnGitHub}" Spacing="8">
+      <CheckBox x:Name="CreateRepositoryPrivate" IsEnabled="{Binding CanChangeRemoteChoice}" IsChecked="{Binding IsPrivate, Mode=TwoWay}">
+        <TextBlock Text="{DynamicResource Text.TreeGit.CreateRepository.Private}" TextWrapping="Wrap"/>
+      </CheckBox>
+      <TextBlock Text="{DynamicResource Text.TreeGit.CreateRepository.TokenHint}" Foreground="{DynamicResource Brush.FG2}" TextWrapping="Wrap"/>
+      <Grid ColumnDefinitions="*,Auto">
+        <v:PasswordTextBox x:Name="CreateRepositoryToken" Height="32" PasswordChar="*" IsEnabled="{Binding CanEditGitHub}"
+                 Watermark="{DynamicResource Text.TreeGit.CreateRepository.Token}" Text="{Binding GitHubToken, Mode=TwoWay}">
+          <TextBox.InnerRightContent>
+            <ToggleButton Classes="toggle_untracked" x:Name="ShowGitHubToken" Width="26" Height="16"
+                          IsCheckedChanged="OnToggleToken" ToolTip.Tip="{DynamicResource Text.TreeGit.Credentials.TogglePassword}"/>
+          </TextBox.InnerRightContent>
+        </v:PasswordTextBox>
+        <Button Grid.Column="1" x:Name="VerifyGitHubAccount" Classes="flat primary verify_account" Margin="8,0,0,0" Padding="10,0" Height="32"
+                HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                IsEnabled="{Binding CanVerifyAccount}" Click="OnVerifyAccount" Content="{DynamicResource Text.TreeGit.CreateRepository.Verify}"/>
+      </Grid>
+      <Button HorizontalAlignment="Left" HorizontalContentAlignment="Left" VerticalContentAlignment="Center"
+              Margin="0,-2,0,0" Padding="0" Classes="icon_button" Cursor="Hand" Click="OnTokenHelp">
+        <StackPanel Spacing="1.5" UseLayoutRounding="False">
+          <TextBlock x:Name="GitHubTokenHelpLabel" Foreground="{DynamicResource Brush.ExternalLink}"
+                     Text="{DynamicResource Text.TreeGit.CreateRepository.TokenHelp}"/>
+          <Border x:Name="GitHubTokenHelpUnderline" Height="0.5" Background="{DynamicResource Brush.ExternalLink}" UseLayoutRounding="False"/>
+        </StackPanel>
+      </Button>
+      <SelectableTextBlock x:Name="VerifiedGitHubAccount" Text="{Binding Account}" FontWeight="Bold"
+                           IsVisible="{Binding Account, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+      <TextBlock Text="{DynamicResource Text.TreeGit.CreateRepository.EmptyRemote}" Foreground="{DynamicResource Brush.FG2}" TextWrapping="Wrap"/>
+    </StackPanel>
+    <TextBlock IsVisible="{Binding HasCreatedRemote}" FontWeight="SemiBold" TextWrapping="Wrap"
+               Text="{DynamicResource Text.TreeGit.CreateRepository.RemoteReady}"/>
+    <SelectableTextBlock x:Name="CreateRepositoryError" Text="{Binding Error}" TextWrapping="Wrap" Foreground="{DynamicResource Brush.FG1}"
+                         IsVisible="{Binding Error, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+    <SelectableTextBlock Text="{Binding RemoteUrl}" TextWrapping="Wrap" Foreground="{DynamicResource Brush.FG2}"
+                         IsVisible="{Binding RemoteUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+    <Button x:Name="ConnectCreatedRemote" IsVisible="{Binding CanConnectExisting}" Click="OnConnectExisting"
+            Content="{DynamicResource Text.TreeGit.CreateRepository.ConnectExisting}"/>
+  </StackPanel>
+</UserControl>

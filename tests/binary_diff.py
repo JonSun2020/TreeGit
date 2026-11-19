@@ -88,7 +88,9 @@ def select(file=name, source='unstaged', revision=None, expected=None):
             if expected is None or expected(state):return state
         if state['status'] == 'error': raise AssertionError(state)
         time.sleep(.1)
-    raise AssertionError('Binary comparison did not load')
+    (out/'failed-comparison.png').write_bytes(tool('ui_screenshot'))
+    (out/'failed-comparison-observation.json').write_text(json.dumps(tool('ui_state'),ensure_ascii=False,indent=2),encoding='utf-8')
+    raise AssertionError(('Binary comparison did not load', source, state))
 
 def refresh():
     tool('ui_refresh', {'repo':str(repo)}); time.sleep(.8)
@@ -96,7 +98,7 @@ def refresh():
 rpc('initialize', {'protocolVersion':'2025-11-25'})
 tool('ui_open_repository', {'repo':str(repo)})
 gui_pid = tool('ui_state')['processId']
-tool('ui_window', {'width':1440, 'height':900, 'theme':'Blue', 'zoom':1})
+tool('ui_window', {'width':1440, 'height':900, 'theme':'Blue', 'zoom':1, 'locale':'zh_CN'})
 state = select()
 expected = sum(a != b for a, b in zip(staged, working)) + len(working)-len(staged)
 check('unstaged binary compares against index, including changes across a 64 KiB boundary and append', state['differentBytes'] == expected and state['oldSize'] == len(staged) and state['newSize'] == len(working))

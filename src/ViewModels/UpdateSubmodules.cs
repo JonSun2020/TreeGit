@@ -73,6 +73,21 @@ namespace SourceGit.ViewModels
             EnableRecursive = _repo.Settings.EnableRecursiveWhenAutoUpdatingSubmodules;
         }
 
+        public override async Task<bool> VerifyCredentialsAsync()
+        {
+            foreach (var module in Submodules)
+            {
+                if (!_updateAll && module != SelectedSubmodule) continue;
+                // Relative module URLs are resolved by Git against the parent
+                // remote. Verify the same parent endpoint without initializing
+                // or changing any submodule configuration during this check.
+                var remote = new Models.Remote { URL = module.URL };
+                if (!System.Uri.TryCreate(module.URL, System.UriKind.Absolute, out _) && !Models.Remote.IsSSH(module.URL))
+                    remote = _repo.Remotes.Find(r => r.Name == "origin") ?? (_repo.Remotes.Count > 0 ? _repo.Remotes[0] : null);
+                if (remote != null && !await VerifyRemoteAsync(_repo.FullPath, remote)) return false;
+            }
+            return true;
+        }
         public override async Task<bool> Sure()
         {
             var targets = new List<string>();
@@ -93,13 +108,13 @@ namespace SourceGit.ViewModels
             using var lockWatcher = _repo.LockWatcher();
             Use(log);
 
-            await new Commands.Submodule(_repo.FullPath)
+            var success = await new Commands.Submodule(_repo.FullPath)
                 .Use(log)
                 .UpdateAsync(targets, EnableInit, EnableRecursive, EnableRemote);
 
             log.Complete();
             _repo.MarkSubmodulesDirtyManually();
-            return true;
+            return success;
         }
 
         private readonly Repository _repo = null;

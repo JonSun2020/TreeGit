@@ -42,8 +42,7 @@ namespace SourceGit.Models
 
             // Keep line text and numbering, including a real final empty line.
             var baseLines = baseText == null ? [] : SplitLines(baseText);
-            var pairs = new List<(int Old, int New)>();
-            Align(0, baseLines.Length, 0, local.Count, 0);
+            var pairs = AlignLines(baseLines, local.Select(line => line.Content).ToArray());
             var next = new int[pairs.Count];
             var nextRegion = -1;
             for (var i = pairs.Count - 1; i >= 0; i--)
@@ -81,22 +80,28 @@ namespace SourceGit.Models
                 }
             }
 
+        }
+
+        internal static List<(int Old, int New)> AlignLines(string[] baseLines, string[] newLines)
+        {
+            var pairs = new List<(int Old, int New)>();
+            Align(0, baseLines.Length, 0, newLines.Length, 0);
+            return pairs;
+
             // Patience anchors bound memory and retain line order. Unrelated gaps
             // pair positionally; all lines from every version remain visible once.
             void Align(int a, int ae, int b, int be, int depth)
             {
-                while (a < ae && b < be && baseLines[a] == local[b].Content) pairs.Add((a++, b++));
+                while (a < ae && b < be && baseLines[a] == newLines[b]) pairs.Add((a++, b++));
                 var suffix = 0;
-                while (a < ae - suffix && b < be - suffix && baseLines[ae - suffix - 1] == local[be - suffix - 1].Content) suffix++;
+                while (a < ae - suffix && b < be - suffix && baseLines[ae - suffix - 1] == newLines[be - suffix - 1]) suffix++;
                 var endA = ae - suffix;
                 var endB = be - suffix;
                 var anchors = new List<(int Old, int New)>();
                 if (a < endA && b < endB && depth < 32)
                 {
                     var oldCounts = Unique(baseLines, a, endA);
-                    var newCounts = new Dictionary<string, (int Count, int Index)>(StringComparer.Ordinal);
-                    for (var j = b; j < endB; j++)
-                        newCounts[local[j].Content] = newCounts.TryGetValue(local[j].Content, out var n) ? (n.Count + 1, j) : (1, j);
+                    var newCounts = Unique(newLines, b, endB);
                     for (var j = a; j < endA; j++)
                         if (oldCounts[baseLines[j]].Count == 1 && newCounts.TryGetValue(baseLines[j], out var n) && n.Count == 1)
                             anchors.Add((j, n.Index));

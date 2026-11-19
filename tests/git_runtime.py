@@ -1,9 +1,11 @@
 """Exercise real GUI startup with/without discovered system Git. Integration build only."""
 import atexit,json,os,queue,shutil,subprocess,sys,tempfile,threading,time,traceback
 from pathlib import Path
-from qa_cleanup import new_fixture, remove_fixture
-assert os.environ.get('GITHUB_ACTIONS')=='true' and os.environ.get('RUNNER_OS')=='Windows', 'Destructive runtime tests require an owned CI runner'
+from qa_cleanup import new_fixture, remove_fixture, verify_local_runtime
+from qa_process import close_owned_gui
 exe=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
+if os.environ.get('TREEGIT_LOCAL_QA_ROOT'):verify_local_runtime(exe)
+else:assert os.environ.get('GITHUB_ACTIONS')=='true' and os.environ.get('RUNNER_OS')=='Windows', 'Destructive runtime tests require an owned CI runner'
 root=new_fixture(out,'TreeGit Git runtime 中文 ');bundled=exe.parent/'git/cmd/git.exe'
 checks=[];failure=None
 def save():
@@ -43,8 +45,7 @@ class Client:
   return r if error else json.loads(r['content'][0]['text'])
  def close(self):
   self.p.stdin.close();self.p.wait(timeout=15)
-  script="$p=Get-Process -Id "+str(self.pid)+"; if($p.Path -ne '"+str(exe).replace("'","''")+"'){throw 'wrong test process'}; Stop-Process -InputObject $p; $null=$p.WaitForExit(10000)"
-  subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)
+  close_owned_gui(exe,self.pid)
 def scenario(label,no_system,saved,expected_bundled,operations=False):
  c=Client(no_system,saved)
  try:
@@ -61,7 +62,10 @@ def scenario(label,no_system,saved,expected_bundled,operations=False):
    ssh=raw(['-c','alias.treegit-runtime=!ssh -V','treegit-runtime']);check('bundled OpenSSH and OpenSSL run with a stripped PATH','OpenSSH' in ssh['stderr'] and 'OpenSSL' in ssh['stderr'])
    remote=root/'remote.git';git(root,'init','--bare',str(remote));git(remote,'symbolic-ref','HEAD','refs/heads/main');git(repo,'remote','add','origin',str(remote))
    check('bundled Git pushes real commits',raw(['push','-u','origin','main'])['isSuccess'] and git(remote,'rev-parse','main')==git(repo,'rev-parse','HEAD'))
-   clone=root/'clone 中文';check('bundled GUI clone works',c.tool('git_clone',{'url':str(remote),'destination':str(clone),'recursive':False})['isSuccess'] and (clone/'中文 file.txt').read_text('utf-8')=='runtime commit\n')
+   clone=root/'clone 中文';cloned=c.tool('git_clone',{'url':str(remote),'destination':str(clone),'recursive':False})
+   check('bundled GUI clone works',cloned['isSuccess'] and (clone/'中文 file.txt').read_text('utf-8')=='runtime commit\n')
+   check('a retained success panel does not make MCP report clone failure',cloned['progressVisible'] and git(clone,'rev-parse','HEAD')==git(repo,'rev-parse','HEAD'))
+   check('the successful clone result can close without replaying the clone',c.tool('ui_command',{'command':'cancel_popup'})['cancelled'] and not c.tool('ui_state')['layoutProbe']['popups'])
  finally:c.close()
 scenario('installed Git',False,None,False)
 scenario('missing saved path',True,root/'old-computer/git.exe',True,True)

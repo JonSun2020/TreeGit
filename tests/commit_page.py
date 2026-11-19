@@ -15,7 +15,7 @@ import tempfile
 import threading
 import time
 import traceback
-from qa_cleanup import new_fixture, remove_fixture
+from qa_cleanup import new_fixture, remove_fixture, verify_process
 
 exe, out = (Path(v).resolve() for v in sys.argv[1:3])
 out.mkdir(parents=True, exist_ok=True)
@@ -105,7 +105,7 @@ try:
     process = subprocess.Popen([str(exe), '--mcp'], env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
         stderr=(out / 'mcp.log').open('w', encoding='utf-8'), text=True, encoding='utf-8', creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
     threading.Thread(target=lambda: [responses.put(v) for v in process.stdout], daemon=True).start()
-    rpc('initialize', {'protocolVersion': '2025-11-25'}); pid = tool('ui_state')['processId']
+    rpc('initialize', {'protocolVersion': '2025-11-25'}); pid = tool('ui_state')['processId']; verify_process(pid, exe)
     tool('ui_open_repository', repo=str(repo)); tool('ui_select_view', repo=str(repo), view='history')
     wait(lambda: not state()['graphLoading'])
     def composition(): return (state().get('workingCopyState') or {}).get('composition')
@@ -170,6 +170,67 @@ try:
         check(locale+' footer keeps sign-off visible', any(t['text'] == next(e.text for e in __import__('xml.etree.ElementTree',fromlist=['parse']).parse(Path(__file__).resolve().parents[1]/('src/Resources/Locales/'+locale+'.axaml')).getroot() if e.attrib.get('{http://schemas.microsoft.com/winfx/2006/xaml}Key')=='Text.WorkingCopy.SignOff') for t in layout['localizedTexts']))
         check(locale + ' commit button fits above the bottom tabs', button['x'] >= 0 and button['x']+button['width'] <= layout['window']['width'] and button['y']+button['height'] <= min(t['bounds']['y'] for t in layout['bottomTabs']), button)
         (out / (locale + '-complete-commit-page.png')).write_bytes(tool('ui_screenshot'))
+
+    for locale, hint, templates_label in [('zh_CN','请输出提交说明...','提交模板'),
+                                          ('zh_TW','請輸出提交說明...','提交範本'),
+                                          ('en_US','Enter a commit message...','Commit templates')]:
+        tool('ui_window', locale=locale, theme='Light', width=1280, height=820)
+        draft('')
+        wait(composer_visible)
+        layout = wait(lambda: (g if any(t['text']==hint for t in g['localizedTexts']) else None) if (g:=tool('ui_layout')) else None)
+        check(locale+' empty composer shows only the short localized hint', sum(t['text']==hint for t in layout['localizedTexts'])==1 and not composition()['commitEnabled'])
+        (out/(locale+'-empty-draft-hint.png')).write_bytes(tool('ui_screenshot'))
+        check(locale+' top bar has five menus without the duplicate repository menu',len(probe()['headers'])==5)
+        for index in range(5):
+            probe('reset');probe('enter',index);probe('press',index);probe('release',index)
+            check(locale+' outside content closes menu '+str(index),not probe('outside_content')['menuOpen'])
+
+        tool('ui_command',command='new_tab')
+        wait(lambda:tool('ui_state')['activePage']['kind']=='Welcome')
+        probe('enter',2);probe('press',2);probe('release',2)
+        menus=probe()['headers']
+        check(locale+' welcome disables all repository operations',all(not item['enabled'] for item in menus[2]['items']),menus[2]['items'])
+        (out/(locale+'-welcome-disabled-menu.png')).write_bytes(tool('ui_screenshot'))
+        probe('enter',3);menus=probe()['headers']
+        check(locale+' welcome keeps integration, MCP and SSH tools usable', len(menus[3]['items'])==3 and all(item['enabled'] for item in menus[3]['items']),menus[3]['items'])
+        probe('outside_content');tool('ui_command',command='close_tab');tool('ui_open_repository',repo=str(repo))
+        wait(lambda:tool('ui_state')['activePage']['kind']=='Repository')
+        probe('enter',2);probe('press',2);probe('release',2)
+        check(locale+' switching back restores repository menu operations', all(item['enabled'] for item in probe()['headers'][2]['items']))
+        probe('outside_content')
+
+        tool('ui_command',repo=str(repo),command='repository_settings')
+        wait(lambda:any(dialog['type']=='RepositorySettings' for dialog in tool('ui_state')['dialogs']))
+        tool('ui_command',command='repository_settings_advanced')
+        for name in ['CommitLinks','SyncMerge','Signing','SubmoduleUpdate']:
+            tool('ui_layout',window='active',action='test_set',button='TreeGitSettings'+name,value=1)
+        layout=tool('ui_layout',window='active');records.append({'advancedLocale':locale,'layout':layout})
+        ignored=next(t['text'] for t in layout['localizedTexts'] if t['name']=='RepositoryIgnorePath')
+        check(locale+' ignore path uses forward slashes consistently',ignored.endswith('/.gitignore') and '\\' not in ignored)
+        bars=[b for b in layout['scrollBars'] if b['visible'] and b['orientation']=='Vertical']
+        bar=max(bars,key=lambda b:b['bounds']['x'])
+        # Scrollbar paging buttons belong in the bar; inspect labeled settings
+        # actions rather than treating scrollbar internals as overlapping rows.
+        actions=[b for b in layout['buttons'] if b['inScrollArea'] and b['text']]
+        (out/(locale+'-advanced-scrollbar.png')).write_bytes(tool('ui_screenshot',window='active'))
+        check(locale+' advanced controls keep clear of the outer scrollbar',bool(actions) and all(b['bounds']['x']+b['bounds']['width']<=bar['bounds']['x']-1 for b in actions),{'actions':actions,'bar':bar})
+        check(locale+' unused template editor is absent',not any(t['text']==templates_label for t in layout['localizedTexts']))
+        (out/(locale+'-advanced-scrollbar.png')).write_bytes(tool('ui_screenshot',window='active'))
+        tool('ui_command',command='close_dialog')
+
+        tool('ui_select_commit',repo=str(repo),revision=initial)
+        wait(lambda:state()['detailCommit']==initial)
+        if state()['detailsCollapsed']:probe('history_collapse')
+        wait(lambda:not state()['detailsCollapsed'])
+        wait(lambda:any(t['open'] for t in probe('detail_tooltip',0)['detailTooltips']))
+        check(locale+' detail tooltip is above its noninteractive button',all(t['placement']=='Top' and t['interactive'] is False for t in probe()['detailTooltips']))
+        probe('history_collapse',1);wait(lambda:state()['detailsCollapsed'])
+        check(locale+' folding closes both detail tooltips',not any(t['open'] for t in probe()['detailTooltips']))
+        wait(lambda:any(t['open'] for t in probe('detail_tooltip',1)['detailTooltips']))
+        (out/(locale+'-folded-detail-tooltip.png')).write_bytes(tool('ui_screenshot'))
+        probe('history_collapse');wait(lambda:not state()['detailsCollapsed'])
+        check(locale+' unfolding closes tooltips again',not any(t['open'] for t in probe()['detailTooltips']))
+    draft('Preserved commit draft')
     tool('ui_window', locale='zh_CN', width=1280, height=820)
     probe('commit_staged'); wait(lambda: git('rev-parse', 'HEAD') != initial and composition() and not state()['workingCopyState']['committing'])
     check('actual commit button commits only the staged file', git('diff-tree', '--no-commit-id', '--name-only', '-r', 'HEAD') == 'staged.txt')
@@ -200,6 +261,8 @@ except BaseException:
     failure = traceback.format_exc()
     if pid:
         try: (out / 'failure.png').write_bytes(tool('ui_screenshot'))
+        except Exception: pass
+        try: (out / 'failure-menu.json').write_text(json.dumps(probe(), ensure_ascii=False, indent=2), encoding='utf-8')
         except Exception: pass
         try: (out / 'failure-state.json').write_text(json.dumps(tool('ui_state'), ensure_ascii=False, indent=2), encoding='utf-8')
         except Exception: pass

@@ -7,6 +7,8 @@ from qa_process import close_owned_gui
 
 assert os.environ.get('CI') == 'true', 'Use only an owned CI application'
 exe=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
+client_count = int(sys.argv[3]) if len(sys.argv) > 3 else 12
+assert 2 <= client_count <= 12
 parent=Path(tempfile.gettempdir()).resolve();root=new_fixture(parent,'TreeGit m ');repo=root/'repo';repo.mkdir()
 git=shutil.which('git');assert git
 clients=[];pid=None;report={};start=time.monotonic()
@@ -43,14 +45,14 @@ try:
             for _ in range(5):c.tool('git_status',{'repo':str(repo)})
         finally:c.close()
         return index
-    with ThreadPoolExecutor(max_workers=12) as pool:results=list(pool.map(client,range(12)))
-    assert len(results)==12
-    print('PASS 12 simultaneous clients, 60 GUI-backed Git requests',flush=True)
+    with ThreadPoolExecutor(max_workers=client_count) as pool:results=list(pool.map(client,range(client_count)))
+    assert len(results)==client_count
+    print(f'PASS {client_count} simultaneous clients, {client_count * 5} GUI-backed Git requests',flush=True)
     file.write_text('x'*1400000+'\n',encoding='utf-8')
     data=owner.tool('git_diff',{'repo':str(repo),'paths':['large-output.txt']})
     assert data['truncated'] and len(data['stdout'])==1024*1024
     print('PASS large diff bounded to 1 MiB with explicit truncation',flush=True)
-    report.update(clients=12,requests=60,all_passed=True,large_output_limit=1048576,large_output_truncation_verified=True)
+    report.update(clients=client_count,requests=client_count*5,all_passed=True,large_output_limit=1048576,large_output_truncation_verified=True)
 except BaseException as error:
     report['failure']=repr(error);raise
 finally:

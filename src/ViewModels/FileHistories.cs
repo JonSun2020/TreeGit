@@ -127,13 +127,23 @@ namespace SourceGit.ViewModels
                     }
 
                     var size = await new Commands.QueryFileSize(_repo, _file, _revision.SHA).GetResultAsync().ConfigureAwait(false);
+                    if (size is > 0 and <= 8 * 1024 * 1024)
+                    {
+                        var bytes = await Commands.WideTextPreview.ReadAsync(_repo, _revision.SHA, _file, obj.SHA, 0).ConfigureAwait(false);
+                        if (bytes != null && Models.DisplayEncoding.DetectWide(bytes) != 0)
+                        {
+                            var wideText = new Models.RevisionTextFile(_file, bytes);
+                            if (Models.DisplayEncoding.IsReadableText(wideText.Content)) return new FileHistoriesRevisionFile(_file, wideText, true);
+                        }
+                    }
                     var binaryFile = new Models.RevisionBinaryFile(_repo, _file, _revision.SHA, size);
                     return new FileHistoriesRevisionFile(_file, binaryFile, true);
                 }
 
                 await using var contentStream = await Commands.QueryFileContent.RunAsync(_repo, _revision.SHA, _file).ConfigureAwait(false);
-                var content = await new StreamReader(contentStream).ReadToEndAsync();
-                var lfs = Models.LFSObject.Parse(content);
+                contentStream.TryGetBuffer(out var buffer);
+                var txt = new Models.RevisionTextFile(obj.Path, buffer);
+                var lfs = Models.LFSObject.Parse(txt.Content);
                 if (lfs != null)
                 {
                     var imgDecoder = ImageSource.GetDecoder(_file);
@@ -147,7 +157,6 @@ namespace SourceGit.ViewModels
                     return new FileHistoriesRevisionFile(_file, rlfs, true);
                 }
 
-                var txt = new Models.RevisionTextFile() { FileName = obj.Path, Content = content };
                 return new FileHistoriesRevisionFile(_file, txt, true);
             }
 

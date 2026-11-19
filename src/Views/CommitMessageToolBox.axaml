@@ -24,6 +24,12 @@
                                 ShowSubjectGuide="{Binding #ThisControl.ShowSubjectGuide}"
                                 GuideLineBrush="{DynamicResource Brush.Border2}"
                                 FontFamily="{DynamicResource Fonts.Monospace}">
+          <v:CommitMessageTextBox.Resources>
+            <SolidColorBrush x:Key="TextControlPlaceholderForeground" Color="#999999"/>
+            <SolidColorBrush x:Key="TextControlPlaceholderForegroundPointerOver" Color="#999999"/>
+            <SolidColorBrush x:Key="TextControlPlaceholderForegroundFocused" Color="#999999"/>
+            <SolidColorBrush x:Key="TextControlPlaceholderForegroundDisabled" Color="#999999"/>
+          </v:CommitMessageTextBox.Resources>
           <v:CommitMessageTextBox.Styles>
             <Style Selector="ContentPresenter">
               <Setter Property="FontFamily" Value="{DynamicResource Fonts.Monospace}"/>

@@ -1,5 +1,6 @@
 ﻿using System;
 using Avalonia;
+using System.ComponentModel;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
@@ -10,14 +11,42 @@ namespace SourceGit.Views
 {
     public partial class DiffView : UserControl
     {
+        public static readonly StyledProperty<ViewModels.IDiffViewSettings> SettingsProperty = AvaloniaProperty.Register<DiffView, ViewModels.IDiffViewSettings>(nameof(Settings));
+        public ViewModels.IDiffViewSettings Settings { get => GetValue(SettingsProperty); set => SetValue(SettingsProperty, value); }
+        private ViewModels.IDiffViewSettings _observedSettings;
+        private bool _settingsActive;
+
         public DiffView()
         {
             InitializeComponent();
+            DataContextChanged += (_, _) => BindViewSettings();
+        }
+
+        private void BindViewSettings()
+        {
+            var settings = (DataContext as ViewModels.DiffContext)?.Settings ?? ViewModels.Preferences.Instance;
+            Settings = settings;
+            if (_observedSettings == settings && _settingsActive) return;
+            if (_observedSettings != null) _observedSettings.PropertyChanged -= OnViewSettingsChanged;
+            _observedSettings = _settingsActive ? settings : null;
+            if (_observedSettings != null) _observedSettings.PropertyChanged += OnViewSettingsChanged;
+        }
+
+        private void OnViewSettingsChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName is not (nameof(ViewModels.IDiffViewSettings.DisplayEncodingIndex) or nameof(ViewModels.IDiffViewSettings.UseSideBySideDiff) or nameof(ViewModels.IDiffViewSettings.UseFullTextDiff) or
+                nameof(ViewModels.IDiffViewSettings.UseSyntaxHighlighting) or nameof(ViewModels.IDiffViewSettings.EnableDiffViewWordWrap) or
+                nameof(ViewModels.IDiffViewSettings.IgnoreWhitespaceChangesInDiff) or nameof(ViewModels.IDiffViewSettings.IgnoreCRAtEOLInDiff) or
+                nameof(ViewModels.IDiffViewSettings.ShowHiddenSymbolsInDiffView))) return;
+            (DataContext as ViewModels.DiffContext)?.CheckSettings();
+            ViewModels.Preferences.Instance.Save();
         }
 
         protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
         {
             base.OnAttachedToVisualTree(e);
+            _settingsActive = true;
+            BindViewSettings();
             BtnOpenExternalMergeTool.IsVisible = TopLevel.GetTopLevel(this) is not InternalDiffWindow;
             App.LocaleChanged += OnLocaleChanged;
             OnLocaleChanged();
@@ -25,6 +54,9 @@ namespace SourceGit.Views
 
         protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
         {
+            _settingsActive = false;
+            if (_observedSettings != null) _observedSettings.PropertyChanged -= OnViewSettingsChanged;
+            _observedSettings = null;
             App.LocaleChanged -= OnLocaleChanged;
             base.OnDetachedFromVisualTree(e);
         }

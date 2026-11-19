@@ -44,6 +44,13 @@ namespace SourceGit.Native
         public static void Show(string root, bool incomplete, Exception error = null)
         {
             var text = Message(root, incomplete, error);
+#if INTEGRATION_TESTS
+            if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("TREEGIT_LOCAL_QA_ROOT")))
+            {
+                Console.Error.WriteLine(text);
+                return;
+            }
+#endif
             if (OperatingSystem.IsWindows()) MessageBox(IntPtr.Zero, text, "TreeGit", 0x10);
             else Console.Error.WriteLine(text);
         }

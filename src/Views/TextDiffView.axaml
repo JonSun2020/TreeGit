@@ -27,9 +27,9 @@
                                          FontFamily="{DynamicResource Fonts.Monospace}"
                                          FontSize="{Binding Source={x:Static vm:Preferences.Instance}, Path=EditorFontSize}"
                                          TabWidth="{Binding Source={x:Static vm:Preferences.Instance}, Path=EditorTabWidth}"
-                                         UseSyntaxHighlighting="{Binding Source={x:Static vm:Preferences.Instance}, Path=UseSyntaxHighlighting}"
-                                         WordWrap="{Binding Source={x:Static vm:Preferences.Instance}, Path=EnableDiffViewWordWrap}"
-                                         ShowHiddenSymbols="{Binding Source={x:Static vm:Preferences.Instance}, Path=ShowHiddenSymbolsInDiffView}"
+                                         UseSyntaxHighlighting="{Binding $parent[v:DiffView].Settings.UseSyntaxHighlighting}"
+                                         WordWrap="{Binding $parent[v:DiffView].Settings.EnableDiffViewWordWrap}"
+                                         ShowHiddenSymbols="{Binding $parent[v:DiffView].Settings.ShowHiddenSymbolsInDiffView}"
                                          SelectedChunk="{Binding SelectedChunk, Mode=TwoWay}"
                                          BlockNavigation="{Binding BlockNavigation, Mode=OneWay}"/>
 
@@ -67,9 +67,9 @@
                                            FontFamily="{DynamicResource Fonts.Monospace}"
                                            FontSize="{Binding Source={x:Static vm:Preferences.Instance}, Path=EditorFontSize}"
                                            TabWidth="{Binding Source={x:Static vm:Preferences.Instance}, Path=EditorTabWidth}"
-                                           UseSyntaxHighlighting="{Binding Source={x:Static vm:Preferences.Instance}, Path=UseSyntaxHighlighting}"
-                                           WordWrap="False"
-                                           ShowHiddenSymbols="{Binding Source={x:Static vm:Preferences.Instance}, Path=ShowHiddenSymbolsInDiffView}"
+                                           UseSyntaxHighlighting="{Binding $parent[v:DiffView].Settings.UseSyntaxHighlighting}"
+                                           WordWrap="{Binding $parent[v:DiffView].Settings.EnableDiffViewWordWrap}"
+                                           ShowHiddenSymbols="{Binding $parent[v:DiffView].Settings.ShowHiddenSymbolsInDiffView}"
                                            SelectedChunk="{Binding SelectedChunk, Mode=TwoWay}"
                                            BlockNavigation="{Binding BlockNavigation, Mode=OneWay}"/>
 
@@ -97,9 +97,9 @@
                                            FontFamily="{DynamicResource Fonts.Monospace}"
                                            FontSize="{Binding Source={x:Static vm:Preferences.Instance}, Path=EditorFontSize}"
                                            TabWidth="{Binding Source={x:Static vm:Preferences.Instance}, Path=EditorTabWidth}"
-                                           UseSyntaxHighlighting="{Binding Source={x:Static vm:Preferences.Instance}, Path=UseSyntaxHighlighting}"
-                                           WordWrap="False"
-                                           ShowHiddenSymbols="{Binding Source={x:Static vm:Preferences.Instance}, Path=ShowHiddenSymbolsInDiffView}"
+                                           UseSyntaxHighlighting="{Binding $parent[v:DiffView].Settings.UseSyntaxHighlighting}"
+                                           WordWrap="{Binding $parent[v:DiffView].Settings.EnableDiffViewWordWrap}"
+                                           ShowHiddenSymbols="{Binding $parent[v:DiffView].Settings.ShowHiddenSymbolsInDiffView}"
                                            SelectedChunk="{Binding SelectedChunk, Mode=TwoWay}"
                                            BlockNavigation="{Binding BlockNavigation, Mode=OneWay}"/>
 

@@ -234,7 +234,7 @@ namespace SourceGit.Views
         public void OpenComparisonWindow()
         {
             if (!_allowSeparateWindow || DataContext is not Models.BinaryDiff diff || TopLevel.GetTopLevel(this) is not Window owner || owner is InternalDiffWindow) return;
-            var window = new Window { [!Window.TitleProperty] = App.TextBinding("TreeGit.Binary.WindowTitle"), Width = 1340, Height = 760, MinWidth = 640, MinHeight = 360,
+            var window = new OwnedNativeWindow { [!Window.TitleProperty] = App.TextBinding("TreeGit.Binary.WindowTitle"), Width = 1340, Height = 760, MinWidth = 640, MinHeight = 360,
                 WindowStartupLocation = WindowStartupLocation.CenterOwner, Content = new BinaryDiffView(false) { DataContext = diff } };
             // Use native frame for this independent inspector, including move/resize/close.
             window.SystemDecorations = SystemDecorations.Full;

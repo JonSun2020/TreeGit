@@ -19,6 +19,7 @@ namespace SourceGit.ViewModels
             SelectedRemote = _repo.Remotes[0];
         }
 
+        public override Task<bool> VerifyCredentialsAsync() => VerifyRemoteAsync(_repo.FullPath, SelectedRemote);
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
@@ -27,12 +28,12 @@ namespace SourceGit.ViewModels
             var log = _repo.CreateLog("LFS Fetch");
             Use(log);
 
-            await new Commands.LFS(_repo.FullPath)
+            var success = await new Commands.LFS(_repo.FullPath)
                 .Use(log)
                 .FetchAsync(SelectedRemote.Name);
 
             log.Complete();
-            return true;
+            return success;
         }
 
         private readonly Repository _repo = null;

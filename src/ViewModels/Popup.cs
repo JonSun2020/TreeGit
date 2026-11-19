@@ -5,8 +5,11 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace SourceGit.ViewModels
 {
-    public class Popup : ObservableValidator, Models.ICommandLogReceiver
+    public partial class Popup : ObservableValidator, Models.ICommandLogReceiver
     {
+        // Transient position belongs to this dialog in this tab, never a global setting.
+        internal Avalonia.Point? DialogPosition { get; set; }
+
         public string DialogTitle => GetType().Name switch
         {
             "AddRemote" => App.Text("Remote.AddTitle"),
@@ -17,6 +20,7 @@ namespace SourceGit.ViewModels
             "ApplyStash" => App.Text("ApplyStash"),
             "Archive" => App.Text("Archive.Title"),
             "ChangeSubmoduleUrl" => App.Text("ChangeSubmoduleUrl"),
+            "CherryPick" => App.Text("CherryPick"),
             "Checkout" => App.Text("Checkout"),
             "CheckoutAndFastForward" => App.Text("Checkout.WithFastForward"),
             "CheckoutAsWorktree" => App.Text("CheckoutAsWorktree"),
@@ -29,6 +33,7 @@ namespace SourceGit.ViewModels
             "Clone" => App.Text("Clone"),
             "CreateBranch" => App.Text("CreateBranch.Title"),
             "CreateGroup" => App.Text("Welcome.AddRootFolder"),
+            "CreateRepository" => App.Text("TreeGit.CreateRepository.Title"),
             "CreateTag" => App.Text("CreateTag.Title"),
             "DeinitSubmodule" => App.Text("DeinitSubmodule"),
             "DeleteBranch" => App.Text("DeleteBranch"),
@@ -81,6 +86,7 @@ namespace SourceGit.ViewModels
             "RenameBranch" => App.Text("RenameBranch"),
             "Reset" => App.Text("Reset"),
             "ResetWithoutCheckout" => App.Text("ResetWithoutCheckout"),
+            "Revert" => App.Text("Revert"),
             "ScanRepositories" => App.Text("ScanRepositories"),
             "SetPushURL" => App.Text("SetPushUrl"),
             "SetSubmoduleBranch" => App.Text("SetSubmoduleBranch"),
@@ -105,7 +111,16 @@ namespace SourceGit.ViewModels
         public bool InProgress
         {
             get => _inProgress;
-            set => SetProperty(ref _inProgress, value);
+            set
+            {
+                if (SetProperty(ref _inProgress, value))
+                {
+                    OnPropertyChanged(nameof(CanCancelOperation));
+                    OnPropertyChanged(nameof(CanCloseOperation));
+                    OnPropertyChanged(nameof(OperationProgress));
+                    OnPropertyChanged(nameof(ShowStatus));
+                }
+            }
         }
 
         public string ProgressDescription
@@ -126,9 +141,10 @@ namespace SourceGit.ViewModels
         {
             System.Threading.Volatile.Write(ref _localizedProgress, new LocalizedProgressText(key, arguments));
             OnPropertyChanged(nameof(ProgressDescription));
+            OnPropertyChanged(nameof(StatusDescription)); OnPropertyChanged(nameof(OperationStage));
         }
 
-        public void RefreshLocalizedText()
+        public virtual void RefreshLocalizedText()
         {
             OnPropertyChanged(nameof(DialogTitle));
             OnPropertyChanged(nameof(UsesDialogTitle));
@@ -150,6 +166,8 @@ namespace SourceGit.ViewModels
 
         public void OnReceiveCommandLog(string data)
         {
+            ReadTransferProgress(data);
+            AppendOperationOutput(data);
             var desc = data.Trim();
             if (desc.Length > 1024) desc = desc[..1024];
             if (!string.IsNullOrEmpty(desc))
@@ -158,7 +176,13 @@ namespace SourceGit.ViewModels
 
         public virtual void Cleanup()
         {
+            _operationCancellation?.Dispose(); _operationCancellation = null;
             _log?.Unsubscribe(this);
+            CompleteOperationLog();
+        }
+
+        internal void CompleteOperationLog()
+        {
             if (_log is { IsComplete: false }) _log.Complete();
         }
 
@@ -184,12 +208,18 @@ namespace SourceGit.ViewModels
                 if (!_log.IsComplete) _log.Complete();
             }
             _log = log;
+            if (UsesOperationPanel)
+            {
+                _log.HasOperationPanel = true;
+                _log.OperationToken = _operationCancellation?.Token ?? default;
+            }
             _log.Subscribe(this);
         }
 
         private bool _canTerminate = false;
         private bool _inProgress = false;
         private string _progressDescription = string.Empty;
+        internal bool AuthenticationCancelled => _log?.AuthenticationCancelled == true;
         private CommandLog _log = null;
     }
 }

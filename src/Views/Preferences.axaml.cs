@@ -177,11 +177,17 @@ namespace SourceGit.Views
             };
         }
 
+        private bool _integrationOnly;
+
         public void SelectPage(string page)
         {
-            PreferenceTabs.SelectedIndex = page switch
+            _integrationOnly = page == "integration";
+            IntegrationSettings.IsVisible = _integrationOnly;
+            PreferenceTabs.IsVisible = !_integrationOnly;
+            App.BindText(this, TitleProperty, _integrationOnly ? "Preferences.Integration" : "Preferences");
+            if (!_integrationOnly) PreferenceTabs.SelectedIndex = page switch
             {
-                "general" => 0, "appearance" => 1, "git" => 2, "signing" => 3, "integration" => 4,
+                "general" => 0, "appearance" => 1, "git" => 2, "signing" => 3,
                 _ => throw new ArgumentException("Unknown preferences page."),
             };
         }
@@ -273,13 +279,13 @@ namespace SourceGit.Views
         public async Task<bool> SaveChangesAsync()
         {
             if (_saving) return false;
-            _saving = true; PreferenceTabs.IsEnabled = false;
+            _saving = true; SettingsBody.IsEnabled = false;
             SavePreferencesButton.IsEnabled = CancelPreferencesButton.IsEnabled = false;
             PreferencesSaveError.IsVisible = false;
             try
             {
                 var changes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                foreach (var (key, value) in GetGitValues())
+                foreach (var (key, value) in (_integrationOnly ? new Dictionary<string, string>() : GetGitValues()))
                 {
                     _initialGitValues.TryGetValue(key, out var old);
                     if (old != value) changes[key] = value;
@@ -308,7 +314,7 @@ namespace SourceGit.Views
             }
             finally
             {
-                _saving = false; PreferenceTabs.IsEnabled = true;
+                _saving = false; SettingsBody.IsEnabled = true;
                 SavePreferencesButton.IsEnabled = CancelPreferencesButton.IsEnabled = true;
             }
             return _accepted;

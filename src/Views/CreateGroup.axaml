@@ -6,7 +6,7 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="SourceGit.Views.CreateGroup"
              x:DataType="vm:CreateGroup">
-  <StackPanel Orientation="Vertical" Margin="8,0,0,0">
+  <StackPanel Orientation="Vertical" Margin="8,0">
     <StackPanel Orientation="Horizontal" Classes="popup_heading">
       <Path Width="16" Height="16"
             Data="{StaticResource Icons.Folder.Add}"/>
@@ -17,8 +17,8 @@
                  Text="{DynamicResource Text.Welcome.AddRootFolder}"/>
     </StackPanel>
 
-    <Grid Margin="8,16,0,0" Height="28" ColumnDefinitions="Auto,*">
-      <TextBlock Grid.Column="0" HorizontalAlignment="Right" Margin="8,0" Text="{DynamicResource Text.Name}"/>
+    <Grid Margin="0,16,0,0" Height="28" ColumnDefinitions="Auto,*">
+      <TextBlock Grid.Column="0" HorizontalAlignment="Right" Margin="0,0,8,0" Text="{DynamicResource Text.Name}"/>
       <TextBox Grid.Column="1" CornerRadius="3" Text="{Binding Name, Mode=TwoWay}"/>
     </Grid>
   </StackPanel>

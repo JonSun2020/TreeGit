@@ -23,6 +23,8 @@ namespace SourceGit.Commands
         {
             var submodules = new List<string>();
             var rs = await ReadToEndAsync().ConfigureAwait(false);
+            Succeeded = rs.IsSuccess;
+            if (!Succeeded) return submodules;
 
             var lines = rs.StdOut.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
             foreach (var line in lines)
@@ -42,6 +44,7 @@ namespace SourceGit.Commands
             return submodules;
         }
 
+        public bool Succeeded { get; private set; }
         private bool _includeUninited = false;
     }
 }

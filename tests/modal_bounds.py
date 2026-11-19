@@ -9,6 +9,7 @@ import sys
 import tempfile
 import threading
 import time
+from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 
 exe=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
 root=Path(tempfile.mkdtemp(prefix='TreeGit nested dialog audit '));repo=root/'repo';repo.mkdir();fixture=root/'fixture.json'
@@ -16,7 +17,23 @@ env=os.environ.copy();env.update(GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'),
 def git(*args):
     r=subprocess.run(['git','-C',str(repo),*args],env=env,capture_output=True,text=True,encoding='utf-8');assert r.returncode==0,r.stderr
 git('init','-b','main');git('config','user.name','Modal QA');git('config','user.email','modal@example.invalid')
-git('remote','add','origin','https://example.invalid/owned-audit.git')
+redirect_only='--redirect-only' in sys.argv[3:]
+input_only='--input-errors-only' in sys.argv[3:]
+server=None
+if redirect_only:
+    class Redirect(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.headers.get('Authorization'):self.server.credentials_sent=True
+            if '.git/info/refs' in self.path:
+                self.send_response(401);self.send_header('WWW-Authenticate','Basic realm="Owned TreeGit audit"')
+            else:
+                self.send_response(301);self.send_header('Location',self.path.replace('/info/refs','.git/info/refs'))
+            self.send_header('Content-Length','0');self.end_headers()
+        def log_message(self,*args):pass
+    server=ThreadingHTTPServer(('127.0.0.1',0),Redirect);server.credentials_sent=False
+    threading.Thread(target=server.serve_forever,daemon=True).start()
+    git('remote','add','origin','http://127.0.0.1:'+str(server.server_port)+'/owned-audit')
+else:git('remote','add','origin','https://example.invalid/owned-audit.git')
 p=subprocess.Popen([str(exe),'--mcp'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',env=env,creationflags=subprocess.CREATE_NO_WINDOW)
 messages=queue.Queue();threading.Thread(target=lambda:[messages.put(line) for line in p.stdout],daemon=True).start();seq=0;pid=None;records=[];failures=[]
 def rpc(method,params=None):
@@ -32,9 +49,9 @@ def check(name,condition):
     if not condition:failures.append(name)
 try:
     rpc('initialize',{'protocolVersion':'2025-11-25'});tool('ui_open_repository',{'repo':str(repo)});pid=tool('ui_state')['processId']
-    for zoom in [1,1.5,2]:
-        tool('ui_window',{'width':1280,'height':800,'zoom':zoom,'theme':'Blue'})
-        for dialog in ['remote','template','credentials']:
+    for locale,zoom,theme in ([] if input_only or redirect_only or '--dropdown-only' in sys.argv[3:] else [(language,scale,theme) for language in ['zh_CN','zh_TW','en_US'] for scale in [1,1.5,2,2.5] for theme in ['Light','Dark','Blue']]):
+        tool('ui_window',{'width':1280,'height':800,'zoom':zoom,'theme':theme,'locale':locale})
+        for dialog in ['remote','credentials']:
             result_file=Path(str(fixture)+'.result');result_file.unlink(missing_ok=True)
             fixture.write_text(json.dumps({'action':'cancel','operation':'dialog_'+dialog}),encoding='utf-8')
             tool('ui_command',{'repo':str(repo),'command':'repository_settings'})
@@ -43,15 +60,27 @@ try:
             assert result_file.exists(),'Dialog probe timed out'
             result=json.loads(result_file.read_text(encoding='utf-8'));assert 'exception' not in result,result
             details=result['operationDetails'];bounds=details['bounds'] if dialog=='credentials' else details
-            records.append({'dialog':dialog,'zoom':zoom,'result':details})
-            shutil.copy2(str(fixture)+'.dialog.png',out/f'{dialog}-{zoom}.png')
+            records.append({'dialog':dialog,'locale':locale,'zoom':zoom,'theme':theme,'result':details})
+            header=bounds['header']
+            check(f'{dialog} {locale} {theme} {zoom} has a centered matching header and close action',header['title']==header['windowTitle'] and abs(header['height']-28)<.1 and header['centered'] and header['closeVisible'] and header['closeEnabled'])
+            shutil.copy2(str(fixture)+'.dialog.png',out/f'{dialog}-{locale}-{zoom}-{theme}.png')
             check(f'{dialog} {zoom} stays on screen',bounds['withinScreen'])
             check(f'{dialog} {zoom} keeps all footer actions visible',len(bounds['buttons'])>=2 and all(b['visible'] for b in bounds['buttons']))
+            standard=[b for b in bounds['buttons'] if b['standard']]
+            check(f'{dialog} {locale} {theme} {zoom} uses matching centered footer dimensions',len(standard)>=2 and all(abs(b['width']-120)<.1 and abs(b['height']-28)<.1 and b['centered'] for b in standard))
+            primary=[b for b in standard if b['primary']]
+            background,foreground={'Light':('#ffa7dfcb','#ff333333'),'Dark':('#ff16836d','#ffdfdfdf'),'Blue':('#ffb6d9fa','#ff333333')}[theme]
+            check(f'{dialog} {locale} {theme} {zoom} confirmation follows the theme',len(primary)==1 and primary[0]['background'].lower()==background and primary[0]['foreground'].lower()==foreground)
             if dialog=='credentials':
                 check(f'credentials {zoom} belongs to TreeGit without global topmost',not bounds['topmost'] and bounds['hasOwner'])
                 check(f'credentials {zoom} invalid input preserves the authentication mode',details['invalidInputPreservedConfig'])
-    tool('ui_window',{'zoom':1})
-    for scenario in ['unchanged','empty_password','explicit_clear','oversized','config_locked','commit_failure']:
+    tool('ui_window',{'zoom':1,'locale':'zh_CN'})
+    scenarios=['redirect_unchanged','redirect_clear_button','redirect_clear_text','redirect_clear_cancel','redirect_empty_password'] if redirect_only else ['unchanged','empty_password','explicit_clear','clear_button','clear_text','clear_cancel','oversized','config_locked','commit_failure']
+    cases=[] if '--dropdown-only' in sys.argv[3:] else [('oversized',locale) for locale in ['zh_CN','zh_TW','en_US']] if input_only else [(scenario,'zh_CN') for scenario in scenarios]
+    for scenario,locale in cases:
+        tool('ui_window',{'locale':locale})
+        if not redirect_only and scenario in ['clear_button','clear_text','clear_cancel']:
+            git('remote','set-url','origin','https://embedded-user:embedded-secret@example.invalid/owned-audit.git')
         result_file=Path(str(fixture)+'.result');result_file.unlink(missing_ok=True)
         fixture.write_text(json.dumps({'action':'cancel','operation':'credential_save','case':scenario}),encoding='utf-8')
         tool('ui_command',{'repo':str(repo),'command':'repository_settings'})
@@ -59,13 +88,39 @@ try:
         while not result_file.exists() and time.monotonic()<deadline:time.sleep(.05)
         assert result_file.exists(),'Credential probe timed out'
         result=json.loads(result_file.read_text(encoding='utf-8'));assert 'exception' not in result,result
-        details=result['operationDetails'];records.append({'scenario':scenario,'result':details})
+        details=result['operationDetails'];records.append({'scenario':scenario,'locale':locale,'result':details})
+        scenario=scenario.replace('redirect_','')
+        check(scenario+' displays the saved account',details['storedAccountShown'])
+        check(scenario+' keeps input errors localized and visible',details['localizedInputError'])
+        check(scenario+' closes only after confirm succeeds or cancel',details['automaticallyClosed']==(scenario not in ['oversized','config_locked','commit_failure']))
         if scenario=='unchanged':check('confirming an existing account preserves its unedited password',details['success'] and details['originalCredentialPreserved'] and not details['systemMode'])
         elif scenario=='empty_password':check('a different account can explicitly use an empty password',details['success'] and details['emptyPasswordSaved'] and details['newUsernameSaved'] and not details['systemMode'])
         elif scenario=='explicit_clear':check('typing and clearing a password saves an intentional empty password',details['success'] and details['emptyPasswordSaved'] and not details['systemMode'])
+        elif scenario in ['clear_button','clear_text']:check(scenario+' can save empty credentials and disable system fallback',details['cleared'] and not details['systemMode'])
+        elif scenario=='clear_cancel':check('cancelling a clear preserves the saved account and mode',details['originalCredentialPreserved'] and details['configurationUnchanged'] and details['systemMode'])
         else:check(scenario+' leaves both original credentials and authentication mode unchanged',not details['success'] and details['configurationUnchanged'] and details['originalCredentialPreserved'] and details['systemMode'])
+        if not redirect_only and scenario in ['clear_button','clear_text','clear_cancel']:
+            url=subprocess.run(['git','-C',str(repo),'remote','get-url','origin'],env=env,capture_output=True,text=True,check=True).stdout
+            check(scenario+' handles credentials embedded in the remote URL',('embedded-secret' in url)==(scenario=='clear_cancel'))
+            git('remote','set-url','origin','https://example.invalid/owned-audit.git')
+    if server:check('redirect address resolution never sends saved credentials',not server.credentials_sent)
+    for locale in ([] if input_only or redirect_only else ['zh_CN','zh_TW','en_US']):
+        for theme in ['Light','Dark','Blue']:
+            tool('ui_window',{'zoom':1.5,'locale':locale,'theme':theme})
+            result_file=Path(str(fixture)+'.result');result_file.unlink(missing_ok=True)
+            fixture.write_text(json.dumps({'action':'cancel','operation':'settings_dropdown_scroll'}),'utf-8')
+            tool('ui_command',{'repo':str(repo),'command':'repository_settings'})
+            deadline=time.monotonic()+30
+            while not result_file.exists() and time.monotonic()<deadline:time.sleep(.05)
+            assert result_file.exists(),'Settings dropdown probe timed out'
+            result=json.loads(result_file.read_text('utf-8'));assert 'exception' not in result,result
+            records.append({'locale':locale,'theme':theme,'dropdowns':result['operationDetails']})
+            for dropdown in result['operationDetails']:
+                check(locale+' '+theme+' '+dropdown['dropdown']+' keeps scroll offset and popup anchor',dropdown['stable'])
+                if not dropdown['stable']:print(json.dumps(dropdown),flush=True)
     assert not failures,failures
 finally:
+    if server:server.shutdown();server.server_close()
     (out/'modal-bounds-results.json').write_text(json.dumps({'records':records,'failures':failures,'exe':str(exe)},ensure_ascii=False,indent=2),encoding='utf-8')
     p.stdin.close()
     try:p.wait(timeout=10)

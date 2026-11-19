@@ -24,7 +24,7 @@
     <ProgressBar x:Name="ProgressBar"
                  Margin="0,8,0,0"
                  HorizontalAlignment="Stretch"
-                 Background="{DynamicResource Brush.FG2}" Foreground="{DynamicResource Brush.Accent}"
+                 Background="{DynamicResource Brush.FG2}" Foreground="{DynamicResource Brush.TreeGit.WelcomeToolbarIcon}"
                  Minimum="0" Maximum="100"/>
   </StackPanel>
 </UserControl>

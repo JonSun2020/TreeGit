@@ -170,6 +170,8 @@ namespace SourceGit.ViewModels
             return !string.IsNullOrEmpty(_selectedRemoteBranch?.Head);
         }
 
+        public override Task<bool> VerifyCredentialsAsync() => VerifyRemoteAsync(_repo.FullPath, _selectedRemote, push: true);
+
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();

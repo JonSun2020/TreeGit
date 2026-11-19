@@ -8,6 +8,7 @@ def git(*args):
     r=subprocess.run(['git','-C',str(repo),*args],env=env,capture_output=True,text=True,encoding='utf-8');assert r.returncode==0,r.stderr;return r.stdout.strip()
 git('init','-b','main',*(['--ref-format=reftable'] if '--reftable' in sys.argv[3:] else []));git('config','user.name','Advanced QA 中文');git('config','user.email','advanced@example.invalid')
 (repo/'a[1].txt').write_text('first\nsecond\n');(repo/'a1.txt').write_text('other\n');steps=[]
+(repo/'说明.txt').write_bytes('第一行\n'.encode()+'使用传感器\n'.encode('gbk'))
 for i in range(8):
     (repo/'version.txt').write_text(str(i)+'\n')
     if i==3:(repo/'a[1].txt').write_text('first\nselected second\n')
@@ -53,13 +54,19 @@ try:
     check('archive retries leave no owned temporary output files',not list(root.glob('.treegit-archive-*')))
     blame=probe('blame',paths=['a[1].txt'])['operationDetails']
     check('native blame follows only the literal selected filename',not blame['binary'] and blame['content']=='first\nselected second' and len(blame['lines'])==2 and steps[0].startswith(blame['lines'][0]) and steps[3].startswith(blame['lines'][1]))
+    mixed=probe('blame',paths=['说明.txt'])['operationDetails']
+    check('blame keeps UTF-8 author and filename intact on GB source lines',mixed['content']=='第一行\n使用传感器' and mixed['authors']==['Advanced QA 中文']*2 and mixed['paths']==['说明.txt']*2)
     (repo/'a[1].txt').write_text('patched first\nselected second\n');patch=root/"patch O'Brien 中文.patch"
     patch.write_text(git('--literal-pathspecs','diff','--','a[1].txt')+'\n',encoding='utf-8');git('--literal-pathspecs','restore','--worktree','--','a[1].txt')
     applied=probe('patch',file=str(patch))
     check('native patch application modifies the selected file only',applied['operationResult'] and (repo/'a[1].txt').read_text()=='patched first\nselected second\n' and (repo/'a1.txt').read_text()=='unselected history\n')
-    before=git('diff');failed=probe('patch',file=str(patch))
-    check('rejected patch application reports failure and preserves the working tree',not failed['operationResult'] and git('diff')==before)
-    git('--literal-pathspecs','restore','--worktree','--','a[1].txt');result=probe('bisect',arguments='start '+steps[-1]+' '+steps[0])
+    # --3way updates the index and can accept an already-applied patch as a
+    # successful no-op. Use an actually inapplicable hunk for rejection instead.
+    rejected=root/'rejected.patch'
+    rejected.write_text('diff --git a/a[1].txt b/a[1].txt\n--- a/a[1].txt\n+++ b/a[1].txt\n@@ -1,2 +1,2 @@\n-missing original line\n+replacement\n selected second\n',encoding='utf-8')
+    before=(git('diff'),git('diff','--cached'),(repo/'a[1].txt').read_bytes());failed=probe('patch',file=str(rejected))
+    check('rejected patch application reports failure and preserves the index and working tree',not failed['operationResult'] and (git('diff'),git('diff','--cached'),(repo/'a[1].txt').read_bytes())==before)
+    git('--literal-pathspecs','restore','--staged','--worktree','--','a[1].txt');result=probe('bisect',arguments='start '+steps[-1]+' '+steps[0])
     check('native bisect enters an actual detached search state',(repo/'.git/BISECT_START').exists() and not result['operationDetails']['busy'] and result['operationDetails']['state']=='WaitingForMark')
     for _ in range(10):
         version=int((repo/'version.txt').read_text());result=probe('bisect',arguments='bad' if version>=5 else 'good')

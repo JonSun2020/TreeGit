@@ -47,7 +47,7 @@ namespace SourceGit.Models
                     new ExternalMerger("beyond_compare", "Beyond Compare", "BComp.exe", "\"$REMOTE\" \"$LOCAL\" \"$BASE\" \"$MERGED\"", "\"$LOCAL\" \"$REMOTE\""),
                     new ExternalMerger("win_merge", "WinMerge", "WinMergeU.exe", "-u -sw \"$MERGED\"", "-u -e -sw \"$LOCAL\" \"$REMOTE\""),
                     new ExternalMerger("codium", "VSCodium", "VSCodium.exe", "-n --wait --merge \"$REMOTE\" \"$LOCAL\" \"$BASE\" \"$MERGED\"", "-n --wait --diff \"$LOCAL\" \"$REMOTE\""),
-                    new ExternalMerger("p4merge", "P4Merge", "p4merge.exe", "-tw 4 \"$BASE\" \"$LOCAL\" \"$REMOTE\" \"$MERGED\"", "-tw 4 \"$LOCAL\" \"$REMOTE\""),
+                    new ExternalMerger("p4merge", "P4Merge", "p4merge.exe", "-tw 4 \"$BASE\" \"$REMOTE\" \"$LOCAL\" \"$MERGED\"", "-tw 4 \"$LOCAL\" \"$REMOTE\""),
                     new ExternalMerger("plastic_merge", "Plastic SCM", "mergetool.exe", "-s=\"$REMOTE\" -b=\"$BASE\" -d=\"$LOCAL\" -r=\"$MERGED\" --automatic", "-s=\"$LOCAL\" -d=\"$REMOTE\""),
                     new ExternalMerger("meld", "Meld", "Meld.exe", "\"$LOCAL\" \"$BASE\" \"$REMOTE\" --output \"$MERGED\"", "\"$LOCAL\" \"$REMOTE\""),
                     new ExternalMerger("cursor", "Cursor", "Cursor.exe", "-n --wait --merge \"$REMOTE\" \"$LOCAL\" \"$BASE\" \"$MERGED\"", "-n --wait --diff \"$LOCAL\" \"$REMOTE\""),
@@ -63,7 +63,7 @@ namespace SourceGit.Models
                     new ExternalMerger("kdiff3", "KDiff3", "/Applications/kdiff3.app/Contents/MacOS/kdiff3", "\"$REMOTE\" -b \"$BASE\" \"$LOCAL\" -o \"$MERGED\"", "\"$LOCAL\" \"$REMOTE\""),
                     new ExternalMerger("beyond_compare", "Beyond Compare", "/Applications/Beyond Compare.app/Contents/MacOS/bcomp", "\"$REMOTE\" \"$LOCAL\" \"$BASE\" \"$MERGED\"", "\"$LOCAL\" \"$REMOTE\""),
                     new ExternalMerger("codium", "VSCodium", "/Applications/VSCodium.app/Contents/Resources/app/bin/codium", "-n --wait --merge \"$REMOTE\" \"$LOCAL\" \"$BASE\" \"$MERGED\"", "-n --wait --diff \"$LOCAL\" \"$REMOTE\""),
-                    new ExternalMerger("p4merge", "P4Merge", "/Applications/p4merge.app/Contents/Resources/launchp4merge", "-tw 4 \"$BASE\" \"$LOCAL\" \"$REMOTE\" \"$MERGED\"", "-tw 4 \"$LOCAL\" \"$REMOTE\""),
+                    new ExternalMerger("p4merge", "P4Merge", "/Applications/p4merge.app/Contents/Resources/launchp4merge", "-tw 4 \"$BASE\" \"$REMOTE\" \"$LOCAL\" \"$MERGED\"", "-tw 4 \"$LOCAL\" \"$REMOTE\""),
                     new ExternalMerger("cursor", "Cursor", "/Applications/Cursor.app/Contents/Resources/app/bin/cursor", "-n --wait --merge \"$REMOTE\" \"$LOCAL\" \"$BASE\" \"$MERGED\"", "-n --wait --diff \"$LOCAL\" \"$REMOTE\""),
                 };
             }
@@ -77,7 +77,7 @@ namespace SourceGit.Models
                     new ExternalMerger("beyond_compare", "Beyond Compare", "/usr/bin/bcomp", "\"$REMOTE\" \"$LOCAL\" \"$BASE\" \"$MERGED\"", "\"$LOCAL\" \"$REMOTE\""),
                     new ExternalMerger("meld", "Meld", "/usr/bin/meld", "\"$LOCAL\" \"$BASE\" \"$REMOTE\" --output \"$MERGED\"", "\"$LOCAL\" \"$REMOTE\""),
                     new ExternalMerger("codium", "VSCodium", "/usr/share/codium/bin/codium", "-n --wait --merge \"$REMOTE\" \"$LOCAL\" \"$BASE\" \"$MERGED\"", "-n --wait --diff \"$LOCAL\" \"$REMOTE\""),
-                    new ExternalMerger("p4merge", "P4Merge", "/usr/local/bin/p4merge", "-tw 4 \"$BASE\" \"$LOCAL\" \"$REMOTE\" \"$MERGED\"", "-tw 4 \"$LOCAL\" \"$REMOTE\""),
+                    new ExternalMerger("p4merge", "P4Merge", "/usr/local/bin/p4merge", "-tw 4 \"$BASE\" \"$REMOTE\" \"$LOCAL\" \"$MERGED\"", "-tw 4 \"$LOCAL\" \"$REMOTE\""),
                     new ExternalMerger("cursor", "Cursor", "cursor", "-n --wait --merge \"$REMOTE\" \"$LOCAL\" \"$BASE\" \"$MERGED\"", "-n --wait --diff \"$LOCAL\" \"$REMOTE\""),
                 };
             }

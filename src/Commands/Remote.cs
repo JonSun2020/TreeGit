@@ -5,6 +5,8 @@ namespace SourceGit.Commands
 {
     public class Remote : Command
     {
+        protected override bool SupportsAuthenticationRetry => Args.StartsWith("remote prune ", System.StringComparison.Ordinal);
+        protected override bool RequiresAuthenticationTransportExitCode => true;
         public Remote(string repo)
         {
             WorkingDirectory = repo;

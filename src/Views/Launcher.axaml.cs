@@ -89,9 +89,6 @@ namespace SourceGit.Views
         private void OnTreeGitWorkingCopy(object sender, RoutedEventArgs e) { if (TreeGitRepository is { IsBare: false } repo) repo.SelectedViewIndex = 1; }
         private void OnTreeGitHistory(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) repo.ShowHistoryPage(); }
         private void OnTreeGitSearch(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) { repo.SelectedViewIndex = 0; repo.Histories.IsSearchingCommits = true; } }
-        private async void OnTreeGitRepositorySettings(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) await OpenRepositorySettingsAsync(repo); }
-        private void OnTreeGitExplorer(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) Native.OS.OpenInFileManager(repo.FullPath); }
-        private void OnTreeGitTerminal(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) Native.OS.OpenTerminal(repo.FullPath); }
         private async void OnTreeGitFetch(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) await repo.FetchAsync(false); }
         private async void OnTreeGitPull(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) await repo.PullAsync(false); }
         private async void OnTreeGitPush(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) await repo.PushAsync(false); }

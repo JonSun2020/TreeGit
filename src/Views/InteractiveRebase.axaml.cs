@@ -441,10 +441,9 @@ namespace SourceGit.Views
                 return;
 
             Running.IsVisible = true;
-            Running.IsIndeterminate = true;
-            await vm.Start();
-            Running.IsIndeterminate = false;
-            Running.IsVisible = false;
+            Running.IsRunning = true;
+            try { await vm.Start(); }
+            finally { Running.IsRunning = false; Running.IsVisible = false; }
             Close();
         }
 

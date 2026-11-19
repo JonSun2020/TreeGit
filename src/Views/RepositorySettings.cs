@@ -10,6 +10,8 @@ using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 
 namespace SourceGit.Views
 {
@@ -70,8 +72,8 @@ namespace SourceGit.Views
             CloseOnESC = true;
             WindowStartupLocation = WindowStartupLocation.Manual;
             var root = new Grid { Margin = new Thickness(8), RowDefinitions = new RowDefinitions("Auto,Auto,*,Auto,Auto") };
-            var title = new Border { Background = new SolidColorBrush(Color.Parse("#9D9D9D")), CornerRadius = new CornerRadius(2), Margin = new Thickness(0, 0, 0, 8), Height = 24, Child = new TextBlock { [!TextBlock.TextProperty] = new Avalonia.Data.Binding("Title") { Source = this }, Foreground = Brushes.White, FontWeight = FontWeight.Bold, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center } };
-            title.PointerPressed += BeginMoveWindow;
+            var title = DialogHeader.Create(this);
+            title.Margin = new Thickness(-8, -8, -8, 8);
             root.Children.Add(title);
             var tabs = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, -1), ZIndex = 1 };
             var remoteTab = Tab("TreeGit.Settings.Remotes", "Icons.Remotes");
@@ -93,11 +95,15 @@ namespace SourceGit.Views
             _remotes.SelectionChanged += (_, _) => edit.IsEnabled = remove.IsEnabled = _remotes.SelectedItem != null;
             _remotes.DoubleTapped += async (_, _) => { if (_remotes.SelectedItem is Models.Remote r) await EditRemoteAsync(r); };
             remoteActions.Children.Add(add); remoteActions.Children.Add(edit); remoteActions.Children.Add(remove); remotePage.Children.Add(remoteActions);
+            var credentials = Action("TreeGit.Credentials.Action", async () =>
+                await new RepositoryCredentials(repo, (_remotes.SelectedItem as Models.Remote)?.Name).ShowDialog(this));
+            credentials.Name = "RepositorySettingsCredentials";
+            remoteActions.Children.Add(credentials);
 
-            var advancedPage = new StackPanel { Spacing = 6 };
+            var advancedPage = new StackPanel { Name = "AdvancedRepositorySettings", Spacing = 6, Margin = new Thickness(0, 0, 18, 0) };
             var ignored = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
             var ignorePath = Path.Combine(repo.FullPath, ".gitignore");
-            ignored.Children.Add(new TextBlock { Text = ignorePath, TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center });
+            ignored.Children.Add(new TextBlock { Name = "RepositoryIgnorePath", Text = ignorePath.Replace('\\', '/'), TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center });
             var ignoreEdit = Action("TreeGit.Edit", () => { if (!File.Exists(ignorePath)) File.WriteAllText(ignorePath, ""); Native.OS.OpenWithDefaultEditor(ignorePath); return Task.CompletedTask; });
             Grid.SetColumn(ignoreEdit, 1); ignored.Children.Add(ignoreEdit); advancedPage.Children.Add(Group("TreeGit.Settings.Ignore", ignored));
             var identity = new StackPanel { Spacing = 4 };
@@ -151,25 +157,24 @@ namespace SourceGit.Views
             submodules.Children.Add(Option("AskSubmodules", "TreeGit.Settings.ConfirmSubmodule", _configuration.AskBeforeAutoUpdatingSubmodules, value => _configuration.AskBeforeAutoUpdatingSubmodules = value));
             submodules.Children.Add(Option("RecursiveSubmodules", "TreeGit.Settings.RecursiveSubmodule", _configuration.EnableRecursiveWhenAutoUpdatingSubmodules, value => _configuration.EnableRecursiveWhenAutoUpdatingSubmodules = value));
             advancedPage.Children.Add(Optional("TreeGit.Settings.SubmoduleUpdate", submodules));
-            var templates = new StackPanel { Spacing = 4 };
-            var templateList = new ListBox { Name = "CommitTemplates", Height = 72, ItemsSource = _configuration.CommitTemplates, DisplayMemberBinding = new Binding("Name"), Background = this.FindResource("Brush.Contents") as IBrush };
-            templates.Children.Add(templateList);
-            async Task EditTemplate(Models.CommitTemplate template)
+            // Preserve existing template data, while removing its orphaned editor:
+            // the current commit page uses branch history rather than this picker.
+            var scroll = new ScrollViewer { Name = "RepositorySettingsScroll", Content = remotePage, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto };
+            // ComboBox focus/selection asks its ancestors to bring it into view.
+            // At the bottom of an expanded section that moves the scroll and
+            // the already opening dropdown to different screen coordinates.
+            void KeepDropdownAnchor(ComboBox dropdown)
             {
-                var editor = new RepositoryForm(template == null ? App.Text("TreeGit.Settings.AddTemplate") : App.Text("TreeGit.Settings.EditTemplate"), [App.Text("TreeGit.Settings.Name"), App.Text("TreeGit.Settings.Content")], [template?.Name ?? "", template?.Content ?? ""], 1);
-                if (!await editor.ShowDialog<bool>(this) || string.IsNullOrWhiteSpace(editor.Values[0])) return;
-                if (template == null) _configuration.CommitTemplates.Add(new Models.CommitTemplate { Name = editor.Values[0], Content = editor.Values[1] });
-                else { template.Name = editor.Values[0]; template.Content = editor.Values[1]; }
+                var keyboardFocus = false;
+                dropdown.GotFocus += (_, args) => keyboardFocus = args.NavigationMethod is Avalonia.Input.NavigationMethod.Tab or Avalonia.Input.NavigationMethod.Directional;
+                // This event bubbles only. Handle it at the dropdown before the
+                // enclosing ScrollContentPresenter has already moved the view.
+                dropdown.AddHandler(Control.RequestBringIntoViewEvent, (_, args) =>
+                {
+                    if (dropdown.IsDropDownOpen || !keyboardFocus) args.Handled = true;
+                }, RoutingStrategies.Bubble);
             }
-            var templateActions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
-            templateActions.Children.Add(Action("TreeGit.Add", () => EditTemplate(null)));
-            var editTemplate = Action("TreeGit.Edit", () => templateList.SelectedItem is Models.CommitTemplate t ? EditTemplate(t) : Task.CompletedTask);
-            var removeTemplate = Action("TreeGit.Delete", () => { if (templateList.SelectedItem is Models.CommitTemplate t) _configuration.CommitTemplates.Remove(t); return Task.CompletedTask; });
-            editTemplate.IsEnabled = removeTemplate.IsEnabled = false;
-            templateList.SelectionChanged += (_, _) => editTemplate.IsEnabled = removeTemplate.IsEnabled = templateList.SelectedItem != null;
-            templateActions.Children.Add(editTemplate); templateActions.Children.Add(removeTemplate); templates.Children.Add(templateActions);
-            advancedPage.Children.Add(Optional("TreeGit.Settings.Templates", templates));
-            var scroll = new ScrollViewer { Content = remotePage, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto };
+            KeepDropdownAnchor(_defaultRemote); KeepDropdownAnchor(merge);
             border.Child = scroll; Grid.SetRow(border, 2); root.Children.Add(border);
             void Select(bool advanced)
             {
@@ -185,9 +190,20 @@ namespace SourceGit.Views
             _error = new TextBlock { Name = "RepositorySettingsError", Foreground = Brushes.IndianRed, TextWrapping = TextWrapping.Wrap, IsVisible = false };
             Grid.SetRow(_error, 3); root.Children.Add(_error);
             var footer = new Grid { Margin = new Thickness(0, 8, 0, 0), ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto") };
-            footer.Children.Add(Action("TreeGit.Settings.EditConfig", () => { Native.OS.OpenWithDefaultEditor(Path.Combine(repo.GitDir, "config")); return Task.CompletedTask; }));
+            footer.Children.Add(Action("TreeGit.Settings.EditConfig", async () =>
+            {
+                var directory = await new Commands.QueryGitCommonDir(repo.FullPath).GetResultAsync();
+                if (string.IsNullOrEmpty(directory))
+                {
+                    App.BindText(_error, TextBlock.TextProperty, "TreeGit.Config.ReadFailed");
+                    _error.IsVisible = true;
+                    return;
+                }
+                Native.OS.OpenWithDefaultEditor(Path.Combine(directory, "config"));
+            }));
             var ok = Action("TreeGit.Ok", SaveAsync); ok.Name = "ConfirmRepositorySettings"; Grid.SetColumn(ok, 2); footer.Children.Add(ok);
             var cancel = new Button { [!Avalonia.Controls.ContentControl.ContentProperty] = App.TextBinding("TreeGit.Cancel"), Classes = { "flat" }, MinWidth = 74, Margin = new Thickness(6, 0, 0, 0) }; cancel.Click += (_, _) => Close(); Grid.SetColumn(cancel, 3); footer.Children.Add(cancel);
+            title.Children.OfType<CaptionButtons>().Single().Bind(Control.IsEnabledProperty, cancel.GetObservable(Control.IsEnabledProperty));
             Grid.SetRow(footer, 4); root.Children.Add(footer); Content = root;
             if (!_configuration.ReadSucceeded)
             {
@@ -339,7 +355,7 @@ namespace SourceGit.Views
 
         private static Control Optional(string title, Control content) => new Expander
         {
-            [!Expander.HeaderProperty] = App.TextBinding(title), IsExpanded = false, HorizontalAlignment = HorizontalAlignment.Stretch,
+            Name = title.Replace(".", string.Empty), [!Expander.HeaderProperty] = App.TextBinding(title), IsExpanded = false, HorizontalAlignment = HorizontalAlignment.Stretch,
             Content = new Border { Padding = new Thickness(6), Child = content },
         };
 
@@ -349,7 +365,7 @@ namespace SourceGit.Views
         private static Control Field(string label, Control editor)
         {
             var row = new Grid { ColumnDefinitions = new ColumnDefinitions("100,*") };
-            row.Children.Add(new TextBlock { [!TextBlock.TextProperty] = App.TextBinding(label), VerticalAlignment = VerticalAlignment.Center });
+            row.Children.Add(new TextBlock { [!TextBlock.TextProperty] = App.TextBinding(label), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 6, 0), VerticalAlignment = VerticalAlignment.Center });
             Grid.SetColumn(editor, 1); row.Children.Add(editor); return row;
         }
     }

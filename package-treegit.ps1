@@ -23,10 +23,20 @@ try {
 $zip=[IO.Compression.ZipFile]::Open($partial,[IO.Compression.ZipArchiveMode]::Create)
 try {
     # Only program files from the build output. Never package preferences, cache or credentials.
-    $programFiles=@('TreeGit.exe','LICENSE','THIRD-PARTY-LICENSES.md','使用说明.md','MCP-使用说明.md','mcp-readonly.json','mcp-readwrite.json','build-info.json')
+    $programFiles=@('TreeGit.exe','LICENSE','THIRD-PARTY-LICENSES.md','使用说明.md','MCP-使用说明.md','build-info.json')
     foreach($file in Get-ChildItem -LiteralPath $Source -File){
         if($file.Name -notin $programFiles -and $file.Extension -ne '.dll'){continue}
         [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip,$file.FullName,('TreeGit/'+$file.Name),[IO.Compression.CompressionLevel]::Optimal) | Out-Null
+    }
+    # Installed MCP files may contain personal commands, paths or secrets.
+    # Package fresh examples without reading or overwriting those files.
+    foreach($readOnly in @($true,$false)){
+        $exampleArgs=if($readOnly){@('--mcp','--read-only')}else{@('--mcp')}
+        $exampleName=if($readOnly){'mcp-readonly.json'}else{'mcp-readwrite.json'}
+        $example=@{mcpServers=@{treegit=@{command='C:\Tools\TreeGit\TreeGit.exe';args=@($exampleArgs)}}}
+        $entry=$zip.CreateEntry(('TreeGit/'+$exampleName),[IO.Compression.CompressionLevel]::Optimal)
+        $writer=[IO.StreamWriter]::new($entry.Open(),[Text.UTF8Encoding]::new($false))
+        try{$writer.WriteLine(($example | ConvertTo-Json -Depth 6))}finally{$writer.Dispose()}
     }
     $zip.CreateEntry('TreeGit/data/') | Out-Null
     $treeGitRuntimeRoot=Join-Path $Source 'git'

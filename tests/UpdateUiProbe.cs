@@ -24,6 +24,7 @@ namespace SourceGit.Tests
         {
             Directory.CreateDirectory(output);
             desktop.MainWindow = new Window { Width = 900, Height = 650, Title = "TreeGit update UI verification" };
+            if (OperatingSystem.IsWindows()) LocalAuditHost.Attach(desktop.MainWindow);
             desktop.MainWindow.Opened += async (_, _) =>
             {
                 var checks = new List<string>();
@@ -38,6 +39,13 @@ namespace SourceGit.Tests
                 async Task Capture(Window window, string name)
                 {
                     await Task.Delay(120);
+                    if (window.DataContext is ViewModels.SelfUpdate current)
+                    {
+                        var actionButton = window.FindControl<Button>("UpdateAction");
+                        var dismissButton = window.FindControl<Button>("UpdateDismiss");
+                        Check(name + " action captions keep their live bindings", Equals(actionButton.Content, current.ActionText) && Equals(dismissButton.Content, current.DismissText));
+                        Check(name + " footer actions keep common sizing", new[] { actionButton, dismissButton, window.FindControl<Button>("BackgroundUpdate") }.All(button => button.MinWidth == 120 && button.Height == 28));
+                    }
                     var scale = window.RenderScaling;
                     using var bitmap = new RenderTargetBitmap(new PixelSize((int)Math.Ceiling(window.Bounds.Width * scale), (int)Math.Ceiling(window.Bounds.Height * scale)), new Vector(96 * scale, 96 * scale));
                     bitmap.Render(window);
@@ -85,7 +93,9 @@ namespace SourceGit.Tests
                     try { await model.ActAsync(); }
                     finally { Automation.GuiBridge.EndUpdate(); }
                     Check("an active operation keeps the app open with useful guidance", model.State == "ready" && model.Message == App.Text("SelfUpdate.Flow.BusyHint"));
-                    var pendingSettings = new Window { Width = 400, Height = 250 }; pendingSettings.Show(window);
+                    var pendingSettings = new Window { Width = 400, Height = 250 };
+                    if (OperatingSystem.IsWindows()) LocalAuditHost.Attach(pendingSettings);
+                    pendingSettings.Show(window);
                     await model.ActAsync();
                     Check("a pending settings window prevents restart without discarding its input", model.State == "ready" && !model.Restarting && pendingSettings.IsVisible);
                     pendingSettings.Close();
@@ -214,7 +224,9 @@ namespace SourceGit.Tests
                     server.Slow = false; await aiDownload; await Until(() => window.IsVisible && model.State == "ready"); window.Close();
 
                     ResetRoot();
-                    var temporaryOwner = new Window { Width = 800, Height = 600 }; temporaryOwner.Show(desktop.MainWindow);
+                    var temporaryOwner = new Window { Width = 800, Height = 600 };
+                    if (OperatingSystem.IsWindows()) LocalAuditHost.Attach(temporaryOwner);
+                    temporaryOwner.Show(desktop.MainWindow);
                     model = NewModel(); window = new Views.SelfUpdate { DataContext = model }; window.Present(temporaryOwner); await model.CheckAsync();
                     var ownerDownload = model.RunInBackgroundAsync(); await Until(() => model.Progress > 0 && !window.IsVisible);
                     temporaryOwner.Close(); await ownerDownload; await Task.Delay(100);

@@ -39,9 +39,10 @@ namespace SourceGit.Commands
         private const int MAX_INLINE_CONTENT_LENGTH = 1024;
         private const int MAX_INLINE_CHUNKS_PER_LINE = 16;
 
-        public Diff(string repo, Models.DiffOption opt, int numContextLines, bool ignoreWhitespace, bool ignoreCRAtEOL)
+        public Diff(string repo, Models.DiffOption opt, int numContextLines, bool ignoreWhitespace, bool ignoreCRAtEOL, int displayCodePage = 0)
         {
             _result.TextDiff = new Models.TextDiff();
+            _displayCodePage = displayCodePage;
 
             WorkingDirectory = repo;
             Context = repo;
@@ -76,7 +77,7 @@ namespace SourceGit.Commands
                     var end = buffer.Offset + buffer.Count;
                     while (start < end)
                     {
-                        var lineEnd = Array.IndexOf(buffer.Array, (byte)'\n', start);
+                        var lineEnd = Array.IndexOf(buffer.Array, (byte)'\n', start, end - start);
                         if (lineEnd < 0)
                         {
                             ParseLine(buffer[start..]);
@@ -150,8 +151,11 @@ namespace SourceGit.Commands
 
         private void ParseLine(ArraySegment<byte> lineBytes)
         {
-            // Decode line bytes to UTF-8 string
-            var line = Encoding.UTF8.GetString(lineBytes.Array, lineBytes.Offset, lineBytes.Count);
+            if (lineBytes.Count == 0) return;
+            var bytes = lineBytes.AsSpan();
+            var line = _isInChunk && bytes[0] is (byte)'+' or (byte)'-' or (byte)' '
+                ? ((char)bytes[0]).ToString() + Models.DisplayEncoding.Decode(bytes[1..], _displayCodePage)
+                : Encoding.UTF8.GetString(bytes);
             if (line.Length == 0)
                 return;
 
@@ -366,6 +370,7 @@ namespace SourceGit.Commands
             }
         }
 
+        private readonly int _displayCodePage;
         private readonly Models.DiffResult _result = new Models.DiffResult();
         private readonly List<Models.TextDiffLine> _deleted = new List<Models.TextDiffLine>();
         private readonly List<Models.TextDiffLine> _added = new List<Models.TextDiffLine>();

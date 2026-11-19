@@ -255,7 +255,7 @@
 
     <!-- Foot -->
     <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top" Spacing="8">
-      <Button x:Name="SaveMergeResult" Classes="flat merge_save" Background="#2C00AA00" Foreground="{DynamicResource Brush.FG1}"
+      <Button x:Name="SaveMergeResult" Classes="flat merge_save dialog_action" Background="#2C00AA00" Foreground="{DynamicResource Brush.FG1}"
               HorizontalAlignment="Center" VerticalAlignment="Top"
               HotKey="{OnPlatform Ctrl+S, macOS=⌘+S}"
               Click="OnSaveAndStage"

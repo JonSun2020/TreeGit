@@ -9,6 +9,8 @@ import ssl
 import sys
 import tempfile
 import threading
+import queue
+import time
 
 exe = Path(sys.argv[1]).resolve()
 artifacts = Path(sys.argv[2]).resolve()
@@ -19,6 +21,7 @@ if not git.exists():
     git = Path(shutil.which('git'))
 root = Path(tempfile.mkdtemp(prefix='SourceGit credential 中文 '))
 prompt_mode = '--prompt' in sys.argv[3:]
+states_mode = '--states' in sys.argv[3:]
 https_mode = '--https' in sys.argv[3:]
 scheme = 'https' if https_mode else 'http'
 fixture = root/'askpass-fixture.json'
@@ -28,6 +31,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         auth = self.headers.get('Authorization','')
         credential = base64.b64decode(auth[6:]).decode() if auth.startswith('Basic ') else ''
+        if credential in ['slow:wait', 'cancel-live:wait']:
+            time.sleep(2)
+        if credential == 'drop:network':
+            self.send_error(500)
+            return
         if credential not in ['alice:alpha-test', 'bob:beta-test', 'charlie:']:
             self.send_response(401)
             self.send_header('WWW-Authenticate','Basic realm="SourceGit test"')
@@ -90,13 +98,15 @@ try:
     if prompt_mode:
         env['SOURCEGIT_TEST_ASKPASS_FIXTURE'] = str(fixture)
     p = subprocess.Popen([str(exe),'--mcp','--allow-write'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', creationflags=subprocess.CREATE_NO_WINDOW, env=env)
+    replies=queue.Queue()
+    threading.Thread(target=lambda:[replies.put(line) for line in p.stdout],daemon=True).start()
     number=0
     def call(method, params):
         global number
         number += 1
         p.stdin.write(json.dumps({'jsonrpc':'2.0','id':number,'method':method,'params':params})+'\n')
         p.stdin.flush()
-        response=json.loads(p.stdout.readline())
+        response=json.loads(replies.get(timeout=50))
         assert 'error' not in response, response
         return response['result']
     call('initialize',{'protocolVersion':'2025-11-25','capabilities':{},'clientInfo':{'name':'credential-test','version':'1'}})
@@ -171,6 +181,7 @@ try:
         events=Path(str(fixture)+'.events').read_text(encoding='utf-8').splitlines()
         assert events.count('combined-dialog') == 12 and events.count('scoped-combined-dialog') == 12,events
         assert events.count('visibility-toggle') == 12,events
+        assert events.count('password-interface-protected') == 12,events
         assert events.count('retry-message') == 6,events
         assert 'username-dialog' not in events and 'password-dialog' not in events,events
         result['automatic_missing_credential_dialog']=events
@@ -181,6 +192,7 @@ try:
         result['empty_password_authenticates_and_is_saved']=True
         result['cancel_does_not_prompt_again_or_store_credentials']=True
         result['eye_toggle_restores_star_masking']=True
+        result['password_value_interface_is_private_and_verification_blocks_edits']=True
         result['two_wrong_credentials_then_success_reprompt_until_correct']=True
         result['native_fetch_two_wrong_credentials_then_success']=True
         import shutil
@@ -189,9 +201,47 @@ try:
         result.update(username_mismatch_ignored=True,different_remote_path_isolated=True)
     result['transport']=scheme
     result['openssl_tls_with_verified_local_certificate']=https_mode
+    if states_mode:
+        assert prompt_mode
+        def state_case(name, attempts, cancelled=False, push_check=False):
+            repo=root/name;repo.mkdir();repos.append(repo)
+            subprocess.run([str(git),'init','-b','main',str(repo)],capture_output=True,check=True)
+            subprocess.run([str(git),'-C',str(repo),'remote','add','origin',url],capture_output=True,check=True)
+            start_events=len(Path(str(fixture)+'.events').read_text('utf-8').splitlines())
+            fixture.write_text(json.dumps({'attempts':attempts}),'utf-8')
+            if push_check:
+                report=root/(name+'-result.json')
+                operation=subprocess.run([str(exe),'--integration-command-pipes',str(repo),'push-auth',str(report)],env=env,capture_output=True,timeout=35)
+                assert operation.returncode==0,operation.stderr
+                data=json.loads(report.read_text('utf-8'));assert data['cancelled']==cancelled,data
+            else:
+                operation=subprocess.run([str(exe),'--integration-auth-fetch',str(repo),url],env=env,capture_output=True,timeout=35)
+                assert (operation.returncode!=0)==cancelled,operation.stderr
+            lines=Path(str(fixture)+'.events').read_text('utf-8').splitlines()[start_events:]
+            states=[line for line in lines if line.startswith('state:')]
+            pids={line.split(':')[1] for line in states if line.endswith(':request-get')}
+            assert len(pids)==1,(name,states)
+            assert not (repo/'.git/refs/heads/main').exists(),name
+            assert not (repo/'.git/index').exists(),name
+            return states
+        blank=state_case('blank-account',[{'username':'','password':''},{'username':'alice','password':'alpha-test'}])
+        assert any(s.endswith(':input-validation') for s in blank) and any(s.endswith(':success') for s in blank),blank
+        timeout=state_case('timeout',[{'username':'slow','password':'wait','timeoutMs':300},{'username':'alice','password':'alpha-test'}])
+        assert any(s.endswith(':TreeGit.Credentials.Timeout') for s in timeout) and any(s.endswith(':success') for s in timeout),timeout
+        connection=state_case('connection',[{'username':'drop','password':'network'},{'username':'alice','password':'alpha-test'}])
+        assert any(s.endswith(':TreeGit.Credentials.ConnectionFailed') for s in connection) and any(s.endswith(':success') for s in connection),connection
+        cancel_live=state_case('cancel-live',[{'username':'cancel-live','password':'wait','cancelWhileVerifying':True}],cancelled=True)
+        assert any(s.endswith(':cancel-verifying') for s in cancel_live) and not any(s.endswith(':success') for s in cancel_live),cancel_live
+        push_cancel=state_case('push-cancel',[{'username':'cancelled','password':'','cancel':True}],cancelled=True,push_check=True)
+        result.update(empty_account_stays_in_same_input_window=True,verification_timeout_recovers_in_same_window=True,
+                      connection_failure_recovers_in_same_window=True,cancel_during_verification_stops_operation=True,
+                      push_auth_cancel_preserves_unborn_head_and_index=True)
+        result['verificationStates']={'blank':blank,'timeout':timeout,'connection':connection,'cancel':cancel_live,'pushCancel':push_cancel}
     (artifacts/('credentials-https-prompt-results.json' if https_mode and prompt_mode else 'credentials-https-results.json' if https_mode else 'credentials-prompt-results.json' if prompt_mode else 'credentials-results.json')).write_text(json.dumps(result,indent=2),encoding='utf-8')
     print('PASS vault roundtrip, repository isolation, username/path isolation, real authenticated fetch for alice/bob, erase',flush=True)
 finally:
+    events_file=Path(str(fixture)+'.events')
+    if events_file.exists(): (artifacts/'authentication-state-events.txt').write_bytes(events_file.read_bytes())
     for repo in repos: helper(repo,'erase')
     server.shutdown()
     if p and p.poll() is None:

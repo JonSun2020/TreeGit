@@ -1547,6 +1547,7 @@ namespace SourceGit.Views
         public TextDiffView()
         {
             InitializeComponent();
+            InitializeWrapAlignment();
         }
 
         protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)

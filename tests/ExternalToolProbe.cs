@@ -19,13 +19,18 @@ namespace SourceGit.Tests
                 Native.OS.GitExecutable = Native.OS.FindGitExecutable();
                 using var document = JsonDocument.Parse(await File.ReadAllTextAsync(plan));
                 var settings = document.RootElement;
-                Native.OS.ExternalMergerType = 1;
+                Native.OS.ExternalMergerType = settings.TryGetProperty("adapter", out var adapter) ? Models.ExternalMerger.Supported.FindIndex(tool => tool.Icon == adapter.GetString()) : 1;
                 Native.OS.ExternalMergerExecFile = settings.GetProperty("executable").GetString();
-                Native.OS.ExternalMergeArgs = settings.GetProperty("arguments").GetString();
-                Native.OS.ExternalDiffArgs = Native.OS.ExternalMergeArgs;
+                var arguments = settings.GetProperty("arguments").GetString();
+                var useSupported = settings.TryGetProperty("useSupportedArguments", out var supported) && supported.GetBoolean();
+                var selected = Models.ExternalMerger.Supported[Native.OS.ExternalMergerType];
+                Native.OS.ExternalMergeArgs = useSupported ? arguments + " " + selected.MergeCmd : arguments;
+                Native.OS.ExternalDiffArgs = useSupported ? arguments + " " + selected.DiffCmd : arguments;
                 var command = new Commands.MergeTool(repository, file);
                 var success = settings.GetProperty("kind").GetString() == "diff"
-                    ? await new Commands.DiffTool(repository, new Models.DiffOption("HEAD~1", "HEAD", new Models.Change { Path = file })).OpenAsync()
+                    ? await new Commands.DiffTool(repository, new Models.DiffOption(
+                        settings.TryGetProperty("from", out var from) ? from.GetString() : "HEAD~1",
+                        settings.TryGetProperty("to", out var to) ? to.GetString() : "HEAD", new Models.Change { Path = file })).OpenAsync()
                     : await command.OpenAsync();
                 await File.WriteAllTextAsync(report, JsonSerializer.Serialize(new
                 {

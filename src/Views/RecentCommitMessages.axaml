@@ -23,7 +23,7 @@
     <ScrollViewer x:Name="MessageScroll" IsVisible="{Binding HasMessages}" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,12,0">
       <ItemsControl ItemsSource="{Binding Messages}">
         <ItemsControl.ItemTemplate><DataTemplate x:DataType="m:RecentCommitMessage">
-          <Button Classes="commit_message_choice" Click="OnMessageChosen"><TextBlock Text="{Binding DisplayMessage}" TextWrapping="Wrap"/></Button>
+          <Button Classes="commit_message_choice" Click="OnMessageChosen"><TextBlock Text="{Binding DisplayMessage}" TextWrapping="Wrap" TextAlignment="Left"/></Button>
         </DataTemplate></ItemsControl.ItemTemplate>
       </ItemsControl>
     </ScrollViewer>

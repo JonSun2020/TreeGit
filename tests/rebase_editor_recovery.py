@@ -17,11 +17,12 @@ import threading
 import time
 import traceback
 
-from qa_cleanup import new_fixture, remove_fixture
+from qa_cleanup import new_fixture, remove_fixture, verify_local_runtime
 from qa_process import close_owned_gui
 
-assert os.environ.get('CI') == 'true' and os.name == 'posix'
+assert os.environ.get('CI') == 'true'
 exe = Path(sys.argv[1]).resolve()
+if os.name == 'nt':verify_local_runtime(exe)
 out = Path(sys.argv[2]).resolve()
 out.mkdir(parents=True, exist_ok=True)
 parent = Path(tempfile.gettempdir()).resolve()
@@ -128,7 +129,7 @@ try:
     remote_index = git('show', 'incoming:' + file).stdout
     process = subprocess.Popen([str(exe), '--mcp'], env=env, stdin=subprocess.PIPE,
                                stdout=subprocess.PIPE, stderr=(out / 'stderr.log').open('w'),
-                               text=True, encoding='utf-8')
+                               text=True, encoding='utf-8', creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
     threading.Thread(target=lambda: [replies.put(line) for line in process.stdout], daemon=True).start()
     rpc('initialize', {'protocolVersion': '2025-11-25'})
     pid = tool('ui_state')['processId']

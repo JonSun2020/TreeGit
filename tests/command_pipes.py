@@ -19,6 +19,8 @@ if '--keygen' in sys.argv[3:]:
     modes=['stream-keygen-'+mode for mode in ['plain','protected','existing','pub-only','private-only','invalid','missing']]
 if '--replays' in sys.argv[3:]:
     modes=['stream-replay-'+mode for mode in ['readonly','ref-config','cancelled']]
+if '--replays-extended' in sys.argv[3:]:
+    modes=['stream-replay-'+mode for mode in ['readonly','ref-config','cancelled','driver','renormalize','promisor','invalid-range']]
 if '--revision-files' in sys.argv[3:]:
     modes=['stream-revision-file-'+mode for mode in ['valid','missing','missing-worktree','closed','close-loading','cancelled','write-failure','snapshot-write-failure','literal']]
 if '--safety' in sys.argv[3:]:

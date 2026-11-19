@@ -3,29 +3,33 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:SourceGit.ViewModels"
+             xmlns:v="using:SourceGit.Views"
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="SourceGit.Views.WelcomeToolbar"
              x:DataType="vm:Welcome">
-  <Grid ColumnDefinitions="Auto,*,Auto" Margin="4,0" Height="60" VerticalAlignment="Center">
+  <Grid ColumnDefinitions="Auto,28,Auto,*" Margin="4,0" Height="60" VerticalAlignment="Center">
     <Grid.Styles>
       <Style Selector="Button.icon_button">
         <Setter Property="Height" Value="54"/>
         <Setter Property="CornerRadius" Value="3"/>
-        <Setter Property="Padding" Value="6,4"/>
+        <Setter Property="Padding" Value="0"/>
         <Setter Property="VerticalAlignment" Value="Center"/>
         <Setter Property="VerticalContentAlignment" Value="Center"/>
         <Setter Property="HorizontalContentAlignment" Value="Center"/>
       </Style>
+      <Style Selector="Button.icon_button /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Opacity" Value="1"/>
+      </Style>
       <Style Selector="Button.icon_button Path">
-        <Setter Property="Fill" Value="{DynamicResource Brush.TreeGit.ToolbarIcon}"/>
+        <Setter Property="Fill" Value="{DynamicResource Brush.TreeGit.WelcomeToolbarIcon}"/>
       </Style>
       <Style Selector="TextBlock.toolbar_label">
-        <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.ToolbarLabel}"/>
+        <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.WelcomeToolbarLabel}"/>
         <Setter Property="FontSize" Value="12"/>
       </Style>
     </Grid.Styles>
     <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-      <Button Classes="icon_button" Width="72" Command="{Binding Clone}">
+      <Button x:Name="WelcomeClone" Classes="icon_button" Width="72" Command="{Binding Clone}">
         <ToolTip.Tip>
           <TextBlock>
             <Run Text="{DynamicResource Text.Welcome.Clone}"/>
@@ -33,13 +37,13 @@
             <Run Text="{OnPlatform Ctrl+R, macOS=⌘+R}" FontSize="11" Foreground="{DynamicResource MenuFlyoutItemKeyboardAcceleratorTextForeground}"/>
           </TextBlock>
         </ToolTip.Tip>
-        <Grid RowDefinitions="24,5,20" Height="49" Margin="0,3,0,0" VerticalAlignment="Center">
-          <Path Grid.Row="0" Width="22" Height="22" Data="{StaticResource Icons.Clone}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        <Grid RowDefinitions="24,4,18" Height="46" Margin="0,3,0,0" VerticalAlignment="Center">
+          <Path Grid.Row="0" Width="22" MaxHeight="22" UseLayoutRounding="False" Data="{StaticResource Icons.Clone}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
           <TextBlock Grid.Row="2" Classes="toolbar_label" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{DynamicResource Text.Toolbar.Clone}"/>
         </Grid>
       </Button>
 
-      <Button Classes="icon_button" Width="72" Command="{Binding OpenLocalRepository}">
+      <Button x:Name="WelcomeOpen" Classes="icon_button" Width="72" Command="{Binding OpenLocalRepository}">
         <ToolTip.Tip>
           <TextBlock>
             <Run Text="{DynamicResource Text.Welcome.OpenOrInit}"/>
@@ -47,38 +51,36 @@
             <Run Text="{OnPlatform Ctrl+L, macOS=⌘+L}" FontSize="11" Foreground="{DynamicResource MenuFlyoutItemKeyboardAcceleratorTextForeground}"/>
           </TextBlock>
         </ToolTip.Tip>
-        <Grid RowDefinitions="24,5,20" Height="49" Margin="0,3,0,0" VerticalAlignment="Center">
-          <Path Grid.Row="0" Width="22" Height="22" Data="{StaticResource Icons.Folder.Open}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+        <Grid RowDefinitions="24,4,18" Height="46" Margin="0,3,0,0" VerticalAlignment="Center">
+          <Path Grid.Row="0" Width="22" MaxHeight="22" UseLayoutRounding="False" Data="{StaticResource Icons.Folder.Open}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
           <TextBlock Grid.Row="2" Classes="toolbar_label" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{DynamicResource Text.Toolbar.Open}"/>
         </Grid>
       </Button>
 
-      <Button Classes="icon_button" Width="72" Command="{Binding OpenTerminal}">
-        <ToolTip.Tip>
-          <TextBlock>
-            <Run Text="{DynamicResource Text.Welcome.OpenTerminal}"/>
-            <Run Text=" "/>
-            <Run Text="{OnPlatform Ctrl+`, macOS=Λ+`}" FontSize="11" Foreground="{DynamicResource MenuFlyoutItemKeyboardAcceleratorTextForeground}"/>
-          </TextBlock>
-        </ToolTip.Tip>
-        <Grid RowDefinitions="24,5,20" Height="49" Margin="0,3,0,0" VerticalAlignment="Center">
-          <Path Grid.Row="0" Width="22" Height="22" Data="{StaticResource Icons.Terminal}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-          <TextBlock Grid.Row="2" Classes="toolbar_label" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{DynamicResource Text.Toolbar.Terminal}"/>
+      <Button x:Name="WelcomeCreate" Classes="icon_button" Width="72" Command="{Binding CreateRepository}" ToolTip.Tip="{DynamicResource Text.TreeGit.CreateRepository.Title}">
+        <Grid RowDefinitions="24,4,18" Height="46" Margin="0,3,0,0" VerticalAlignment="Center">
+          <Path Grid.Row="0" Width="22" MaxHeight="22" UseLayoutRounding="False" Data="{StaticResource Icons.Init}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          <TextBlock Grid.Row="2" Classes="toolbar_label" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{DynamicResource Text.TreeGit.CreateRepository.Action}"/>
         </Grid>
       </Button>
+
     </StackPanel>
 
+    <Grid Grid.Column="1" Width="28" Height="54" VerticalAlignment="Center">
+      <v:CommitOptionSeparator x:Name="WelcomeToolbarSeparator" Width="28" Height="46" Margin="0,3,0,0" GrooveHeight="40" GrooveWidth="1.5" VerticalAlignment="Center" IsHitTestVisible="False"/>
+    </Grid>
+
     <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-      <Button Classes="icon_button" Width="72" Command="{Binding AddRootNode}" ToolTip.Tip="{DynamicResource Text.Welcome.AddRootFolder}">
-        <Grid RowDefinitions="24,5,20" Height="49" Margin="0,3,0,0" VerticalAlignment="Center">
-          <Path Grid.Row="0" Width="22" Height="22" Data="{StaticResource Icons.Folder.Add}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+      <Button x:Name="WelcomeGroup" Classes="icon_button" Width="72" Command="{Binding AddRootNode}" ToolTip.Tip="{DynamicResource Text.Welcome.AddRootFolder}">
+        <Grid RowDefinitions="24,4,18" Height="46" Margin="0,3,0,0" VerticalAlignment="Center">
+          <Path Grid.Row="0" Width="22" MaxHeight="22" UseLayoutRounding="False" Data="{StaticResource Icons.Folder.Add}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
           <TextBlock Grid.Row="2" Classes="toolbar_label" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{DynamicResource Text.Toolbar.Groups}"/>
         </Grid>
       </Button>
 
-      <Button Classes="icon_button" Width="72" Command="{Binding ScanDefaultCloneDir}" ToolTip.Tip="{DynamicResource Text.Welcome.ScanDefaultCloneDir}">
-        <Grid RowDefinitions="24,5,20" Height="49" Margin="0,3,0,0" VerticalAlignment="Center">
-          <Path Grid.Row="0" Width="22" Height="22" Data="{StaticResource Icons.Scan}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+      <Button x:Name="WelcomeScan" Classes="icon_button" Width="72" Command="{Binding ScanDefaultCloneDir}" ToolTip.Tip="{DynamicResource Text.Welcome.ScanDefaultCloneDir}">
+        <Grid RowDefinitions="24,4,18" Height="46" Margin="0,3,0,0" VerticalAlignment="Center">
+          <Path Grid.Row="0" Width="22" MaxHeight="22" UseLayoutRounding="False" Data="{StaticResource Icons.Scan}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
           <TextBlock Grid.Row="2" Classes="toolbar_label" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{DynamicResource Text.Toolbar.Scan}"/>
         </Grid>
       </Button>

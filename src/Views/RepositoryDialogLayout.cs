@@ -1,9 +1,11 @@
 using System;
 using System.ComponentModel;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Threading;
+using Avalonia.LogicalTree;
 
 namespace SourceGit.Views
 {
@@ -45,14 +47,13 @@ namespace SourceGit.Views
             var margin = body.Margin;
             body.Margin = new Thickness(margin.Left, margin.Top, margin.Right, body.Spacing);
             footer.Margin = new Thickness(margin.Left, 0, margin.Right, margin.Bottom);
-            var root = new Grid { RowDefinitions = new RowDefinitions("*,Auto") };
-            root.Children.Add(new ScrollViewer { Content = body, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
-            Grid.SetRow(footer, 1); root.Children.Add(footer); window.Content = root;
-            if (body.Children.Count > 0 && body.Children[0] is TextBlock title)
-                title.PointerPressed += (sender, e) =>
-                {
-                    if (e.GetCurrentPoint(window).Properties.IsLeftButtonPressed) window.BeginMoveWindow(sender, e);
-                };
+            var root = new Grid { RowDefinitions = new RowDefinitions("Auto,*,Auto") };
+            var title = body.Children.FirstOrDefault() as TextBlock;
+            if (title != null) body.Children.Remove(title);
+            root.Children.Add(DialogHeader.Create(window, title, footer.GetLogicalDescendants().OfType<Button>().LastOrDefault()));
+            var viewport = new ScrollViewer { Content = body, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+            Grid.SetRow(viewport, 1); root.Children.Add(viewport);
+            Grid.SetRow(footer, 2); root.Children.Add(footer); window.Content = root;
 
             var pending = false;
             var centerPending = false;

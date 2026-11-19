@@ -172,10 +172,8 @@
         <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
       </Style>
 
-      <Style Selector="^:focus-visible">
-        <Style Selector="^ /template/ Border#PART_Background">
-          <Setter Property="Background" Value="{DynamicResource ComboBoxBackgroundUnfocused}" />
-        </Style>
+      <Style Selector="^:focus-visible /template/ Border#PART_Background">
+        <Setter Property="BorderBrush" Value="{DynamicResource Brush.TreeGit.ParentSHA}"/>
       </Style>
 
       <Style Selector="^:disabled">

@@ -211,7 +211,7 @@
   <x:String x:Key="Text.CommitDetail.Info.SHA" xml:space="preserve">SHA</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Signer" xml:space="preserve">Signer:</x:String>
   <x:String x:Key="Text.CommitDetail.Info.WebLinks" xml:space="preserve">Open in Browser</x:String>
-  <x:String x:Key="Text.CommitMessageTextBox.Placeholder" xml:space="preserve">Enter commit message. Please use an empty-line to separate subject and description!</x:String>
+  <x:String x:Key="Text.CommitMessageTextBox.Placeholder" xml:space="preserve">Enter a commit message...</x:String>
   <x:String x:Key="Text.CommitMessageTextBox.SubjectCount" xml:space="preserve">SUBJECT</x:String>
   <x:String x:Key="Text.Compare" xml:space="preserve">Compare</x:String>
   <x:String x:Key="Text.Compare.Changes" xml:space="preserve">CHANGES</x:String>
@@ -615,7 +615,7 @@
   <x:String x:Key="Text.Merge.Source" xml:space="preserve">Source:</x:String>
   <x:String x:Key="Text.Merge.Test" xml:space="preserve">Testing for merge...</x:String>
   <x:String x:Key="Text.Merge.Test.NoConflicts" xml:space="preserve">Merge can be done without conflicts</x:String>
-  <x:String x:Key="Text.Merge.Test.UnknownError" xml:space="preserve">Unknown error occurs while testing for merge</x:String>
+  <x:String x:Key="Text.Merge.Test.UnknownError" xml:space="preserve">Conflict preview unavailable; you can still merge</x:String>
   <x:String x:Key="Text.Merge.Test.WillCauseConflicts" xml:space="preserve">Merge will cause conflicts</x:String>
   <x:String x:Key="Text.MergeConflictEditor.AcceptBoth.MineFirst" xml:space="preserve">First Mine, then Theirs</x:String>
   <x:String x:Key="Text.MergeConflictEditor.AcceptBoth.TheirsFirst" xml:space="preserve">First Theirs, then Mine</x:String>
@@ -791,7 +791,7 @@
   <x:String x:Key="Text.Rebase.On" xml:space="preserve">On:</x:String>
   <x:String x:Key="Text.Rebase.Test" xml:space="preserve">Testing for rebase...</x:String>
   <x:String x:Key="Text.Rebase.Test.OK" xml:space="preserve">Rebase can be done without conflicts</x:String>
-  <x:String x:Key="Text.Rebase.Test.UnknownError" xml:space="preserve">Unknown error occurs while testing for rebase</x:String>
+  <x:String x:Key="Text.Rebase.Test.UnknownError" xml:space="preserve">Conflict preview unavailable; you can still rebase</x:String>
   <x:String x:Key="Text.Rebase.Test.WillCauseConflicts" xml:space="preserve">Rebase will cause conflicts</x:String>
   <x:String x:Key="Text.Remote.AddTitle" xml:space="preserve">Add Remote</x:String>
   <x:String x:Key="Text.Remote.EditTitle" xml:space="preserve">Edit Remote</x:String>
@@ -1355,6 +1355,7 @@ Manually add a branch/tag history filter will disable this feature automatically
   <x:String x:Key="Text.Stash.After.KeepAll" xml:space="preserve">Keep all saved changes locally</x:String>
   <x:String x:Key="Text.Stash.After.KeepAll.Description" xml:space="preserve">Save a stash copy and restore the same staged and unstaged changes locally.</x:String>
   <x:String x:Key="Text.UI.AdvancedOptions" xml:space="preserve">Advanced options</x:String>
+  <x:String x:Key="Text.UI.AdvancedOptionsLabel" xml:space="preserve">Advanced options:</x:String>
   <x:String x:Key="Text.UI.ForcePushEnabled" xml:space="preserve">Warning: force push is enabled; remote history may be rewritten.</x:String>
   <x:String x:Key="Text.UI.SkipHooksEnabled" xml:space="preserve">Warning: repository checks will be skipped.</x:String>
   <x:String x:Key="Text.UI.SkipHooksShort" xml:space="preserve">Checks skipped</x:String>
@@ -1369,6 +1370,8 @@ Manually add a branch/tag history filter will disable this feature automatically
   <x:String x:Key="Text.UI.SortName" xml:space="preserve">Sort by filename</x:String>
   <x:String x:Key="Text.UI.SortStatus" xml:space="preserve">Sort by status</x:String>
   <x:String x:Key="Text.UI.DisplayOptions" xml:space="preserve">Display options</x:String>
+  <x:String x:Key="Text.UI.DisplayEncoding">Text encoding</x:String>
+  <x:String x:Key="Text.UI.AutoEncoding">Automatic</x:String>
   <x:String x:Key="Text.UI.MoreContext" xml:space="preserve">More context</x:String>
   <x:String x:Key="Text.UI.LessContext" xml:space="preserve">Less context</x:String>
   <x:String x:Key="Text.Diff.Source.Old" xml:space="preserve">Old: {0}</x:String>
@@ -1429,10 +1432,15 @@ Manually add a branch/tag history filter will disable this feature automatically
   <x:String x:Key="Text.TreeGit.Credentials.OptionalPassword" xml:space="preserve">Password (optional)</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.PasswordHint" xml:space="preserve">Password</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.TogglePassword" xml:space="preserve">Show / hide password</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.Authentication" xml:space="preserve">Repository authentication</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Authentication" xml:space="preserve">Repository credentials</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Context" xml:space="preserve">Repository: {0}
 Server: {1}</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.Retry" xml:space="preserve">Incorrect username or password. Try again.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Retry" xml:space="preserve">Authentication failed. Check your account, password or token and try again.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Verifying">Verifying…</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.PushUnavailable">Unable to verify push access. Your changes and commit message have been kept.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Success">Verified successfully</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Timeout">Verification timed out. Check your connection and try again.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.ConnectionFailed">Unable to verify. Check your connection and try again.</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.InvalidInput" xml:space="preserve">Enter a username. Username and password cannot contain line breaks or NUL characters.</x:String>
   <x:String x:Key="Text.TreeGit.Binary.AddressHint" xml:space="preserve">Hexadecimal address</x:String>
   <x:String x:Key="Text.TreeGit.Binary.First" xml:space="preserve">First difference</x:String>
@@ -1468,7 +1476,7 @@ Server: {1}</x:String>
   <x:String x:Key="Text.TreeGit.History.Graph" xml:space="preserve">Graph</x:String>
   <x:String x:Key="Text.TreeGit.Menu.File" xml:space="preserve">File (F)</x:String>
   <x:String x:Key="Text.TreeGit.Menu.NewTab" xml:space="preserve">New tab</x:String>
-  <x:String x:Key="Text.TreeGit.Menu.OpenClone" xml:space="preserve">Open / clone repository</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.OpenClone" xml:space="preserve">Clone / create repository</x:String>
   <x:String x:Key="Text.TreeGit.Menu.Quit" xml:space="preserve">Quit</x:String>
   <x:String x:Key="Text.TreeGit.Menu.Edit" xml:space="preserve">Edit (E)</x:String>
   <x:String x:Key="Text.TreeGit.Menu.Preferences" xml:space="preserve">Preferences</x:String>
@@ -1525,7 +1533,15 @@ Configure SSH keys in the remote settings.</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.ModeSaveFailed" xml:space="preserve">Unable to save authentication mode for this repository.</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.SystemModeSaved" xml:space="preserve">System authentication / OAuth is enabled for this repository. The next network operation will start the existing authentication flow.</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Saved" xml:space="preserve">Credentials saved for this repository.</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.Cleared" xml:space="preserve">Credentials cleared. Authentication will be requested on the next remote operation.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Cleared" xml:space="preserve">Saved credentials for this repository have been cleared. You will be prompted when the remote requires authentication.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.ClearPending">Fields cleared. Confirm to remove the saved credentials, or cancel to keep them.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Loading">Reading account settings…</x:String>
+  <x:String x:Key="Text.TreeGit.Clone.SettingsIncomplete">The repository was cloned, but some settings could not be saved. Check repository settings and try again.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.ReadFailed">Account settings could not be read. Reopen this window and try again.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.SaveFailed">Account settings could not be saved. Check the entries and try again.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.InvalidCharacters">The username or password contains a line break or null character. Check the entries.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.TooLong">The password or access token is too long. Check for accidentally pasted text.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.IdentityHint">When changing users, also check the name and email in Repository Settings → Advanced → Commit Identity. Remote sign-in does not update the commit identity.</x:String>
   <x:String x:Key="Text.TreeGit.Remote.Add" xml:space="preserve">Add remote repository</x:String>
   <x:String x:Key="Text.TreeGit.Remote.Edit" xml:space="preserve">Edit remote repository</x:String>
   <x:String x:Key="Text.TreeGit.Remote.UrlHint" xml:space="preserve">HTTPS / SSH URL or local repository path</x:String>
@@ -1786,4 +1802,54 @@ Configure SSH keys in the remote settings.</x:String>
   <x:String x:Key="Text.TreeGit.Commit.History.Empty">No commit messages yet</x:String>
   <x:String x:Key="Text.TreeGit.Commit.History.Error">Could not load commit messages. Close and try again.</x:String>
   <x:String x:Key="Text.TreeGit.Commit.SkipHooks">Bypass commit hooks</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.Action">Create</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.Title">Create repository</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.Parent">Parent folder:</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.Name">Repository name:</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.GitHub">Also create a repository on GitHub</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.Private">Private repository (uncheck to make it public)</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.Token">GitHub access token</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.TokenHint">Use a token with repository creation and push permissions. Verify its account first.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.Verify">Verify account</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.TokenHelp">Get a GitHub access token…</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.EmptyRemote">The remote is connected automatically. Add files and make your first commit to push.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.InvalidName">Enter a valid repository name without path separators or reserved names.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.TokenRequired">Enter a valid GitHub access token.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.VerifyFirst">Verify the GitHub account first to confirm where the repository will be created.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.PathExists">That location already exists. Choose another name, or use Open for an existing repository.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.LocationChanged">Continue using the location created in this attempt.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.GitHubName">Use letters, numbers, periods, hyphens, or underscores for a GitHub repository name.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.RemoteExists">A repository with this name already exists in that account. Choose another name, or clone the existing repository.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.ConfirmExisting">The previous request could not be confirmed, and a remote with this name now exists. Check its address, choose Connect this remote, then continue.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.ConnectExisting">Connect this remote</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.PartialLocal">Files from this attempt have been preserved. Use Open to inspect the folder before continuing.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.LocalFailed">The local repository could not be created. Check folder permissions and free disk space. Existing files are preserved.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.RemoteCreatedLocalFailed">The GitHub repository was created, but local setup is incomplete. Check folder permissions and free space, then retry. The remote will not be created again.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.ConnectFailed">Both repositories are preserved, but the remote connection is incomplete. Retry or check the remote address in repository settings.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.CredentialSaveFailed">The repository was created, but the credentials could not be saved. Enter your account and token when you first push.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.AuthenticationFailed">GitHub authentication failed. Check that the token is correct and has not expired.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.PermissionDenied">The GitHub account or token lacks permission. Check permissions and retry.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.RemoteRejected">GitHub did not accept the creation request. Check the name, token permissions, and account restrictions.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.RateLimited">GitHub has temporarily limited requests. Try again later.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.ConnectionFailed">The GitHub request could not be completed. Check your connection and retry. Any creation already sent will be checked before another attempt.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.InvalidResponse">The GitHub response could not be confirmed. Retry later to check the result.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.FolderPickerFailed">The folder picker could not be opened. Enter the parent folder directly.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.SameAccountRequired">Verify the same GitHub account used for the previous creation request to check its result.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Action">Account and password</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.UsernameLabel">Saved account:</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.PasswordLabel">Password or token (leave unchanged to keep the saved value):</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.SystemManaged">This repository uses system authentication. Manage its account in the system sign-in window, or turn this off to save and switch an account for this repository.</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.RemoteReady">The GitHub repository is ready. Local setup is not yet complete.</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Connecting">Connecting…</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Verifying">Verifying…</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.AuthenticationFailed">Account verification failed. Please try again.</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.VerificationTimeout">Verification timed out. Please try again.</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.ConnectionFailed">Connection failed. Check the network and remote address.</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Authenticated">Verified successfully</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Running">{0} in progress…</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Succeeded">Operation completed</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Failed">Operation failed. See the full output.</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Cancelling">Cancelling…</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Cancelled">Cancelled. Completed steps are kept.</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.ShowFullOutput">Show full output</x:String>
 </ResourceDictionary>

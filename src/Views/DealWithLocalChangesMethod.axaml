@@ -17,12 +17,12 @@
 
       <Style Selector="^:focus-visible RadioButton:checked">
         <Style Selector="^ /template/ Ellipse#Border">
-          <Setter Property="Stroke" Value="{DynamicResource Brush.Accent}"/>
-          <Setter Property="Fill" Value="{DynamicResource Brush.Accent}"/>
+          <Setter Property="Stroke" Value="{DynamicResource Brush.TreeGit.ParentSHA}"/>
+          <Setter Property="Fill" Value="{DynamicResource Brush.TreeGit.Selection}"/>
         </Style>
         <Style Selector="^:checked /template/ Ellipse#Dot">
-          <Setter Property="Stroke" Value="White"/>
-          <Setter Property="Fill" Value="{DynamicResource Brush.Accent}"/>
+          <Setter Property="Stroke" Value="{DynamicResource Brush.TreeGit.FocusedRadioDot}"/>
+          <Setter Property="Fill" Value="{DynamicResource Brush.TreeGit.FocusedRadioDot}"/>
         </Style>
       </Style>
     </Style>

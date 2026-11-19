@@ -41,6 +41,14 @@ namespace SourceGit
                 Environment.Exit(Native.RepositoryCredentials.RunHelper(args[1]));
                 return;
             }
+            if (OperatingSystem.IsWindows() && Environment.GetEnvironmentVariable("SOURCEGIT_LAUNCH_AS_ASKPASS") == "TRUE" &&
+                Native.CredentialSession.IsValid(Native.CredentialSession.CurrentId) && args.Length > 0 && !args[0].StartsWith("--", StringComparison.Ordinal))
+            {
+                var answer = Native.CredentialSession.Request(new() { Action = "get", Prompt = args[0], Repo = Environment.GetEnvironmentVariable("SOURCEGIT_CREDENTIAL_SCOPE") });
+                if (answer?.State == "submitted") { Console.Out.WriteLine(answer.Password); Environment.Exit(0); }
+                else { Console.Error.WriteLine(Native.CredentialSession.CancelMarker); Environment.Exit(1); }
+                return;
+            }
             if (args.Length > 0 && args[0] == "--mcp")
             {
                 if (Native.TreeGitUpdateInstaller.HasActiveUpdate(AppContext.BaseDirectory)) return;
@@ -247,6 +255,16 @@ namespace SourceGit
                     }
                 }
             LocaleChanged?.Invoke();
+            if (app.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime localizedDesktop)
+                foreach (var window in localizedDesktop.Windows)
+                {
+                    Views.DialogButtons.Apply(window);
+                    window.InvalidateMeasure();
+                    window.InvalidateArrange();
+                    window.InvalidateVisual();
+                    if (window is Views.ChromelessWindow themedWindow)
+                        themedWindow.RepaintPopupBackground();
+                }
         }
 
         private string _activeLocaleKey = "en_US";
@@ -420,6 +438,9 @@ namespace SourceGit
 
         public override void OnFrameworkInitializationCompleted()
         {
+#if INTEGRATION_TESTS
+            if (OperatingSystem.IsWindows() && Automation.LocalAuditHost.IsEnabled) Automation.LocalAuditHost.Initialize();
+#endif
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
 #if INTEGRATION_TESTS
@@ -636,6 +657,12 @@ namespace SourceGit
             var args = desktop.Args;
             if (args?.Length > 0)
             {
+                if (args.Length == 2 && args[0] == "--credential-session" && Native.CredentialSession.IsValid(args[1]))
+                {
+                    var request = JsonSerializer.Deserialize(Console.In.ReadToEnd(), Native.CredentialDialogJson.Default.CredentialDialogMessage);
+                    _ = new Views.CredentialSessionHost(desktop, args[1], request);
+                    return true;
+                }
                 var askpass = new Views.Askpass();
                 if (args[0] == "--credential-prompt")
                 {
@@ -807,7 +834,7 @@ namespace SourceGit
                 if (ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime { MainWindow: { } owner }) return;
                 if (_updateWindow != null) { _updateWindow.Present(owner); return; }
                 foreach (var existing in ((IClassicDesktopStyleApplicationLifetime)ApplicationLifetime).Windows)
-                    if (existing is Views.SelfUpdate { IsVisible: true }) { existing.Activate(); return; }
+                    if (existing is Views.SelfUpdate { IsVisible: true } existingUpdate) { existingUpdate.Activate(); return; }
                 var model = new ViewModels.SelfUpdate();
                 var window = new Views.SelfUpdate { DataContext = model };
                 _updateWindow = window;

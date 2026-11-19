@@ -30,7 +30,7 @@
             IsVisible="{OnPlatform True, macOS=False}"/>
 
       <TextBlock Classes="bold"
-                 Text="{DynamicResource Text.Preferences}"
+                 x:Name="PreferencesTitleText" Text="{Binding #ThisControl.Title}"
                  HorizontalAlignment="Center" VerticalAlignment="Center"
                  IsHitTestVisible="False"/>
 
@@ -40,7 +40,7 @@
     </Grid>
 
     <!-- Body -->
-    <Border Grid.Row="1">
+    <Grid Grid.Row="1" x:Name="SettingsBody">
       <TabControl x:Name="PreferenceTabs">
         <TabItem>
           <TabItem.Header>
@@ -500,11 +500,9 @@
                   </ScrollViewer>
         </TabItem>
 
-        <TabItem>
-          <TabItem.Header>
-            <TextBlock Classes="tab_header" Text="{DynamicResource Text.Preferences.Integration}"/>
-          </TabItem.Header>
-          <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+      </TabControl>
+      <ScrollViewer x:Name="IntegrationSettings" IsVisible="False"
+                    HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
 
           <StackPanel Margin="8" Orientation="Vertical" Grid.IsSharedSizeScope="True">
             <StackPanel Orientation="Horizontal">
@@ -599,6 +597,7 @@
                         HorizontalContentAlignment="Left"
                         RenderOptions.BitmapInterpolationMode="HighQuality"
                         FontSize="{Binding DefaultFontSize}"
+                        x:Name="ExternalToolSelector"
                         ItemsSource="{Binding Source={x:Static m:ExternalMerger.Supported}}"
                         SelectedIndex="{Binding ExternalMergeToolType, Mode=TwoWay}">
                 <ComboBox.ItemTemplate>
@@ -621,6 +620,7 @@
               <TextBox Grid.Row="1" Grid.Column="1"
                        Height="28"
                        CornerRadius="3"
+                       x:Name="ExternalToolPath"
                        Text="{Binding ExternalMergeToolPath, Mode=TwoWay}"
                        Watermark="{DynamicResource Text.Preferences.DiffMerge.Path.Placeholder}"
                        IsVisible="{Binding ExternalMergeToolUsesExecutable}">
@@ -670,11 +670,8 @@
               </TextBox>
             </Grid>
           </StackPanel>
-                  </ScrollViewer>
-        </TabItem>
-
-      </TabControl>
-    </Border>
+      </ScrollViewer>
+    </Grid>
     <StackPanel Grid.Row="2" Margin="8" Spacing="6">
       <TextBlock x:Name="PreferencesSaveError" IsVisible="False" TextWrapping="Wrap" Foreground="{DynamicResource Brush.FG1}" FontWeight="Bold"/>
       <Grid ColumnDefinitions="*,Auto,Auto">

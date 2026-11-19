@@ -53,7 +53,7 @@
 
     <Setter Property="Template">
       <ControlTemplate>
-        <Border BorderThickness="{TemplateBinding BorderThickness}"
+        <Border x:Name="PART_ContentRoot" BorderThickness="{TemplateBinding BorderThickness}"
                 BorderBrush="{TemplateBinding BorderBrush}"
                 Background="{TemplateBinding Background}"
                 CornerRadius="{TemplateBinding CornerRadius}"
@@ -214,6 +214,9 @@
         <Rectangle Margin="0" Stroke="{DynamicResource Brush.FG1}" StrokeDashArray="1,2" StrokeThickness="1"/>
       </FocusAdornerTemplate>
     </Setter>
+  </Style>
+  <Style Selector="OverlayPopupHost">
+    <Setter Property="ClipToBounds" Value="True"/>
   </Style>
 
   <Style Selector="ToolTip">
@@ -717,26 +720,47 @@
   <Style Selector="Button.flat:disabled /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="Transparent"/>
   </Style>
+  <Style Selector="Button.dialog_action">
+    <Setter Property="MinWidth" Value="120"/>
+    <Setter Property="Height" Value="28"/>
+    <Setter Property="MinHeight" Value="28"/>
+    <Setter Property="Padding" Value="10,2"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
+  </Style>
   <Style Selector="Button.flat.primary">
-    <Setter Property="Foreground" Value="{DynamicResource AccentButtonForeground}"/>
-    <Setter Property="BorderBrush" Value="{DynamicResource AccentButtonBorderBrush}"/>
-    <Setter Property="Background" Value="{DynamicResource AccentButtonBackground}"/>
+    <Setter Property="Foreground" Value="White"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.TreeGit.ParentSHA}"/>
+    <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.ParentSHA}"/>
   </Style>
   <Style Selector="Button.flat.primary:pointerover /template/ Border#PART_Border">
-    <Setter Property="Background" Value="{DynamicResource AccentButtonBackgroundPointerOver}"/>
+    <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.ChromeHover}"/>
   </Style>
   <Style Selector="Button.flat.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Foreground" Value="{DynamicResource AccentButtonForeground}"/>
+    <Setter Property="Foreground" Value="White"/>
     <Setter Property="Background" Value="Transparent"/>
   </Style>
   <Style Selector="Button.flat.primary:disabled">
     <Setter Property="Opacity" Value=".65"/>
   </Style>
   <Style Selector="Button.flat.primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
-    <Setter Property="Foreground" Value="{DynamicResource AccentButtonForeground}"/>
+    <Setter Property="Foreground" Value="White"/>
   </Style>
   <Style Selector="Button.flat.primary ToolTip TextBlock">
     <Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/>
+  </Style>
+  <Style Selector="Button.flat.primary_close TextBlock.dialog_caption">
+    <Setter Property="Foreground" Value="White"/>
+  </Style>
+  <Style Selector="Button.flat.dialog_confirm, Button.flat.verify_account">
+    <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.Confirm}"/>
+    <Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/>
+    <Style Selector="^:pointerover /template/ Border#PART_Border">
+      <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.ConfirmHover}"/>
+    </Style>
+    <Style Selector="^ /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/>
+    </Style>
   </Style>
 
   <Style Selector="ListBox.repo_left_content_list">
@@ -934,7 +958,7 @@
                  HorizontalOffset="-4"
                  VerticalOffset="-4"
                  IsOpen="{TemplateBinding IsSubMenuOpen, Mode=TwoWay}">
-            <Grid Margin="6" Effect="drop-shadow(0 0 6 #80000000)">
+            <Grid Name="SubmenuSurface">
               <Border Padding="8,4"
                       MaxHeight="400"
                       BorderThickness="1" BorderBrush="{DynamicResource Brush.PopupBorder}"
@@ -958,6 +982,10 @@
       </ControlTemplate>
     </Setter>
 
+    <Style Selector="^:not(.flat_submenu) /template/ Grid#SubmenuSurface">
+      <Setter Property="Margin" Value="6"/>
+      <Setter Property="Effect" Value="drop-shadow(0 0 6 #80000000)"/>
+    </Style>
     <Style Selector="^:icon /template/ ContentControl#PART_IconPresenter">
       <Setter Property="IsVisible" Value="True" />
     </Style>
@@ -1007,6 +1035,25 @@
     </Style>
   </Style>
 
+  <Style Selector="ProgressBar.operation_progress">
+    <Setter Property="MinWidth" Value="0"/>
+    <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.WelcomeToolbarIcon}"/>
+    <Setter Property="Template">
+      <ControlTemplate TargetType="v:ActivityProgressBar">
+        <Border Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}" ClipToBounds="True">
+          <Panel>
+            <Border Name="PART_Indicator" HorizontalAlignment="Left" Background="{TemplateBinding Foreground}"
+                    ClipToBounds="True" CornerRadius="{TemplateBinding CornerRadius}">
+              <ProgressBar Name="ActivitySweep" MinWidth="0" MinHeight="0" VerticalAlignment="Stretch" Background="Transparent"
+                           Foreground="White" Opacity="0.40" IsHitTestVisible="False" Focusable="False"
+                           IsVisible="{TemplateBinding IsRunning}" IsIndeterminate="{TemplateBinding IsRunning}"/>
+            </Border>
+          </Panel>
+        </Border>
+      </ControlTemplate>
+    </Setter>
+  </Style>
+
   <Style Selector="ComboBox">
     <Style.Resources>
       <Thickness x:Key="ComboBoxDropdownBorderPadding">4,0</Thickness>
@@ -1028,6 +1075,19 @@
       <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
       <Setter Property="Background" Value="{DynamicResource Brush.Contents}"/>
     </Style>
+    <Style Selector="^:focus-visible /template/ Border#HighlightBackground">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.TreeGit.ParentSHA}"/>
+    </Style>
+    <Style Selector="^:focus-visible /template/ ContentControl#ContentPresenter">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/>
+    </Style>
+    <Style Selector="^:focus-visible /template/ TextBlock#PlaceholderTextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.FG2}"/>
+    </Style>
+    <Style Selector="^:focus-visible /template/ PathIcon#DropDownGlyph">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/>
+    </Style>
     <Style Selector="^:disabled">
       <Setter Property="Opacity" Value=".6"/>
     </Style>
@@ -1037,6 +1097,31 @@
   </Style>
   <Style Selector="ComboBoxItem">
     <Setter Property="CornerRadius" Value="3"/>
+  </Style>
+
+  <Style Selector=":is(Control).dialog_selections">
+    <Style Selector="^ ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter, ^ ComboBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter, ^ ToggleButton:checked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.Selection}"/>
+      <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
+    </Style>
+    <Style Selector="^ ListBoxItem:selected TextBlock, ^ ComboBoxItem:selected TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
+    </Style>
+    <Style Selector="^ CheckBox:checked /template/ Border#Border">
+      <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.Selection}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.TreeGit.ParentSHA}"/>
+    </Style>
+    <Style Selector="^ CheckBox:checked /template/ Path#Icon">
+      <Setter Property="Fill" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
+    </Style>
+    <Style Selector="^ RadioButton:checked /template/ Ellipse#Border">
+      <Setter Property="Fill" Value="{DynamicResource Brush.TreeGit.Selection}"/>
+      <Setter Property="Stroke" Value="{DynamicResource Brush.TreeGit.ParentSHA}"/>
+    </Style>
+    <Style Selector="^ TextBox">
+      <Setter Property="SelectionBrush" Value="{DynamicResource Brush.TreeGit.Selection}"/>
+      <Setter Property="SelectionForegroundBrush" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
+    </Style>
   </Style>
 
   <Style Selector="CheckBox">
@@ -1131,18 +1216,14 @@
       <Setter Property="Stroke" Value="{DynamicResource Brush.Accent}"/>
     </Style>
     <Style Selector="^:checked /template/ Ellipse#Dot">
-      <Setter Property="Fill" Value="{DynamicResource Brush.Accent}"/>
+      <Setter Property="Fill" Value="{DynamicResource Brush.TreeGit.RadioDot}"/>
     </Style>
     <Style Selector="^:focus-visible /template/ Ellipse#Border">
       <Setter Property="Stroke" Value="{DynamicResource Brush.Accent}"/>
-      <Setter Property="Fill" Value="{DynamicResource Brush.Accent}"/>
-    </Style>
-    <Style Selector="^:focus-visible /template/ Ellipse#Dot">
-      <Setter Property="Stroke" Value="White"/>
-      <Setter Property="Fill" Value="White"/>
+      <Setter Property="StrokeThickness" Value="2"/>
     </Style>
     <Style Selector="^:focus-visible:checked /template/ Ellipse#Dot">
-      <Setter Property="Fill" Value="{DynamicResource Brush.Accent}"/>
+      <Setter Property="Fill" Value="{DynamicResource Brush.TreeGit.FocusedRadioDot}"/>
     </Style>
   </Style>
 

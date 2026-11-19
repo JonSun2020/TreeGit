@@ -3,6 +3,7 @@ import json,os,queue,shutil,subprocess,sys,tempfile,threading,time
 from pathlib import Path
 from qa_profile import IsolatedProfile
 from qa_cleanup import remove_fixture, new_fixture
+from qa_process import close_owned_gui
 source=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
 profile=IsolatedProfile(source,out);app=profile.reset()
 (app/'data/preference.json').write_text('{"Locale":"zh_CN","Check4UpdatesOnStartup":false}','utf-8');exe=app/source.name
@@ -38,10 +39,7 @@ finally:
     p.stdin.close()
     try:p.wait(timeout=10)
     except subprocess.TimeoutExpired:p.kill();p.wait()
-    if pid:
-        literal=str(exe).replace("'","''")
-        script="$p=Get-Process -Id "+str(pid)+" -ErrorAction SilentlyContinue;if($p){if($p.Path -ne '"+literal+"'){throw 'Wrong owned process'};$null=$p.CloseMainWindow();if(-not $p.WaitForExit(15000)){$p.Kill();$p.WaitForExit();throw 'Owned QA app did not exit normally'}};exit 0"
-        subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)
+    if pid:close_owned_gui(exe,pid)
 
 remove_fixture(root,out,'TreeGit ')
 profile.close()

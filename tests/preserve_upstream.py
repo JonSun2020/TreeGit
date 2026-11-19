@@ -12,6 +12,23 @@ for name in files:
     new=(root/name).read_text(encoding='utf-8-sig')
     for label,pattern in [('named controls',r'x:Name="[^"]+"'),('actions',r'(?:Click|Tapped|DoubleTapped|Command|HotKey|ContextRequested|SelectionChanged|PointerPressed|SizeChanged|RowsChanged|SearchRequested)="[^"]+"'),('data bindings',r'\{Binding [^}]+\}')]:
         missing=Counter(re.findall(pattern,old))-Counter(re.findall(pattern,new))
+        if name == 'src/Views/LauncherPage.axaml' and label == 'data bindings':
+            operation = (root/'src/ViewModels/Popup.Operation.cs').read_text(encoding='utf-8-sig')
+            assert 'Description="{Binding StatusDescription}"' in new and 'IsVisible="{Binding ShowStatus}"' in new
+            assert 'UsesOperationPanel ? OperationStage : ProgressDescription' in operation
+            assert 'ShowStatus => InProgress ||' in operation
+            missing.pop('{Binding ProgressDescription}', None)
+            missing.pop('{Binding InProgress}', None)
+        if name == 'src/Views/WelcomeToolbar.axaml' and label in ['actions', 'data bindings']:
+            # The user replaced the welcome-page terminal with Create. The
+            # repository's direct terminal entry must remain functional.
+            toolbar = (root/'src/Views/RepositoryToolbar.axaml').read_text(encoding='utf-8-sig')
+            handler = (root/'src/Views/RepositoryToolbar.axaml.cs').read_text(encoding='utf-8-sig')
+            assert 'Command="{Binding CreateRepository}"' in new
+            assert 'Click="OpenTerminalDirect"' in toolbar
+            assert 'Native.OS.OpenTerminal(repo.FullPath)' in handler
+            missing.pop('Command="{Binding OpenTerminal}"', None)
+            missing.pop('{Binding OpenTerminal}', None)
         if name == 'src/Views/Repository.axaml' and label == 'data bindings':
             # Search moved from the repository sidebar into the history area.
             moved = {'{Binding Histories.SearchCommitContext, Mode=OneWay}', '{Binding #ThisControl.IsCommitSearchPanelVisible, Mode=OneWay}'}

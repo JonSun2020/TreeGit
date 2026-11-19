@@ -59,13 +59,15 @@ namespace SourceGit.Automation
             window.IsHitTestVisible = true;
             _phase = action;
             var index = args.TryGetProperty("value", out var value) ? value.GetInt32() : 0;
-            if (index < 0 || index >= headers.Length && !action.StartsWith("recent_", StringComparison.Ordinal)) throw new ArgumentOutOfRangeException(nameof(index));
+            if (index < 0 || index >= headers.Length && !action.StartsWith("recent_", StringComparison.Ordinal) && !action.StartsWith("welcome_", StringComparison.Ordinal) && !action.StartsWith("diff_", StringComparison.Ordinal) && action is not ("operation_probe" or "tab_guard")) throw new ArgumentOutOfRangeException(nameof(index));
             var selected = headers[Math.Min(index, headers.Length - 1)];
             object Bounds(Control control)
             {
                 if (control == null) return null;
                 var position = control.TranslatePoint(default, window);
-                return new { x = position?.X, y = position?.Y, right = position?.X + control.Bounds.Width, width = control.Bounds.Width, height = control.Bounds.Height };
+                var end = control.TranslatePoint(new Point(control.Bounds.Width, control.Bounds.Height), window);
+                return new { x = position?.X, y = position?.Y, right = end?.X,
+                    width = end?.X - position?.X ?? control.Bounds.Width, height = end?.Y - position?.Y ?? control.Bounds.Height };
             }
             object PopupBounds(Control control, Visual popup)
             {
@@ -76,7 +78,284 @@ namespace SourceGit.Automation
             var source = selected.GetVisualDescendants().OfType<Control>().FirstOrDefault(c => c.Name == "PART_HeaderPresenter") ?? selected;
             var point = source.TranslatePoint(new Point(source.Bounds.Width / 2, source.Bounds.Height / 2), window) ?? default;
             object searchClick = null;
-            if (action == "fit_desktop")
+            if (action == "preferences_open_from_tools")
+            {
+                var integrationMenu = window.FindControl<MenuItem>("ThirdPartyIntegrationMenu");
+                integrationMenu.Command.Execute(integrationMenu.CommandParameter);
+                return new { parameter = integrationMenu.CommandParameter, enabled = integrationMenu.IsEnabled,
+                    last = ((MenuItem)integrationMenu.Parent).Items.OfType<MenuItem>().Last() == integrationMenu };
+            }
+            if (action == "preferences_identity_trap")
+            {
+                var preferenceWindow = ((Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).Windows.OfType<Views.Preferences>().Single();
+                preferenceWindow.DefaultUser = "Must not be saved by the integration dialog";
+                preferenceWindow.DefaultEmail = "not-saved@example.invalid";
+                return new { changed = true };
+            }
+            if (action.StartsWith("diff_", StringComparison.Ordinal))
+            {
+                var profileLifetime = (Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime;
+                var profileViews = profileLifetime.Windows.SelectMany(w => w.GetVisualDescendants().OfType<Views.DiffView>().Where(v => v.IsEffectivelyVisible)).ToArray();
+                if (action == "diff_open")
+                {
+                    var profileRepo = (ViewModels.Repository)((ViewModels.Launcher)window.DataContext).ActivePage.Data;
+                    App.OpenInternalComparison(profileRepo.FullPath, new Models.DiffOption("HEAD~1", "HEAD", new Models.Change { Path = args.GetProperty("button").GetString() }));
+                }
+                else if (action == "diff_encoding")
+                {
+                    var button = profileViews.First(v => v.Settings is ViewModels.Preferences).FindControl<Button>("DiffDisplayOptions");
+                    var flyout = (Flyout)button.Flyout;
+                    flyout.ShowAt(button);
+                    var picker = ((Control)flyout.Content).GetVisualDescendants().OfType<Views.DisplayEncodingPicker>().Single();
+                    var labels = picker.Items.OfType<ComboBoxItem>().Select(item => item.Content?.ToString()).ToArray();
+                    picker.SetCurrentValue(SelectingItemsControl.SelectedIndexProperty, index);
+                    flyout.Hide();
+                    return new { labels, selected = picker.SelectedIndex };
+                }
+                else if (action == "diff_decoded_text")
+                {
+                    var view = profileViews.First(v => v.Settings is ViewModels.Preferences);
+                    var model = (ViewModels.DiffContext)view.DataContext;
+                    var decoded = model.Content as ViewModels.TextDiffContext;
+                    return new { file = model.Title, encoding = view.Settings.DisplayEncodingIndex, kind = model.Content?.GetType().Name,
+                        displayOnly = decoded?.Data.IsDisplayOnly, rows = decoded?.Data.Lines.Take(30).Select(line => line.Content).ToArray() };
+                }
+                else if (action is "diff_toggle_main" or "diff_toggle_standalone")
+                {
+                    var profileExternal = action == "diff_toggle_standalone";
+                    var profileView = profileViews.First(v => (v.Settings is not ViewModels.Preferences) == profileExternal);
+                    var profileNames = new[] { "ToggleBtnUseSideBySide", "ToggleDiffSyntax", "ToggleDiffWrap", "ToggleDiffFullFile", "ToggleDiffWhitespace", "ToggleDiffSymbols" };
+                    profileView.FindControl<ToggleButton>(profileNames[index]).SetCurrentValue(ToggleButton.IsCheckedProperty, bool.Parse(args.GetProperty("button").GetString()));
+                }
+                else if (action is "diff_scroll_standalone" or "diff_select_standalone")
+                {
+                    var profileView = profileViews.First(v => v.Settings is not ViewModels.Preferences);
+                    foreach (var presenter in profileView.GetVisualDescendants().OfType<Views.ThemedTextDiffPresenter>().Where(p => p.IsEffectivelyVisible))
+                    {
+                        if (action == "diff_scroll_standalone") presenter.ScrollToLine(index);
+                        else { presenter.SelectAll(); if (presenter.SelectedText != presenter.Text) throw new InvalidOperationException("Visual alignment padding changed selected document text"); presenter.Select(0, 0); }
+                    }
+                }
+                return new { views = profileViews.Select(v => new { scope = v.Settings is ViewModels.Preferences ? "main" : "standalone",
+                    columns = v.Settings.UseSideBySideDiff, syntax = v.Settings.UseSyntaxHighlighting, wrap = v.Settings.EnableDiffViewWordWrap,
+                    full = v.Settings.UseFullTextDiff, presenters = v.GetVisualDescendants().OfType<Views.ThemedTextDiffPresenter>().Where(p => p.IsEffectivelyVisible)
+                        .Select(p => new { wrap = p.WordWrap, syntax = p.UseSyntaxHighlighting, lines = p.Document?.LineCount, offset = p.TextArea.TextView.VerticalOffset,
+                            rows = p.TextArea.TextView.VisualLinesValid ? p.TextArea.TextView.VisualLines.Take(18).Select(line => (object)new { index = line.FirstDocumentLine.LineNumber, top = line.VisualTop, height = line.Height, segments = line.TextLines.Count }).ToArray() : Array.Empty<object>() }).ToArray() }).ToArray() };
+            }
+            else if (action == "chrome_strip")
+            {
+                var chrome = window.FindControl<Grid>("TitleChrome");
+                var start = window.Position;var before = window.WindowState;
+                var stripPoint = new Point(index switch { 0 => 1, 1 => chrome.Bounds.Width / 2, _ => chrome.Bounds.Width - 1 },
+                    index == 3 ? chrome.RowDefinitions[0].ActualHeight : index == 4 ? chrome.Bounds.Height - 1 : chrome.RowDefinitions[0].ActualHeight + 10);
+                var clicks = args.TryGetProperty("button",out var count) && count.GetString()=="single" ? 1 : 2;
+                var stripRootPoint = chrome.TranslatePoint(stripPoint, window).Value;
+                var press = new PointerPressedEventArgs(chrome, Pointer, window, stripRootPoint, (ulong)Environment.TickCount64,
+                    new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None, clicks);
+                var localY = press.GetPosition(chrome).Y;
+                chrome.RaiseEvent(press);
+                return new { unchanged = window.WindowState == before && window.Position == start, handled = press.Handled, localY, expectedY = stripPoint.Y };
+            }
+            else if (action == "dialog_resize_open")
+            {
+                window.WindowState = WindowState.Normal;
+                window.Width = window.Width > 1100 ? 1050 : 1280;
+                window.Height = window.Height > 750 ? 700 : 820;
+                window.Position = new PixelPoint(window.Position.X + (index % 2 == 0 ? 20 : -20), window.Position.Y + (index % 2 == 0 ? 15 : -15));
+                var names = new[] { "WelcomeClone", "WelcomeOpen", "WelcomeCreate", "WelcomeGroup", "WelcomeScan" };
+                var openingButton = window.GetVisualDescendants().OfType<Button>().Single(b => b.Name == names[index] && b.IsEffectivelyVisible);
+                if (openingButton.Command?.CanExecute(openingButton.CommandParameter) != true) throw new InvalidOperationException("Welcome action is unavailable.");
+                openingButton.Command.Execute(openingButton.CommandParameter);
+            }
+            else if (action == "tab_guard")
+            {
+                var launcher = (ViewModels.Launcher)window.DataContext;
+                var bar = window.GetVisualDescendants().OfType<Views.LauncherTabBar>().First();
+                switch (index)
+                {
+                    case 0: launcher.CloseTab(null); break;
+                    case 1: launcher.CloseOtherTabs(); break;
+                    case 2: launcher.CloseRightTabs(); break;
+                    case 3: launcher.AddNewTab(); break;
+                    case 4: launcher.GotoNextTab(); break;
+                    case 5: launcher.GotoPrevTab(); break;
+                    case 6: launcher.MoveTab(launcher.ActivePage, launcher.Pages.Count - 1); break;
+                    case 7: window.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.W, KeyModifiers = KeyModifiers.Control }); break;
+                    case 8:
+                        var tab = bar.GetVisualDescendants().OfType<Views.LauncherTabSizeBox>().First(t => t.DataContext == launcher.ActivePage);
+                        tab.RaiseEvent(new PointerPressedEventArgs(tab, Pointer, tab, new Point(10, 10), (ulong)Environment.TickCount64,
+                            new PointerPointProperties(RawInputModifiers.MiddleMouseButton, PointerUpdateKind.MiddleButtonPressed), KeyModifiers.None, 1));
+                        break;
+                    case 9:
+                        bar.GetVisualDescendants().OfType<Button>().First(b => b.Classes.Contains("treegit_tab_close") && b.DataContext == launcher.ActivePage)
+                            .RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        break;
+                    default: throw new ArgumentOutOfRangeException(nameof(index));
+                }
+            }
+            else if (action.StartsWith("owner_", StringComparison.Ordinal))
+            {
+                var lifetime = (Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime;
+                var dialog = lifetime.Windows.OfType<Views.ChromelessWindow>().Last(w => w.IsVisible && w != window);
+                if (dialog.OwnedMovementBounds == null) throw new InvalidOperationException("Only an owned fixture dialog can receive routed movement.");
+                if (action == "owner_hide_show")
+                {
+                    var parent = dialog.Owner as Window ?? window;
+                    dialog.Hide();
+                    dialog.Show(parent);
+                }
+                else if (action is "owner_maximize" or "owner_restore")
+                    dialog.WindowState = action == "owner_maximize" ? WindowState.Maximized : WindowState.Normal;
+                else if (action != "owner_inspect")
+                {
+                    var start = new Point(24, 14);
+                    var press = new PointerPressedEventArgs(dialog, Pointer, dialog, start, (ulong)Environment.TickCount64,
+                        new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None, 1);
+                    if (action == "owner_body_drag") dialog.RaiseEvent(press);
+                    else dialog.BeginMoveWindow(dialog, press);
+                    if (action == "owner_capture_lost") Pointer.Capture(null);
+                    var delta = index switch { 0 => new Vector(-10000, -10000), 1 => new Vector(10000, 10000), 2 => new Vector(-10000, 10000), 3 => new Vector(10000, -10000), _ => new Vector(35, 20) };
+                    dialog.RaiseEvent(new PointerEventArgs(InputElement.PointerMovedEvent, dialog, Pointer, dialog, start + delta, (ulong)Environment.TickCount64,
+                        new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.Other), KeyModifiers.None));
+                    dialog.RaiseEvent(new PointerReleasedEventArgs(dialog, Pointer, dialog, start + delta, (ulong)Environment.TickCount64,
+                        new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.LeftButtonReleased), KeyModifiers.None, MouseButton.Left));
+                    Pointer.Capture(null);
+                }
+                var frame = dialog.FrameSize ?? dialog.Bounds.Size;
+                var area = dialog.OwnedMovementBounds.Value;
+                return new { type = dialog.GetType().Name, state = dialog.WindowState.ToString(), padding = dialog.Padding.ToString(), x = dialog.Position.X, y = dialog.Position.Y, width = frame.Width * dialog.RenderScaling, height = frame.Height * dialog.RenderScaling,
+                    owner = new { x = area.X, y = area.Y, width = area.Width, height = area.Height }, maximum = new { width = dialog.MaxWidth, height = dialog.MaxHeight } };
+            }
+            else if (action.StartsWith("tab_drag_", StringComparison.Ordinal) || action == "tab_drop")
+            {
+                var bar = window.GetVisualDescendants().OfType<Views.LauncherTabBar>().First();
+                var root = bar.FindControl<Grid>("TabDropArea");
+                var list = bar.FindControl<ListBox>("LauncherTabsList");
+                var model = (ViewModels.Launcher)bar.DataContext;
+                var values = args.TryGetProperty("button", out var targetIndex) ? targetIndex.GetString().Split(',') : new[] { "0", "before" };
+                var item = list.ContainerFromIndex(int.Parse(values[0])) as Control;
+                var location = item.TranslatePoint(new Point(item.Bounds.Width * (values[1] == "after" ? .8 : .2), item.Bounds.Height / 2), root).Value;
+                var transfer = new DataTransfer();
+                if (action != "tab_drag_external") transfer.Add(DataTransferItem.Create(DataFormat.CreateStringApplicationFormat("sourcegit-dnd-main-tab"), model.Pages[index].Node.Id));
+                else transfer.Add(DataTransferItem.CreateText("unrelated drag"));
+                root.RaiseEvent(new DragEventArgs(action == "tab_drop" ? DragDrop.DropEvent : action == "tab_drag_leave" ? DragDrop.DragLeaveEvent : DragDrop.DragOverEvent,
+                    transfer, root, location, KeyModifiers.None));
+            }
+            else if (action is "radio_inspect" or "radio_select" or "radio_hover" or "radio_focus")
+            {
+                var surface = window.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "PopupDialogSurface" && b.IsEffectivelyVisible);
+                var choices = surface.GetVisualDescendants().OfType<RadioButton>().Where(r => r.IsEffectivelyVisible).ToArray();
+                var radio = choices[index];
+                if (action == "radio_select")
+                    typeof(Button).GetMethod("OnClick", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(radio, null);
+                else if (action == "radio_focus")
+                    (radio.FindAncestorOfType<Views.DealWithLocalChangesMethod>() as InputElement ?? radio).Focus(NavigationMethod.Tab);
+                else if (action == "radio_hover")
+                    radio.RaiseEvent(new PointerEventArgs(InputElement.PointerEnteredEvent, radio, Pointer, window,
+                        radio.TranslatePoint(new Point(7, 7), window).Value, (ulong)Environment.TickCount64,
+                        new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.Other), KeyModifiers.None));
+                var items = choices.Select(r =>
+                {
+                    var ellipses = r.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>();
+                    var ring = ellipses.Single(e => e.Name == "Border");
+                    var dot = ellipses.Single(e => e.Name == "Dot");
+                    return new { selected = r.IsChecked, ring = ring.Fill?.ToString(), dot = dot.Fill?.ToString(),
+                        edge = ring.Stroke?.ToString(), focused = (r.FindAncestorOfType<Views.DealWithLocalChangesMethod>() as InputElement ?? r).IsFocused,
+                        hovered = r.IsPointerOver, outer = Bounds(ring), inner = Bounds(dot) };
+                }).ToArray();
+                return new { items };
+            }
+            else if (action == "closed_combo_focus")
+            {
+                var form = window.GetVisualDescendants().OfType<Control>().Single(c =>
+                    (c is Views.Pull or Views.StashChanges) && c.IsEffectivelyVisible);
+                var combo = form.GetVisualDescendants().OfType<ComboBox>().First();
+                var borders = combo.GetVisualDescendants().OfType<Border>();
+                var focus = borders.Single(b => b.Name == "HighlightBackground");
+                var surface = borders.Single(b => b.Name == "Background");
+                return new { closed = !combo.IsDropDownOpen, focused = combo.IsFocused, visible = focus.IsVisible,
+                    fill = focus.Background?.ToString(), border = focus.BorderBrush?.ToString(), surface = surface.Background?.ToString(),
+                    themeBorder = combo.FindResource("Brush.TreeGit.ParentSHA")?.ToString(), themeSurface = combo.FindResource("Brush.Contents")?.ToString() };
+            }
+            else if (action is "pull_remote_choices" or "pull_branch_choices" or "pull_selected_colors")
+            {
+                var pull = window.GetVisualDescendants().OfType<Views.Pull>().Single(v => v.IsEffectivelyVisible);
+                var combo = pull.GetVisualDescendants().OfType<ComboBox>().First();
+                var branches = pull.GetVisualDescendants().OfType<Views.BranchSelector>().Single();
+                if (action == "pull_remote_choices") { branches.IsDropDownOpened = false; combo.IsDropDownOpen = true; }
+                if (action == "pull_branch_choices") { combo.IsDropDownOpen = false; branches.IsDropDownOpened = true; }
+                var item = window.GetVisualDescendants().OfType<ListBoxItem>().FirstOrDefault(i =>
+                    i.IsSelected && i.IsEffectivelyVisible && i.FindAncestorOfType<OverlayPopupHost>() != null);
+                var presenter = item?.GetVisualDescendants().OfType<ContentPresenter>().FirstOrDefault(c => c.Name == "PART_ContentPresenter");
+                return new { opened = combo.IsDropDownOpen || branches.IsDropDownOpened, background = presenter?.Background?.ToString(), foreground = presenter?.Foreground?.ToString() };
+            }
+            else if (action == "operation_probe")
+            {
+                var popup = ((ViewModels.Launcher)window.DataContext).ActivePage.Popup;
+                if (index == 0) { popup.BeginOperation(); popup.InProgress = true; popup.ShowOperationPanel(); }
+                else if (index == 1) for (var n = 0; n < 100; n++) popup.AppendOperationOutput("Anonymous operation output " + n + " " + new string('x', 150), n % 20 == 0);
+                else if (index == 2) { popup.FinishOperation(true); popup.InProgress = false; }
+                else if (index == 3) { popup.CancelOperation(); popup.FinishOperation(false); popup.InProgress = false; }
+                else if (index == 4) popup.ShowFullOutput = !popup.ShowFullOutput;
+                else if (index == 5) window.GetVisualDescendants().OfType<Views.OperationOutputView>().Single(v => v.IsEffectivelyVisible).SelectAll();
+                else if (index == 6) popup.OnReceiveCommandLog(args.GetProperty("button").GetString());
+                else if (index == 7) { popup.FinishOperation(false); popup.InProgress = false; }
+            }
+            else if (action is "remote_query_start" or "remote_query_cancel" or "remote_query_state")
+            {
+                var page = ((ViewModels.Launcher)window.DataContext).ActivePage;
+                var repo = page.Data as ViewModels.Repository ?? throw new InvalidOperationException("Open the isolated query repository first.");
+                if (action == "remote_query_start")
+                {
+                    var branch = repo.Branches.Single(b => !b.IsLocal && b.Remote == "origin" && b.Name == "main");
+                    page.Popup = index == 0 ? new ViewModels.DeleteBranch(repo, branch) : new ViewModels.DeleteMultipleBranches(repo, [branch], false);
+                    _ = page.ProcessPopupAsync();
+                }
+                else if (action == "remote_query_cancel") page.TerminatePopup();
+                return new { inProgress = page.Popup?.InProgress == true, panelVisible = page.Popup?.OperationPanelVisible == true,
+                    popupPresent = page.Popup != null, busy = page.HasRunningOperation, activeLogs = repo.Logs.Count(log => !log.IsComplete) };
+            }
+            else if (action.StartsWith("dialog_", StringComparison.Ordinal))
+            {
+                var surface = window.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "PopupDialogSurface" && b.IsEffectivelyVisible);
+                var handle = surface.GetVisualDescendants().OfType<Border>().First(b => b.Name == "PopupDragHandle" && b.IsEffectivelyVisible);
+                var start = handle.TranslatePoint(new Point(handle.Bounds.Width / 2, handle.Bounds.Height / 2), window)!.Value;
+                var target = action == "dialog_input_drag" ? surface.GetVisualDescendants().OfType<TextBox>().First(t => t.IsEffectivelyVisible && t.IsEffectivelyEnabled) : action == "dialog_body_drag" ? (Control)surface : handle;
+                if (action == "dialog_input_drag") start = target.TranslatePoint(new Point(target.Bounds.Width / 2, target.Bounds.Height / 2), window)!.Value;
+                if (action == "dialog_body_drag") start = surface.TranslatePoint(new Point(12, surface.Bounds.Height - 42), window)!.Value;
+                if (action != "dialog_inspect")
+                {
+                    target.RaiseEvent(new PointerPressedEventArgs(target, Pointer, window, start, (ulong)Environment.TickCount64,
+                        new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None, 1));
+                    if (action == "dialog_capture_lost") Pointer.Capture(null);
+                    var delta = index switch { 0 => new Vector(-10000, -10000), 1 => new Vector(10000, 10000), 2 => new Vector(-10000, 10000), 3 => new Vector(10000, -10000), _ => new Vector(50, -30) };
+                    var receiver = Pointer.Captured as Control ?? target;
+                    receiver.RaiseEvent(new PointerEventArgs(InputElement.PointerMovedEvent, receiver, Pointer, window, start + delta, (ulong)Environment.TickCount64,
+                        new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.Other), KeyModifiers.None));
+                    receiver.RaiseEvent(new PointerReleasedEventArgs(receiver, Pointer, window, start + delta, (ulong)Environment.TickCount64,
+                        new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.LeftButtonReleased), KeyModifiers.None, MouseButton.Left));
+                    Pointer.Capture(null);
+                }
+            }
+            else if (action == "welcome_mock") return RepositoryCreationProbe.Configure(index);
+            else if (action == "welcome_mock_state") return RepositoryCreationProbe.State();
+            else if (action == "popup_commit_action")
+            {
+                var repo = ((ViewModels.Launcher)window.DataContext).ActivePage.Data as ViewModels.Repository
+                    ?? throw new InvalidOperationException("The isolated repository is not open.");
+                var commit = repo.Histories.Commits.First(c => c.SHA.Length is 40 or 64 && c.SHA.All(Uri.IsHexDigit));
+                if (!repo.CanCreatePopup()) throw new InvalidOperationException("The isolated popup is unavailable.");
+                repo.ShowPopup(index == 0 ? new ViewModels.CherryPick(repo, [commit]) : new ViewModels.Revert(repo, commit));
+            }
+            else if (action == "welcome_action")
+            {
+                var names = new[] { "WelcomeClone", "WelcomeOpen", "WelcomeCreate", "WelcomeGroup", "WelcomeScan" };
+                var button = window.GetVisualDescendants().OfType<Button>().Single(b => b.Name == names[index] && b.IsEffectivelyVisible);
+                if (button.Command?.CanExecute(button.CommandParameter) != true) throw new InvalidOperationException("Welcome action is unavailable.");
+                button.Command.Execute(button.CommandParameter);
+            }
+            else if (action == "file_repository") headers[0].Items.OfType<MenuItem>().First().RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            else if (action == "fit_desktop")
             {
                 var screen = window.Screens.ScreenFromWindow(window) ?? window.Screens.Primary;
                 if (screen != null)
@@ -141,9 +420,42 @@ namespace SourceGit.Automation
             else if (action == "reset") { menu.Close(); Events.Clear(); }
             else if (action == "popup_combo")
                 window.GetVisualDescendants().OfType<ComboBox>().First(c => c.IsEffectivelyVisible).IsDropDownOpen = true;
-            else if (action == "popup_tooltip")
+            else if (action == "fullscreen")
+                window.WindowState = WindowState.FullScreen;
+            else if (action is "discard_tooltip" or "stash_tooltip")
             {
-                _tooltipTarget = window.GetVisualDescendants().OfType<Control>().First(c => c.IsEffectivelyVisible && c.Bounds.Width > 0 && ToolTip.GetTip(c) != null);
+                var label = App.Text(action == "stash_tooltip" ? "Toolbar.Stash" : "TreeGit.Toolbar.Discard");
+                _tooltipTarget = window.GetVisualDescendants().OfType<Button>().Single(b => b.IsEffectivelyVisible &&
+                    b.GetVisualDescendants().OfType<TextBlock>().Any(t => t.Classes.Contains("toolbar_label") && t.Text == label));
+                ToolTip.SetIsOpen(_tooltipTarget, true);
+            }
+            else if (action is "popup_tooltip" or "new_tab_tooltip")
+            {
+                _tooltipTarget = window.GetVisualDescendants().OfType<Control>().First(c => c.IsEffectivelyVisible && c.Bounds.Width > 0 &&
+                    ToolTip.GetTip(c) != null && (action == "popup_tooltip" || c.Classes.Contains("treegit_tab_add")));
+                ToolTip.SetIsOpen(_tooltipTarget, true);
+            }
+            else if (action == "detail_tooltip")
+            {
+                var target = window.GetVisualDescendants().OfType<Control>().Single(c => c.Name == (index == 0 ? "CollapseDetailsButton" : "OpenDetailsStandaloneButton") && c.IsEffectivelyVisible);
+                if (_tooltipTarget != target)
+                {
+                    target.PropertyChanged += (_, change) =>
+                    {
+                        if (change.Property != ToolTip.IsOpenProperty || Events.Count > 240) return;
+                        Events.Add(new { phase = "detail-tip", target = target.Name, open = ToolTip.GetIsOpen(target), active = window.IsActive,
+                            callers = new System.Diagnostics.StackTrace(false).GetFrames().Select(f => f.GetMethod()).Where(m => m?.DeclaringType?.FullName?.Contains("ToolTip", StringComparison.Ordinal) == true || m?.DeclaringType?.FullName == "SourceGit.Views.Histories").Select(m => m.DeclaringType.FullName + "." + m.Name).Take(8).ToArray() });
+                    };
+                }
+                _tooltipTarget = target;
+                if (!(OperatingSystem.IsWindows() && LocalAuditHost.IsEnabled)) window.Activate();
+                // Native activation is asynchronous. Establish the same managed
+                // precondition before opening a tooltip in a routed-input test;
+                // hidden local audits never activate a native desktop window.
+                if (!window.IsActive)
+                    (typeof(WindowBase).GetMethod("HandleActivated", BindingFlags.Instance | BindingFlags.NonPublic)
+                        ?? throw new InvalidOperationException("The pinned framework activation handler is unavailable."))
+                        .Invoke(window, null);
                 ToolTip.SetIsOpen(_tooltipTarget, true);
             }
             else if (action == "popup_close")
@@ -264,6 +576,13 @@ namespace SourceGit.Automation
             else if (action == "outside") window.RaiseEvent(new PointerPressedEventArgs(window, Pointer, window,
                 new Point(window.Bounds.Width / 2, window.Bounds.Height - 40), (ulong)Environment.TickCount64,
                 new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None, 1));
+            else if (action == "outside_content")
+            {
+                var content = window.Content as Control ?? throw new InvalidOperationException("Window content is missing.");
+                content.RaiseEvent(new PointerPressedEventArgs(content, Pointer, window,
+                    new Point(window.Bounds.Width / 2, window.Bounds.Height - 40), (ulong)Environment.TickCount64,
+                    new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None, 1));
+            }
             else if (action == "page_tab")
             {
                 var tabs = window.GetVisualDescendants().OfType<Button>().Where(b => b.Classes.Contains("treegit_bottom_tab") && b.IsEffectivelyVisible).ToArray();
@@ -414,6 +733,7 @@ namespace SourceGit.Automation
                 popups = window.GetVisualDescendants().OfType<Popup>().Where(p => p.IsOpen)
                     .Select(p => new { name = p.Name, overlay = p.IsUsingOverlayLayer }).ToArray(),
                 activeLocale = App.ActiveLocale,
+                windowActive = window.IsActive,
                 savedLocale = ViewModels.Preferences.Instance.Locale,
                 textCatalog = action == "catalog" && App.Current.Resources[App.ActiveLocale] is ResourceDictionary dictionary
                     ? dictionary.Keys.OfType<string>().Where(key => key.StartsWith("Text.", StringComparison.Ordinal))
@@ -438,7 +758,95 @@ namespace SourceGit.Automation
                         checkColor = (option.Header as Grid)?.Children.OfType<Avalonia.Controls.Shapes.Path>().First().Fill?.ToString(),
                     }).ToArray(),
                 },
+                welcomeButtons = window.GetVisualDescendants().OfType<Views.WelcomeToolbar>().Where(t => t.IsEffectivelyVisible)
+                    .SelectMany(t => t.GetVisualDescendants().OfType<Button>()).Where(b => b.Name?.StartsWith("Welcome", StringComparison.Ordinal) == true)
+                    .Select(b => new { name = b.Name, bounds = Bounds(b), text = b.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault()?.Text }).ToArray(),
+                tabState = window.GetVisualDescendants().OfType<Views.LauncherTabBar>().Select(bar =>
+                {
+                    var model = (ViewModels.Launcher)bar.DataContext;
+                    var list = bar.FindControl<ListBox>("LauncherTabsList");
+                    var marker = bar.FindControl<Border>("TabInsertionMarker");
+                    var mask = window.FindControl<Border>("TabModalMask");
+                    var selectedTab = list.ContainerFromIndex(list.SelectedIndex) as Control;
+                    var close = selectedTab?.GetVisualDescendants().OfType<Button>().FirstOrDefault(b => b.Classes.Contains("treegit_tab_close"));
+                    return new { order = model.Pages.Select(p => p.Node.Id).ToArray(), active = model.ActivePage.Node.Id,
+                        enabled = bar.IsEffectivelyEnabled, opacity = bar.Opacity, canManage = model.CanManageTabs,
+                        modalMask = new { visible = mask.IsEffectivelyVisible, bounds = Bounds(mask), color = mask.Background.ToString() },
+                        windowWidth = window.Bounds.Width, selectedTab = Bounds(selectedTab), closeIcon = Bounds(close?.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().FirstOrDefault()),
+                        pages = model.Pages.Select(p => new { id = p.Node.Id, kind = p.Data?.GetType().Name, popup = p.Popup?.GetType().Name, dirty = p.DirtyState.ToString() }).ToArray(),
+                        selected = (list.SelectedItem as ViewModels.LauncherPage)?.Node.Id,
+                        selectedContainers = list.GetVisualDescendants().OfType<ListBoxItem>().Where(i => i.IsSelected).Select(i => (i.DataContext as ViewModels.LauncherPage)?.Node.Id).ToArray(),
+                        displayed = (window.GetVisualDescendants().OfType<Views.LauncherPage>().FirstOrDefault(p => p.IsEffectivelyVisible)?.DataContext as ViewModels.LauncherPage)?.Node.Id,
+                        markerVisible = marker.IsVisible, marker = Bounds(marker), viewport = Bounds(bar.FindControl<ScrollViewer>("LauncherTabsScroller")) };
+                }).FirstOrDefault(),
+                welcomeSeparators = window.GetVisualDescendants().OfType<Views.WelcomeToolbar>().Where(t => t.IsEffectivelyVisible)
+                    .Select(t => new { toolbar = Bounds(t), content = Bounds(t.GetVisualDescendants().OfType<Button>().First(b => b.Name == "WelcomeClone").Content as Control), separator = Bounds(t.GetVisualDescendants().OfType<Views.CommitOptionSeparator>().Single()),
+                        grooveWidth = t.GetVisualDescendants().OfType<Views.CommitOptionSeparator>().Single().GrooveWidth }).ToArray(),
+                welcomePresentation = window.GetVisualDescendants().OfType<Views.WelcomeToolbar>().Where(t => t.IsEffectivelyVisible)
+                    .SelectMany(t => t.GetVisualDescendants().OfType<Button>().Where(b => b.Name is "WelcomeClone" or "WelcomeOpen" or "WelcomeCreate" or "WelcomeGroup" or "WelcomeScan")
+                        .Select(b =>
+                        {
+                            var path = b.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().First();
+                            var label = b.GetVisualDescendants().OfType<TextBlock>().First(t => t.Classes.Contains("toolbar_label"));
+                            var center = path.TranslatePoint(path.RenderedGeometry?.Bounds.Center ?? default, window);
+                            return new { name = b.Name, labelColor = label.Foreground?.ToString(), label = Bounds(label),
+                                contentOpacity = path.GetVisualAncestors().TakeWhile(v => v != b).Aggregate(path.Opacity, (opacity, visual) => opacity * visual.Opacity),
+                                iconCenter = new { x = center?.X, y = center?.Y },
+                                iconColors = path.Fill is Avalonia.Media.SolidColorBrush solid ? new[] { solid.Color.ToString() }
+                                    : (path.Fill as Avalonia.Media.LinearGradientBrush)?.GradientStops.Select(s => s.Color.ToString()).ToArray() };
+                        })).ToArray(),
+                operationPanels = window.GetVisualDescendants().OfType<Views.OperationProgressView>().Where(v => v.IsEffectivelyVisible).Select(v =>
+                {
+                    var popup = (ViewModels.Popup)v.DataContext;
+                    var controls = v.GetVisualDescendants().OfType<Control>().ToArray();
+                    var log = controls.OfType<Views.OperationOutputView>().Single();
+                    var scroller = controls.OfType<ScrollViewer>().Single(c => c.Name == "OperationOutputScroll");
+                    var bar = controls.OfType<Views.ActivityProgressBar>().Single();
+                    var sweep = controls.OfType<ProgressBar>().FirstOrDefault(p => p.Name == "ActivitySweep");
+                    var close = controls.OfType<Button>().Single(b => b.Name == "CloseOperation");
+                    return new { panel = Bounds(v), area = Bounds(v.FindAncestorOfType<Views.LauncherPage>().FindControl<Grid>("PopupArea")),
+                        cancelEnabled = controls.OfType<Button>().Single(b => b.Name == "CancelOperation").IsEffectivelyEnabled,
+                        closeEnabled = controls.OfType<Button>().Single(b => b.Name == "CloseOperation").IsEffectivelyEnabled,
+                        cancelBounds = Bounds(controls.OfType<Button>().Single(b => b.Name == "CancelOperation")),
+                        barBounds = Bounds(bar), sweepWidth = sweep?.Bounds.Width, sweeping = sweep?.IsIndeterminate == true && sweep.IsEffectivelyVisible,
+                        progress = bar.Value, reported = popup.OperationProgress, indeterminate = bar.IsIndeterminate,
+                        scrollGap = scroller.ScrollBarMaximum.Y - scroller.Offset.Y, closeWidth = close.Bounds.Width, closeFill = close.Background?.ToString(),
+                        popup.InProgress, popup.OperationStage, popup.OperationPhaseFailed, popup.ShowFullOutput,
+                        lines = popup.OperationOutput.Count, errors = popup.OperationOutput.Count(l => l.IsError),
+                        selectableText = log.Inlines.Text, selectedText = log.SelectedText, scrollExtent = scroller.Extent, scrollViewport = scroller.Viewport,
+                        progressColor = bar.Foreground?.ToString() };
+                }).ToArray(),
+                pageDialogs = window.GetVisualDescendants().OfType<Border>().Where(b => b.Name == "PopupDialogSurface" && b.IsEffectivelyVisible)
+                    .Select(b => new { dialog = Bounds(b), area = Bounds(b.GetVisualAncestors().OfType<Grid>().First(g => g.Name == "PopupArea")),
+                        form = Bounds(b.GetVisualDescendants().OfType<UserControl>().Where(v => v is Views.Clone or Views.OpenLocalRepository or Views.CreateRepository or Views.CreateGroup or Views.ScanRepositories)
+                            .Select(v => (v.Content as StackPanel)?.Children.OfType<Grid>().FirstOrDefault()).FirstOrDefault()),
+                        header = Bounds(b.GetVisualDescendants().OfType<Border>().FirstOrDefault(h => h.Name == "PopupDragHandle" && h.IsEffectivelyVisible)),
+                        title = b.GetVisualDescendants().OfType<Border>().FirstOrDefault(h => h.Name == "PopupDragHandle")?.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault()?.Text,
+                        legacyTitleVisible = b.GetVisualDescendants().OfType<Control>().Any(c => c.Classes.Contains("popup_heading") && c.IsEffectivelyVisible),
+                        advancedExpanders = b.GetVisualDescendants().OfType<Expander>().Count(e => e.Name is "BranchAdvancedOptions" or "PushAdvancedOptions"),
+                        advancedCheckBoxes = b.GetVisualDescendants().OfType<CheckBox>().Where(c => c.IsEffectivelyVisible && c.Name is "BranchAllowOverwrite" or "PushSkipHooks" or "PushForce").Select(c => c.Name).ToArray(),
+                        headerColor = b.GetVisualDescendants().OfType<Border>().FirstOrDefault(h => h.Name == "PopupDragHandle")?.Background?.ToString(),
+                        frameColor = (b.Child as Border)?.BorderBrush?.ToString(), frameBackground = (b.Child as Border)?.Background?.ToString(), hasShadow = b.Effect != null }).ToArray(),
+                createPresentation = window.GetVisualDescendants().OfType<Views.CreateRepository>().Where(v => v.IsEffectivelyVisible && v.DataContext is ViewModels.CreateRepository { CreateOnGitHub: true }).Select(v => new
+                {
+                    button = Bounds(v.GetVisualDescendants().OfType<Button>().First(b => b.Name == "VerifyGitHubAccount")),
+                    buttonAlignment = v.GetVisualDescendants().OfType<Button>().First(b => b.Name == "VerifyGitHubAccount").VerticalContentAlignment.ToString(),
+                    samePrimaryStyle = v.GetVisualDescendants().OfType<Button>().First(b => b.Name == "VerifyGitHubAccount").Background?.ToString()
+                        == window.GetVisualDescendants().OfType<Button>().First(b => b.Name == "ConfirmPopup" && b.IsEffectivelyVisible).Background?.ToString(),
+                    label = Bounds(v.GetVisualDescendants().OfType<Button>().First(b => b.Name == "VerifyGitHubAccount").GetVisualDescendants().OfType<TextBlock>().FirstOrDefault()),
+                    linkColor = v.FindControl<TextBlock>("GitHubTokenHelpLabel")?.Foreground?.ToString(),
+                    linkLabel = Bounds(v.FindControl<TextBlock>("GitHubTokenHelpLabel")),
+                    linkUnderline = Bounds(v.FindControl<Border>("GitHubTokenHelpUnderline")),
+                    linkUnderlineColor = v.FindControl<Border>("GitHubTokenHelpUnderline")?.Background?.ToString(),
+                    tokenInput = Bounds(v.FindControl<TextBox>("CreateRepositoryToken")),
+                }).ToArray(),
+                creationState = (window.DataContext as ViewModels.Launcher)?.ActivePage?.Popup is ViewModels.CreateRepository creation
+                    ? new { name = creation.Name, account = creation.Account, error = creation.Error, canConnectExisting = creation.CanConnectExisting, canEditName = creation.CanEditName, canEditParentFolder = creation.CanEditParentFolder, canVerify = creation.CanVerifyAccount } : null,
+                detailTooltips = window.GetVisualDescendants().OfType<Control>().Where(c => c.Name is "CollapseDetailsButton" or "OpenDetailsStandaloneButton" && c.IsEffectivelyVisible)
+                    .Select(c => new { name = c.Name, open = ToolTip.GetIsOpen(c), placement = ToolTip.GetPlacement(c).ToString(),
+                        interactive = (ToolTip.GetTip(c) as Control)?.IsHitTestVisible }).ToArray(),
                 headers = headers.Select((h, i) => new { index = i, text = h.Header?.ToString(), open = h.IsSubMenuOpen, selected = h.IsSelected, childSelected = h.SelectedIndex,
+                    items = h.Items.OfType<MenuItem>().Select(item => new { name = item.Name, text = item.Header?.ToString(), enabled = item.IsEffectivelyEnabled }).ToArray(),
                     popup = (typeof(MenuItem).GetField("_popup", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(h) as Popup)?.IsOpen,
                     outlineVisible = h.GetVisualDescendants().OfType<Border>().FirstOrDefault(b => b.Name == "MenuHeaderOutline")?.IsVisible,
                     outlineBrush = h.GetVisualDescendants().OfType<Border>().FirstOrDefault(b => b.Name == "MenuHeaderOutline")?.BorderBrush?.ToString(),
@@ -446,6 +854,8 @@ namespace SourceGit.Automation
                     screenX = h.PointToScreen(new Point(h.Bounds.Width / 2, h.Bounds.Height / 2)).X,
                     screenY = h.PointToScreen(new Point(h.Bounds.Width / 2, h.Bounds.Height / 2)).Y }).ToArray(),
                 events = Events.ToArray(),
+                localWindowsPrivate = OperatingSystem.IsWindows() && LocalAuditHost.IsEnabled
+                    ? (bool?)LocalAuditHost.AllWindowsPrivate(((Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).Windows) : null,
             };
         }
     }

@@ -150,19 +150,30 @@ namespace SourceGit.Views
 
         private void OnPrimaryMenuHeaderPointerPressed(object sender, PointerPressedEventArgs e)
         {
-            if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || e.Source is not Avalonia.Visual source)
+            if (e.Source is not Avalonia.Visual source)
                 return;
 
             var header = source as MenuItem ?? source.FindAncestorOfType<MenuItem>();
-            if (header?.Parent != PrimaryMenu || !header.IsSubMenuOpen)
+            if (header != null)
+            {
+                if (header.Parent == PrimaryMenu && header.IsSubMenuOpen && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+                {
+                    ClosePrimaryMenus();
+                    e.Handled = true;
+                }
                 return;
+            }
 
-            PrimaryMenu.Close();
-            e.Handled = true;
+            if (PrimaryMenu?.IsOpen == true && !PrimaryMenu.GetVisualDescendants().OfType<Popup>()
+                .Any(popup => popup.IsOpen && popup.Child != null && (popup.Child == source || popup.Child.IsVisualAncestorOf(source))))
+                ClosePrimaryMenus();
         }
 
         private void OnTitleChromePointerPressed(object sender, PointerPressedEventArgs e)
         {
+            // The entire lower row belongs to tabs, including its empty space.
+            // Only the menu/caption row can move or maximize the window.
+            if (e.GetPosition(TitleChrome).Y >= TitleChrome.RowDefinitions[0].ActualHeight - .1) return;
             if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
             for (var control = e.Source as Control; control != null && control != TitleChrome; control = control.GetVisualParent() as Control)
                 if (control is Button or MenuItem or ListBoxItem or ScrollBar or TextBox)
@@ -175,6 +186,8 @@ namespace SourceGit.Views
             else
                 BeginMoveWindow(sender, e);
         }
+
+        private void OnTabMaskPointerPressed(object sender, PointerPressedEventArgs e) => e.Handled = true;
 
         private void OnTreeGitExtraAction(object sender, Avalonia.Interactivity.RoutedEventArgs e)
         {

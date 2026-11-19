@@ -49,6 +49,17 @@
       <!-- Pages Tabs -->
       <Menu Grid.Column="1" VerticalAlignment="Center" Background="Transparent" x:Name="PrimaryMenu">
         <Menu.Styles>
+          <Style Selector="MenuItem.treegit_repository_action">
+            <Setter Property="IsEnabled" Value="{Binding ActivePage.LoadedRepository, Converter={x:Static ObjectConverters.IsNotNull}}"/>
+          </Style>
+          <Style Selector="MenuItem.treegit_worktree_action">
+            <Setter Property="IsEnabled" Value="{Binding ActivePage.HasWorkingTree}"/>
+          </Style>
+          <Style Selector="MenuItem:disabled"><Setter Property="Foreground" Value="{DynamicResource Brush.FG2}"/></Style>
+          <Style Selector="MenuItem:disabled /template/ ContentPresenter#PART_HeaderPresenter">
+            <Setter Property="Foreground" Value="{DynamicResource Brush.FG2}"/>
+            <Setter Property="Effect" Value="drop-shadow(1 1 0 #C0FFFFFF)"/>
+          </Style>
           <Style Selector="MenuItem /template/ Popup#PART_Popup">
             <Setter Property="ShouldUseOverlayLayer" Value="True"/>
           </Style>
@@ -76,12 +87,11 @@
           <Style Selector="Menu &gt; MenuItem:open /template/ Border#MenuHeaderOutline"><Setter Property="IsVisible" Value="True"/></Style>
         </Menu.Styles>
         <MenuItem Header="{DynamicResource Text.TreeGit.Menu.File}">
-          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.NewTab}" Command="{Binding AddNewTab}"/>
           <MenuItem Header="{DynamicResource Text.TreeGit.Menu.OpenClone}" Click="OnTreeGitShowRepositories"/>
           <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Quit}" Command="{x:Static s:App.QuitCommand}"/>
         </MenuItem>
         <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Edit}">
-          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Language}" x:Name="LanguageMenu" PointerEntered="OnLanguageMenuPointerEntered">
+          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Language}" Classes="flat_submenu" x:Name="LanguageMenu" PointerEntered="OnLanguageMenuPointerEntered">
             <MenuItem x:Name="Language_zh_CN" Click="OnTreeGitLanguageChanged" PointerEntered="OnLanguageOptionPointerEntered">
               <MenuItem.Header>
                 <Grid ColumnDefinitions="*,18" MinWidth="112">
@@ -110,24 +120,18 @@
           <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Preferences}" Command="{x:Static s:App.OpenPreferencesCommand}"/>
         </MenuItem>
 
-        <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Repository}">
-          <MenuItem Header="{DynamicResource Text.TreeGit.Settings.Title}" Click="OnTreeGitRepositorySettings"/>
-          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Explorer}" Click="OnTreeGitExplorer"/>
-          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Terminal}" Click="OnTreeGitTerminal"/>
-
-        </MenuItem>
         <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Actions}">
-          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Fetch}" Click="OnTreeGitFetch"/><MenuItem Header="{DynamicResource Text.TreeGit.Menu.Pull}" Click="OnTreeGitPull"/><MenuItem Header="{DynamicResource Text.TreeGit.Menu.Push}" Click="OnTreeGitPush"/>
-          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.NewBranch}" Click="OnTreeGitBranch"/><MenuItem Header="{DynamicResource Text.TreeGit.Menu.NewTag}" Click="OnTreeGitTag"/>
-          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Advanced}">
-            <MenuItem Header="{DynamicResource Text.WorkingCopy.Amend}" x:Name="GitAction_amend" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="{DynamicResource Text.WorkingCopy.ResetAuthor}" x:Name="GitAction_reset_author" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="{DynamicResource Text.ConventionalCommit}" x:Name="GitAction_conventional" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.AddSubmodule}" x:Name="GitAction_submodule" Click="OnTreeGitExtraAction"/>
+          <MenuItem Classes="treegit_repository_action" Header="{DynamicResource Text.TreeGit.Menu.Fetch}" Click="OnTreeGitFetch"/><MenuItem Classes="treegit_worktree_action" Header="{DynamicResource Text.TreeGit.Menu.Pull}" Click="OnTreeGitPull"/><MenuItem Classes="treegit_repository_action" Header="{DynamicResource Text.TreeGit.Menu.Push}" Click="OnTreeGitPush"/>
+          <MenuItem Classes="treegit_repository_action" Header="{DynamicResource Text.TreeGit.Menu.NewBranch}" Click="OnTreeGitBranch"/><MenuItem Classes="treegit_repository_action" Header="{DynamicResource Text.TreeGit.Menu.NewTag}" Click="OnTreeGitTag"/>
+          <MenuItem Classes="treegit_repository_action" Header="{DynamicResource Text.TreeGit.Menu.Advanced}">
+            <MenuItem Classes="treegit_worktree_action" Header="{DynamicResource Text.WorkingCopy.Amend}" x:Name="GitAction_amend" Click="OnTreeGitExtraAction"/>
+            <MenuItem Classes="treegit_worktree_action" Header="{DynamicResource Text.WorkingCopy.ResetAuthor}" x:Name="GitAction_reset_author" Click="OnTreeGitExtraAction"/>
+            <MenuItem Classes="treegit_worktree_action" Header="{DynamicResource Text.ConventionalCommit}" x:Name="GitAction_conventional" Click="OnTreeGitExtraAction"/>
+            <MenuItem Classes="treegit_worktree_action" Header="{DynamicResource Text.TreeGit.Menu.AddSubmodule}" x:Name="GitAction_submodule" Click="OnTreeGitExtraAction"/>
             <MenuItem Header="{DynamicResource Text.TreeGit.Menu.AddWorktree}" x:Name="GitAction_worktree" Click="OnTreeGitExtraAction"/>
             <MenuItem Header="Git LFS" x:Name="GitAction_lfs" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.ApplyPatch}" x:Name="GitAction_patch" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Bisect}" x:Name="GitAction_bisect" Click="OnTreeGitExtraAction"/>
+            <MenuItem Classes="treegit_worktree_action" Header="{DynamicResource Text.TreeGit.Menu.ApplyPatch}" x:Name="GitAction_patch" Click="OnTreeGitExtraAction"/>
+            <MenuItem Classes="treegit_worktree_action" Header="{DynamicResource Text.TreeGit.Menu.Bisect}" x:Name="GitAction_bisect" Click="OnTreeGitExtraAction"/>
             <MenuItem Header="{DynamicResource Text.TreeGit.Menu.GitFlow}" x:Name="GitAction_gitflow" Click="OnTreeGitExtraAction"/>
             <MenuItem Header="{DynamicResource Text.TreeGit.Menu.GoToHead}" x:Name="GitAction_head" Click="OnTreeGitExtraAction"/>
             <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Reflog}" x:Name="GitAction_reflog" Click="OnTreeGitExtraAction"/>
@@ -139,13 +143,13 @@
         <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Tools}">
           <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Mcp}" Command="{x:Static s:App.OpenMcpConnectionCommand}"/>
           <MenuItem Header="{DynamicResource Text.TreeGit.Menu.SshKeys}" Command="{x:Static s:App.OpenSSHKeyHelperCommand}"/>
-          <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Credentials}" x:Name="GitAction_credentials" Click="OnTreeGitExtraAction"/>
+          <MenuItem x:Name="ThirdPartyIntegrationMenu" Header="{DynamicResource Text.Preferences.Integration}" Command="{x:Static s:App.OpenPreferencesCommand}" CommandParameter="integration"/>
         </MenuItem>
         <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Help}"><MenuItem Header="{DynamicResource Text.SelfUpdate}" Command="{x:Static s:App.CheckForUpdateCommand}" IsVisible="{x:Static s:App.IsCheckForUpdateCommandVisible}">
               <MenuItem.Icon>
                 <Path Width="14" Height="14" Data="{StaticResource Icons.SoftwareUpdate}"/>
               </MenuItem.Icon>
-            </MenuItem><MenuItem Header="-" IsVisible="{x:Static s:App.IsCheckForUpdateCommandVisible}"/><MenuItem Header="{DynamicResource Text.TreeGit.Menu.Diagnostics}"><MenuItem Header="{DynamicResource Text.OpenAppDataDir}" Command="{x:Static s:App.OpenAppDataDirCommand}" IsVisible="{OnPlatform True, Linux=False}">
+            </MenuItem><MenuItem Header="-" IsVisible="{x:Static s:App.IsCheckForUpdateCommandVisible}"/><MenuItem Header="{DynamicResource Text.OpenAppDataDir}" Command="{x:Static s:App.OpenAppDataDirCommand}" IsVisible="{OnPlatform True, Linux=False}">
               <MenuItem.Icon>
                 <Path Width="14" Height="14" Data="{StaticResource Icons.Explore}"/>
               </MenuItem.Icon>
@@ -156,9 +160,9 @@
 
               <MenuItem Header="{DynamicResource Text.OpenAppDataDir.Config}" Command="{x:Static s:App.OpenAppConfigDirCommand}"/>
               <MenuItem Header="{DynamicResource Text.OpenAppDataDir.Cache}" Command="{x:Static s:App.OpenAppDataDirCommand}"/>
-            </MenuItem></MenuItem><MenuItem Header="{DynamicResource Text.TreeGit.Menu.Hotkeys}" Command="{x:Static s:App.OpenHotkeysCommand}"/><MenuItem Header="{DynamicResource Text.TreeGit.Menu.About}" Command="{x:Static s:App.OpenAboutCommand}"/></MenuItem>
+            </MenuItem><MenuItem Header="{DynamicResource Text.TreeGit.Menu.Hotkeys}" Command="{x:Static s:App.OpenHotkeysCommand}"/><MenuItem Header="{DynamicResource Text.TreeGit.Menu.About}" Command="{x:Static s:App.OpenAboutCommand}"/></MenuItem>
       </Menu>
-      <v:LauncherTabBar Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="6" Height="26" Margin="10,0,110,0" VerticalAlignment="Bottom" x:Name="RepositoryTabs"/>
+      <v:LauncherTabBar Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="6" Height="26" Margin="10,0,110,0" VerticalAlignment="Bottom" x:Name="RepositoryTabs" IsEnabled="{Binding CanManageTabs}"/>
 
       <!-- Update Available Button -->
       <Button Grid.Column="4" Classes="icon_button" Height="30" Margin="0,0,4,0" VerticalAlignment="Top" IsVisible="{Binding NewVersion, Converter={x:Static ObjectConverters.IsNotNull}}" Click="OnShowNewVersion" ToolTip.Tip="{DynamicResource Text.Launcher.NewVersion}">
@@ -169,7 +173,10 @@
       <Border Grid.Column="5" IsVisible="{Binding #ThisControl.HasRightCaptionButton}">
         <v:CaptionButtons Height="30" VerticalAlignment="Top"><v:CaptionButtons.Styles><Style Selector="Button.caption_button &gt; Path"><Setter Property="Fill" Value="{DynamicResource Brush.TreeGit.ChromeForeground}"/></Style></v:CaptionButtons.Styles></v:CaptionButtons>
       </Border>
-    <Image Grid.Column="0" Width="22" Height="22" Source="/Resources/Images/TreeGit.png"/></Grid>
+    <Image Grid.Column="0" Width="22" Height="22" Source="/Resources/Images/TreeGit.png"/>
+      <Border x:Name="TabModalMask" Grid.Row="1" Grid.ColumnSpan="6" ZIndex="100" Background="#66000000"
+              IsVisible="{Binding !CanManageTabs}" PointerPressed="OnTabMaskPointerPressed"/>
+    </Grid>
 
     <!-- Page -->
     <ContentControl Grid.Row="1" Content="{Binding ActivePage}" Background="{DynamicResource Brush.Window}">

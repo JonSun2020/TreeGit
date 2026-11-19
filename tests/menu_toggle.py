@@ -106,7 +106,8 @@ try:
         tool('ui_window', theme=theme, state='normal')
         color = {'Blue': '#ff0078d7', 'Light': '#ffa7e1a7', 'Dark': '#ff6f9f76'}[theme]
         check('all header outlines follow the theme', all(h['outlineBrush'].lower() == color for h in action('inspect')['headers']))
-        for index in range(6):
+        header_count = len(action('inspect')['headers'])
+        for index in range(header_count):
             bounds = action('reset')['headers'][index]['bounds']
             action('enter', index); action('press', index)
             state = action('release', index)
@@ -123,7 +124,7 @@ try:
             check('closed geometry unchanged ' + str(index), state['headers'][index]['bounds'] == bounds)
             action('press', index); state = action('release', index)
             check('next press opens again ' + str(index), state['headers'][index]['open'])
-            other = (index + 1) % 6
+            other = (index + 1) % header_count
             state = action('enter', other)
             check('hover switches header ' + str(index), state['headers'][other]['open'] and not state['headers'][index]['open'])
             state = action('escape', other)
@@ -143,7 +144,7 @@ try:
         tool('ui_window', state='maximized')
         time.sleep(.25)
         state = action('native_reset')
-        for index in range(6):
+        for index in range(header_count):
             state = action('native_reset')
             move(state['headers'][index])
             click()
@@ -158,7 +159,7 @@ try:
             click()
             state = action('native_inspect')
             check('native third click reopens ' + str(index), state['headers'][index]['open'])
-            other = (index + 1) % 6
+            other = (index + 1) % header_count
             move(state['headers'][other])
             state = action('native_inspect')
             check('native hover switches menu ' + str(index), state['headers'][other]['open'] and not state['headers'][index]['open'])

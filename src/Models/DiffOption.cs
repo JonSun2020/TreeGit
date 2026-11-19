@@ -6,7 +6,14 @@ namespace SourceGit.Models
 {
     public class DiffOption
     {
-        public bool IsLocalChange => _revisions.Count == 0;
+        public bool IsLocalChange => !_displayOnly && _revisions.Count == 0;
+        private bool _displayOnly;
+        public DiffOption AsDisplayOnly()
+        {
+            var copy = (DiffOption)MemberwiseClone();
+            copy._displayOnly = true;
+            return copy;
+        }
         public bool IsUnstaged => _isUnstaged;
         public List<string> Revisions => _revisions;
         public string Path => _path;

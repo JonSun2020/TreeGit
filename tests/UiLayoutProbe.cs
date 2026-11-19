@@ -127,8 +127,14 @@ namespace SourceGit.Automation
                 .Where(w => w != window && w.IsVisible).Select(w => new
                 {
                     type = w.GetType().Name,
-                    tabs = w.GetVisualDescendants().OfType<TabControl>().Select(t => new { selected = t.SelectedIndex, headers = t.Items.OfType<TabItem>().Select(i => (i.Header as TextBlock)?.Text ?? i.Header?.ToString()).ToArray() }).ToArray(),
+                    header = w.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name is "DialogTitleText" or "PreferencesTitleText")?.Text,
+                    tabs = w.GetVisualDescendants().OfType<TabControl>().Where(t => t.IsEffectivelyVisible).Select(t => new { selected = t.SelectedIndex,
+                        headers = t.Items.OfType<TabItem>().Select(i => (i.Header as TextBlock)?.Text ?? i.Header?.ToString()).ToArray(),
+                        visibleHeaders = t.Items.OfType<TabItem>().Where(i => i.IsVisible).Select(i => (i.Header as TextBlock)?.Text ?? i.Header?.ToString()).ToArray() }).ToArray(),
                     content = w.GetVisualDescendants().OfType<ScrollViewer>().Where(v => v.IsEffectivelyVisible).Select(v => new { viewport = v.Viewport.Height, extent = v.Extent.Height }).ToArray(),
+                    confirm = w.GetVisualDescendants().OfType<Button>().Where(b => b.Name == "SavePreferencesButton")
+                        .Select(b => new { fill = b.GetVisualDescendants().OfType<Border>().FirstOrDefault(v => v.Name == "PART_Border")?.Background?.ToString(),
+                            text = b.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(v => v.Classes.Contains("dialog_caption"))?.Foreground?.ToString() }).FirstOrDefault(),
                 }).ToArray();
             var actions = window.GetVisualDescendants().OfType<MenuItem>().Where(m => m.Name?.StartsWith("GitAction_", StringComparison.Ordinal) == true)
                 .Select(m => new { id = m.Name, shortcut = m.Tag?.ToString() }).ToArray();

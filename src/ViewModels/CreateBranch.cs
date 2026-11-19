@@ -55,6 +55,12 @@ namespace SourceGit.ViewModels
             private set => SetProperty(ref _overrideTip, value);
         }
 
+        public override void RefreshLocalizedText()
+        {
+            base.RefreshLocalizedText();
+            UpdateOverrideTip();
+        }
+
         public bool AllowOverwrite
         {
             get => _allowOverwrite;

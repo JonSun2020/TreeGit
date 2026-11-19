@@ -86,11 +86,25 @@ try:
         deadline=time.monotonic()+15
         while time.monotonic()<deadline and (plan.parent/'stage').exists():time.sleep(.2)
         check('temporary update payload is cleaned after successful startup',not (plan.parent/'stage').exists() and (plan.parent/'backup/TreeGit.exe').exists())
+        deadline=time.monotonic()+15
+        while time.monotonic()<deadline and ((plan.parent/'worker').exists() or list((root/'.treegit-update/downloads').glob('*.zip'))):time.sleep(.2)
+        check('successful startup removes the downloaded archive and update worker',not (plan.parent/'worker').exists() and not list((root/'.treegit-update/downloads').glob('*.zip')))
 except Exception as error:
     import traceback
+    if 'plan' in locals() and plan.is_file():
+        (out/'diagnostic-plan.json').write_bytes(plan.read_bytes())
+    result=root/'.treegit-update/result.json'
+    if result.is_file():(out/'diagnostic-update-result.json').write_bytes(result.read_bytes())
+    for index,log in enumerate((root/'log').glob('*')):
+        if log.is_file() and log.stat().st_size<1024*1024:(out/('diagnostic-app-'+str(index)+'.log')).write_bytes(log.read_bytes()[-65536:])
     failure=traceback.format_exc();raise
 finally:
     if client:client.close()
     for endpoint in held_clients:endpoint.close()
     if pid:close_gui(pid)
+    # A failed bootstrap may have restarted the old, disposable GUI. It is
+    # outside the tracked PID; close only this exact newly created installation.
+    if os.name=='nt' and out.name.startswith('TreeGit update case '):
+        script="$target='"+str(exe).replace("'","''")+"';Get-Process | Where-Object {$_.Path -eq $target} | ForEach-Object {$null=$_.CloseMainWindow();if(-not $_.WaitForExit(5000)){$_.Kill();$_.WaitForExit()}}"
+        subprocess.run(['powershell','-NoProfile','-EncodedCommand',base64.b64encode(script.encode('utf-16-le')).decode()],check=True,capture_output=True)
     (out/'results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'failure':failure,'installation':str(root),'workerSource':'old installation' if old_worker else 'new fixture'},indent=2),'utf-8')

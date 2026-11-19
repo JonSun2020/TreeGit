@@ -15,7 +15,7 @@ import tempfile
 import threading
 import time
 import traceback
-from qa_cleanup import new_fixture, remove_fixture
+from qa_cleanup import new_fixture, remove_fixture, verify_process
 
 exe, out = (Path(v).resolve() for v in sys.argv[1:3])
 out.mkdir(parents=True, exist_ok=True)
@@ -114,7 +114,7 @@ try:
     initial=git('rev-parse','HEAD');expected=[m.rstrip('\r\n')for _,m in sorted(timeline,reverse=True)[:10]]
     (repo/'main.txt').write_text('staged pending change\n',encoding='utf-8');git('add','main.txt')
     process=subprocess.Popen([str(exe),'--mcp'],env=env,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=(out/'mcp.log').open('w',encoding='utf-8'),text=True,encoding='utf-8',creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
-    threading.Thread(target=lambda:[responses.put(v)for v in process.stdout],daemon=True).start();rpc('initialize',{'protocolVersion':'2025-11-25'});pid=tool('ui_state')['processId']
+    threading.Thread(target=lambda:[responses.put(v)for v in process.stdout],daemon=True).start();rpc('initialize',{'protocolVersion':'2025-11-25'});pid=tool('ui_state')['processId'];verify_process(pid,exe)
     tool('ui_open_repository',repo=str(repo))
     def composition():return(state().get('workingCopyState')or{}).get('composition')
     def popup():return(composition()or{}).get('recentMessages')

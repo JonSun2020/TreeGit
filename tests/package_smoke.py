@@ -6,6 +6,8 @@ out=Path(sys.argv[1]).resolve();out.mkdir(parents=True,exist_ok=True)
 root=new_fixture(out,'TreeGit package audit ');source=root/'publish';source.mkdir();(source/'data').mkdir();(source/'git/cmd').mkdir(parents=True)
 files={'TreeGit.exe':b'package-test executable fixture','native.dll':b'package-test native fixture','LICENSE':b'license','THIRD-PARTY-LICENSES.md':b'notices','使用说明.md':b'help','MCP-使用说明.md':b'mcp help','mcp-readonly.json':b'{}','mcp-readwrite.json':b'{}'}
 for name,data in files.items():(source/name).write_bytes(data)
+private_mcp=json.dumps({'mcpServers':{'personal':{'command':r'D:\PrivateFixture\TreeGit.exe','args':['--mcp'],'env':{'TOKEN':'TREEGIT_PRIVATE_MCP_CANARY'}}}}).encode()
+for name in ['mcp-readonly.json','mcp-readwrite.json']:(source/name).write_bytes(private_mcp)
 info={'product':'TreeGit','version':'0.0.1','integrationTests':False,'bundledGit':True};(source/'build-info.json').write_text(json.dumps(info),encoding='utf-8');files['build-info.json']=b''
 for name in ['.env','preference.json','notes.txt','debug.pdb','old.zip']:(source/name).write_bytes(b'local fixture; must not ship')
 (source/'data/preference.json').write_bytes(b'private preferences fixture')
@@ -26,6 +28,9 @@ check('a normal build creates a versioned archive',(first/'TreeGit-0.0.1-Windows
 archive=first/'TreeGit-0.0.1-Windows-x64.zip'
 with zipfile.ZipFile(archive) as z:
     check('program files, verified Git and an empty data directory enter the ZIP',set(z.namelist())=={'TreeGit/'+name for name in files}|{'TreeGit/data/'}|{'TreeGit/git/'+n for n in required+['runtime-manifest.json']})
+    for name,args in [('mcp-readonly.json',['--mcp','--read-only']),('mcp-readwrite.json',['--mcp'])]:
+        check(name+' ships only a generic example without personal commands or secrets',json.loads(z.read('TreeGit/'+name))=={'mcpServers':{'treegit':{'command':r'C:\Tools\TreeGit\TreeGit.exe','args':args}}})
+check('packaging leaves both personal MCP configurations unchanged',all((source/name).read_bytes()==private_mcp for name in ['mcp-readonly.json','mcp-readwrite.json']))
 check('the published SHA256 matches the complete archive',hashlib.sha256(archive.read_bytes()).hexdigest()==(first/'SHA256SUMS.txt').read_text().split()[0])
 private=runtime/'private-user-config';private.write_bytes(b'must not publish')
 blocked=root/'unexpected';r=pack(blocked);check('extra runtime files are rejected before an archive exists',r.returncode!=0 and not list(blocked.glob('*.zip')));private.unlink()

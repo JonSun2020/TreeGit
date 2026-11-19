@@ -74,6 +74,12 @@ namespace SourceGit.ViewModels
             }
         }
 
+        public override Task<bool> VerifyCredentialsAsync()
+        {
+            var branch = Target.IsLocal ? DeleteUpstream ? Upstream : null : Target;
+            var remote = branch == null ? null : _repo.Remotes.Find(r => r.Name == branch.Remote);
+            return remote == null ? Task.FromResult(true) : VerifyRemoteAsync(_repo.FullPath, remote, true);
+        }
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
@@ -137,10 +143,11 @@ namespace SourceGit.ViewModels
             var remote = _repo.Remotes.Find(x => x.Name.Equals(branch.Remote, StringComparison.Ordinal));
             if (remote != null)
             {
-                exists = await new Commands.DoesBranchExistOnRemote(_repo.FullPath, remote, branch)
-                    .Use(log)
+                var query = new Commands.DoesBranchExistOnRemote(_repo.FullPath, remote, branch);
+                exists = await query.Use(log)
                     .GetResultAsync()
                     .ConfigureAwait(false);
+                if (!query.Succeeded) return false;
             }
 
             if (exists)

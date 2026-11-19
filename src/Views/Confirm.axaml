@@ -41,7 +41,7 @@
 
     <!-- Buttons -->
     <StackPanel Grid.Row="2" Margin="0,0,0,16" Orientation="Horizontal" HorizontalAlignment="Center">
-      <Button Classes="flat"
+      <Button Classes="flat primary dialog_action"
               x:Name="BtnYes"
               Width="80"
               Height="30"
@@ -51,7 +51,7 @@
               HorizontalContentAlignment="Center"
               VerticalContentAlignment="Center"/>
 
-      <Button Classes="flat primary"
+      <Button Classes="flat dialog_action"
               x:Name="BtnNo"
               Width="80"
               Height="30"

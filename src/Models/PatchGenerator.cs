@@ -16,6 +16,7 @@ namespace SourceGit.Models
             _diff = diff;
             _isCombined = isCombined;
             _isOldSide = isOldSide;
+            if (diff.IsDisplayOnly) return;
 
             var lines = _diff.Lines;
             var hasChanges = false;

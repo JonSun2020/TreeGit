@@ -15,6 +15,8 @@ namespace SourceGit.Views
 {
     public class RevisionTextFileView : TextEditor
     {
+        public static readonly StyledProperty<string> DisplayTextProperty = AvaloniaProperty.Register<RevisionTextFileView, string>(nameof(DisplayText));
+        public string DisplayText { get => GetValue(DisplayTextProperty); set => SetValue(DisplayTextProperty, value); }
         public static readonly StyledProperty<int> TabWidthProperty =
             AvaloniaProperty.Register<RevisionTextFileView, int>(nameof(TabWidth), 4);
 
@@ -75,7 +77,6 @@ namespace SourceGit.Views
 
             if (DataContext is Models.RevisionTextFile source)
             {
-                Text = source.Content;
                 Models.TextMateHelper.SetGrammarByFileName(_textMate, source.FileName);
                 ScrollToHome();
             }
@@ -91,6 +92,8 @@ namespace SourceGit.Views
 
             if (change.Property == TabWidthProperty)
                 Options.IndentationSize = TabWidth;
+            else if (change.Property == DisplayTextProperty)
+                Text = DisplayText ?? string.Empty;
             else if (change.Property.Name == nameof(ActualThemeVariant) && change.NewValue != null)
                 Models.TextMateHelper.SetThemeByApp(_textMate);
         }

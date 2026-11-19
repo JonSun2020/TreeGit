@@ -40,6 +40,7 @@ namespace SourceGit.ViewModels
             return ValidationResult.Success;
         }
 
+        public override Task<bool> VerifyCredentialsAsync() => VerifyRemoteAsync(_repo.FullPath, new Models.Remote { URL = _url });
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();

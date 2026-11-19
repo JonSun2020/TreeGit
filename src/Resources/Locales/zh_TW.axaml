@@ -210,7 +210,7 @@
   <x:String x:Key="Text.CommitDetail.Info.SHA" xml:space="preserve">提交編號</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Signer" xml:space="preserve">簽署人:</x:String>
   <x:String x:Key="Text.CommitDetail.Info.WebLinks" xml:space="preserve">在瀏覽器中檢視</x:String>
-  <x:String x:Key="Text.CommitMessageTextBox.Placeholder" xml:space="preserve">請輸入提交訊息，標題與詳細描述之間請使用單行空白區隔。</x:String>
+  <x:String x:Key="Text.CommitMessageTextBox.Placeholder" xml:space="preserve">請輸出提交說明...</x:String>
   <x:String x:Key="Text.CommitMessageTextBox.SubjectCount" xml:space="preserve">標題</x:String>
   <x:String x:Key="Text.Compare" xml:space="preserve">比較</x:String>
   <x:String x:Key="Text.Compare.Changes" xml:space="preserve">差異檔案</x:String>
@@ -607,7 +607,7 @@
   <x:String x:Key="Text.Merge.Source" xml:space="preserve">合併來源:</x:String>
   <x:String x:Key="Text.Merge.Test" xml:space="preserve">正在偵測合併衝突...</x:String>
   <x:String x:Key="Text.Merge.Test.NoConflicts" xml:space="preserve">合併操作不會產生衝突</x:String>
-  <x:String x:Key="Text.Merge.Test.UnknownError" xml:space="preserve">偵測合併衝突時發生未知錯誤</x:String>
+  <x:String x:Key="Text.Merge.Test.UnknownError" xml:space="preserve">無法預判衝突，仍可繼續合併</x:String>
   <x:String x:Key="Text.Merge.Test.WillCauseConflicts" xml:space="preserve">合併操作將產生檔案衝突</x:String>
   <x:String x:Key="Text.MergeConflictEditor.AcceptBoth.MineFirst" xml:space="preserve">先套用我方版本 (ours)，再套用對方版本 (theirs)</x:String>
   <x:String x:Key="Text.MergeConflictEditor.AcceptBoth.TheirsFirst" xml:space="preserve">先套用對方版本 (theirs)，再套用我方版本 (ours)</x:String>
@@ -783,7 +783,7 @@
   <x:String x:Key="Text.Rebase.On" xml:space="preserve">目標提交:</x:String>
   <x:String x:Key="Text.Rebase.Test" xml:space="preserve">正在偵測重定基底衝突...</x:String>
   <x:String x:Key="Text.Rebase.Test.OK" xml:space="preserve">重定基底操作不會產生衝突</x:String>
-  <x:String x:Key="Text.Rebase.Test.UnknownError" xml:space="preserve">偵測重定基底衝突時發生未知錯誤</x:String>
+  <x:String x:Key="Text.Rebase.Test.UnknownError" xml:space="preserve">無法預判衝突，仍可繼續重定基底</x:String>
   <x:String x:Key="Text.Rebase.Test.WillCauseConflicts" xml:space="preserve">重定基底操作將產生檔案衝突</x:String>
   <x:String x:Key="Text.Remote.AddTitle" xml:space="preserve">新增遠端存放庫</x:String>
   <x:String x:Key="Text.Remote.EditTitle" xml:space="preserve">編輯遠端存放庫</x:String>
@@ -899,48 +899,48 @@
   <x:String x:Key="Text.ScanRepositories.RootDir" xml:space="preserve">頂層目錄:</x:String>
   <x:String x:Key="Text.ScanRepositories.UseCustomDir" xml:space="preserve">掃描其他自訂目錄</x:String>
   <x:String x:Key="Text.SelfUpdate" xml:space="preserve">檢查更新...</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.checking" xml:space="preserve">正在检查更新</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.available" xml:space="preserve">发现新版本</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.current" xml:space="preserve">当前已是最新版本</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.download" xml:space="preserve">正在下载更新</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.verify" xml:space="preserve">正在检查更新包</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.ready" xml:space="preserve">更新已准备好</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.cancelled" xml:space="preserve">下载已取消</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.failed" xml:space="preserve">暂时无法完成更新</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.checking" xml:space="preserve">正在檢查更新</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.available" xml:space="preserve">發現新版本</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.current" xml:space="preserve">目前已是最新版本</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.download" xml:space="preserve">正在下載更新</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.verify" xml:space="preserve">正在檢查更新包</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.ready" xml:space="preserve">更新已準備好</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.cancelled" xml:space="preserve">下載已取消</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.failed" xml:space="preserve">暫時無法完成更新</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.applying" xml:space="preserve">正在完成更新</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Download" xml:space="preserve">下载更新</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Restart" xml:space="preserve">重启完成更新</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Resume" xml:space="preserve">继续下载</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Retry" xml:space="preserve">重试</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Cancel" xml:space="preserve">取消下载</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Later" xml:space="preserve">稍后</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Manual" xml:space="preserve">手动下载</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.CurrentVersion" xml:space="preserve">当前版本：TreeGit {0}</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.AvailableHint" xml:space="preserve">下载更新后，可在方便的时候重启完成安装。个人配置和仓库都会保留。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.DownloadHint" xml:space="preserve">可以随时取消下载，已下载的进度会保留。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.VerifyHint" xml:space="preserve">正在确认更新包完整，请稍候。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.ReadyHint" xml:space="preserve">点击“重启完成更新”后，TreeGit 会保存设置、替换程序并重新打开。个人配置和仓库都会保留。AI 连接会暂时断开，更新后可重新连接。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.CancelledHint" xml:space="preserve">已保留下载进度，下次可以继续。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.BusyHint" xml:space="preserve">更新已准备好，但仓库操作尚未结束。请完成当前操作后，再点击“重启完成更新”。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.ApplyingHint" xml:space="preserve">正在保存设置，即将重启 TreeGit。请稍候。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.StartingHint" xml:space="preserve">正在启动新版 TreeGit，请稍候。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Error.network" xml:space="preserve">暂时无法连接更新服务。请检查网络后重试。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Error.busy-service" xml:space="preserve">更新服务暂时繁忙，请稍后重试。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Error.invalid" xml:space="preserve">暂时无法获取可用的更新包。请重新检查，或选择手动下载。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Error.platform" xml:space="preserve">当前系统暂不支持自动替换程序，请选择手动下载。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Error.not-newer" xml:space="preserve">软件文件已经发生变化，请重新打开 TreeGit 后再检查更新。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Error.permission" xml:space="preserve">软件所在文件夹无法写入。请将 TreeGit 移到有写入权限的文件夹，或联系管理员后重试。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Error.space" xml:space="preserve">可用空间不足。请清理软件所在磁盘后重试。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Error.interrupted" xml:space="preserve">下载已中断，已保留进度。请检查网络后继续下载。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Error.damaged" xml:space="preserve">更新包不完整或已损坏，请重新下载。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Error.changed" xml:space="preserve">软件文件已经发生变化，请重新打开 TreeGit 后再检查更新。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Error.locked" xml:space="preserve">更新文件正在被其他程序使用。请关闭相关终端或其他 TreeGit 窗口后重试。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Error.busy" xml:space="preserve">仓库操作尚未结束，请完成后再更新。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Error.start" xml:space="preserve">新版未能正常启动。请稍后重试，或选择手动下载。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Error.failed" xml:space="preserve">更新未完成，请重试。也可以选择手动下载，现有配置和仓库不会被删除。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Download" xml:space="preserve">下載更新</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Restart" xml:space="preserve">重新啟動完成更新</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Resume" xml:space="preserve">繼續下載</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Retry" xml:space="preserve">重試</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Cancel" xml:space="preserve">取消下載</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Later" xml:space="preserve">稍後</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Manual" xml:space="preserve">手動下載</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.CurrentVersion" xml:space="preserve">目前版本：TreeGit {0}</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.AvailableHint" xml:space="preserve">下載更新後，可在方便的時候重新啟動完成安裝。個人設定和儲存庫都會保留。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.DownloadHint" xml:space="preserve">可以隨時取消下載，已下載的進度會保留。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.VerifyHint" xml:space="preserve">正在確認更新包完整，請稍候。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.ReadyHint" xml:space="preserve">點選“重新啟動完成更新”後，TreeGit 會儲存設定、替換程式並重新開啟。個人設定和儲存庫都會保留。AI 連線會暫時斷開，更新後可重新連線。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.CancelledHint" xml:space="preserve">已保留下載進度，下次可以繼續。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.BusyHint" xml:space="preserve">更新已準備好，但儲存庫操作尚未結束。請完成目前操作後，再點選“重新啟動完成更新”。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.ApplyingHint" xml:space="preserve">正在儲存設定，即將重新啟動 TreeGit。請稍候。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.StartingHint" xml:space="preserve">正在啟動新版 TreeGit，請稍候。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.network" xml:space="preserve">暫時無法連線更新服務。請檢查網路後重試。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.busy-service" xml:space="preserve">更新服務暫時繁忙，請稍後重試。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.invalid" xml:space="preserve">暫時無法獲取可用的更新包。請重新檢查，或選擇手動下載。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.platform" xml:space="preserve">目前系統暫不支援自動替換程式，請選擇手動下載。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.not-newer" xml:space="preserve">軟體檔案已經發生變化，請重新開啟 TreeGit 後再檢查更新。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.permission" xml:space="preserve">軟體所在資料夾無法寫入。請將 TreeGit 移到有寫入權限的資料夾，或聯絡管理員後重試。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.space" xml:space="preserve">可用空間不足。請清理軟體所在磁碟後重試。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.interrupted" xml:space="preserve">下載已中斷，已保留進度。請檢查網路後繼續下載。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.damaged" xml:space="preserve">更新包不完整或已損壞，請重新下載。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.changed" xml:space="preserve">軟體檔案已經發生變化，請重新開啟 TreeGit 後再檢查更新。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.locked" xml:space="preserve">更新檔案正在被其他程式使用。請關閉相關終端或其他 TreeGit 視窗後重試。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.busy" xml:space="preserve">儲存庫操作尚未結束，請完成後再更新。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.start" xml:space="preserve">新版未能正常啟動。請稍後重試，或選擇手動下載。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Error.failed" xml:space="preserve">更新未完成，請重試。也可以選擇手動下載，現有設定和儲存庫不會被刪除。</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.Updated" xml:space="preserve">TreeGit 已更新到 {0}。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.Restored" xml:space="preserve">更新未完成，已恢复上一版。个人配置和仓库已保留。</x:String>
-  <x:String x:Key="Text.SelfUpdate.Flow.SpaceNeeded" xml:space="preserve">更新需要至少 {0} MB 可用空间。请清理软件所在磁盘后重试。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.Restored" xml:space="preserve">更新未完成，已恢復上一版。個人設定和儲存庫已保留。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.SpaceNeeded" xml:space="preserve">更新需要至少 {0} MB 可用空間。請清理軟體所在磁碟後重試。</x:String>
   <x:String x:Key="Text.SelfUpdate.Available" xml:space="preserve">軟體有版本更新:</x:String>
   <x:String x:Key="Text.SelfUpdate.CurrentVersion" xml:space="preserve">目前版本: </x:String>
   <x:String x:Key="Text.SelfUpdate.Error" xml:space="preserve">取得最新版本資訊失敗!</x:String>
@@ -1142,36 +1142,36 @@
   <x:String x:Key="Text.Worktree.Unlock" xml:space="preserve">解除鎖定工作樹</x:String>
   <x:String x:Key="Text.Yes" xml:space="preserve">是</x:String>
   <x:String x:Key="Text.Toolbar.Tools">外部工具</x:String>
-  <x:String x:Key="Text.Toolbar.Log">命令日志</x:String>
-  <x:String x:Key="Text.Toolbar.Statistics">统计</x:String>
-  <x:String x:Key="Text.Toolbar.Fetch">获取</x:String>
+  <x:String x:Key="Text.Toolbar.Log">命令記錄</x:String>
+  <x:String x:Key="Text.Toolbar.Statistics">統計</x:String>
+  <x:String x:Key="Text.Toolbar.Fetch">獲取</x:String>
   <x:String x:Key="Text.Toolbar.Pull">拉取</x:String>
   <x:String x:Key="Text.Toolbar.Push">推送</x:String>
-  <x:String x:Key="Text.Toolbar.Stash">贮藏</x:String>
-  <x:String x:Key="Text.Toolbar.Patch">应用补丁</x:String>
+  <x:String x:Key="Text.Toolbar.Stash">貯藏</x:String>
+  <x:String x:Key="Text.Toolbar.Patch">應用補丁</x:String>
   <x:String x:Key="Text.Toolbar.Branch">分支</x:String>
   <x:String x:Key="Text.Toolbar.GitFlow">Git Flow</x:String>
   <x:String x:Key="Text.Toolbar.GitLFS">Git LFS</x:String>
   <x:String x:Key="Text.Toolbar.Bisect">二分定位</x:String>
-  <x:String x:Key="Text.Toolbar.Actions">自定义</x:String>
+  <x:String x:Key="Text.Toolbar.Actions">自定義</x:String>
   <x:String x:Key="Text.Toolbar.Clean">清理</x:String>
   <x:String x:Key="Text.Toolbar.Commit">提交</x:String>
   <x:String x:Key="Text.Toolbar.Clone">克隆</x:String>
-  <x:String x:Key="Text.Toolbar.Open">打开</x:String>
-  <x:String x:Key="Text.Toolbar.Terminal">终端</x:String>
-  <x:String x:Key="Text.Toolbar.Groups">新建分组</x:String>
-  <x:String x:Key="Text.Toolbar.Scan">扫描仓库</x:String>
-  <x:String x:Key="Text.Toolbar.History">历史</x:String>
-  <x:String x:Key="Text.Toolbar.Files">文件状态</x:String>
-  <x:String x:Key="Text.Clone.CredentialManager">使用系统认证 / OAuth</x:String>
-  <x:String x:Key="Text.Toolbar.Merge">合并</x:String>
-  <x:String x:Key="Text.Toolbar.Tag">标签</x:String>
-  <x:String x:Key="Text.Toolbar.NoMergeBranches">没有其他本地分支</x:String>
+  <x:String x:Key="Text.Toolbar.Open">開啟</x:String>
+  <x:String x:Key="Text.Toolbar.Terminal">終端</x:String>
+  <x:String x:Key="Text.Toolbar.Groups">新建分組</x:String>
+  <x:String x:Key="Text.Toolbar.Scan">掃描儲存庫</x:String>
+  <x:String x:Key="Text.Toolbar.History">歷史</x:String>
+  <x:String x:Key="Text.Toolbar.Files">檔案狀態</x:String>
+  <x:String x:Key="Text.Clone.CredentialManager">使用系統認證 / OAuth</x:String>
+  <x:String x:Key="Text.Toolbar.Merge">合併</x:String>
+  <x:String x:Key="Text.Toolbar.Tag">標籤</x:String>
+  <x:String x:Key="Text.Toolbar.NoMergeBranches">沒有其他本機分支</x:String>
   <x:String x:Key="Text.Graph.AllBranches">全部分支</x:String>
   <x:String x:Key="Text.Graph.OnlyBranch">目前分支</x:String>
-  <x:String x:Key="Text.Graph.MergedHistory">所选分支（含合并历史）</x:String>
-  <x:String x:Key="Text.PreferenceRecovery.Backup" xml:space="preserve">配置文件未能读取，已使用默认设置启动。原文件已备份到 data 文件夹。</x:String>
-  <x:String x:Key="Text.PreferenceRecovery.Readonly" xml:space="preserve">配置文件暂时无法读取，本次设置不会保存。请关闭其他 TreeGit 窗口，或检查配置文件的访问权限后重新打开。</x:String>
+  <x:String x:Key="Text.Graph.MergedHistory">所選分支（含合併歷史）</x:String>
+  <x:String x:Key="Text.PreferenceRecovery.Backup" xml:space="preserve">設定檔案未能讀取，已使用預設設定啟動。原檔案已備份到 data 資料夾。</x:String>
+  <x:String x:Key="Text.PreferenceRecovery.Readonly" xml:space="preserve">設定檔案暫時無法讀取，本次設定不會儲存。請關閉其他 TreeGit 視窗，或檢查設定檔案的訪問權限後重新開啟。</x:String>
   <x:String x:Key="Text.Launcher.CloseWhileBusy">操作尚未完成，請等待完成，或在操作視窗中取消後，再關閉分頁或退出。</x:String>
   <x:String x:Key="Text.Repository.NoRemotes">尚未設定遠端倉庫，請先在「倉庫設定」的「遠端倉庫」中新增。</x:String>
   <x:String x:Key="Text.Repository.NoCurrentBranch">未找到目前分支。請確認倉庫已有提交，重新整理後重試。</x:String>
@@ -1188,15 +1188,15 @@
   <x:String x:Key="Text.Repository.OpenFailed">暫時無法開啟倉庫，請稍後重新開啟；如果仍然失敗，請檢查倉庫檔案和 Git 設定。</x:String>
   <x:String x:Key="Text.BinaryDiff.Retry">重試</x:String>
   <x:String x:Key="Text.BinaryDiff.LoadFailed">暫時無法比較此檔案，請點擊「重試」。如果仍然失敗，請檢查檔案是否可讀，以及 Git 是否可用。</x:String>
-  <x:String x:Key="Text.SSHKeyHelper.Generator.Exists">此密钥名称已存在，请使用其他名称。</x:String>
-  <x:String x:Key="Text.SSHKeyHelper.Generator.Failed">无法创建密钥，请检查密钥文件夹权限和 SSH 工具后重试。</x:String>
-  <x:String x:Key="Text.SSHKeyHelper.Generator.NameRequired">请输入密钥名称。</x:String>
-  <x:String x:Key="Text.SSHKeyHelper.Generator.NameFormat">密钥名称只允许字母、数字、下划线和连字符。</x:String>
-  <x:String x:Key="Text.SSHKeyHelper.Generator.EmailRequired">请输入邮箱地址。</x:String>
-  <x:String x:Key="Text.SSHKeyHelper.Generator.EmailFormat">请输入有效的邮箱地址。</x:String>
-  <x:String x:Key="Text.SSHKeyHelper.Generator.PassphraseRequired">请输入私钥口令。</x:String>
-  <x:String x:Key="Text.SSHKeyHelper.Generator.PassphraseFormat">口令只允许字母、数字及 _ + - = @ # $ % ! &amp;。</x:String>
-  <x:String x:Key="Text.SSHKeyHelper.Generator.PassphraseMismatch">两次输入的口令不一致。</x:String>
+  <x:String x:Key="Text.SSHKeyHelper.Generator.Exists">此金鑰名稱已存在，請使用其他名稱。</x:String>
+  <x:String x:Key="Text.SSHKeyHelper.Generator.Failed">無法建立金鑰，請檢查金鑰資料夾權限和 SSH 工具後重試。</x:String>
+  <x:String x:Key="Text.SSHKeyHelper.Generator.NameRequired">請輸入金鑰名稱。</x:String>
+  <x:String x:Key="Text.SSHKeyHelper.Generator.NameFormat">金鑰名稱只允許字母、數字、下劃線和連字元。</x:String>
+  <x:String x:Key="Text.SSHKeyHelper.Generator.EmailRequired">請輸入電子郵件地址。</x:String>
+  <x:String x:Key="Text.SSHKeyHelper.Generator.EmailFormat">請輸入有效的電子郵件地址。</x:String>
+  <x:String x:Key="Text.SSHKeyHelper.Generator.PassphraseRequired">請輸入私鑰口令。</x:String>
+  <x:String x:Key="Text.SSHKeyHelper.Generator.PassphraseFormat">口令只允許字母、數字及 _ + - = @ # $ % ! &amp;。</x:String>
+  <x:String x:Key="Text.SSHKeyHelper.Generator.PassphraseMismatch">兩次輸入的口令不一致。</x:String>
 
   <x:String x:Key="Text.Checkout.Confirm">是否切換到以下分支？</x:String>
   <x:String x:Key="Text.Checkout.OtherWorktree">此分支已在其他工作樹中簽出，繼續後將開啟對應工作樹。</x:String>
@@ -1232,76 +1232,76 @@
   <x:String x:Key="Text.MergeConflictEditor.LeftThenRight">先左後右</x:String>
   <x:String x:Key="Text.MergeConflictEditor.RightThenLeft">先右後左</x:String>
   <x:String x:Key="Text.MergeConflictEditor.Restore">復原</x:String>
-  <x:String x:Key="Text.MergeConflictEditor.EmptyBase">No file in the common ancestor</x:String>
-  <x:String x:Key="Text.MergeConflictEditor.BaseUnavailable">The common ancestor cannot be displayed</x:String>
-  <x:String x:Key="Text.WorkingCopy.RefreshFailed">Could not refresh file status. The last result is preserved; please retry.</x:String>
-  <x:String x:Key="Text.Merge.Progress">Merging into {0}...</x:String>
-  <x:String x:Key="Text.Merge.DestinationChanged">The current branch changed. Reopen the merge dialog to choose the destination.</x:String>
-  <x:String x:Key="Text.Merge.FinishCurrent">Finish the current operation before merging another commit. The pending files are now shown.</x:String>
-  <x:String x:Key="Text.Merge.SubmodulesPending">The merge completed. Some submodules still need an update; retry from the submodule list.</x:String>
-  <x:String x:Key="Text.Merge.FastForwardBlocked">Fast-forward only cannot complete this merge. Use a regular merge and resolve any conflicts.</x:String>
-  <x:String x:Key="Text.Merge.Unrelated">These histories have no common ancestor. Enable the option above only if you intend to combine them.</x:String>
-  <x:String x:Key="Text.Merge.IdentityRequired">Set the author name and email in Repository Settings, then retry the merge.</x:String>
-  <x:String x:Key="Text.Merge.LocalFilesBlocked">Local files would be overwritten. Preserve or stash local edits; rename or move colliding new files first.</x:String>
-  <x:String x:Key="Text.Merge.IndexBusy">Another Git operation is using the repository. Wait for it to finish and retry.</x:String>
-  <x:String x:Key="Text.Merge.Failed">The merge did not complete. Review this operation in the log, then retry.</x:String>
-  <x:String x:Key="Text.Merge.KeepLocal">Preserve and restore local edits</x:String>
-  <x:String x:Key="Text.Merge.KeepLocalHint">Preserve uncommitted edits before merging and restore them afterward. Resolve overlapping edits manually.</x:String>
-  <x:String x:Key="Text.Merge.AllowUnrelated">Combine these independent histories</x:String>
-  <x:String x:Key="Text.Merge.UseRegular">Use a regular merge</x:String>
-  <x:String x:Key="Text.Discard.ProtectedFiles">Untracked files or a linked folder would be overwritten. Move them to a safe location before discarding tracked changes.</x:String>
-  <x:String x:Key="Text.Discard.Failed">Discard failed. Check available disk space and file permissions, then retry.</x:String>
-  <x:String x:Key="Text.Stash.RefreshFailed">Could not verify the stash state. Existing stashes were preserved; refresh and retry.</x:String>
-  <x:String x:Key="Text.Stash.OnlyStagedUnsupported">This Git version cannot stash only staged changes. Update Git or clear this option.</x:String>
-  <x:String x:Key="Text.Stash.SelectionUnsupported">This Git version cannot stash this many selected paths at once. Update Git and retry.</x:String>
-  <x:String x:Key="Text.Stash.Failed">Stash did not finish. Existing stashes were preserved; check file access and available space.</x:String>
-  <x:String x:Key="Text.Stash.NoStagedChanges">There are no staged changes to stash.</x:String>
-  <x:String x:Key="Text.Merge.MultipleFailed">The multiple-head merge did not finish. For complex conflicts, merge one branch at a time and resolve its conflicts before continuing.</x:String>
-  <x:String x:Key="Text.Log.Truncated">Earlier output was omitted. The most recent operation details are shown below.</x:String>
-  <x:String x:Key="Text.Repository.SubmodulesPending">The main repository operation completed, but some submodules could not be updated. Continue from the submodule list.</x:String>
-  <x:String x:Key="Text.Checkout.DestinationChanged">The target branch changed. Close this dialog, refresh, and try again.</x:String>
-  <x:String x:Key="Text.Pull.StateUnavailable">Could not verify the fetched update. Your local content was preserved; refresh and try again.</x:String>
-  <x:String x:Key="Text.Pull.NoMergeHead">No branch update was selected for this pull. Refresh and select a remote branch.</x:String>
-  <x:String x:Key="Text.Pull.Cancelled">Pull cancelled.</x:String>
-  <x:String x:Key="Text.Pull.Failed">Pull did not finish. Your local changes were preserved; check the connection or operation log before retrying.</x:String>
-  <x:String x:Key="Text.Validation.BranchNameRequired">Enter a branch name.</x:String>
-  <x:String x:Key="Text.Validation.RemoteBranchRequired">Select a remote branch.</x:String>
-  <x:String x:Key="Text.Validation.InvalidBranchName">This branch name is not valid.</x:String>
-  <x:String x:Key="Text.Validation.BranchExists">A branch with this name already exists.</x:String>
-  <x:String x:Key="Text.Validation.BranchUnavailable">Could not verify branch settings. Close this dialog and try again.</x:String>
-  <x:String x:Key="Text.Repository.TrackingPending">The branch was created, but tracking could not be configured. Check that repository settings are writable, then set the upstream branch.</x:String>
-  <x:String x:Key="Text.Branch.OverrideCheckoutTip">Switch to the new branch and replace an existing branch with the same name.</x:String>
-  <x:String x:Key="Text.Branch.OverrideCreateTip">Move an existing branch with this name to the selected commit.</x:String>
-  <x:String x:Key="Text.Validation.RemoteNameRequired">Enter a remote name.</x:String>
-  <x:String x:Key="Text.Validation.RemoteUrlRequired">Enter the remote repository address.</x:String>
-  <x:String x:Key="Text.Validation.UrlRequired">Enter the repository address.</x:String>
-  <x:String x:Key="Text.Validation.IgnorePatternRequired">Enter an ignore pattern.</x:String>
-  <x:String x:Key="Text.Validation.StorageFileRequired">Select the file in which to save the rule.</x:String>
-  <x:String x:Key="Text.Validation.OutputFileRequired">Select an output file.</x:String>
-  <x:String x:Key="Text.Validation.ParentFolderRequired">Select a parent folder.</x:String>
-  <x:String x:Key="Text.Validation.ChangeTypeRequired">Select a change type.</x:String>
-  <x:String x:Key="Text.Validation.ShortDescriptionRequired">Enter a short description.</x:String>
-  <x:String x:Key="Text.Validation.GroupNameRequired">Enter a group name.</x:String>
-  <x:String x:Key="Text.Validation.TagNameRequired">Enter a tag name.</x:String>
-  <x:String x:Key="Text.Validation.NameRequired">Enter a name.</x:String>
-  <x:String x:Key="Text.Validation.ProductionBranchRequired">Enter the production branch name.</x:String>
-  <x:String x:Key="Text.Validation.DevelopmentBranchRequired">Enter the development branch name.</x:String>
-  <x:String x:Key="Text.Validation.FeaturePrefixRequired">Enter the feature branch prefix.</x:String>
-  <x:String x:Key="Text.Validation.ReleasePrefixRequired">Enter the release branch prefix.</x:String>
-  <x:String x:Key="Text.Validation.HotfixPrefixRequired">Enter the hotfix branch prefix.</x:String>
-  <x:String x:Key="Text.Validation.LfsPatternRequired">Enter a Git LFS tracking pattern.</x:String>
-  <x:String x:Key="Text.Validation.PathRequired">Select a path.</x:String>
-  <x:String x:Key="Text.Validation.RepositoryFolderRequired">Select a repository folder.</x:String>
-  <x:String x:Key="Text.Validation.LocalBranchRequired">Select a local branch.</x:String>
-  <x:String x:Key="Text.Validation.RemoteRequired">Select a remote repository.</x:String>
-  <x:String x:Key="Text.Conflict.StateChanged">The conflict state has changed. Select the file again before applying a side.</x:String>
-  <x:String x:Key="Text.Conflict.ResolveFailed">The selected version could not be applied. Check whether the file is in use or read-only, then retry.</x:String>
-  <x:String x:Key="Text.Repository.ReviewAndContinue">Review and continue</x:String>
-  <x:String x:Key="Text.Rebase.Progress">Rebasing…</x:String>
-  <x:String x:Key="Text.Rebase.DestinationChanged">The current branch or commit changed. Reopen the rebase window and retry.</x:String>
-  <x:String x:Key="Text.Rebase.Failed">Rebase could not complete. Check local changes or the command log, then retry.</x:String>
-  <x:String x:Key="Text.Rebase.LocalFilesBlocked">Local files would be overwritten and have been preserved. Save or move them before rebasing.</x:String>
-  <x:String x:Key="Text.Rebase.FinishCurrent">Continue or abort the current operation before starting another rebase. The pending files are now selected.</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.EmptyBase">共同祖先中無此檔案</x:String>
+  <x:String x:Key="Text.MergeConflictEditor.BaseUnavailable">無法顯示共同祖先內容</x:String>
+  <x:String x:Key="Text.WorkingCopy.RefreshFailed">未能重新整理檔案狀態，已保留上次的顯示結果，請稍後重試。</x:String>
+  <x:String x:Key="Text.Merge.Progress">正在合併到 {0}…</x:String>
+  <x:String x:Key="Text.Merge.DestinationChanged">目前分支已經改變，請關閉此視窗後重新選擇合併目標。</x:String>
+  <x:String x:Key="Text.Merge.FinishCurrent">請先解決並完成目前操作，再合併其他提交。已轉到待處理檔案。</x:String>
+  <x:String x:Key="Text.Merge.SubmodulesPending">合併已完成，部分子模組尚未更新，可在子模組列表中重試。</x:String>
+  <x:String x:Key="Text.Merge.FastForwardBlocked">目前僅快轉模式無法完成這次合併，可改為一般合併並手動處理衝突。</x:String>
+  <x:String x:Key="Text.Merge.Unrelated">兩個歷史沒有共同起點。確認需要合併後，請勾選“允許合併沒有共同起點的歷史”再繼續。</x:String>
+  <x:String x:Key="Text.Merge.IdentityRequired">請在儲存庫設定中填寫提交者姓名和電子郵件，再重試合併。</x:String>
+  <x:String x:Key="Text.Merge.LocalFilesBlocked">部分本機檔案會被目標版本覆蓋。請保留或貯藏本機修改；重名的新檔案需先改名或移動。</x:String>
+  <x:String x:Key="Text.Merge.IndexBusy">儲存庫正被其他 Git 操作使用，請等待該操作結束後重試。</x:String>
+  <x:String x:Key="Text.Merge.Failed">合併未能完成。修改仍保留，可檢視本次操作記錄後重試。</x:String>
+  <x:String x:Key="Text.Merge.KeepLocal">保留並恢復本機修改</x:String>
+  <x:String x:Key="Text.Merge.KeepLocalHint">先保留未提交的修改，合併後恢復；與新版本重疊時可繼續手動解決。</x:String>
+  <x:String x:Key="Text.Merge.AllowUnrelated">確認合併兩個獨立的歷史</x:String>
+  <x:String x:Key="Text.Merge.UseRegular">改為一般合併</x:String>
+  <x:String x:Key="Text.Discard.ProtectedFiles">繼續操作會覆蓋未追蹤檔案或目錄連結，請先將相關檔案移到安全位置，再丟棄已追蹤修改。</x:String>
+  <x:String x:Key="Text.Discard.Failed">丟棄未完成，請確認磁碟空間和檔案訪問權限後重試。</x:String>
+  <x:String x:Key="Text.Stash.RefreshFailed">未能確認貯藏狀態，已有貯藏已保留，請重新整理後重試。</x:String>
+  <x:String x:Key="Text.Stash.OnlyStagedUnsupported">目前 Git 版本不支援僅貯藏暫存修改，請更新 Git 或取消此選項。</x:String>
+  <x:String x:Key="Text.Stash.SelectionUnsupported">目前 Git 版本無法一次貯藏這麼多選定檔案，請更新 Git 後重試。</x:String>
+  <x:String x:Key="Text.Stash.Failed">貯藏未完成，已有貯藏已保留，請確認檔案訪問權限及磁碟空間。</x:String>
+  <x:String x:Key="Text.Stash.NoStagedChanges">沒有可貯藏的已暫存修改。</x:String>
+  <x:String x:Key="Text.Merge.MultipleFailed">多分支合併未完成。如存在複雜衝突，請逐個合併分支，並在解決衝突後繼續。</x:String>
+  <x:String x:Key="Text.Log.Truncated">較早的輸出已省略，以下保留最近的操作記錄。</x:String>
+  <x:String x:Key="Text.Repository.SubmodulesPending">主儲存庫操作已完成，但部分子模組未能更新，請在子模組列表中繼續處理。</x:String>
+  <x:String x:Key="Text.Checkout.DestinationChanged">目標分支已變化，請關閉此視窗，重新整理後重新操作。</x:String>
+  <x:String x:Key="Text.Pull.StateUnavailable">未能確認獲取到的更新，本機內容已保留，請重新整理後重試。</x:String>
+  <x:String x:Key="Text.Pull.NoMergeHead">沒有找到本次要拉取的分支更新，請重新整理並選擇遠端分支。</x:String>
+  <x:String x:Key="Text.Pull.Cancelled">拉取已取消。</x:String>
+  <x:String x:Key="Text.Pull.Failed">拉取未完成，本機修改已保留，請檢查連線或檢視操作記錄後重試。</x:String>
+  <x:String x:Key="Text.Validation.BranchNameRequired">請輸入分支名稱。</x:String>
+  <x:String x:Key="Text.Validation.RemoteBranchRequired">請選擇遠端分支。</x:String>
+  <x:String x:Key="Text.Validation.InvalidBranchName">分支名稱不符合 Git 命名規則。</x:String>
+  <x:String x:Key="Text.Validation.BranchExists">已存在同名分支，請使用其他名稱。</x:String>
+  <x:String x:Key="Text.Validation.BranchUnavailable">未能確認分支設定，請關閉此視窗後重試。</x:String>
+  <x:String x:Key="Text.Repository.TrackingPending">分支已建立，但追蹤關係未能設定。請確認儲存庫設定可寫，再設定追蹤分支。</x:String>
+  <x:String x:Key="Text.Branch.OverrideCheckoutTip">切換到新分支，並替換已有的同名分支。</x:String>
+  <x:String x:Key="Text.Branch.OverrideCreateTip">將已有的同名分支指向所選提交。</x:String>
+  <x:String x:Key="Text.Validation.RemoteNameRequired">請輸入遠端儲存庫名稱。</x:String>
+  <x:String x:Key="Text.Validation.RemoteUrlRequired">請輸入遠端儲存庫地址。</x:String>
+  <x:String x:Key="Text.Validation.UrlRequired">請輸入儲存庫地址。</x:String>
+  <x:String x:Key="Text.Validation.IgnorePatternRequired">請輸入忽略規則。</x:String>
+  <x:String x:Key="Text.Validation.StorageFileRequired">請選擇儲存規則的檔案。</x:String>
+  <x:String x:Key="Text.Validation.OutputFileRequired">請選擇輸出檔案。</x:String>
+  <x:String x:Key="Text.Validation.ParentFolderRequired">請選擇父資料夾。</x:String>
+  <x:String x:Key="Text.Validation.ChangeTypeRequired">請選擇修改型別。</x:String>
+  <x:String x:Key="Text.Validation.ShortDescriptionRequired">請輸入簡短說明。</x:String>
+  <x:String x:Key="Text.Validation.GroupNameRequired">請輸入分組名稱。</x:String>
+  <x:String x:Key="Text.Validation.TagNameRequired">請輸入標籤名稱。</x:String>
+  <x:String x:Key="Text.Validation.NameRequired">請輸入名稱。</x:String>
+  <x:String x:Key="Text.Validation.ProductionBranchRequired">請輸入生產分支名稱。</x:String>
+  <x:String x:Key="Text.Validation.DevelopmentBranchRequired">請輸入開發分支名稱。</x:String>
+  <x:String x:Key="Text.Validation.FeaturePrefixRequired">請輸入功能分支前綴。</x:String>
+  <x:String x:Key="Text.Validation.ReleasePrefixRequired">請輸入發行分支前綴。</x:String>
+  <x:String x:Key="Text.Validation.HotfixPrefixRequired">請輸入修復分支前綴。</x:String>
+  <x:String x:Key="Text.Validation.LfsPatternRequired">請輸入 Git LFS 追蹤規則。</x:String>
+  <x:String x:Key="Text.Validation.PathRequired">請選擇路徑。</x:String>
+  <x:String x:Key="Text.Validation.RepositoryFolderRequired">請選擇儲存庫資料夾。</x:String>
+  <x:String x:Key="Text.Validation.LocalBranchRequired">請選擇本機分支。</x:String>
+  <x:String x:Key="Text.Validation.RemoteRequired">請選擇遠端儲存庫。</x:String>
+  <x:String x:Key="Text.Conflict.StateChanged">檔案的衝突狀態已變化，請重新選擇檔案後再操作。</x:String>
+  <x:String x:Key="Text.Conflict.ResolveFailed">未能應用所選版本，請檢查檔案是否被佔用或設為唯讀，然後重試。</x:String>
+  <x:String x:Key="Text.Repository.ReviewAndContinue">檢查並繼續</x:String>
+  <x:String x:Key="Text.Rebase.Progress">正在重定基底…</x:String>
+  <x:String x:Key="Text.Rebase.DestinationChanged">目前分支或提交已變化，請重新開啟重定基底視窗後重試。</x:String>
+  <x:String x:Key="Text.Rebase.Failed">本次重定基底未能完成。請檢查本機更改或檢視命令記錄，然後重試。</x:String>
+  <x:String x:Key="Text.Rebase.LocalFilesBlocked">本機檔案會被覆蓋，已保留原內容。請先儲存或移開這些檔案，再重試重定基底。</x:String>
+  <x:String x:Key="Text.Rebase.FinishCurrent">請先繼續或終止目前操作，再開始重定基底。已轉到待處理檔案。</x:String>
   <x:String x:Key="Text.CommitAction.FinishCurrent">請先完成或終止正在進行的操作，再開始新的操作。</x:String>
   <x:String x:Key="Text.CommitAction.DestinationChanged">目前分支或提交已變更，請重新開啟此操作視窗後重試。</x:String>
   <x:String x:Key="Text.CommitAction.Failed">本次操作未能完成。請檢查本機變更或查看命令記錄，然後重試。</x:String>
@@ -1318,28 +1318,29 @@
   <x:String x:Key="Text.Conflict.State.BothModified">Local 和 Remote 均有修改</x:String>
   <x:String x:Key="Text.Conflict.RevertVersion">被回退提交之前的版本</x:String>
   <x:String x:Key="Text.Conflict.StashOrPatch">貯藏或修補檔中的變更</x:String>
-  <x:String x:Key="Text.CommitMenu.Checkout">检出…</x:String>
-  <x:String x:Key="Text.CommitMenu.Merge">合并…</x:String>
-  <x:String x:Key="Text.CommitMenu.Rebase">变基…</x:String>
-  <x:String x:Key="Text.CommitMenu.Tag">标签…</x:String>
-  <x:String x:Key="Text.CommitMenu.Archive">存档…</x:String>
+  <x:String x:Key="Text.CommitMenu.Checkout">檢出…</x:String>
+  <x:String x:Key="Text.CommitMenu.Merge">合併…</x:String>
+  <x:String x:Key="Text.CommitMenu.Rebase">重定基底…</x:String>
+  <x:String x:Key="Text.CommitMenu.Tag">標籤…</x:String>
+  <x:String x:Key="Text.CommitMenu.Archive">存檔…</x:String>
   <x:String x:Key="Text.CommitMenu.Branch">分支…</x:String>
-  <x:String x:Key="Text.CommitMenu.InteractiveRebase">交互式变基此提交的子提交…</x:String>
-  <x:String x:Key="Text.CommitMenu.Reset">重置当前分支到此次提交…</x:String>
-  <x:String x:Key="Text.CommitMenu.Revert">回滚提交…</x:String>
-  <x:String x:Key="Text.CommitMenu.Patch">创建补丁…</x:String>
-  <x:String x:Key="Text.CommitMenu.CherryPick">遴选…</x:String>
-  <x:String x:Key="Text.CommitMenu.CopySHA">复制 SHA 到剪贴板</x:String>
-  <x:String x:Key="Text.CommitMenu.Advanced">高级操作</x:String>
+  <x:String x:Key="Text.CommitMenu.InteractiveRebase">互動式重定基底此提交的子提交…</x:String>
+  <x:String x:Key="Text.CommitMenu.Reset">重置目前分支到此次提交…</x:String>
+  <x:String x:Key="Text.CommitMenu.Revert">回滾提交…</x:String>
+  <x:String x:Key="Text.CommitMenu.Patch">建立補丁…</x:String>
+  <x:String x:Key="Text.CommitMenu.CherryPick">遴選…</x:String>
+  <x:String x:Key="Text.CommitMenu.CopySHA">複製 SHA 到剪貼簿</x:String>
+  <x:String x:Key="Text.CommitMenu.Advanced">高階操作</x:String>
 
   <!-- TreeGit consistent operation and preference controls -->
   <x:String x:Key="Text.Stash.After.Remove" xml:space="preserve">貯藏後移除本地修改</x:String>
   <x:String x:Key="Text.Stash.After.Remove.Description" xml:space="preserve">修改已儲存到貯藏，本地恢復到修改前。</x:String>
   <x:String x:Key="Text.Stash.After.KeepIndex" xml:space="preserve">保留已暫存修改</x:String>
   <x:String x:Key="Text.Stash.After.KeepIndex.Description" xml:space="preserve">儲存到貯藏後，本地保留已暫存的修改。</x:String>
-  <x:String x:Key="Text.Stash.After.KeepAll" xml:space="preserve">保留全部本地修改</x:String>
+  <x:String x:Key="Text.Stash.After.KeepAll" xml:space="preserve">保留全部本機修改</x:String>
   <x:String x:Key="Text.Stash.After.KeepAll.Description" xml:space="preserve">建立貯藏副本，本地仍保留相同的暫存和未暫存修改。</x:String>
   <x:String x:Key="Text.UI.AdvancedOptions" xml:space="preserve">進階選項</x:String>
+  <x:String x:Key="Text.UI.AdvancedOptionsLabel" xml:space="preserve">進階選項：</x:String>
   <x:String x:Key="Text.UI.ForcePushEnabled" xml:space="preserve">注意：已開啟強制推送，可能改寫遠端提交歷史。</x:String>
   <x:String x:Key="Text.UI.SkipHooksEnabled" xml:space="preserve">注意：本次操作將跳過倉庫鉤子檢查。</x:String>
   <x:String x:Key="Text.UI.SkipHooksShort" xml:space="preserve">將跳過鉤子檢查</x:String>
@@ -1354,6 +1355,8 @@
   <x:String x:Key="Text.UI.SortName" xml:space="preserve">按檔名排序</x:String>
   <x:String x:Key="Text.UI.SortStatus" xml:space="preserve">按狀態排序</x:String>
   <x:String x:Key="Text.UI.DisplayOptions" xml:space="preserve">顯示選項</x:String>
+  <x:String x:Key="Text.UI.DisplayEncoding">文字編碼</x:String>
+  <x:String x:Key="Text.UI.AutoEncoding">自動適配</x:String>
   <x:String x:Key="Text.UI.MoreContext" xml:space="preserve">增加上下文</x:String>
   <x:String x:Key="Text.UI.LessContext" xml:space="preserve">減少上下文</x:String>
   <x:String x:Key="Text.Diff.Source.Old" xml:space="preserve">舊版本：{0}</x:String>
@@ -1373,12 +1376,12 @@
   <x:String x:Key="Text.Diff.Source.Commit" xml:space="preserve">提交 {0}</x:String>
   <x:String x:Key="Text.Preferences.Save.Locked" xml:space="preserve">Git 設定正被其他操作佔用，請稍後重試。本次填寫內容已保留。</x:String>
   <x:String x:Key="Text.Preferences.AI.ReadApiKeyFromEnv" xml:space="preserve">從環境變數中 (輸入環境變數名稱) 讀取 API 金鑰</x:String>
-  <x:String x:Key="Text.CommitBranches.Loading" xml:space="preserve">Loading branch information...</x:String>
-  <x:String x:Key="Text.CommitBranches.Failed" xml:space="preserve">Unable to read branches. Select the commit again to retry.</x:String>
-  <x:String x:Key="Text.CommitBranches.Unknown" xml:space="preserve">Original branch unknown</x:String>
-  <x:String x:Key="Text.CommitBranches.More" xml:space="preserve">Show all branches containing this commit</x:String>
-  <x:String x:Key="Text.CommitBranches.Estimated" xml:space="preserve">Inferred from the current graph: {0}</x:String>
-  <x:String x:Key="Text.CommitBranches.LocalRecord" xml:space="preserve">Local commit record: {0}</x:String>
+  <x:String x:Key="Text.CommitBranches.Loading" xml:space="preserve">正在讀取分支資訊…</x:String>
+  <x:String x:Key="Text.CommitBranches.Failed" xml:space="preserve">無法讀取分支資訊，請重新選擇提交後重試。</x:String>
+  <x:String x:Key="Text.CommitBranches.Unknown" xml:space="preserve">原始分支未知</x:String>
+  <x:String x:Key="Text.CommitBranches.More" xml:space="preserve">檢視所有包含此提交的分支</x:String>
+  <x:String x:Key="Text.CommitBranches.Estimated" xml:space="preserve">推定分支：{0}（根據目前圖譜）</x:String>
+  <x:String x:Key="Text.CommitBranches.LocalRecord" xml:space="preserve">本機提交記錄：{0}</x:String>
   <x:String x:Key="Text.Repository.Search.Failed" xml:space="preserve">搜尋未完成，請檢查輸入和倉庫狀態後重試。已保留上次的結果。</x:String>
   <x:String x:Key="Text.TreeGit.PendingChanges" xml:space="preserve">未提交的變更</x:String>
   <x:String x:Key="Text.TreeGit.Branches.NoOther" xml:space="preserve">此提交沒有其他可展開的包含分支。</x:String>
@@ -1414,10 +1417,15 @@
   <x:String x:Key="Text.TreeGit.Credentials.OptionalPassword" xml:space="preserve">密碼（可留空）</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.PasswordHint" xml:space="preserve">密碼</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.TogglePassword" xml:space="preserve">顯示／隱藏密碼</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.Authentication" xml:space="preserve">儲存庫驗證</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Authentication" xml:space="preserve">儲存庫帳號與密碼</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Context" xml:space="preserve">儲存庫：{0}
 伺服器：{1}</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.Retry" xml:space="preserve">帳號或密碼錯誤，請重新輸入。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Retry" xml:space="preserve">驗證失敗，請檢查帳號、密碼或權杖並重新輸入。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Verifying">正在驗證…</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.PushUnavailable">暫時無法驗證推送權限，已保留你的修改和提交說明。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Success">驗證成功</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Timeout">驗證逾時，請檢查網路連線後重試。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.ConnectionFailed">暫時無法驗證，請檢查網路連線後重試。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.InvalidInput" xml:space="preserve">請輸入帳號；帳號與密碼不能包含換行或 NUL 字元。</x:String>
   <x:String x:Key="Text.TreeGit.Binary.AddressHint" xml:space="preserve">十六進位位址</x:String>
   <x:String x:Key="Text.TreeGit.Binary.First" xml:space="preserve">第一個差異</x:String>
@@ -1453,7 +1461,7 @@
   <x:String x:Key="Text.TreeGit.History.Graph" xml:space="preserve">圖譜</x:String>
   <x:String x:Key="Text.TreeGit.Menu.File" xml:space="preserve">檔案(F)</x:String>
   <x:String x:Key="Text.TreeGit.Menu.NewTab" xml:space="preserve">新增分頁</x:String>
-  <x:String x:Key="Text.TreeGit.Menu.OpenClone" xml:space="preserve">開啟／複製儲存庫</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.OpenClone" xml:space="preserve">複製 / 建立儲存庫</x:String>
   <x:String x:Key="Text.TreeGit.Menu.Quit" xml:space="preserve">結束</x:String>
   <x:String x:Key="Text.TreeGit.Menu.Edit" xml:space="preserve">編輯(E)</x:String>
   <x:String x:Key="Text.TreeGit.Menu.Preferences" xml:space="preserve">偏好設定</x:String>
@@ -1496,7 +1504,7 @@
   <x:String x:Key="Text.TreeGit.Close" xml:space="preserve">關閉</x:String>
   <x:String x:Key="Text.TreeGit.Tabs.FileStatus" xml:space="preserve">檔案狀態</x:String>
   <x:String x:Key="Text.TreeGit.Tabs.History" xml:space="preserve">記錄／歷史</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.Title" xml:space="preserve">儲存庫驗證</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Title" xml:space="preserve">儲存庫帳號與密碼</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Description" xml:space="preserve">HTTPS 帳號僅用於此儲存庫與所選遠端。密碼或權杖儲存於 Windows 認證管理員。
 SSH 金鑰仍在遠端設定中設定。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.OptionalToken" xml:space="preserve">密碼或存取權杖（可留空）</x:String>
@@ -1510,7 +1518,15 @@ SSH 金鑰仍在遠端設定中設定。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.ModeSaveFailed" xml:space="preserve">無法儲存此儲存庫的驗證模式。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.SystemModeSaved" xml:space="preserve">已切換為此儲存庫的系統驗證／OAuth 模式。下次網路操作會啟動既有驗證流程。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Saved" xml:space="preserve">已儲存此儲存庫的驗證資訊。</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.Cleared" xml:space="preserve">已清除。下次存取遠端時會自動顯示驗證視窗。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Cleared" xml:space="preserve">已清除此儲存庫儲存的驗證。遠端需要驗證時，會重新要求輸入帳號和密碼。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.ClearPending">已清空輸入。按「確定」後清除原驗證；取消則保留原驗證。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Loading">正在讀取帳號設定…</x:String>
+  <x:String x:Key="Text.TreeGit.Clone.SettingsIncomplete">儲存庫已複製，但部分設定未能儲存，請在儲存庫設定中檢查後再試。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.ReadFailed">暫時無法讀取帳號設定，請重新開啟後再試。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.SaveFailed">未能儲存帳號設定，請檢查後再試。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.InvalidCharacters">帳號或密碼不能包含換行或空字元，請檢查輸入。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.TooLong">密碼或存取權杖過長，請檢查是否貼上了多餘內容。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.IdentityHint">更換使用者時，請同時在「儲存庫設定 → 進階 → 提交身分」確認姓名與電郵；遠端登入帳號不會自動取代提交身分。</x:String>
   <x:String x:Key="Text.TreeGit.Remote.Add" xml:space="preserve">新增遠端儲存庫</x:String>
   <x:String x:Key="Text.TreeGit.Remote.Edit" xml:space="preserve">編輯遠端儲存庫</x:String>
   <x:String x:Key="Text.TreeGit.Remote.UrlHint" xml:space="preserve">HTTPS／SSH 位址或本機儲存庫路徑</x:String>
@@ -1623,7 +1639,7 @@ SSH 金鑰仍在遠端設定中設定。</x:String>
   <x:String x:Key="Text.Options.ResetMode.hard.Name" xml:space="preserve">硬重設（hard）</x:String>
   <x:String x:Key="Text.Options.ResetMode.hard.Desc" xml:space="preserve">丟棄暫存區和工作區的已跟蹤修改</x:String>
   <x:String x:Key="Text.Options.MergeMode.default.Name" xml:space="preserve">預設</x:String>
-  <x:String x:Key="Text.Options.MergeMode.default.Desc" xml:space="preserve">使用 Git 配置</x:String>
+  <x:String x:Key="Text.Options.MergeMode.default.Desc" xml:space="preserve">使用 Git 設定</x:String>
   <x:String x:Key="Text.Options.MergeMode.ff-only.Name" xml:space="preserve">僅快進（ff-only）</x:String>
   <x:String x:Key="Text.Options.MergeMode.ff-only.Desc" xml:space="preserve">無法快進時拒絕合並</x:String>
   <x:String x:Key="Text.Options.MergeMode.no-ff.Name" xml:space="preserve">創建合並提交（no-ff）</x:String>
@@ -1652,10 +1668,10 @@ SSH 金鑰仍在遠端設定中設定。</x:String>
   <x:String x:Key="Text.Options.MergeStrategy.octopus.Desc" xml:space="preserve">同時合並多個分支頭</x:String>
   <x:String x:Key="Text.Options.MergeStrategy.ours.Name" xml:space="preserve">保留目前內容（ours）</x:String>
   <x:String x:Key="Text.Options.MergeStrategy.ours.Desc" xml:space="preserve">記錄合並關系，保留目前檔案內容</x:String>
-  <x:String x:Key="Text.Option.TextBox" xml:space="preserve">文本框</x:String>
+  <x:String x:Key="Text.Option.TextBox" xml:space="preserve">文字框</x:String>
   <x:String x:Key="Text.Option.PathSelector" xml:space="preserve">路徑選擇器</x:String>
   <x:String x:Key="Text.Option.CheckBox" xml:space="preserve">復選框</x:String>
-  <x:String x:Key="Text.Option.ComboBox" xml:space="preserve">下拉列表</x:String>
+  <x:String x:Key="Text.Option.ComboBox" xml:space="preserve">下拉選單</x:String>
   <x:String x:Key="Text.Option.LocalBranch" xml:space="preserve">本機分支選擇器</x:String>
   <x:String x:Key="Text.Option.RemoteBranch" xml:space="preserve">遠端分支選擇器</x:String>
   <x:String x:Key="Text.Common.LocalOnly" xml:space="preserve">僅本機</x:String>
@@ -1845,4 +1861,54 @@ SSH 金鑰仍在遠端設定中設定。</x:String>
   <x:String x:Key="Text.TreeGit.Commit.History.Empty">暫無歷史提交說明</x:String>
   <x:String x:Key="Text.TreeGit.Commit.History.Error">讀取提交說明失敗，請關閉後重試</x:String>
   <x:String x:Key="Text.TreeGit.Commit.SkipHooks">繞過提交掛鉤</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.Action">建立</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.Title">建立儲存庫</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.Parent">上層目錄：</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.Name">儲存庫名稱：</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.GitHub">同時在 GitHub 建立儲存庫</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.Private">私人儲存庫（僅獲授權者可存取；取消勾選即公開）</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.Token">GitHub 存取權杖</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.TokenHint">使用具有建立儲存庫及推送權限的存取權杖，先驗證其所屬帳號。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.Verify">驗證帳號</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.TokenHelp">取得 GitHub 存取權杖…</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.EmptyRemote">建立後自動連結遠端；新增檔案並完成首次提交後即可推送。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.InvalidName">請輸入有效的儲存庫名稱，勿包含路徑分隔符號或保留名稱。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.TokenRequired">請輸入有效的 GitHub 存取權杖。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.VerifyFirst">請先驗證 GitHub 帳號，確認建立目標。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.PathExists">目標目錄已存在。請變更名稱；現有儲存庫請使用「開啟」。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.LocationChanged">請繼續使用本次建立的目錄。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.GitHubName">GitHub 儲存庫名稱僅支援英文字母、數字、點、連字號及底線。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.RemoteExists">此 GitHub 帳號已有同名儲存庫，請變更名稱，或使用「複製」取得現有儲存庫。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.ConfirmExisting">上次請求的結果未能確認，現在已找到同名遠端。請核對位址，確認後按「連結此遠端」，再繼續建立本機儲存庫。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.ConnectExisting">連結此遠端</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.PartialLocal">目錄中已有本次操作留下的檔案，已保留。請使用「開啟」檢查該目錄後再繼續。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.LocalFailed">本機儲存庫建立失敗。請檢查目錄權限及磁碟空間；現有檔案已保留。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.RemoteCreatedLocalFailed">GitHub 儲存庫已建立，本機尚未完成。請檢查目錄權限及磁碟空間後重試，不會重複建立遠端。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.ConnectFailed">本機及 GitHub 儲存庫已保留，但遠端連結未完成。請重試或在儲存庫設定中檢查遠端位址。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.CredentialSaveFailed">儲存庫已建立，但帳號未能儲存。首次推送時請重新輸入帳號及存取權杖。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.AuthenticationFailed">GitHub 驗證失敗，請檢查存取權杖是否正確或已過期。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.PermissionDenied">此 GitHub 帳號或權杖沒有建立權限。請檢查權限後重試。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.RemoteRejected">GitHub 未接受建立請求。請檢查儲存庫名稱、權杖權限及帳號限制後重試。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.RateLimited">GitHub 暫時限制了請求，請稍後重試。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.ConnectionFailed">未能完成 GitHub 請求，請檢查網路後重試。若已送出建立請求，重試時會先核對遠端結果。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.InvalidResponse">暫時無法確認 GitHub 傳回的結果，請稍後重試核對。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.FolderPickerFailed">暫時無法選擇目錄，請直接輸入上層目錄。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.SameAccountRequired">請驗證上次送出建立請求時使用的 GitHub 帳號，以核對結果。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Action">帳號與密碼</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.UsernameLabel">已儲存的帳號：</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.PasswordLabel">密碼或存取權杖（留空保留原密碼）：</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.SystemManaged">此儲存庫使用系統驗證。帳號由系統驗證視窗管理；若要依儲存庫儲存及切換帳號，請取消勾選系統驗證。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.RemoteReady">GitHub 儲存庫已就緒，本機設定尚未完成。</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Connecting">連線中…</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Verifying">驗證中…</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.AuthenticationFailed">帳號驗證失敗，請重新輸入。</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.VerificationTimeout">驗證逾時，請重試。</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.ConnectionFailed">連線失敗，請檢查網路與遠端位址。</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Authenticated">驗證成功</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Running">正在{0}…</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Succeeded">操作成功</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Failed">操作失敗，請查看完整輸出。</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Cancelling">正在取消…</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Cancelled">已取消，已完成的步驟保留。</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.ShowFullOutput">顯示完整輸出</x:String>
 </ResourceDictionary>

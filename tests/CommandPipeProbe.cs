@@ -1,13 +1,25 @@
 using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SourceGit.Tests
 {
     internal static class CommandPipeProbe
     {
+        private sealed class RemoteQueryLog(CancellationToken token) : Models.ICommandLog
+        {
+            public CancellationToken OperationCancellation => token;
+            public bool HasOperationPanel => true;
+            public List<string> Lines { get; } = [];
+            public List<string> Failures { get; } = [];
+            public void AppendLine(string line) => Lines.Add(line);
+            public void MarkFailed(string line) => Failures.Add(line);
+        }
         private sealed class Query : Commands.Command
         {
             public Result Read() => ReadToEnd();
@@ -20,6 +32,31 @@ namespace SourceGit.Tests
             {
                 Directory.CreateDirectory(root);
                 Native.OS.GitExecutable = Native.OS.FindGitExecutable();
+                if (mode.StartsWith("remote-query-", StringComparison.Ordinal))
+                {
+                    using var input = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "remote-query.json")));
+                    var branch = input.RootElement.GetProperty("branch").GetString();
+                    using var cancellation = new CancellationTokenSource();
+                    var log = new RemoteQueryLog(cancellation.Token);
+                    var remoteQuery = new Commands.DoesBranchExistOnRemote(root, new Models.Remote { Name = "origin" }, new Models.Branch { Name = branch }) { Log = log };
+                    if (mode == "remote-query-cancel") cancellation.CancelAfter(600);
+                    var timer = Stopwatch.StartNew();
+                    var cancelled = false; var exists = false;
+                    try { exists = await remoteQuery.GetResultAsync(); }
+                    catch (OperationCanceledException) { cancelled = cancellation.IsCancellationRequested; }
+                    var correct = mode == "remote-query-cancel" ? cancelled && timer.ElapsedMilliseconds < 3000 :
+                        mode == "remote-query-failure" ? !remoteQuery.Succeeded && log.Failures.Count > 0 && log.Lines.Any(line => line.Contains("ls-remote", StringComparison.Ordinal)) :
+                        remoteQuery.Succeeded && exists == (mode == "remote-query-head");
+                    File.WriteAllText(report, JsonSerializer.Serialize(new { mode, success = correct, cancelled, exists, remoteQuery.Succeeded, milliseconds = timer.ElapsedMilliseconds, lines = log.Lines, failures = log.Failures }));
+                    return correct ? 0 : 1;
+                }
+                if (mode == "push-auth")
+                {
+                    var check = new Commands.VerifyPushCredentials(root, new Models.Remote { Name = "origin" });
+                    var verified = await check.VerifyAsync();
+                    File.WriteAllText(report, JsonSerializer.Serialize(new { success = verified, cancelled = check.WasAuthenticationCancelled, accepted = check.WasCredentialAccepted }));
+                    return 0;
+                }
                 if (mode.StartsWith("pull-safety-", StringComparison.Ordinal))
                     return await PullSafetyProbe.RunAsync(root, mode[12..], report);
                 if (mode.StartsWith("safety-", StringComparison.Ordinal))
@@ -94,6 +131,13 @@ namespace SourceGit.Tests
                 await Git("checkout main");
                 File.WriteAllText(Path.Combine(root, "sample.txt"), "preserve working file\n");
                 if (mode == "replay-ref-config") await Git("config replay.refAction update");
+                if (mode == "replay-driver")
+                {
+                    File.WriteAllText(Path.Combine(root, ".gitattributes"), "sample.txt merge=preview-qa\n");
+                    await Git($"config merge.preview-qa.driver {"echo ran > preview-side-effect.txt; exit 1".Quoted()}");
+                }
+                if (mode == "replay-renormalize") await Git("config merge.renormalize true");
+                if (mode == "replay-promisor") await Git("config remote.preview-qa.promisor true");
                 async Task<string> Snapshot(string args)
                 {
                     var snapshot = await new Query { WorkingDirectory = root, Args = args, UseCredentialManager = false }.ReadAsync();
@@ -102,18 +146,28 @@ namespace SourceGit.Tests
                 }
                 var refs = await Snapshot("show-ref --head"); var index = await Snapshot("ls-files --stage");
                 var before = File.ReadAllBytes(Path.Combine(root, "sample.txt"));
+                string ObjectSnapshot() => string.Join('\n', Directory.GetFiles(Path.Combine(root, ".git", "objects"), "*", SearchOption.AllDirectories)
+                    .OrderBy(file => file, StringComparer.Ordinal).Select(file => file + ":" + Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(file)))));
+                var objects = ObjectSnapshot();
+                var configBefore = File.ReadAllBytes(Path.Combine(root, ".git", "config"));
+                var scratchBefore = Directory.GetDirectories(Path.GetTempPath(), "TreeGit-merge-preview-*").OrderBy(path => path, StringComparer.Ordinal).ToArray();
                 var starts = 0;
                 Native.ProcessLauncher.BeforeStart = (_, _) => System.Threading.Interlocked.Increment(ref starts);
                 int code;
                 try
                 {
-                    code = await new Commands.Replay(root, "target", "target..main")
+                    code = await new Commands.Replay(root, "target", mode == "replay-invalid-range" ? "target...main" : "target..main")
                     { CancellationToken = mode == "replay-cancelled" ? new System.Threading.CancellationToken(true) : System.Threading.CancellationToken.None }.GetExitCodeAsync();
                 }
                 finally { Native.ProcessLauncher.BeforeStart = null; }
-                var correct = code == (mode == "replay-cancelled" ? -1 : 0) && refs == await Snapshot("show-ref --head") && index == await Snapshot("ls-files --stage") &&
+                var expected = mode is "replay-cancelled" or "replay-driver" or "replay-renormalize" or "replay-promisor" or "replay-invalid-range" ? -1 : 0;
+                var objectsUnchanged = objects == ObjectSnapshot();
+                var driverRan = File.Exists(Path.Combine(root, "preview-side-effect.txt"));
+                var scratchRemoved = scratchBefore.SequenceEqual(Directory.GetDirectories(Path.GetTempPath(), "TreeGit-merge-preview-*").OrderBy(path => path, StringComparer.Ordinal));
+                var correct = code == expected && refs == await Snapshot("show-ref --head") && index == await Snapshot("ls-files --stage") && objectsUnchanged && !driverRan && scratchRemoved &&
+                    configBefore.AsSpan().SequenceEqual(File.ReadAllBytes(Path.Combine(root, ".git", "config"))) &&
                     before.AsSpan().SequenceEqual(File.ReadAllBytes(Path.Combine(root, "sample.txt"))) && (mode != "replay-cancelled" || starts == 0);
-                File.WriteAllText(report, JsonSerializer.Serialize(new { mode, success = correct, exitCode = code, starts, git = Native.OS.GitVersionString }));
+                File.WriteAllText(report, JsonSerializer.Serialize(new { mode, success = correct, exitCode = code, starts, git = Native.OS.GitVersionString, objectsUnchanged, driverRan, scratchRemoved }));
                 return correct ? 0 : 1;
             }
             if (mode.StartsWith("keygen-", StringComparison.Ordinal))

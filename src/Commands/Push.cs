@@ -54,7 +54,7 @@ namespace SourceGit.Commands
             SSHKey = remote.PrivateSSHKey;
 
             var builder = new StringBuilder(512);
-            builder.Append("push ");
+            builder.Append("push --progress ");
             if (isDelete)
                 builder.Append("--delete ");
             builder.Append(remote.Name).Append(' ').Append(refname);

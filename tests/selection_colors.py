@@ -110,16 +110,20 @@ try:
     git('config', 'core.autocrlf', 'false')
     (repo / 'settings.json').write_text('{\n  "interval": 100,\n  "samples": 8\n}\n', encoding='utf-8')
     (repo / 'readme.txt').write_text('TreeGit interface demonstration\n', encoding='utf-8')
+    if gallery:
+        (repo / 'messages.cfg').write_bytes('status = 正在读取\n'.encode()+'mode = 手动\n'.encode('gbk'))
     git('add', '.'); git('commit', '-m', '初始化示例参数')
     git('branch', 'feature/side')
     (repo / 'settings.json').write_text('{\n  "interval": 120,\n  "samples": 16\n}\n', encoding='utf-8')
     (repo / 'readme.txt').write_text('TreeGit interface demonstration\nUpdated settings\n', encoding='utf-8')
+    if gallery:
+        (repo / 'messages.cfg').write_bytes('status = 读取完成\n'.encode()+'mode = 自动\n'.encode('gbk'))
     git('add', '.'); git('commit', '-m', '调整示例参数')
     target = git('rev-parse', 'HEAD')
     git('branch', 'release/demo', target)
     remote = git('commit-tree', git('rev-parse', 'HEAD^{tree}'), '-p', target, '-m', '远程待拉取的提交')
     git('update-ref', 'refs/remotes/origin/main', remote)
-    git('remote', 'add', 'origin', str(repo))
+    git('remote', 'add', 'origin', 'https://example.invalid/demo.git' if gallery else str(repo))
     git('config', 'branch.main.remote', 'origin')
     git('config', 'branch.main.merge', 'refs/heads/main')
     (repo / 'readme.txt').write_text('TreeGit interface demonstration\nUpdated settings\nLocal next step\n', encoding='utf-8')
@@ -181,6 +185,12 @@ try:
     if gallery:
         # Set up each public example explicitly inside this disposable repository.
         tool('ui_search', repo=str(repo), select=target, open=True)
+        until(lambda: 'messages.cfg' in (state()['detailChanges'] or []))
+        tool('ui_diff', repo=str(repo), action='select', source='history', file='messages.cfg')
+        tool('ui_command', command='external_diff')
+        until(lambda: any('messages.cfg' in d['title'] for d in tool('ui_state')['dialogs']))
+        capture('text-comparison', active=True)
+        tool('ui_command', command='close_dialog')
         (repo / 'firmware.bin').write_bytes(bytes(range(256)) * 8)
         git('add', '.'); git('commit', '-m', '添加示例固件')
         image = bytearray((repo / 'firmware.bin').read_bytes())
@@ -213,6 +223,12 @@ try:
         until(lambda: state()['workingCopyState']['composition']['visible'] and state()['workingCopyState']['composition']['commitEnabled'])
         capture('commit-page')
         check('public commit page shows the identity and enabled staged draft without committing', git('rev-parse', 'HEAD') == binary_head)
+        tool('ui_window', theme='Blue')
+        tool('ui_command', repo=str(repo), command='pull_dialog')
+        until(lambda: tool('ui_state')['activePage']['pendingDialog']=='Pull')
+        capture('pull-options')
+        tool('ui_command', repo=str(repo), command='cancel_popup')
+        tool('ui_window', theme='Light')
 
         repo = root / 'Merge Demo'
         repo.mkdir()

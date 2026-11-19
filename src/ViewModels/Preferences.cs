@@ -9,7 +9,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace SourceGit.ViewModels
 {
-    public partial class Preferences : ObservableObject
+    public partial class Preferences : ObservableObject, IDiffViewSettings
     {
         [JsonIgnore]
         public static Preferences Instance
@@ -253,6 +253,10 @@ namespace SourceGit.ViewModels
             get => _useSideBySideDiff;
             set => SetProperty(ref _useSideBySideDiff, value);
         }
+
+        public DiffViewSettings StandaloneDiffSettings { get; set; } = new();
+        public int DisplayEncodingIndex { get => _displayEncodingIndex; set => SetProperty(ref _displayEncodingIndex, Math.Max(0, value)); }
+        private int _displayEncodingIndex;
 
         public bool UseSyntaxHighlighting
         {
@@ -733,7 +737,9 @@ namespace SourceGit.ViewModels
                 var merger = Models.ExternalMerger.Supported[mergerType];
                 if (string.IsNullOrEmpty(Native.OS.ExternalDiffArgs))
                     Native.OS.ExternalDiffArgs = merger.DiffCmd;
-                if (string.IsNullOrEmpty(Native.OS.ExternalMergeArgs))
+                // Correct only the former P4Merge default; retain custom commands.
+                if (string.IsNullOrEmpty(Native.OS.ExternalMergeArgs) || merger.Icon == "p4merge" &&
+                    Native.OS.ExternalMergeArgs == "-tw 4 \"$BASE\" \"$LOCAL\" \"$REMOTE\" \"$MERGED\"")
                     Native.OS.ExternalMergeArgs = merger.MergeCmd;
             }
         }
@@ -877,8 +883,8 @@ namespace SourceGit.ViewModels
         private bool _useSideBySideDiff = false;
         private bool _ignoreWhitespaceChangesInDiff = false;
         private bool _ignoreCRAtEOLInDiff = true;
-        private bool _useSyntaxHighlighting = false;
-        private bool _enableDiffViewWordWrap = false;
+        private bool _useSyntaxHighlighting = true;
+        private bool _enableDiffViewWordWrap = true;
         private bool _showHiddenSymbolsInDiffView = false;
         private bool _useFullTextDiff = false;
         private int _lfsImageActiveIdx = 0;

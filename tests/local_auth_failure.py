@@ -1,6 +1,7 @@
 """A local rejecting hook must not be replayed as if remote credentials had failed."""
 import json, os, queue, subprocess, sys, tempfile, threading, time
 from pathlib import Path
+from qa_process import close_owned_gui
 
 exe = Path(sys.argv[1]).resolve()
 mode = 'action' if '--mcp-action' in sys.argv[3:] else 'run' if '--mcp-run' in sys.argv[3:] else 'native'
@@ -92,10 +93,4 @@ finally:
     p.stdin.close()
     try: p.wait(timeout=10)
     except subprocess.TimeoutExpired: p.kill(); p.wait()
-    if pid:
-        literal = str(exe).replace("'", "''")
-        script = ("$p=Get-Process -Id "+str(pid)+" -ErrorAction SilentlyContinue;if($p){"
-                  "if($p.Path -ne '"+literal+"'){throw 'Unexpected owned app'};"
-                  "$null=$p.CloseMainWindow();if(-not $p.WaitForExit(15000)){"
-                  "$p.Kill();$p.WaitForExit();throw 'Owned QA desktop did not exit normally'}};exit 0")
-        subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)
+    if pid: close_owned_gui(exe, pid)

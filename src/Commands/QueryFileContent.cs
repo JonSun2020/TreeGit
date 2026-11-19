@@ -7,7 +7,7 @@ namespace SourceGit.Commands
 {
     public static class QueryFileContent
     {
-        public static async Task<Stream> RunAsync(string repo, string revision, string file, bool requireSuccess = false)
+        public static async Task<MemoryStream> RunAsync(string repo, string revision, string file, bool requireSuccess = false)
         {
             var starter = new ProcessStartInfo();
             starter.WorkingDirectory = repo;

@@ -116,9 +116,10 @@ namespace SourceGit.Views
 
         public void ActivateTab(ViewModels.LauncherPage page)
         {
-            if (DataContext is ViewModels.Launcher launcher && launcher.Pages.Contains(page))
+            if (DataContext is ViewModels.Launcher { CanManageTabs: true } launcher && launcher.Pages.Contains(page))
             {
                 launcher.ActivePage = page;
+                LauncherTabsList.SetCurrentValue(ListBox.SelectedItemProperty, page);
                 LauncherTabsList.ScrollIntoView(page);
                 TabListMenu?.Close();
             }
@@ -126,7 +127,7 @@ namespace SourceGit.Views
 
         public void OpenTabList()
         {
-            if (DataContext is not ViewModels.Launcher launcher) return;
+            if (DataContext is not ViewModels.Launcher { CanManageTabs: true } launcher) return;
             TabListMenu?.Close();
             var menu = new ContextMenu { Placement = PlacementMode.BottomEdgeAlignedRight, MinWidth = 240, MaxWidth = 420, MaxHeight = 420 };
             MenuItem active = null;
@@ -164,6 +165,7 @@ namespace SourceGit.Views
 
         private void OnTabsSelectionChanged(object _1, SelectionChangedEventArgs _2)
         {
+            if (_reorderingTabs) return;
             if (LauncherTabsList.SelectedItem == null && DataContext is ViewModels.Launcher launcher &&
                 launcher.ActivePage is { } page && launcher.Pages.Contains(page))
                 LauncherTabsList.SelectedItem = page;
@@ -212,40 +214,85 @@ namespace SourceGit.Views
 
                 var data = new DataTransfer();
                 data.Add(DataTransferItem.Create(_dndMainTabFormat, page.Node.Id));
-                await DragDrop.DoDragDropAsync(_pressedTabEvent, data, DragDropEffects.Move);
+                try { await DragDrop.DoDragDropAsync(_pressedTabEvent, data, DragDropEffects.Move); }
+                finally
+                {
+                    ClearTabInsertion();
+                    _pressedTabEvent = null;
+                    _startDragTab = false;
+                }
             }
             e.Handled = true;
         }
 
-        private void DropTab(object sender, DragEventArgs e)
+        private ViewModels.LauncherPage DraggedTab(DragEventArgs e)
         {
             if (e.DataTransfer.TryGetValue(_dndMainTabFormat) is not { Length: > 0 } id)
-                return;
+                return null;
+            if (DataContext is ViewModels.Launcher launcher)
+                foreach (var page in launcher.Pages)
+                    if (page.Node.Id.Equals(id, StringComparison.Ordinal)) return page;
+            return null;
+        }
 
-            if (DataContext is not ViewModels.Launcher launcher)
-                return;
+        private int TabInsertionSlot(Point point)
+        {
+            if (DataContext is not ViewModels.Launcher launcher) return 0;
+            for (var i = 0; i < launcher.Pages.Count; i++)
+                if (LauncherTabsList.ContainerFromIndex(i) is Control item && item.TranslatePoint(default, LauncherTabsList) is { } origin &&
+                    point.X < origin.X + item.Bounds.Width / 2) return i;
+            return launcher.Pages.Count;
+        }
 
-            ViewModels.LauncherPage target = null;
-            foreach (var page in launcher.Pages)
+        private void OnTabDragOver(object sender, DragEventArgs e)
+        {
+            if (DraggedTab(e) == null)
             {
-                if (page.Node.Id.Equals(id, StringComparison.Ordinal))
-                {
-                    target = page;
-                    break;
-                }
+                ClearTabInsertion();
+                e.DragEffects = DragDropEffects.None;
+                return;
             }
+            var slot = TabInsertionSlot(e.GetPosition(LauncherTabsList));
+            var count = LauncherTabsList.ItemCount;
+            var itemIndex = Math.Min(slot, count - 1);
+            if (itemIndex >= 0 && LauncherTabsList.ContainerFromIndex(itemIndex) is Control item)
+            {
+                var point = item.TranslatePoint(new Point(slot == count ? item.Bounds.Width : 0, 0), TabDropArea) ?? default;
+                var left = LauncherTabsScroller.TranslatePoint(default, TabDropArea)?.X ?? 0;
+                var right = left + LauncherTabsScroller.Bounds.Width;
+                Canvas.SetLeft(TabInsertionMarker, Math.Clamp(point.X - 2.5, left, Math.Max(left, right - 5)));
+                Canvas.SetTop(TabInsertionMarker, Math.Max(0, TabDropArea.Bounds.Height - 26));
+                TabInsertionMarker.IsVisible = true;
+            }
+            e.DragEffects = DragDropEffects.Move;
+            e.Handled = true;
+        }
 
-            if (target == null)
-                return;
+        private void ClearTabInsertion() => TabInsertionMarker.IsVisible = false;
 
-            if (sender is not Border { DataContext: ViewModels.LauncherPage to })
-                return;
+        private void OnTabDragLeave(object sender, DragEventArgs e) => ClearTabInsertion();
 
-            if (target == to)
-                return;
-
-            launcher.MoveTab(target, to);
-
+        private void DropTab(object sender, DragEventArgs e)
+        {
+            var page = DraggedTab(e);
+            ClearTabInsertion();
+            if (page == null || DataContext is not ViewModels.Launcher launcher) return;
+            var slot = TabInsertionSlot(e.GetPosition(LauncherTabsList));
+            var from = launcher.Pages.IndexOf(page);
+            var index = Math.Clamp(slot - (slot > from ? 1 : 0), 0, launcher.Pages.Count - 1);
+            _reorderingTabs = true;
+            try
+            {
+                launcher.MoveTab(page, index);
+                ActivateTab(page);
+            }
+            finally { _reorderingTabs = false; }
+            // Moving the already-active item need not notify the binding again.
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (launcher.ActivePage == page && launcher.Pages.Contains(page))
+                    LauncherTabsList.SetCurrentValue(ListBox.SelectedItemProperty, page);
+            }, DispatcherPriority.Loaded);
             _pressedTabEvent = null;
             _startDragTab = false;
             e.Handled = true;
@@ -385,6 +432,7 @@ namespace SourceGit.Views
         private readonly Vector _scrollStep = new(64, 0);
         private PointerPressedEventArgs _pressedTabEvent = null;
         private bool _startDragTab = false;
+        private bool _reorderingTabs;
         private readonly DataFormat<string> _dndMainTabFormat = DataFormat.CreateStringApplicationFormat("sourcegit-dnd-main-tab");
     }
 }

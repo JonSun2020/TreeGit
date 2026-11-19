@@ -37,6 +37,9 @@ jobs:
       - name: Verify menu header toggling and outlines with routed and native input
         shell: pwsh
         run: python tests/menu_toggle.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/menu-toggle-results"
+      - name: Verify comparison settings and line-by-line display encoding
+        shell: pwsh
+        run: python tests/diff_view_profiles.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/diff-encoding-results" --encodings
       - name: Verify languages, table resizing, independent viewers and real merge results
         shell: pwsh
         run: |
@@ -96,6 +99,9 @@ jobs:
       - name: Verify cancellation affects only the command tree
         shell: pwsh
         run: python tests/process_cancellation.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/cancellation-helper/CancellationHelper.exe" "$env:RUNNER_TEMP/cancellation-results"
+      - name: Verify exact remote branches and complete cancelled operation logs
+        shell: pwsh
+        run: python tests/remote_query_cancellation.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/remote-query-results" --operations
       - name: Verify GUI without an installed Git
         shell: pwsh
         run: |
@@ -149,7 +155,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python tests/lfs_https_auth.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/lfs-https-results"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          python tests/git_https_push_auth.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/git-https-push-results"
+          python tests/git_https_push_auth.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/git-https-push-results" --operation-panels
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - uses: actions/upload-artifact@v4
         if: always()
@@ -157,6 +163,7 @@ jobs:
           name: TreeGit-cancellation-results
           path: |
             ${{ runner.temp }}/cancellation-results
+            ${{ runner.temp }}/remote-query-results/*.json
             ${{ runner.temp }}/ui-consistency-results/logic-report.json
             ${{ runner.temp }}/runtime-ui-results
             ${{ runner.temp }}/command-pipes-results

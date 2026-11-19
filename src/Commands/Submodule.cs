@@ -8,7 +8,7 @@ namespace SourceGit.Commands
     {
         protected override bool SupportsAuthenticationRetry =>
             Args.StartsWith("submodule update", System.StringComparison.Ordinal) ||
-            Args.StartsWith("--literal-pathspecs -c protocol.file.allow=always submodule add -- ", System.StringComparison.Ordinal);
+            Args.StartsWith("--literal-pathspecs -c protocol.file.allow=always submodule add --progress -- ", System.StringComparison.Ordinal);
 
         public Submodule(string repo)
         {
@@ -19,16 +19,16 @@ namespace SourceGit.Commands
 
         public async Task<bool> AddAsync(string url, string relativePath, bool recursive)
         {
-            Args = $"--literal-pathspecs -c protocol.file.allow=always submodule add -- {NormalizeURL(url).Quoted()} {relativePath.Quoted()}";
+            Args = $"--literal-pathspecs -c protocol.file.allow=always submodule add --progress -- {NormalizeURL(url).Quoted()} {relativePath.Quoted()}";
 
             var succ = await ExecAsync().ConfigureAwait(false);
             if (!succ)
                 return false;
 
             if (recursive)
-                Args = $"submodule update --init --recursive -- {LiteralPath(relativePath)}";
+                Args = $"submodule update --progress --init --recursive -- {LiteralPath(relativePath)}";
             else
-                Args = $"submodule update --init -- {LiteralPath(relativePath)}";
+                Args = $"submodule update --progress --init -- {LiteralPath(relativePath)}";
             return await ExecAsync().ConfigureAwait(false);
         }
 
@@ -51,7 +51,7 @@ namespace SourceGit.Commands
         public async Task<bool> UpdateAsync(List<string> modules, bool init, bool recursive, bool useRemote)
         {
             var builder = new StringBuilder();
-            builder.Append("submodule update");
+            builder.Append("submodule update --progress");
 
             if (init)
                 builder.Append(" --init");

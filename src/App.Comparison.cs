@@ -29,7 +29,7 @@ namespace SourceGit
             Dispatcher.UIThread.Post(() =>
             {
                 if (ComparisonOwner() is not { IsVisible: true } owner) return;
-                var context = new ViewModels.DiffContext(repository, option);
+                var context = new ViewModels.DiffContext(repository, option, standalone: true);
                 new Views.InternalDiffWindow(context, owner).Show(owner);
             });
         }

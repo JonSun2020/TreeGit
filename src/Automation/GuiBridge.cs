@@ -177,6 +177,11 @@ namespace SourceGit.Automation
                         }).ToArray(),
                         readOnlyFlag = "--read-only",
                         activePage = new { kind = launcher.ActivePage.Data.GetType().Name, pendingDialog = launcher.ActivePage.Popup?.GetType().Name, notifications = launcher.ActivePage.Notifications.Count,
+                            pendingOperation = launcher.ActivePage.Popup is { UsesOperationPanel: true } activeOperation ? new
+                            {
+                                succeeded = activeOperation.OperationSucceeded, status = activeOperation.OperationStage,
+                                resultVisible = activeOperation.OperationPanelVisible, canCancel = activeOperation.CanCancelOperation, canClose = activeOperation.CanCloseOperation,
+                            } : null,
                             popupAttemptVersion = launcher.ActivePage.PopupAttemptVersion,
                             remoteCheckout = launcher.ActivePage.Popup is ViewModels.CheckoutRemoteBranch checkout ? new { name = checkout.Name, hint = checkout.Hint, hasLocalChanges = checkout.HasLocalChanges,
                                 canUpdateRemote = checkout.CanUpdateRemote, updateRemote = checkout.UpdateRemote, hasErrors = checkout.HasErrors } : null },
@@ -316,6 +321,11 @@ namespace SourceGit.Automation
                                 pendingDialog = p.Popup?.GetType().Name,
                                 pendingDialogInProgress = p.Popup?.InProgress,
                                 pendingDialogAttemptVersion = p.PopupAttemptVersion,
+                                pendingOperation = p.Popup is { UsesOperationPanel: true } operation ? new
+                                {
+                                    succeeded = operation.OperationSucceeded, status = operation.OperationStage,
+                                    resultVisible = operation.OperationPanelVisible, canCancel = operation.CanCancelOperation, canClose = operation.CanCloseOperation,
+                                } : null,
                                 pendingDialogError = p.Popup switch {
                                     ViewModels.Merge m => m.ErrorMessage,
                                     ViewModels.Rebase b => b.ErrorMessage,
@@ -452,6 +462,14 @@ namespace SourceGit.Automation
                         App.GetLauncher().AddNewTab();
                         return (object)new { opened = uiCommand };
                     }
+                    if (uiCommand == "create_repository")
+                    {
+                        var launcher = App.GetLauncher();
+                        if (launcher.ActivePage.Data is not ViewModels.Welcome || launcher.ActivePage.Popup != null)
+                            launcher.AddNewTab();
+                        ViewModels.Welcome.Instance.CreateRepository();
+                        return (object)new { opened = uiCommand };
+                    }
                     if (uiCommand == "close_tab")
                     {
                         var launcher = App.GetLauncher();
@@ -544,7 +562,10 @@ namespace SourceGit.Automation
                         throw new ArgumentException("TreeGit rejected the clone configuration.");
                     page.Popup = clone;
                     await page.ProcessPopupAsync();
-                    return (object)new { isSuccess = page.Popup == null && Directory.Exists(destination), repo = destination };
+                    // Successful operations retain their result panel until it
+                    // is closed. Its presence does not mean cloning failed.
+                    return (object)new { isSuccess = clone.OperationSucceeded && Directory.Exists(destination), repo = destination,
+                        progressVisible = clone.OperationPanelVisible };
                 });
                 return cloneTask;
             }
@@ -1497,6 +1518,10 @@ namespace SourceGit.Automation
             public async Task<Result> RunAsync(bool allowAuthenticationRetry = false, bool retrySilentFailure = false, bool requireAuthenticationTransportExitCode = false)
             {
                 IsAuthenticationRetry = false;
+                using var session = OperatingSystem.IsWindows() && allowAuthenticationRetry ? new Native.CredentialSession() : null;
+                AuthenticationSession = session;
+                try
+                {
                 while (true)
                 {
                     using var process = new System.Diagnostics.Process { StartInfo = CreateGitStartInfo(true) };
@@ -1510,24 +1535,29 @@ namespace SourceGit.Automation
                         }));
 #endif
                     Native.ProcessLauncher.Start(process);
+                    session?.Bind(process);
                     var stdout = ReadCappedAsync(process.StandardOutput);
                     var stderr = ReadCappedAsync(process.StandardError);
                     await Task.WhenAll(stdout, stderr, process.WaitForExitAsync()).ConfigureAwait(false);
+                    session?.Unbind();
                     var result = new Result { IsSuccess = process.ExitCode == 0, ExitCode = process.ExitCode, StdOut = stdout.Result, StdErr = stderr.Result };
+                    if (await RetryAuthenticationAsync(process.ExitCode, result.StdErr, allowAuthenticationRetry, requireAuthenticationTransportExitCode).ConfigureAwait(false)) continue;
+                    if (WasAuthenticationCancelled)
+                    {
+                        result.AuthenticationCancelled = true; result.IsSuccess = false;
+                        result.StdErr = string.Empty; result.UserMessage = App.Text("Pull.Cancelled");
+                        return result;
+                    }
                     if (retrySilentFailure && result.IsSilentFailure)
                     {
                         retrySilentFailure = false;
                         await Task.Delay(100).ConfigureAwait(false);
                         continue;
                     }
-                    if (!result.IsSuccess && allowAuthenticationRetry && (!requireAuthenticationTransportExitCode || result.ExitCode == 128) &&
-                        OperatingSystem.IsWindows() && Native.RepositoryCredentials.IsAuthenticationFailure(result.StdErr))
-                    {
-                        IsAuthenticationRetry = true;
-                        continue;
-                    }
                     return result;
                 }
+                }
+                finally { AuthenticationSession = null; }
             }
 
             private static async Task<string> ReadCappedAsync(StreamReader reader)

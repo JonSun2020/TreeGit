@@ -62,7 +62,7 @@
                 HotKey="Enter"/>
         <Button Classes="flat"
                 Width="80"
-                Margin="16,0,0,0"
+              Margin="8,0,0,0"
                 Content="{DynamicResource Text.Cancel}"
                 Click="OnCancel"/>
       </StackPanel>

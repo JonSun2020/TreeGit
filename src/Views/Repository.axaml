@@ -519,7 +519,7 @@
                 <Border Background="{DynamicResource Brush.Popup}" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource Brush.PopupBorder}">
                   <StackPanel Orientation="Vertical" Margin="16,8">
                     <TextBlock Text="{DynamicResource Text.Repository.AutoFetching}"/>
-                    <ProgressBar Margin="0,8,0,0" HorizontalAlignment="Stretch" IsIndeterminate="{Binding IsAutoFetching}" Background="{DynamicResource Brush.FG2}" Foreground="{DynamicResource Brush.Accent}" Minimum="0" Maximum="100"/>
+                    <v:ActivityProgressBar Margin="0,8,0,0" HorizontalAlignment="Stretch" IsRunning="{Binding IsAutoFetching}" Background="{DynamicResource Brush.FG2}"/>
                   </StackPanel>
                 </Border>
               </Border>

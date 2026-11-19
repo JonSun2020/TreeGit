@@ -344,22 +344,26 @@
       </ContentControl>
 
       <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="{Binding DetailsToolbarMargin}">
-        <Button Classes="icon_button" Width="28" Height="28" Padding="0" IsVisible="{Binding IsOpenAsStandaloneVisible, Mode=OneWay}" Click="OnOpenDetailsAsStandalone" HotKey="{OnPlatform Ctrl+N, macOS=⌘+N}">
+        <Button x:Name="OpenDetailsStandaloneButton" Classes="icon_button" Width="28" Height="28" Padding="0" IsVisible="{Binding IsOpenAsStandaloneVisible, Mode=OneWay}" Click="OnOpenDetailsAsStandalone" HotKey="{OnPlatform Ctrl+N, macOS=⌘+N}" ToolTip.Placement="Top" ToolTip.VerticalOffset="-8">
           <ToolTip.Tip>
+            <ToolTip IsHitTestVisible="False">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
               <TextBlock Text="{DynamicResource Text.HistoriesDetailsStandalone}" VerticalAlignment="Center"/>
               <TextBlock Margin="16,0,0,0" Text="{OnPlatform Ctrl+N, macOS=⌘+N}" Foreground="{DynamicResource MenuFlyoutItemKeyboardAcceleratorTextForeground}" FontSize="11" VerticalAlignment="Center"/>
             </StackPanel>
+            </ToolTip>
           </ToolTip.Tip>
           <Path Width="15" Height="15" Margin="0,1,0,0" Data="{StaticResource Icons.OpenAsStandalone}"/>
         </Button>
 
-        <ToggleButton x:Name="CollapseDetailsButton" Classes="line_path" Width="28" Height="28" Padding="0" HotKey="{OnPlatform Ctrl+J, macOS=⌘+J}" IsChecked="{Binding IsCollapseDetails, Mode=TwoWay}" IsVisible="{Binding Source={x:Static vm:Preferences.Instance}, Path=UseTwoColumnsLayoutInHistories, Mode=OneWay, Converter={x:Static BoolConverters.Not}}">
+        <ToggleButton x:Name="CollapseDetailsButton" Classes="line_path" Width="28" Height="28" Padding="0" HotKey="{OnPlatform Ctrl+J, macOS=⌘+J}" IsChecked="{Binding IsCollapseDetails, Mode=TwoWay}" IsVisible="{Binding Source={x:Static vm:Preferences.Instance}, Path=UseTwoColumnsLayoutInHistories, Mode=OneWay, Converter={x:Static BoolConverters.Not}}" ToolTip.Placement="Top" ToolTip.VerticalOffset="-8">
           <ToolTip.Tip>
+            <ToolTip IsHitTestVisible="False">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
               <TextBlock Text="{DynamicResource Text.CommitDetail.CollapseToBottom}" VerticalAlignment="Center"/>
               <TextBlock Margin="16,0,0,0" Text="{OnPlatform Ctrl+J, macOS=⌘+J}" Foreground="{DynamicResource MenuFlyoutItemKeyboardAcceleratorTextForeground}" FontSize="11" VerticalAlignment="Center"/>
             </StackPanel>
+            </ToolTip>
           </ToolTip.Tip>
           <Path Width="14" Height="14" Data="{StaticResource Icons.CollapseToBottom}"/>
         </ToggleButton>

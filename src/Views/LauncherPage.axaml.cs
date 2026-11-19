@@ -11,6 +11,7 @@ namespace SourceGit.Views
         public LauncherPage()
         {
             InitializeComponent();
+            InitializeDialogDragging();
         }
 
         private async void OnPopupSureByHotKey(object sender, RoutedEventArgs e)

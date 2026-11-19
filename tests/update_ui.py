@@ -6,10 +6,15 @@ import subprocess
 import sys
 
 sys.path.insert(0, str(Path.cwd() / 'tests'))
-from qa_cleanup import remove_fixture
+from qa_cleanup import remove_fixture, verify_local_runtime
 
-assert os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ.get('RUNNER_OS') == 'Windows'
 exe, archive, output = (Path(arg).resolve() for arg in sys.argv[1:4])
+if os.environ.get('GITHUB_ACTIONS') == 'true':
+    assert os.environ.get('RUNNER_OS') == 'Windows'
+else:
+    # Routed controls, owned files and mock HTTP only. Native pointer/keyboard
+    # tests keep their GitHub-runner requirement; this fixture never sends input.
+    verify_local_runtime(exe)
 assert exe.is_file() and archive.is_file() and not output.exists()
 try:
     result = subprocess.run([str(exe), '--integration-update-ui', str(archive), str(output)],

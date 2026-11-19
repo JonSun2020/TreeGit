@@ -28,8 +28,12 @@ Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'LICENSE'),(Join-Path $PSScriptR
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/PORTABLE.md') -Destination (Join-Path $Destination '使用说明.md') -Force
 Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'docs/MCP.md') -Destination (Join-Path $Destination 'MCP-使用说明.md') -Force
 $config=@{mcpServers=@{treegit=@{command='C:\Tools\TreeGit\TreeGit.exe';args=@('--mcp','--read-only')}}}
-$config | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 (Join-Path $Destination 'mcp-readonly.json')
+if(-not (Test-Path -LiteralPath (Join-Path $Destination 'mcp-readonly.json'))){
+    $config | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 (Join-Path $Destination 'mcp-readonly.json')
+}
 $config.mcpServers.treegit.args=@('--mcp')
-$config | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 (Join-Path $Destination 'mcp-readwrite.json')
+if(-not (Test-Path -LiteralPath (Join-Path $Destination 'mcp-readwrite.json'))){
+    $config | ConvertTo-Json -Depth 6 | Set-Content -Encoding UTF8 (Join-Path $Destination 'mcp-readwrite.json')
+}
 @{product='TreeGit';version=$treeGitVersion;sourceCommit=$treeGitSourceCommit;upstreamCommit='2735a8ad80c2443bc736b7e6e501f1052b61d940';integrationTests=$IntegrationTests.IsPresent;selfContained=$true;trimmed=$true;singleFileCompression=$true;bundledGit=$true;gitVersion=$treeGitRuntime.gitVersion;lfsVersion=$treeGitRuntime.lfsVersion;flowVersion=$treeGitRuntime.flowVersion} | ConvertTo-Json | Set-Content -Encoding UTF8 (Join-Path $Destination 'build-info.json')
 Write-Output ('TreeGit portable program: '+$Destination)

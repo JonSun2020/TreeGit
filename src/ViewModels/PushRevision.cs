@@ -31,6 +31,7 @@ namespace SourceGit.ViewModels
             CanTerminate = true;
         }
 
+        public override Task<bool> VerifyCredentialsAsync() => VerifyRemoteAsync(_repo.FullPath, _repo.Remotes.Find(x => x.Name == RemoteBranch.Remote), push: true);
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();

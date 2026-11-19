@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -32,9 +33,23 @@ namespace SourceGit.ViewModels
             {
                 if (value == null && _activePage != null && Pages.Contains(_activePage))
                     return;
+                var previous = _activePage;
                 if (SetProperty(ref _activePage, value))
+                {
+                    if (previous != null) previous.PropertyChanged -= OnActivePagePropertyChanged;
+                    if (value != null) value.PropertyChanged += OnActivePagePropertyChanged;
+                    OnPropertyChanged(nameof(CanManageTabs));
                     PostActivePageChanged();
+                }
             }
+        }
+
+        public bool CanManageTabs => _activePage?.Popup == null;
+
+        private void OnActivePagePropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(LauncherPage.Popup))
+                OnPropertyChanged(nameof(CanManageTabs));
         }
 
         public ICommandPalette CommandPalette
@@ -155,7 +170,7 @@ namespace SourceGit.ViewModels
 
         public void SwitchWorkspace(Workspace to)
         {
-            if (to == null || to.IsActive || !CanClosePages(Pages, saveDrafts: true))
+            if (!CanManageTabs || to == null || to.IsActive || !CanClosePages(Pages, saveDrafts: true))
                 return;
 
             _ignoreIndexChange = true;
@@ -183,6 +198,7 @@ namespace SourceGit.ViewModels
 
         public void AddNewTab()
         {
+            if (!CanManageTabs) return;
             var page = new LauncherPage();
             Pages.Add(page);
             ActivePage = page;
@@ -190,26 +206,31 @@ namespace SourceGit.ViewModels
 
         public void MoveTab(LauncherPage from, LauncherPage to)
         {
-            _ignoreIndexChange = true;
-
-            var fromIdx = Pages.IndexOf(from);
             var toIdx = Pages.IndexOf(to);
-            Pages.Move(fromIdx, toIdx);
+            if (toIdx >= 0) MoveTab(from, toIdx);
+        }
 
-            _activeWorkspace.Repositories.Clear();
-            foreach (var p in Pages)
+        public void MoveTab(LauncherPage from, int toIndex)
+        {
+            if (!CanManageTabs) return;
+            var fromIndex = Pages.IndexOf(from);
+            if (fromIndex < 0 || toIndex < 0 || toIndex >= Pages.Count) return;
+            var previous = _ignoreIndexChange;
+            _ignoreIndexChange = true;
+            try
             {
-                if (p.Node.IsRepository)
-                    _activeWorkspace.Repositories.Add(p.Node.Id);
+                if (fromIndex != toIndex) Pages.Move(fromIndex, toIndex);
+                _activeWorkspace.Repositories.Clear();
+                foreach (var p in Pages)
+                    if (p.Node.IsRepository) _activeWorkspace.Repositories.Add(p.Node.Id);
             }
-
-            _ignoreIndexChange = false;
+            finally { _ignoreIndexChange = previous; }
             ActivePage = from;
         }
 
         public void GotoNextTab()
         {
-            if (Pages.Count == 1)
+            if (!CanManageTabs || Pages.Count == 1)
                 return;
 
             var activeIdx = Pages.IndexOf(_activePage);
@@ -219,7 +240,7 @@ namespace SourceGit.ViewModels
 
         public void GotoPrevTab()
         {
-            if (Pages.Count == 1)
+            if (!CanManageTabs || Pages.Count == 1)
                 return;
 
             var activeIdx = Pages.IndexOf(_activePage);
@@ -230,37 +251,22 @@ namespace SourceGit.ViewModels
         public void CloseTab(LauncherPage page)
         {
             page ??= _activePage;
+            if (!CanManageTabs || page == null || !Pages.Contains(page) || page.Popup != null) return;
             if (!CanClosePages([page], saveDrafts: true)) return;
 
             if (Pages.Count == 1)
             {
                 var last = Pages[0];
-                if (last.Node.IsRepository)
-                {
-                    _activeWorkspace.Repositories.Clear();
-                    _activeWorkspace.ActiveIdx = 0;
-
-                    if (last.Data is Repository repo)
-                    {
-                        if (last.Node.IsUnmanaged)
-                            last.Node.SaveMinimalInfo(repo.GitDir);
-                        repo.Close();
-                    }
-
-                    Welcome.Instance.ClearSearchFilter();
-                    last.Node = new RepositoryNode() { Id = Guid.NewGuid().ToString() };
-                    last.Data = Welcome.Instance;
-                    last.Popup?.Cleanup();
-                    last.Popup = null;
-
-                    PostActivePageChanged();
-                    GC.Collect();
-                }
-                else
-                {
-                    App.Quit(0);
-                }
-
+                if (!last.Node.IsRepository && last.Data is Welcome) return;
+                // Keep a usable page throughout the transition, and discard all
+                // per-tab state instead of reusing the closed repository's page.
+                var initial = new LauncherPage();
+                Pages.Add(initial);
+                ActivePage = initial;
+                CloseRepositoryInTab(last);
+                Pages.Remove(last);
+                _activeWorkspace.ActiveIdx = 0;
+                GC.Collect();
                 return;
             }
 
@@ -278,7 +284,7 @@ namespace SourceGit.ViewModels
 
         public void CloseOtherTabs()
         {
-            if (Pages.Count == 1)
+            if (!CanManageTabs || Pages.Count == 1)
                 return;
             if (!CanClosePages(Pages.Where(page => page != ActivePage), saveDrafts: true)) return;
 
@@ -301,6 +307,7 @@ namespace SourceGit.ViewModels
 
         public void CloseRightTabs()
         {
+            if (!CanManageTabs) return;
             if (!CanClosePages(Pages.Skip(Pages.IndexOf(ActivePage) + 1), saveDrafts: true)) return;
             _ignoreIndexChange = true;
 
@@ -481,6 +488,10 @@ namespace SourceGit.ViewModels
 
             if (string.IsNullOrEmpty(notification.Group))
             {
+                if (_activePage?.Popup is { UsesOperationPanel: true, InProgress: true } operation)
+                {
+                    operation.AppendOperationOutput(notification.Message, notification.IsError); return;
+                }
                 _activePage?.Notifications.Add(notification);
                 return;
             }
@@ -490,6 +501,11 @@ namespace SourceGit.ViewModels
                 var id = page.Node.Id.Replace('\\', '/').TrimEnd('/');
                 if (id.Equals(notification.Group, StringComparison.OrdinalIgnoreCase))
                 {
+                    if (page.Popup is { UsesOperationPanel: true, InProgress: true } operation)
+                    {
+                        operation.AppendOperationOutput(notification.Message, notification.IsError);
+                        return;
+                    }
                     page.Notifications.Add(notification);
                     return;
                 }

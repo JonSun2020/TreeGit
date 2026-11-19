@@ -24,7 +24,8 @@ namespace SourceGit.Commands
         }
 
         public static async Task<Command.Result> RunAsync(string repo, string gitDir, Models.Remote remote, Models.Branch target,
-            string trackingRef, bool rebase, bool ffOnly, CancellationToken cancellation, Models.ICommandLog log, Action integrating = null)
+            string trackingRef, bool rebase, bool ffOnly, CancellationToken cancellation, Models.ICommandLog log, Action integrating = null,
+            Func<Task<bool>> prepareLocalChanges = null)
         {
             string snapshotFile = null, messageFile = null;
             try
@@ -68,6 +69,8 @@ namespace SourceGit.Commands
                     var common = await new Read(repo, $"merge-base --octopus {currentHead.Quoted()} {heads[0].Quoted()} {fork.Quoted()}").GetAsync().ConfigureAwait(false);
                     if (common.IsSuccess && common.StdOut.Trim() == fork) fork = null;
                 }
+                // Authenticate before stashing or discarding any local work.
+                if (prepareLocalChanges != null && !await prepareLocalChanges().ConfigureAwait(false)) return Failed("Pull.Cancelled");
                 var safety = new CheckMergeSafety(repo, heads, replayRange: willReplay ? $"{fork ?? heads[0]}..{currentHead}" : null);
                 if (!await safety.GetResultAsync().ConfigureAwait(false))
                 {
@@ -146,6 +149,7 @@ namespace SourceGit.Commands
         {
             IsSuccess = success, ExitCode = command.LastExitCode, StdErr = success ? string.Empty : command.FailureMessage,
             UserMessage = success ? null : App.Text("Pull.Failed"),
+            AuthenticationCancelled = command.WasAuthenticationCancelled,
         };
     }
 }

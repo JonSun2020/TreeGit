@@ -215,7 +215,7 @@
   <x:String x:Key="Text.CommitDetail.Info.SHA" xml:space="preserve">提交指纹</x:String>
   <x:String x:Key="Text.CommitDetail.Info.Signer" xml:space="preserve">签名者 ：</x:String>
   <x:String x:Key="Text.CommitDetail.Info.WebLinks" xml:space="preserve">浏览器中查看</x:String>
-  <x:String x:Key="Text.CommitMessageTextBox.Placeholder" xml:space="preserve">请输入提交的信息。注意：主题与具体描述中间需要空白行分隔！</x:String>
+  <x:String x:Key="Text.CommitMessageTextBox.Placeholder" xml:space="preserve">请输出提交说明...</x:String>
   <x:String x:Key="Text.CommitMessageTextBox.SubjectCount" xml:space="preserve">主题</x:String>
   <x:String x:Key="Text.Compare" xml:space="preserve">比较</x:String>
   <x:String x:Key="Text.Compare.Changes" xml:space="preserve">差异文件</x:String>
@@ -619,7 +619,7 @@
   <x:String x:Key="Text.Merge.Source" xml:space="preserve">合并目标 ：</x:String>
   <x:String x:Key="Text.Merge.Test" xml:space="preserve">检测合并冲突中...</x:String>
   <x:String x:Key="Text.Merge.Test.NoConflicts" xml:space="preserve">未发现提交内容冲突</x:String>
-  <x:String x:Key="Text.Merge.Test.UnknownError" xml:space="preserve">检测合并冲突时出现未知错误</x:String>
+  <x:String x:Key="Text.Merge.Test.UnknownError" xml:space="preserve">无法预判冲突，仍可继续合并</x:String>
   <x:String x:Key="Text.Merge.Test.WillCauseConflicts" xml:space="preserve">提交内容存在冲突，仍可继续并手动解决</x:String>
   <x:String x:Key="Text.MergeConflictEditor.AcceptBoth.MineFirst" xml:space="preserve">先应用 MINE 后 THEIRS</x:String>
   <x:String x:Key="Text.MergeConflictEditor.AcceptBoth.TheirsFirst" xml:space="preserve">先应用 THEIRS 后 MINE</x:String>
@@ -795,7 +795,7 @@
   <x:String x:Key="Text.Rebase.On" xml:space="preserve">目标提交 ：</x:String>
   <x:String x:Key="Text.Rebase.Test" xml:space="preserve">检测变基冲突中...</x:String>
   <x:String x:Key="Text.Rebase.Test.OK" xml:space="preserve">未检测到文件冲突</x:String>
-  <x:String x:Key="Text.Rebase.Test.UnknownError" xml:space="preserve">检测变基冲突时出现未知错误</x:String>
+  <x:String x:Key="Text.Rebase.Test.UnknownError" xml:space="preserve">无法预判冲突，仍可继续变基</x:String>
   <x:String x:Key="Text.Rebase.Test.WillCauseConflicts" xml:space="preserve">检测到冲突文件</x:String>
   <x:String x:Key="Text.Remote.AddTitle" xml:space="preserve">添加远程仓库</x:String>
   <x:String x:Key="Text.Remote.EditTitle" xml:space="preserve">编辑远程仓库</x:String>
@@ -1359,6 +1359,7 @@
   <x:String x:Key="Text.Stash.After.KeepAll" xml:space="preserve">保留全部本地修改</x:String>
   <x:String x:Key="Text.Stash.After.KeepAll.Description" xml:space="preserve">创建贮藏副本，本地仍保留相同的暂存和未暂存修改。</x:String>
   <x:String x:Key="Text.UI.AdvancedOptions" xml:space="preserve">高级选项</x:String>
+  <x:String x:Key="Text.UI.AdvancedOptionsLabel" xml:space="preserve">高级选项：</x:String>
   <x:String x:Key="Text.UI.ForcePushEnabled" xml:space="preserve">注意：已开启强制推送，可能改写远程提交历史。</x:String>
   <x:String x:Key="Text.UI.SkipHooksEnabled" xml:space="preserve">注意：本次操作将跳过仓库钩子检查。</x:String>
   <x:String x:Key="Text.UI.SkipHooksShort" xml:space="preserve">将跳过钩子检查</x:String>
@@ -1373,6 +1374,8 @@
   <x:String x:Key="Text.UI.SortName" xml:space="preserve">按文件名排序</x:String>
   <x:String x:Key="Text.UI.SortStatus" xml:space="preserve">按状态排序</x:String>
   <x:String x:Key="Text.UI.DisplayOptions" xml:space="preserve">显示选项</x:String>
+  <x:String x:Key="Text.UI.DisplayEncoding">文字编码</x:String>
+  <x:String x:Key="Text.UI.AutoEncoding">自动适配</x:String>
   <x:String x:Key="Text.UI.MoreContext" xml:space="preserve">增加上下文</x:String>
   <x:String x:Key="Text.UI.LessContext" xml:space="preserve">减少上下文</x:String>
   <x:String x:Key="Text.Diff.Source.Old" xml:space="preserve">旧版本：{0}</x:String>
@@ -1433,10 +1436,15 @@
   <x:String x:Key="Text.TreeGit.Credentials.OptionalPassword" xml:space="preserve">密码（可留空）</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.PasswordHint" xml:space="preserve">密码 / Password</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.TogglePassword" xml:space="preserve">显示 / 隐藏密码</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.Authentication" xml:space="preserve">仓库认证</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Authentication" xml:space="preserve">仓库账号与密码</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Context" xml:space="preserve">仓库：{0}
 服务器：{1}</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.Retry" xml:space="preserve">账号或密码错误，请重新输入。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Retry" xml:space="preserve">验证失败，请检查账号、密码或令牌并重新输入。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Verifying">正在验证…</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.PushUnavailable">暂时无法验证推送权限，已保留你的修改和提交说明。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Success">验证成功</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Timeout">验证超时，请检查网络连接后重试。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.ConnectionFailed">暂时无法验证，请检查网络连接后重试。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.InvalidInput" xml:space="preserve">请输入账号；账号和密码不能包含换行或 NUL 字符。</x:String>
   <x:String x:Key="Text.TreeGit.Binary.AddressHint" xml:space="preserve">十六进制地址</x:String>
   <x:String x:Key="Text.TreeGit.Binary.First" xml:space="preserve">首个差异</x:String>
@@ -1472,7 +1480,7 @@
   <x:String x:Key="Text.TreeGit.History.Graph" xml:space="preserve">图谱</x:String>
   <x:String x:Key="Text.TreeGit.Menu.File" xml:space="preserve">文件(F)</x:String>
   <x:String x:Key="Text.TreeGit.Menu.NewTab" xml:space="preserve">新标签页</x:String>
-  <x:String x:Key="Text.TreeGit.Menu.OpenClone" xml:space="preserve">打开 / 克隆仓库</x:String>
+  <x:String x:Key="Text.TreeGit.Menu.OpenClone" xml:space="preserve">克隆 / 创建仓库</x:String>
   <x:String x:Key="Text.TreeGit.Menu.Quit" xml:space="preserve">退出</x:String>
   <x:String x:Key="Text.TreeGit.Menu.Edit" xml:space="preserve">编辑(E)</x:String>
   <x:String x:Key="Text.TreeGit.Menu.Preferences" xml:space="preserve">偏好设置</x:String>
@@ -1515,7 +1523,7 @@
   <x:String x:Key="Text.TreeGit.Close" xml:space="preserve">关闭</x:String>
   <x:String x:Key="Text.TreeGit.Tabs.FileStatus" xml:space="preserve">文件状态</x:String>
   <x:String x:Key="Text.TreeGit.Tabs.History" xml:space="preserve">日志 / 历史</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.Title" xml:space="preserve">仓库认证 / Repository credentials</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Title" xml:space="preserve">仓库账号与密码</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Description" xml:space="preserve">HTTPS 账号只用于当前仓库和所选远程。密码/令牌保存到 Windows 凭据管理器。
 SSH 密钥仍在原有远程配置中设置。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.OptionalToken" xml:space="preserve">密码或访问令牌（可留空）</x:String>
@@ -1529,7 +1537,15 @@ SSH 密钥仍在原有远程配置中设置。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.ModeSaveFailed" xml:space="preserve">无法保存此仓库的认证模式。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.SystemModeSaved" xml:space="preserve">已切换到此仓库的系统认证 / OAuth 模式。下次联网操作会启动原有认证流程。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Saved" xml:space="preserve">已保存此仓库的认证。</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.Cleared" xml:space="preserve">已清除。下次访问远程时会自动弹出认证窗口。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Cleared" xml:space="preserve">已清除此仓库保存的认证。远端需要认证时，会重新要求输入账号和密码。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.ClearPending">已清空输入。点击“确定”后清除原认证；取消则保留原认证。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Loading">正在读取账号配置…</x:String>
+  <x:String x:Key="Text.TreeGit.Clone.SettingsIncomplete">仓库已克隆，但部分设置未能保存，请在仓库设置中检查后重试。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.ReadFailed">暂时无法读取账号配置，请重新打开后重试。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.SaveFailed">未能保存账号配置，请检查后重试。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.InvalidCharacters">账号或密码不能包含换行或空字符，请检查输入。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.TooLong">密码或访问令牌过长，请检查是否粘贴了多余内容。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.IdentityHint">换人使用时，请同时在“仓库设置 → 高级 → 提交身份”中确认姓名和邮箱；远端登录账号不会自动替换提交身份。</x:String>
   <x:String x:Key="Text.TreeGit.Remote.Add" xml:space="preserve">添加远程仓库</x:String>
   <x:String x:Key="Text.TreeGit.Remote.Edit" xml:space="preserve">编辑远程仓库</x:String>
   <x:String x:Key="Text.TreeGit.Remote.UrlHint" xml:space="preserve">HTTPS / SSH 地址或本地仓库路径</x:String>
@@ -1790,4 +1806,54 @@ SSH 密钥仍在原有远程配置中设置。</x:String>
   <x:String x:Key="Text.TreeGit.Commit.History.Empty">暂无历史提交说明</x:String>
   <x:String x:Key="Text.TreeGit.Commit.History.Error">读取提交说明失败，请关闭后重试</x:String>
   <x:String x:Key="Text.TreeGit.Commit.SkipHooks">绕过提交钩子</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.Action">创建</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.Title">创建仓库</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.Parent">父级目录：</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.Name">仓库名称：</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.GitHub">同时在 GitHub 创建仓库</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.Private">私有仓库（仅有权限的人可访问；取消勾选则公开）</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.Token">GitHub 访问令牌</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.TokenHint">使用具有创建仓库与推送权限的访问令牌，先验证它所属的账号。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.Verify">验证账号</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.TokenHelp">获取 GitHub 访问令牌…</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.EmptyRemote">创建后自动关联远端；添加文件并完成首次提交后即可推送。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.InvalidName">请输入有效的仓库名称，不要包含路径分隔符或保留名称。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.TokenRequired">请输入有效的 GitHub 访问令牌。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.VerifyFirst">请先验证 GitHub 账号，确认创建目标。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.PathExists">目标目录已存在。请更换名称；已有仓库请使用“打开”。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.LocationChanged">请继续使用本次创建的目录。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.GitHubName">GitHub 仓库名称仅支持英文字母、数字、点、短横线和下划线。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.RemoteExists">该 GitHub 账号下已有同名仓库，请更换名称，或使用“克隆”获取已有仓库。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.ConfirmExisting">上次请求的结果未能确认，现在已找到同名远端。请核对地址，确认后点击“连接此远端”，再继续创建本地仓库。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.ConnectExisting">连接此远端</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.PartialLocal">目录中已有本次操作留下的文件，已保留。请通过“打开”检查该目录后再继续。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.LocalFailed">本地仓库创建失败。请检查目录权限和磁盘空间；已有文件已保留。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.RemoteCreatedLocalFailed">GitHub 仓库已创建，本地尚未完成。请检查目录权限和磁盘空间后重试，不会重复创建远端。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.ConnectFailed">本地与 GitHub 仓库已保留，但远端关联未完成。请重试或在仓库设置中检查远端地址。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.CredentialSaveFailed">仓库已创建，但账号未能保存。首次推送时请重新输入账号与访问令牌。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.AuthenticationFailed">GitHub 认证失败，请检查访问令牌是否正确或已过期。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.PermissionDenied">该 GitHub 账号或令牌没有创建权限。请检查权限后重试。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.RemoteRejected">GitHub 未接受创建请求。请检查仓库名称、令牌权限及账号限制后重试。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.RateLimited">GitHub 暂时限制了请求，请稍后重试。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.ConnectionFailed">未能完成 GitHub 请求，请检查网络后重试。若创建已发送，重试时会先核对远端结果。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.InvalidResponse">暂时无法确认 GitHub 返回的结果，请稍后重试核对。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.FolderPickerFailed">暂时无法选择目录，请直接输入父级目录。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.SameAccountRequired">请验证上次发送创建请求时使用的 GitHub 账号，以核对结果。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Action">账号与密码</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.UsernameLabel">已保存的账号：</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.PasswordLabel">密码或访问令牌（留空保留原密码）：</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.SystemManaged">此仓库使用系统认证。账号由系统认证窗口管理；若要按仓库保存并切换账号，请取消勾选系统认证。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.RemoteReady">GitHub 仓库已就绪，本地设置尚未完成。</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Connecting">连接中…</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Verifying">验证中…</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.AuthenticationFailed">账号验证失败，请重新输入。</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.VerificationTimeout">验证超时，请重试。</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.ConnectionFailed">连接失败，请检查网络和远端地址。</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Authenticated">验证成功</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Running">正在{0}…</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Succeeded">操作成功</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Failed">操作失败，请查看完整输出。</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Cancelling">正在取消…</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.Cancelled">已取消，已完成的步骤保留。</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.ShowFullOutput">显示完整输出</x:String>
 </ResourceDictionary>

@@ -46,7 +46,7 @@
     </Border>
 
     <!-- Floating -->
-    <Grid Grid.Row="1" x:Name="PopupArea" ClipToBounds="True">
+    <Grid Grid.Row="0" Grid.RowSpan="2" x:Name="PopupArea" ClipToBounds="True">
       <Grid.IsVisible>
         <MultiBinding Converter="{x:Static BoolConverters.Or}">
           <Binding Path="Popup" Converter="{x:Static ObjectConverters.IsNotNull}"/>
@@ -58,18 +58,42 @@
 
       <Grid RowDefinitions="*,Auto,Auto" Classes="popup_frame" Classes.dialog_open="{Binding Popup, Converter={x:Static ObjectConverters.IsNotNull}}" MaxWidth="560" MaxHeight="{Binding #PopupArea.Bounds.Height}" HorizontalAlignment="Stretch">
         <Grid.Styles>
-          <Style Selector="Grid.popup_frame"><Setter Property="VerticalAlignment" Value="Top"/></Style>
-          <Style Selector="Grid.popup_frame.dialog_open"><Setter Property="VerticalAlignment" Value="Center"/></Style>
+          <Style Selector="Grid.popup_frame"><Setter Property="VerticalAlignment" Value="Top"/><Setter Property="Margin" Value="0,60,0,0"/></Style>
+          <Style Selector="Grid.popup_frame.dialog_open"><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="Margin" Value="0"/></Style>
         </Grid.Styles>
         <!-- Popup -->
-        <Grid Grid.Row="0" Margin="6,8,6,8">
-          <Border Background="Transparent" Effect="drop-shadow(0 0 8 #8F000000)" IsVisible="{Binding Popup, Converter={x:Static ObjectConverters.IsNotNull}}">
-            <Border Background="{DynamicResource Brush.Popup}" BorderThickness="1" BorderBrush="{DynamicResource Brush.PopupBorder}" CornerRadius="0">
+        <Grid Grid.Row="0" Margin="6,8,6,8" ZIndex="1">
+          <Border x:Name="PopupDialogSurface" Classes="dialog_selections" Background="Transparent"
+                  PointerPressed="OnPopupDragPressed" PointerMoved="OnPopupDragMoved" PointerReleased="OnPopupDragReleased" PointerCaptureLost="OnPopupDragCaptureLost">
+            <Border.IsVisible><MultiBinding Converter="{x:Static BoolConverters.And}"><Binding Path="Popup" Converter="{x:Static ObjectConverters.IsNotNull}"/><Binding Path="Popup.OperationPanelVisible" Converter="{x:Static BoolConverters.Not}"/></MultiBinding></Border.IsVisible>
+            <Border Background="{DynamicResource Brush.Window}" BorderThickness="1" BorderBrush="{DynamicResource Brush.WindowBorder}" CornerRadius="0">
               <ContentControl x:Name="PopupPanel" Content="{Binding Popup}" KeyboardNavigation.TabNavigation="Cycle">
                 <ContentControl.DataTemplates>
                   <DataTemplate DataType="vm:Popup">
                     <Grid RowDefinitions="Auto,*,Auto,Auto,Auto">
-                      <Border Grid.Row="0" Margin="8,8,8,0" Height="26" Background="#A0A0A0" IsVisible="{Binding UsesDialogTitle}"><TextBlock Text="{Binding DialogTitle}" Foreground="White" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/></Border>
+                      <Border x:Name="PopupDragHandle" Grid.Row="0" Height="28" Cursor="SizeAll" Background="{DynamicResource Brush.TitleBar}"
+                              BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Brush.Border0}" IsVisible="{Binding UsesDialogTitle}">
+                        <Grid>
+                          <ContentControl Content="{Binding}" Width="14" Margin="10,0,0,0" HorizontalAlignment="Left" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" IsHitTestVisible="False">
+                            <ContentControl.DataTemplates>
+                              <DataTemplate DataType="vm:Clone"><Path Width="14" MaxHeight="14" Data="{StaticResource Icons.Clone}"/></DataTemplate>
+                              <DataTemplate DataType="vm:OpenLocalRepository"><Path Width="14" MaxHeight="14" Data="{StaticResource Icons.Folder.Open}"/></DataTemplate>
+                              <DataTemplate DataType="vm:CreateRepository"><Path Width="14" MaxHeight="14" Data="{StaticResource Icons.Init}"/></DataTemplate>
+                              <DataTemplate DataType="vm:CherryPick"><Path Width="14" MaxHeight="14" Data="{StaticResource Icons.CherryPick}"/></DataTemplate>
+                              <DataTemplate DataType="vm:Revert"><Path Width="14" MaxHeight="14" Data="{StaticResource Icons.Undo}"/></DataTemplate>
+                              <DataTemplate DataType="vm:CreateGroup"><Path Width="14" MaxHeight="14" Data="{StaticResource Icons.Folder.Add}"/></DataTemplate>
+                              <DataTemplate DataType="vm:ScanRepositories"><Path Width="14" MaxHeight="14" Data="{StaticResource Icons.Scan}"/></DataTemplate>
+                              <DataTemplate DataType="vm:Popup"><Path Width="14" MaxHeight="14" Data="{StaticResource Icons.Repositories}"/></DataTemplate>
+                            </ContentControl.DataTemplates>
+                          </ContentControl>
+                          <TextBlock Text="{Binding DialogTitle}" Foreground="{DynamicResource Brush.FG1}" FontWeight="Bold" Margin="40,0"
+                                     HorizontalAlignment="Center" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" IsHitTestVisible="False"/>
+                          <Button x:Name="ClosePopup" Classes="caption_button" Width="46" Height="28" HorizontalAlignment="Right" Cursor="Arrow"
+                                  Click="OnPopupCancel" IsEnabled="{Binding !InProgress}" ToolTip.Tip="{DynamicResource Text.Close}">
+                            <Path Width="9" Height="9" Data="{StaticResource Icons.Window.Close}"/>
+                          </Button>
+                        </Grid>
+                      </Border>
                       <!-- Popup Widget -->
                       <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
                       <ContentControl Classes.captioned="{Binding UsesDialogTitle}" Margin="8,8,8,8" Content="{Binding}" IsHitTestVisible="{Binding InProgress, Converter={x:Static BoolConverters.Not}}">
@@ -88,7 +112,11 @@
                       </StackPanel>
 
                       <!-- Running -->
-                      <v:PopupRunningStatus Grid.Row="3" Margin="12,8" Focusable="False" Description="{Binding ProgressDescription}" IsVisible="{Binding InProgress}" IsHitTestVisible="False"/>
+                      <ScrollViewer Grid.Row="3" MaxHeight="140" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" IsVisible="{Binding ShowStatus}">
+                        <v:PopupRunningStatus Margin="12,8" Focusable="False" Description="{Binding StatusDescription}" IsHitTestVisible="False" Classes.failed="{Binding OperationPhaseFailed}">
+                          <v:PopupRunningStatus.Styles><Style Selector="v|PopupRunningStatus.failed TextBlock"><Setter Property="Foreground" Value="IndianRed"/></Style></v:PopupRunningStatus.Styles>
+                        </v:PopupRunningStatus>
+                      </ScrollViewer>
 
                       <!-- Terminate -->
                       <Button Grid.Row="4" Classes="flat" Height="28" Margin="0,0,0,8" Padding="16,0" HorizontalAlignment="Center" Content="{DynamicResource Text.Terminate}" Click="OnPopupTerminate">
@@ -106,7 +134,6 @@
             </Border>
           </Border>
 
-          <Rectangle Height="1" HorizontalAlignment="Stretch" VerticalAlignment="Top" Fill="{DynamicResource Brush.Border0}"/>
         </Grid>
         
         <!-- Notifications Clear Button -->
@@ -151,6 +178,10 @@
           </ItemsControl>
         </ScrollViewer>
       </Grid>
+      <ContentControl x:Name="OperationPanelSurface" Content="{Binding Popup}" IsVisible="{Binding Popup.OperationPanelVisible, FallbackValue=False}"
+                      HorizontalAlignment="Stretch" VerticalAlignment="Top" Margin="8,72,8,8" MaxHeight="{Binding #PopupArea.Bounds.Height}" ZIndex="10">
+        <ContentControl.DataTemplates><DataTemplate DataType="vm:Popup"><v:OperationProgressView/></DataTemplate></ContentControl.DataTemplates>
+      </ContentControl>
     </Grid>
   </Grid>
 </UserControl>

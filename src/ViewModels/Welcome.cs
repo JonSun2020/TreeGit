@@ -146,6 +146,19 @@ namespace SourceGit.ViewModels
                 activePage.Popup = new OpenLocalRepository(activePage.Node.Id, null);
         }
 
+        public void CreateRepository()
+        {
+            if (!Preferences.Instance.IsGitConfigured())
+            {
+                Models.Notification.Send(null, App.Text("NotConfigured"), true);
+                return;
+            }
+
+            var activePage = App.GetLauncher().ActivePage;
+            if (activePage != null && activePage.CanCreatePopup())
+                activePage.Popup = new CreateRepository(activePage.Node.Id);
+        }
+
         public void OpenTerminal()
         {
             if (!Preferences.Instance.IsGitConfigured())

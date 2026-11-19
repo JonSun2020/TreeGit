@@ -51,10 +51,10 @@ namespace SourceGit.ViewModels
                 var head = await new Commands.QueryRevisionByRefName(repo.FullPath, "HEAD").GetResultAsync();
                 if (head != _originalHead || (branch.IsSuccess ? branch.StdOut.Trim() : null) != _originalBranch) return Kept();
             }
-            if (!await new Commands.Stash(repo.FullPath).Use(log).ApplyAsync(_stash, true)) return Kept();
+            if (!await new Commands.Stash(repo.FullPath) { IgnoreOperationCancellation = true }.Use(log).ApplyAsync(_stash, true)) return Kept();
             var top = await new Commands.QueryStashHead(repo.FullPath).GetResultAsync();
             if (top.IsSuccess && top.StdOut.Trim() == _stash)
-                await new Commands.Stash(repo.FullPath).Use(log).DropAsync("stash@{0}");
+                await new Commands.Stash(repo.FullPath) { IgnoreOperationCancellation = true }.Use(log).DropAsync("stash@{0}");
             _stash = null;
             return true;
         }

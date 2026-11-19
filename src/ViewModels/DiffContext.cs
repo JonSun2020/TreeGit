@@ -10,6 +10,7 @@ namespace SourceGit.ViewModels
 {
     public class DiffContext : ObservableObject
     {
+        public IDiffViewSettings Settings { get; }
         public string Title
         {
             get;
@@ -56,8 +57,12 @@ namespace SourceGit.ViewModels
         public object Content
         {
             get => _content;
-            private set => SetProperty(ref _content, value);
+            private set
+            {
+                if (SetProperty(ref _content, value)) OnPropertyChanged(nameof(CanChooseEncoding));
+            }
         }
+        public bool CanChooseEncoding => Content is TextDiffContext or Models.BinaryDiff or Models.NoOrEOLChange;
 
         public int UnifiedLines
         {
@@ -65,8 +70,9 @@ namespace SourceGit.ViewModels
             private set => SetProperty(ref _unifiedLines, value);
         }
 
-        public DiffContext(string repo, Models.DiffOption option, DiffContext previous = null)
+        public DiffContext(string repo, Models.DiffOption option, DiffContext previous = null, bool standalone = false)
         {
+            Settings = standalone ? Preferences.Instance.StandaloneDiffSettings ??= new() : Preferences.Instance;
             _repo = repo;
             _option = option;
 
@@ -118,7 +124,12 @@ namespace SourceGit.ViewModels
 
         public void CheckSettings()
         {
-            var pref = Preferences.Instance;
+            var pref = Settings;
+            if (_info == null || _info.CodePage != Models.DisplayEncoding.CodePage(pref.DisplayEncodingIndex))
+            {
+                LoadContent();
+                return;
+            }
 
             if (Content is TextDiffContext ctx)
             {
@@ -156,20 +167,30 @@ namespace SourceGit.ViewModels
 
             Task.Run(async () =>
             {
-                var pref = Preferences.Instance;
+                var pref = Settings;
                 var numLines = pref.UseFullTextDiff ? _entireFileLines : _unifiedLines;
                 var ignoreWhitespace = pref.IgnoreWhitespaceChangesInDiff;
                 var ignoreCRAtEOL = pref.IgnoreCRAtEOLInDiff;
 
-                var latest = await new Commands.Diff(_repo, _option, numLines, ignoreWhitespace, ignoreCRAtEOL)
+                var codePage = Models.DisplayEncoding.CodePage(pref.DisplayEncodingIndex);
+                var latest = await new Commands.Diff(_repo, _option, numLines, ignoreWhitespace, ignoreCRAtEOL, codePage)
                     .ReadAsync()
                     .ConfigureAwait(false);
 
-                var info = new Info(_option, numLines, ignoreWhitespace, latest);
+                var info = new Info(_option, numLines, ignoreWhitespace, codePage, latest);
                 if (_info != null && info.IsSame(_info))
                     return;
 
                 object rs = null;
+                if ((latest.IsBinary || Models.DisplayEncoding.IsWide(codePage)) && ImageSource.GetDecoder(_option.Path) == Models.ImageDecoder.None)
+                {
+                    var decoded = await TryWideDiffAsync(latest, codePage, numLines, ignoreWhitespace, ignoreCRAtEOL).ConfigureAwait(false);
+                    if (decoded != null)
+                    {
+                        latest.TextDiff = decoded.Lines.Count > 0 ? decoded : null;
+                        latest.IsBinary = false;
+                    }
+                }
                 if (latest.TextDiff is { } textDiff)
                 {
                     rs = textDiff;
@@ -214,10 +235,11 @@ namespace SourceGit.ViewModels
                         IsTextDiff = true;
                         IsIgnoreWhitespaceVisible = true;
 
-                        if (Preferences.Instance.UseSideBySideDiff && !cur.IsNewOrDeletedFile)
-                            Content = new TwoSideTextDiff(_option, cur, _content as TextDiffContext);
+                        var option = cur.IsDisplayOnly ? _option.AsDisplayOnly() : _option;
+                        if (Settings.UseSideBySideDiff && !cur.IsNewOrDeletedFile)
+                            Content = new TwoSideTextDiff(option, cur, _content as TextDiffContext);
                         else
-                            Content = new CombinedTextDiff(_option, cur, _content as TextDiffContext);
+                            Content = new CombinedTextDiff(option, cur, _content as TextDiffContext);
                     }
                     else
                     {
@@ -295,6 +317,26 @@ namespace SourceGit.ViewModels
             return imgDiff;
         }
 
+        private async Task<Models.TextDiff> TryWideDiffAsync(Models.DiffResult result, int codePage, int context, bool ignoreSpace, bool ignoreCR)
+        {
+            try
+            {
+                var current = await Commands.WideTextPreview.ReadAsync(_repo, _option.BinaryNewRevision, _option.BinaryNewPath, result.NewHash, codePage).ConfigureAwait(false);
+                if (current == null) return null;
+                var old = await Commands.WideTextPreview.ReadAsync(_repo, _option.BinaryOldRevision, _option.BinaryOldPath, result.OldHash, codePage).ConfigureAwait(false);
+                if (old == null || (codePage == 0 && Models.DisplayEncoding.DetectWide(old) == 0 && Models.DisplayEncoding.DetectWide(current) == 0)) return null;
+                // A revision can change the encoding itself. Preserve the old
+                // revision's explicit byte order when viewing the new Unicode text.
+                var oldMark = Models.DisplayEncoding.WidePreamble(old);
+                var before = Models.DisplayEncoding.Decode(old, Models.DisplayEncoding.IsWide(codePage) && oldMark != 0 ? oldMark : codePage);
+                var after = Models.DisplayEncoding.Decode(current, codePage);
+                if (!Models.DisplayEncoding.IsReadableText(before) || !Models.DisplayEncoding.IsReadableText(after) ||
+                    before.AsSpan().Count('\n') + after.AsSpan().Count('\n') > 100000) return null;
+                return Models.TextDiff.FromDecodedText(before, after, context, ignoreSpace, ignoreCR, result);
+            }
+            catch (Exception e) when (e is IOException or UnauthorizedAccessException) { return null; }
+        }
+
         private Task<Models.BinaryDiff> CreateBinaryDiffAsync()
         {
             return Task.FromResult(new Models.BinaryDiff
@@ -356,14 +398,16 @@ namespace SourceGit.ViewModels
             public string Argument { get; }
             public int UnifiedLines { get; }
             public bool IgnoreWhitespace { get; }
+            public int CodePage { get; }
             public string OldHash { get; }
             public string NewHash { get; }
 
-            public Info(Models.DiffOption option, int unifiedLines, bool ignoreWhitespace, Models.DiffResult result)
+            public Info(Models.DiffOption option, int unifiedLines, bool ignoreWhitespace, int codePage, Models.DiffResult result)
             {
                 Argument = option.ToString();
                 UnifiedLines = unifiedLines;
                 IgnoreWhitespace = ignoreWhitespace;
+                CodePage = codePage;
                 OldHash = result.OldHash;
                 NewHash = result.NewHash;
             }
@@ -371,7 +415,7 @@ namespace SourceGit.ViewModels
             public bool IsSame(Info other)
             {
                 return Argument.Equals(other.Argument, StringComparison.Ordinal) &&
-                    UnifiedLines == other.UnifiedLines &&
+                    UnifiedLines == other.UnifiedLines && CodePage == other.CodePage &&
                     IgnoreWhitespace == other.IgnoreWhitespace &&
                     OldHash.Equals(other.OldHash, StringComparison.Ordinal) &&
                     NewHash.Equals(other.NewHash, StringComparison.Ordinal);

@@ -9,6 +9,8 @@ namespace SourceGit.Views
     // each path to its own bounds (which offsets the fetch arrow inside its circle).
     public sealed class ToolbarGlyph : Control
     {
+        public ToolbarGlyph() => ClipToBounds = true;
+        private static readonly Geometry DiscardOutline = Geometry.Parse("M19.8,5.8 A10,10 0 1 0 21.7,14.3 M19.8,5.8 L14.6,5.8 M19.8,5.8 L19.8,0.6");
         public string Kind { get; set; } = "Fetch";
         public static readonly StyledProperty<IBrush> StrokeProperty = AvaloniaProperty.Register<ToolbarGlyph, IBrush>(nameof(Stroke), Brushes.Teal);
         public IBrush Stroke { get => GetValue(StrokeProperty); set => SetValue(StrokeProperty, value); }
@@ -32,7 +34,7 @@ namespace SourceGit.Views
                 }
                 else
                 {
-                    context.DrawGeometry(null, pen, Geometry.Parse("M19.8,5.8 A10,10 0 1 0 21.7,14.3 M19.8,5.8 L14.6,5.8 M19.8,5.8 L19.8,0.6"));
+                    context.DrawGeometry(null, pen, DiscardOutline);
                 }
             }
         }

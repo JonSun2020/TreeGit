@@ -8,12 +8,15 @@ import sys
 import tempfile
 import threading
 import time
-from qa_cleanup import remove_fixture
+from qa_cleanup import remove_fixture, verify_local_runtime
 from qa_process import close_owned_gui
 from qa_profile import IsolatedProfile
 
-assert os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ.get('RUNNER_OS') == 'Windows'
 exe, out = (Path(arg).resolve() for arg in sys.argv[1:3])
+if os.environ.get('TREEGIT_LOCAL_QA_ROOT'):
+    verify_local_runtime(exe)
+else:
+    assert os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ.get('RUNNER_OS') == 'Windows'
 out.mkdir(parents=True, exist_ok=True)
 profile = IsolatedProfile(exe, out)
 root = Path(tempfile.mkdtemp(prefix='TreeGit startup updates ')).resolve()

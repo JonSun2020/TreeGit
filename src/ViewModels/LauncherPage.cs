@@ -20,11 +20,15 @@ namespace SourceGit.ViewModels
             set
             {
                 if (SetProperty(ref _data, value))
+                {
                     OnPropertyChanged(nameof(LoadedRepository));
+                    OnPropertyChanged(nameof(HasWorkingTree));
+                }
             }
         }
 
         public Repository LoadedRepository => _data as Repository;
+        public bool HasWorkingTree => _data is Repository { IsBare: false };
 
         public Models.DirtyState DirtyState
         {
@@ -94,16 +98,30 @@ namespace SourceGit.ViewModels
         {
             if (_popup is { InProgress: false } dump)
             {
+                // Enter or a delayed double click must never replay a completed
+                // operation while its result is still being reviewed.
+                if (dump.OperationPanelVisible) return;
                 PopupAttemptVersion++;
                 if (!dump.Check())
                     return;
 
                 dump.InProgress = true;
+                if (dump.UsesOperationPanel) dump.BeginOperation();
 
                 try
                 {
+                    if (dump.UsesOperationPanel)
+                    {
+                        if (!await dump.VerifyCredentialsAsync())
+                        {
+                            if (dump.AuthenticationCancelled) dump.FinishOperation(false);
+                            return;
+                        }
+                        dump.ShowOperationPanel();
+                    }
                     var finished = await dump.Sure();
-                    if (finished)
+                    if (dump.UsesOperationPanel) dump.FinishOperation(finished);
+                    else if (finished || dump.AuthenticationCancelled)
                     {
                         dump.Cleanup();
                         Popup = null;
@@ -112,10 +130,14 @@ namespace SourceGit.ViewModels
                 catch (Exception e)
                 {
                     Native.OS.LogException(e);
+                    if (dump.UsesOperationPanel) { dump.OnCommandFailed(App.Text("TreeGit.Operation.Failed")); dump.FinishOperation(false); }
                 }
                 finally
                 {
                     dump.InProgress = false;
+                    // Every outcome ends the operation, including cancellation
+                    // and exceptions before a view model reaches log.Complete().
+                    dump.CompleteOperationLog();
                     // Disabling background refresh must not hide the result of an explicit action.
                     if (_data is Repository repo && !repo.Settings.AutoRefreshEnabled)
                         repo.RefreshAll();
@@ -134,6 +156,7 @@ namespace SourceGit.ViewModels
 
         public void TerminatePopup()
         {
+            if (_popup is { UsesOperationPanel: true, InProgress: true }) { _popup.CancelOperation(); return; }
             if (_popup is not { CanTerminate: true, InProgress: true })
                 return;
 

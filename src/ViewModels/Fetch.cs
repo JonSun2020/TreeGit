@@ -66,6 +66,14 @@ namespace SourceGit.ViewModels
             }
         }
 
+        public override async Task<bool> VerifyCredentialsAsync()
+        {
+            if (!FetchAllRemotes) return await VerifyRemoteAsync(_repo.FullPath, SelectedRemote);
+            foreach (var remote in _repo.Remotes)
+                if (!await VerifyRemoteAsync(_repo.FullPath, remote)) return false;
+            return true;
+        }
+
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
@@ -81,23 +89,26 @@ namespace SourceGit.ViewModels
 
             _cancellation = new CancellationTokenSource();
             var token = _cancellation.Token;
+            var success = true;
 
             if (FetchAllRemotes)
             {
+                var index = 0;
                 foreach (var remote in _repo.Remotes)
                 {
-                    await new Commands.Fetch(_repo.FullPath, remote, notags, force)
+                    BeginOperationPart(index++, _repo.Remotes.Count);
+                    success &= await new Commands.Fetch(_repo.FullPath, remote, notags, force)
                         .WithCancellation(token)
                         .Use(log)
                         .ExecAsync();
 
-                    if (token.IsCancellationRequested)
+                    if (token.IsCancellationRequested || log.AuthenticationCancelled)
                         break;
                 }
             }
             else
             {
-                await new Commands.Fetch(_repo.FullPath, SelectedRemote, notags, force)
+                success = await new Commands.Fetch(_repo.FullPath, SelectedRemote, notags, force)
                     .WithCancellation(token)
                     .Use(log)
                     .ExecAsync();
@@ -105,7 +116,7 @@ namespace SourceGit.ViewModels
 
             log.Complete();
 
-            if (navigateToUpstreamHEAD && !token.IsCancellationRequested)
+            if (success && navigateToUpstreamHEAD && !token.IsCancellationRequested && !log.AuthenticationCancelled)
             {
                 var upstream = _repo.CurrentBranch?.Upstream;
                 if (!string.IsNullOrEmpty(upstream))
@@ -115,11 +126,11 @@ namespace SourceGit.ViewModels
                 }
             }
 
-            if (!token.IsCancellationRequested)
+            if (success && !token.IsCancellationRequested && !log.AuthenticationCancelled)
                 _repo.MarkFetched();
 
             _cancellation = null;
-            return true;
+            return success && !token.IsCancellationRequested && !log.AuthenticationCancelled;
         }
 
         public override void Terminate()

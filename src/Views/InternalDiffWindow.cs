@@ -4,7 +4,7 @@ using Avalonia.Input;
 
 namespace SourceGit.Views
 {
-    public sealed class InternalDiffWindow : Window
+    public sealed class InternalDiffWindow : OwnedNativeWindow
     {
         public InternalDiffWindow(ViewModels.DiffContext context, Window owner)
         {

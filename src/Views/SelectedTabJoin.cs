@@ -31,7 +31,26 @@ namespace SourceGit.Views
             var origin = tab.TranslatePoint(default, this);
             if (!origin.HasValue) return;
             var bottom = origin.Value.Y + tab.Bounds.Height;
-            context.DrawRectangle(Background, null, new Rect(origin.Value.X + 1, Math.Floor(bottom - 1), Math.Max(0, tab.Bounds.Width - 2), 3));
+            var seam = new Rect(origin.Value.X + 1, Math.Floor(bottom - 1), Math.Max(0, tab.Bounds.Width - 2), 3);
+            var fill = Background;
+            if (!Tabs.IsEffectivelyEnabled && Background is ISolidColorBrush solid)
+            {
+                var color = solid.Color;
+                var masked = Color.FromArgb(color.A, (byte)((color.R * 153 + 127) / 255),
+                    (byte)((color.G * 153 + 127) / 255), (byte)((color.B * 153 + 127) / 255));
+                if (_maskedFill == null || _maskedColor != masked)
+                {
+                    _maskedColor = masked;
+                    _maskedFill = new SolidColorBrush(masked);
+                }
+                fill = _maskedFill;
+            }
+            // Paint the already-composited opaque color once. Two translucent
+            // edge passes create a bright hairline at fractional scaling.
+            context.DrawRectangle(fill, null, seam);
         }
+
+        private Color _maskedColor;
+        private IBrush _maskedFill;
     }
 }

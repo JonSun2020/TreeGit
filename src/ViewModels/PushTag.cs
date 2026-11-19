@@ -34,6 +34,7 @@ namespace SourceGit.ViewModels
             SelectedRemote = _repo.Remotes[0];
         }
 
+        public override Task<bool> VerifyCredentialsAsync() => PushAllRemotes ? VerifyRemotesAsync(_repo.FullPath, _repo.Remotes, true) : VerifyRemoteAsync(_repo.FullPath, SelectedRemote, true);
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
@@ -46,8 +47,10 @@ namespace SourceGit.ViewModels
             var tag = $"refs/tags/{Target.Name}";
             if (_pushAllRemotes)
             {
+                var index = 0;
                 foreach (var remote in _repo.Remotes)
                 {
+                    BeginOperationPart(index++, _repo.Remotes.Count);
                     succ = await new Commands.Push(_repo.FullPath, remote, tag, false)
                         .Use(log)
                         .ExecAsync();

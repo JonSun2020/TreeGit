@@ -8,6 +8,7 @@ import sys
 import tempfile
 import threading
 import time
+from qa_process import close_owned_gui
 
 exe = Path(sys.argv[1]).resolve()
 out = Path(sys.argv[2]).resolve()
@@ -129,7 +130,4 @@ finally:
         p.wait(timeout=15)
     except subprocess.TimeoutExpired:
         p.kill()
-    if pid:
-        literal = str(exe).replace("'","''")
-        script = "$p=Get-Process -Id "+str(pid)+" -ErrorAction SilentlyContinue;if($p){if($p.Path -ne '"+literal+"'){throw 'Wrong QA process'};$null=$p.CloseMainWindow();if(-not $p.WaitForExit(15000)){throw 'Owned QA GUI did not close'}};exit 0"
-        subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True,timeout=30)
+    if pid: close_owned_gui(exe, pid)

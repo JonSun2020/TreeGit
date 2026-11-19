@@ -19,6 +19,7 @@ namespace SourceGit.ViewModels
             SelectedRemote = _repo.Remotes[0];
         }
 
+        public override Task<bool> VerifyCredentialsAsync() => VerifyRemoteAsync(_repo.FullPath, SelectedRemote, true);
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();

@@ -91,9 +91,12 @@
                 IsVisible="{Binding SelectedRemote?.URL, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
                 ToolTip.Tip="--tags"/>
 
-      <Expander x:Name="PushAdvancedOptions" Grid.Row="6" Grid.ColumnSpan="2" Header="{DynamicResource Text.UI.AdvancedOptions}" Margin="0,8,0,0" HorizontalAlignment="Stretch">
-        <StackPanel Spacing="6" Margin="8,4"><CheckBox x:Name="PushSkipHooks" Content="{DynamicResource Text.Push.NoVerify}" IsChecked="{Binding NoVerify, Mode=TwoWay}"/><CheckBox x:Name="PushForce" Content="{DynamicResource Text.Push.Force}" IsChecked="{Binding ForcePush, Mode=TwoWay}"/></StackPanel>
-      </Expander>
+      <TextBlock Grid.Row="6" Grid.Column="0" Text="{DynamicResource Text.UI.AdvancedOptionsLabel}"
+                 HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,14,8,0"/>
+      <StackPanel x:Name="PushAdvancedOptions" Grid.Row="6" Grid.Column="1" Spacing="6" Margin="0,8,0,0">
+        <CheckBox x:Name="PushSkipHooks" IsChecked="{Binding NoVerify, Mode=TwoWay}"><TextBlock Text="{DynamicResource Text.Push.NoVerify}" TextWrapping="Wrap"/></CheckBox>
+        <CheckBox x:Name="PushForce" IsChecked="{Binding ForcePush, Mode=TwoWay}"><TextBlock Text="{DynamicResource Text.Push.Force}" TextWrapping="Wrap"/></CheckBox>
+      </StackPanel>
       <StackPanel Grid.Row="7" Grid.ColumnSpan="2" Spacing="4" Margin="0,4,0,0">
         <TextBlock Text="{DynamicResource Text.UI.ForcePushEnabled}" IsVisible="{Binding ForcePush}" Foreground="{DynamicResource Brush.FG1}" TextWrapping="Wrap" FontWeight="Bold"/>
         <TextBlock Text="{DynamicResource Text.UI.SkipHooksEnabled}" IsVisible="{Binding NoVerify}" Foreground="{DynamicResource Brush.FG1}" TextWrapping="Wrap" FontWeight="Bold"/>

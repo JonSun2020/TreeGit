@@ -3,6 +3,7 @@
   <Grid ColumnDefinitions="*,Auto,0,Auto" Margin="8,0" Height="60" VerticalAlignment="Center">
     <Grid.Styles>
       <Style Selector="Button.icon_button">
+        <Setter Property="ClipToBounds" Value="True"/>
         <Setter Property="Height" Value="54"/>
         <Setter Property="CornerRadius" Value="3"/>
         <Setter Property="Padding" Value="6,4"/>

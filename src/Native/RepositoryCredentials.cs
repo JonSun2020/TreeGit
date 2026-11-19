@@ -3,12 +3,15 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
+using System.Net.Http;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace SourceGit.Native
 {
@@ -16,6 +19,44 @@ namespace SourceGit.Native
     // No passwords are written into repository config, portable data, logs or MCP output.
     internal static class RepositoryCredentials
     {
+        // Git may authenticate against a canonical redirect (e.g. repo.git)
+        // while the configured remote is repo. Only follow server-confirmed,
+        // same-origin redirects; never guess that two paths share credentials.
+        internal static async Task<IReadOnlyList<Uri>> ResolveCredentialUrisAsync(Uri configured, CancellationToken cancellation = default)
+        {
+            var result = new List<Uri> { configured };
+            var clean = new UriBuilder(configured) { UserName = string.Empty, Password = string.Empty, Query = string.Empty, Fragment = string.Empty }.Uri;
+            var endpoint = new Uri(clean.AbsoluteUri.TrimEnd('/') + "/info/refs?service=git-upload-pack");
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellation);
+            timeout.CancelAfter(TimeSpan.FromSeconds(3));
+            using var handler = new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false, UseDefaultCredentials = false };
+            using var client = new HttpClient(handler);
+            try
+            {
+                for (var step = 0; step < 4; step++)
+                {
+                    using var request = new HttpRequestMessage(HttpMethod.Get, endpoint);
+                    using var response = await client.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
+                    if (response.StatusCode is not (HttpStatusCode.MovedPermanently or HttpStatusCode.Redirect or HttpStatusCode.SeeOther or HttpStatusCode.TemporaryRedirect or HttpStatusCode.PermanentRedirect) || response.Headers.Location == null) break;
+                    var next = new Uri(endpoint, response.Headers.Location);
+                    if (next.Scheme != clean.Scheme || next.Authority != clean.Authority || !string.IsNullOrEmpty(next.UserInfo) ||
+                        !next.AbsolutePath.EndsWith("/info/refs", StringComparison.Ordinal) || next.Query != "?service=git-upload-pack") break;
+                    var canonical = new UriBuilder(next) { Path = next.AbsolutePath[..^10], Query = string.Empty, Fragment = string.Empty }.Uri;
+                    if (!result.Exists(uri => uri.AbsoluteUri == canonical.AbsoluteUri)) result.Add(canonical);
+                    endpoint = next;
+                }
+            }
+            catch (Exception error) when (error is HttpRequestException or OperationCanceledException) { }
+            cancellation.ThrowIfCancellationRequested();
+            return result;
+        }
+
+        internal static string RedactLog(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return text;
+            text = Regex.Replace(text, @"(https?://)[^/\s@]*@", "$1***@", RegexOptions.IgnoreCase);
+            return Regex.Replace(text, @"(Authorization\s*:\s*(?:Basic|Bearer)\s+)[^\s\""']+", "$1***", RegexOptions.IgnoreCase);
+        }
         public static bool IsAuthenticationFailure(string output)
         {
             if (output == null) return false;
@@ -28,7 +69,12 @@ namespace SourceGit.Native
                 detail.Contains("unable to update local ref", StringComparison.OrdinalIgnoreCase) ||
                 detail.Contains("cannot lock ref", StringComparison.OrdinalIgnoreCase) ||
                 detail.Contains("failed to update ref", StringComparison.OrdinalIgnoreCase)) return false;
-            return output.Contains("fatal: Authentication failed for 'http", StringComparison.OrdinalIgnoreCase) &&
+            return (output.Contains("fatal: Authentication failed for 'http", StringComparison.OrdinalIgnoreCase) ||
+                output.Contains(CredentialSession.RejectedMarker, StringComparison.Ordinal) ||
+                output.Contains("The requested URL returned error: 401", StringComparison.OrdinalIgnoreCase) ||
+                output.Contains("The requested URL returned error: 403", StringComparison.OrdinalIgnoreCase) ||
+                output.Contains("Permission denied (publickey", StringComparison.OrdinalIgnoreCase) ||
+                output.Contains("Permission denied (password", StringComparison.OrdinalIgnoreCase)) &&
                 !output.Contains("told us to quit", StringComparison.OrdinalIgnoreCase) &&
                 !output.Contains("User canceled authentication", StringComparison.OrdinalIgnoreCase) &&
                 !output.Contains("User cancelled authentication", StringComparison.OrdinalIgnoreCase);
@@ -98,13 +144,52 @@ namespace SourceGit.Native
 
         private static string Target(string repo, string protocol, string host, string path)
         {
+            if (Uri.TryCreate($"{protocol}://{host}/{path.TrimStart('/')}", UriKind.Absolute, out var uri))
+            {
+                host = uri.Authority;
+                path = uri.AbsolutePath.TrimEnd('/');
+            }
+            return LegacyTarget(repo, protocol, host, path);
+        }
+
+        private static string LegacyTarget(string repo, string protocol, string host, string path)
+        {
             var scope = Path.GetFullPath(repo).TrimEnd('\\', '/').ToUpperInvariant();
             var value = $"{scope}\n{protocol.ToLowerInvariant()}\n{host.ToLowerInvariant()}\n{path.TrimStart('/')}";
             return "TreeGit.Repository/" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
         }
 
+        private static IEnumerable<string> Targets(string repo, Uri remote)
+        {
+            var canonical = Target(repo, remote.Scheme, remote.Authority, remote.AbsolutePath);
+            yield return canonical;
+            // Decode legacy Unicode spellings without equating an encoded path
+            // separator or URI delimiter with a different remote repository.
+            var paths = Regex.IsMatch(remote.AbsolutePath, @"%(?:2f|5c|3f|23|3a|40)", RegexOptions.IgnoreCase) ?
+                new[] { remote.AbsolutePath } : new[] { remote.AbsolutePath, Uri.UnescapeDataString(remote.AbsolutePath) };
+            var hosts = remote.IsDefaultPort ? new[] { remote.Authority, remote.Host + ":" + remote.Port } : new[] { remote.Authority };
+            var seen = new HashSet<string>(StringComparer.Ordinal) { canonical };
+            foreach (var host in hosts)
+                foreach (var path in paths)
+                    foreach (var variant in new[] { path, path.TrimEnd('/'), path.TrimEnd('/') + "/" })
+                    {
+                        var key = LegacyTarget(repo, remote.Scheme, host, variant);
+                        if (seen.Add(key)) yield return key;
+                    }
+        }
+
         public static (string Username, string Password)? Get(string repo, Uri remote)
-            => Get(Target(repo, remote.Scheme, remote.Authority, remote.AbsolutePath));
+        {
+            var canonical = Target(repo, remote.Scheme, remote.Authority, remote.AbsolutePath);
+            foreach (var key in Targets(repo, remote))
+            {
+                var saved = Get(key);
+                if (!saved.HasValue) continue;
+                if (key != canonical) Save(canonical, saved.Value.Username, saved.Value.Password);
+                return saved;
+            }
+            return null;
+        }
 
         private static (string Username, string Password)? Get(string target)
         {
@@ -167,12 +252,22 @@ namespace SourceGit.Native
         }
 
         public static void Forget(string repo, Uri remote)
-            => ForgetTarget(Target(repo, remote.Scheme, remote.Authority, remote.AbsolutePath));
+        {
+            foreach (var target in Targets(repo, remote)) ForgetTarget(target);
+        }
 
         private static void ForgetTarget(string target)
         {
-            Delete(target, 1, 0);
-            Delete(target.Replace("TreeGit.Repository/", "SourceGit.Repository/", StringComparison.Ordinal), 1, 0);
+            if (!OperatingSystem.IsWindows()) return;
+            static void Remove(string name)
+            {
+                if (Delete(name, 1, 0)) return;
+                var error = Marshal.GetLastWin32Error();
+                // A missing entry is already cleared. Other failures must remain visible.
+                if (error != 1168) throw new System.ComponentModel.Win32Exception(error);
+            }
+            Remove(target);
+            Remove(target.Replace("TreeGit.Repository/", "SourceGit.Repository/", StringComparison.Ordinal));
         }
 
         public static int RunHelper(string operation)
@@ -192,10 +287,10 @@ namespace SourceGit.Native
                     protocol is not ("https" or "http") || !input.TryGetValue("host", out var host))
                     return 0;
                 input.TryGetValue("path", out var path);
-                var target = Target(repo, protocol, host, path ?? string.Empty);
+                var remote = new Uri($"{protocol}://{host}/{path?.TrimStart('/')}");
                 if (operation == "get")
                 {
-                    var stored = Environment.GetEnvironmentVariable("SOURCEGIT_AUTHENTICATION_RETRY") == "TRUE" ? null : Get(target);
+                    var stored = Environment.GetEnvironmentVariable("SOURCEGIT_AUTHENTICATION_RETRY") == "TRUE" ? null : Get(repo, remote);
                     input.TryGetValue("username", out var requested);
                     if (stored.HasValue && (requested == null || requested == stored.Value.Username))
                     {
@@ -209,19 +304,41 @@ namespace SourceGit.Native
                         // Git accepts username and password together from a helper,
                         // including an explicitly empty password. Never split this
                         // into Git's subsequent username/password askpass calls.
-                        var result = Prompt(repo, $"{protocol}://{host}/{path?.TrimStart('/')}", requested);
+                        string result;
+                        if (CredentialSession.IsValid(CredentialSession.CurrentId))
+                        {
+                            var answer = CredentialSession.Request(new() { Action = "get", Repo = repo,
+                                Remote = $"{protocol}://{host}/{path?.TrimStart('/')}", Username = requested,
+                                Retry = Environment.GetEnvironmentVariable("SOURCEGIT_AUTHENTICATION_RETRY") == "TRUE" });
+#if INTEGRATION_TESTS
+                            Tests.AskpassProbe.Trace("helper-answer-" + (answer?.State ?? "null"));
+#endif
+                            result = answer?.State == "submitted" ? $"username={answer.Username}\npassword={answer.Password}\n\n" : null;
+                        }
+                        else result = Prompt(repo, $"{protocol}://{host}/{path?.TrimStart('/')}", requested);
+                        if (result == null) Console.Error.WriteLine(CredentialSession.CancelMarker);
                         using var writer = new StreamWriter(Console.OpenStandardOutput(), new UTF8Encoding(false)) { AutoFlush = true };
                         writer.Write(result ?? "quit=true\n\n");
                     }
                 }
                 else if (operation == "store" && input.TryGetValue("username", out var username) && input.TryGetValue("password", out var password))
-                    Save(target, username, password);
+                {
+                    Save(repo, remote, username, password);
+                    CredentialSession.Publish("accepted");
+                }
                 else if (operation == "erase")
-                    ForgetTarget(target);
+                {
+                    Forget(repo, remote);
+                    Console.Error.WriteLine(CredentialSession.RejectedMarker);
+                    CredentialSession.Publish("rejected");
+                }
                 return 0;
             }
             catch (Exception ex)
             {
+#if INTEGRATION_TESTS
+                Tests.AskpassProbe.Trace("helper-error-" + ex.GetType().Name);
+#endif
                 // Never include credential input or exception data in protocol output.
                 Console.Error.WriteLine("TreeGit credential storage failed: " + ex.GetType().Name);
                 return 1;

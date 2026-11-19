@@ -1927,7 +1927,13 @@ namespace SourceGit.ViewModels
 
         public async Task AutoUpdateSubmodulesAsync(Models.ICommandLog log)
         {
-            var submodules = await new Commands.QueryUpdatableSubmodules(FullPath, false).GetResultAsync();
+            var query = new Commands.QueryUpdatableSubmodules(FullPath, false) { Log = log };
+            var submodules = await query.GetResultAsync();
+            if (!query.Succeeded)
+            {
+                SendNotification(App.Text("Repository.SubmodulesPending"), true);
+                return;
+            }
             if (submodules.Count == 0)
                 return;
 
@@ -1947,9 +1953,10 @@ namespace SourceGit.ViewModels
                         break;
                 }
 
-                await new Commands.Submodule(FullPath)
+                var updated = await new Commands.Submodule(FullPath)
                     .Use(log)
                     .UpdateAsync(submodules, false, _settings.EnableRecursiveWhenAutoUpdatingSubmodules, false);
+                if (!updated) SendNotification(App.Text("Repository.SubmodulesPending"), true);
             } while (false);
         }
 
@@ -2310,7 +2317,7 @@ namespace SourceGit.ViewModels
 
             try
             {
-                if (!_settings.BackgroundFetchEnabled || !Preferences.Instance.EnableAutoFetch || !CanCreatePopup())
+                if (!_settings.BackgroundFetchEnabled || !Preferences.Instance.EnableAutoFetch || !CanCreatePopup() || GetOwnerPage()?.Popup != null)
                 {
                     _lastFetchTime = DateTime.Now;
                     return;
@@ -2339,7 +2346,10 @@ namespace SourceGit.ViewModels
                 log = CreateLog("Auto-Fetch");
 
                 foreach (var remote in remotes)
+                {
                     await new Commands.Fetch(FullPath, remote).Use(log).ExecAsync();
+                    if (log.AuthenticationCancelled) break;
+                }
 
                 _lastFetchTime = DateTime.Now;
             }

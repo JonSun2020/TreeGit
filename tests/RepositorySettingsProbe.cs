@@ -197,12 +197,14 @@ namespace SourceGit.Tests
                                 lfsOwner.Popup = new ViewModels.LFSPush(repo);
                                 window.Close();
                                 await lfsOwner.ProcessPopupAsync();
-                                operationResult = lfsOwner.Popup == null;
-                                operationDetails = new { popupClosed = lfsOwner.Popup == null, busy = lfsOwner.Popup?.InProgress == true, log = repo.Logs.FirstOrDefault()?.Content };
+                                operationResult = lfsOwner.Popup?.OperationSucceeded == true;
+                                operationDetails = new { popupClosed = lfsOwner.Popup == null, resultVisible = lfsOwner.Popup?.CanCloseOperation == true,
+                                    busy = lfsOwner.Popup?.InProgress == true, log = repo.Logs.FirstOrDefault()?.Content };
                                 break;
                             case "native_blame":
                                 var blame = await new Commands.Blame(repo.FullPath, paths.Single(), "HEAD", false).ReadAsync();
-                                operationDetails = new { content = blame.Content, lines = blame.LineInfos.Select(l => l.CommitSHA).ToArray(), binary = blame.IsBinary }; operationResult = true; break;
+                                operationDetails = new { content = blame.Content, lines = blame.LineInfos.Select(l => l.CommitSHA).ToArray(),
+                                    authors = blame.LineInfos.Select(l => l.Author.TrimEnd()).ToArray(), paths = blame.LineInfos.Select(l => l.File).ToArray(), binary = blame.IsBinary }; operationResult = true; break;
                             case "native_diff_race":
                                 var originalDiff = new ViewModels.DiffContext(repo.FullPath, new Models.DiffOption(changes.Single(), true));
                                 // A busy UI frame can delay publication while Git has
@@ -444,6 +446,29 @@ namespace SourceGit.Tests
                                 var bounds = await InspectDialog(window, new Views.RepositoryCredentials(repo), fixture, true);
                                 operationDetails = new { bounds, invalidInputPreservedConfig = originalConfig.AsSpan().SequenceEqual(File.ReadAllBytes(configFile)) };
                                 operationResult = true; break;
+                            case "settings_dropdown_scroll":
+                                foreach (var expander in window.GetLogicalDescendants().OfType<Expander>())
+                                    expander.IsExpanded = expander.Name is "TreeGitSettingsCommitLinks" or "TreeGitSettingsSyncMerge";
+                                window.Height = Math.Min(window.Height, 420);
+                                await Task.Delay(150);
+                                var settingsScroll = (ScrollViewer)controls["RepositorySettingsScroll"];
+                                var mergeMode = (ComboBox)controls["MergeMode"];
+                                var defaultRemote = (ComboBox)controls["DefaultRemote"];
+                                var scrollChecks = new System.Collections.Generic.List<object>();
+                                foreach (var dropdown in new[] { defaultRemote, mergeMode })
+                                {
+                                    settingsScroll.Offset = new Vector(0, Math.Max(0, settingsScroll.Offset.Y + dropdown.TranslatePoint(default, settingsScroll).Value.Y + dropdown.Bounds.Height - settingsScroll.Viewport.Height + 4));
+                                    await Task.Delay(80);
+                                    var offsetBefore = settingsScroll.Offset;
+                                    var anchorBefore = dropdown.TranslatePoint(default, window).Value;
+                                    dropdown.Focus(); dropdown.BringIntoView(); dropdown.IsDropDownOpen = true;
+                                    await Task.Delay(100);
+                                    var anchorAfter = dropdown.TranslatePoint(default, window).Value;
+                                    scrollChecks.Add(new { dropdown = dropdown.Name, stable = Math.Abs(offsetBefore.Y - settingsScroll.Offset.Y) < .5 && Math.Abs(anchorBefore.Y - anchorAfter.Y) < .5,
+                                        offsetBefore = offsetBefore.Y, offsetAfter = settingsScroll.Offset.Y, anchorBefore = anchorBefore.Y, anchorAfter = anchorAfter.Y });
+                                    dropdown.IsDropDownOpen = false;
+                                }
+                                operationDetails = scrollChecks; operationResult = true; break;
                             case "credential_save":
                                 operationDetails = await EditCredential(window, repo, data.GetProperty("case").GetString()); operationResult = true; break;
                             default: throw new ArgumentException("Unknown audit operation");
@@ -514,28 +539,47 @@ namespace SourceGit.Tests
                     if (credential)
                     {
                         dialog.GetLogicalDescendants().OfType<CheckBox>().Single(c => c.Name == "CredentialMode").IsChecked = false;
+                        var credentialConfirm = dialog.GetLogicalDescendants().OfType<Button>().Single(b => b.Name == "ConfirmCredentials");
+                        for (var wait = 0; wait < 250 && !credentialConfirm.IsEnabled; wait++) await Task.Delay(20);
+                        if (!credentialConfirm.IsEnabled) throw new InvalidOperationException("Credential account lookup did not complete");
+                        dialog.GetLogicalDescendants().OfType<TextBox>().Single(c => c.Name == "CredentialPassword").Text = "password-without-account";
                         dialog.GetLogicalDescendants().OfType<Button>().Single(b => b.Name == "ConfirmCredentials").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                        for (var attempt = 0; attempt < 100 && !dialog.GetLogicalDescendants().OfType<TextBlock>().Any(t => t.Name == "CredentialStatus" && t.Text?.Contains("请输入账号", StringComparison.Ordinal) == true); attempt++) await Task.Delay(30);
-                        if (!dialog.GetLogicalDescendants().OfType<TextBlock>().Any(t => t.Name == "CredentialStatus" && t.Text?.Contains("请输入账号", StringComparison.Ordinal) == true))
+                        var required = App.Text("TreeGit.Credentials.UsernameRequired");
+                        for (var attempt = 0; attempt < 100 && !dialog.GetLogicalDescendants().OfType<TextBlock>().Any(t => t.Name == "CredentialStatus" && t.Text == required); attempt++) await Task.Delay(30);
+                        if (!dialog.GetLogicalDescendants().OfType<TextBlock>().Any(t => t.Name == "CredentialStatus" && t.Text == required))
                             throw new InvalidOperationException("The invalid-input action did not complete");
                     }
                     else if (dialog is Views.RepositoryRemoteEditor)
                     {
                         dialog.GetLogicalDescendants().OfType<TextBox>().First().Text = "new-audit-remote";
-                        dialog.GetLogicalDescendants().OfType<Button>().First(b => b.Content?.ToString() == "确定").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                        dialog.GetLogicalDescendants().OfType<Button>().First(b => b.Classes.Contains("dialog_confirm")).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     }
                     await Task.Delay(200);
                     var area = dialog.Screens.ScreenFromWindow(dialog)?.WorkingArea ?? throw new InvalidOperationException("Missing screen");
-                    var buttons = dialog.GetVisualDescendants().OfType<Button>().Where(b => b.Content is string text && text is "确定" or "取消" or "保存" or "关闭" or "清除已保存认证")
+                    var footerTexts = new[] { "Sure", "Cancel", "Close", "TreeGit.Ok", "TreeGit.Cancel", "TreeGit.Save", "TreeGit.Close", "TreeGit.Credentials.Forget" }.Select(key => App.Text(key)).ToHashSet(StringComparer.Ordinal);
+                    var buttons = dialog.GetVisualDescendants().OfType<Button>().Where(b => b.Content is string text && footerTexts.Contains(text))
                         .Select(b =>
                         {
                             var start = b.TranslatePoint(default, dialog);
                             var end = b.TranslatePoint(new Point(b.Bounds.Width, b.Bounds.Height), dialog);
-                            return new { text = b.Content, visible = b.IsEffectivelyVisible && start.HasValue && end.HasValue && start.Value.X >= 0 && start.Value.Y >= 0 && end.Value.X <= dialog.Bounds.Width && end.Value.Y <= dialog.Bounds.Height };
+                            var caption = b.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault();
+                            var captionStart = caption?.TranslatePoint(default, b);
+                            return new { text = b.Content, standard = b.Classes.Contains("dialog_action"), width = b.Bounds.Width, height = b.Bounds.Height,
+                                primary = b.Classes.Contains("primary"), background = b.Background?.ToString(), foreground = b.Foreground?.ToString(),
+                                fontSize = caption?.FontSize,
+                                centered = caption != null && captionStart.HasValue && Math.Abs(captionStart.Value.X + caption.Bounds.Width / 2 - b.Bounds.Width / 2) < 1 && Math.Abs(captionStart.Value.Y + caption.Bounds.Height / 2 - b.Bounds.Height / 2) < 1,
+                                visible = b.IsEffectivelyVisible && start.HasValue && end.HasValue && start.Value.X >= 0 && start.Value.Y >= 0 && end.Value.X <= dialog.Bounds.Width && end.Value.Y <= dialog.Bounds.Height };
                         }).ToArray();
                     using var bitmap = new RenderTargetBitmap(new PixelSize((int)Math.Ceiling(dialog.Bounds.Width), (int)Math.Ceiling(dialog.Bounds.Height)), new Vector(96, 96));
                     bitmap.Render(dialog); bitmap.Save(fixture + ".dialog.png");
-                    result.SetResult(new { width = dialog.Bounds.Width, height = dialog.Bounds.Height, buttons, topmost = dialog.Topmost, hasOwner = dialog.Owner == owner,
+                    var header = dialog.GetVisualDescendants().OfType<Grid>().SingleOrDefault(c => c.Name == "DialogTitleBar");
+                    var headerTitle = header?.GetVisualDescendants().OfType<TextBlock>().SingleOrDefault(c => c.Name == "DialogTitleText");
+                    var headerClose = header?.GetVisualDescendants().OfType<Views.CaptionButtons>().SingleOrDefault();
+                    result.SetResult(new { width = dialog.Bounds.Width, height = dialog.Bounds.Height, x = dialog.Position.X, y = dialog.Position.Y, scaling = dialog.RenderScaling,
+                        header = new { title = headerTitle?.Text, windowTitle = dialog.Title, height = header?.Bounds.Height,
+                            closeVisible = headerClose?.IsEffectivelyVisible == true, closeEnabled = headerClose?.IsEnabled == true,
+                            centered = headerTitle != null && Math.Abs(headerTitle.Bounds.Center.Y - header.Bounds.Height / 2) < 1 },
+                        workArea = new { x = area.X, y = area.Y, width = area.Width, height = area.Height }, buttons, topmost = dialog.Topmost, hasOwner = dialog.Owner == owner,
                         withinScreen = dialog.Position.X >= area.X && dialog.Position.Y >= area.Y && dialog.Position.X + dialog.Bounds.Width * dialog.RenderScaling <= area.Right + 1 && dialog.Position.Y + dialog.Bounds.Height * dialog.RenderScaling <= area.Bottom + 1 });
                 }
                 catch (Exception error) { result.SetException(error); }
@@ -548,9 +592,11 @@ namespace SourceGit.Tests
         private static async Task<object> EditCredential(Window owner, ViewModels.Repository repo, string scenario)
         {
             var remote = new Commands.QueryRemotes(repo.FullPath).GetResult().Select(r => new Uri(r.URL)).First(u => u.Scheme is "http" or "https");
+            var storageRemote = scenario.StartsWith("redirect_", StringComparison.Ordinal) ? new Uri(remote.AbsoluteUri.TrimEnd('/') + ".git") : remote;
+            scenario = scenario.Replace("redirect_", string.Empty, StringComparison.Ordinal);
             await new Commands.Config(repo.FullPath).SetAsync("sourcegit.credentialmanager", "true");
             Native.RepositoryCredentials.SetCredentialManagerMode(repo.FullPath, true);
-            Native.RepositoryCredentials.Save(repo.FullPath, remote, "stored-test-user", "stored-test-secret");
+            Native.RepositoryCredentials.Save(repo.FullPath, storageRemote, "stored-test-user", "stored-test-secret");
             var config = Path.Combine(Path.GetDirectoryName(repo.Settings.StoragePath)!, "config");
             var before = File.ReadAllBytes(config);
             var attributes = File.GetAttributes(config);
@@ -562,26 +608,41 @@ namespace SourceGit.Tests
                 try
                 {
                     var controls = dialog.GetLogicalDescendants().OfType<Control>().Where(c => c.Name != null).GroupBy(c => c.Name).ToDictionary(g => g.Key, g => g.First());
-                    ((CheckBox)controls["CredentialMode"]).IsChecked = false;
+                    if (scenario is not ("clear_button" or "clear_cancel")) ((CheckBox)controls["CredentialMode"]).IsChecked = false;
+                    var save = (Button)controls["ConfirmCredentials"];
+                    for (var wait = 0; wait < 250 && !save.IsEnabled; wait++) await Task.Delay(20);
+                    if (!save.IsEnabled) throw new InvalidOperationException("Credential account lookup did not complete");
                     var user = (TextBox)controls["CredentialUsername"];
                     var password = (TextBox)controls["CredentialPassword"];
+                    var storedAccountShown = user.Text == "stored-test-user";
+                    var clearCancelled = scenario == "clear_cancel";
                     if (scenario == "empty_password") user.Text = "new-test-user";
                     else if (scenario == "explicit_clear") { password.Text = "typed value"; password.Text = string.Empty; }
                     else if (scenario == "oversized") { user.Text = "changed-test-user"; password.Text = new string('x', 6000); }
                     else if (scenario is "config_locked" or "commit_failure") { user.Text = "changed-test-user"; password.Text = "changed-test-secret"; }
+                    else if (scenario is "clear_button" or "clear_cancel")
+                    {
+                        var clearButton = (Button)controls["ForgetCredentials"];
+                        if (!clearButton.IsEnabled) throw new InvalidOperationException("Clearing must remain available for the system authentication mode.");
+                        clearButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    }
+                    else if (scenario == "clear_text") user.Text = string.Empty;
                     else if (scenario != "unchanged") throw new ArgumentException("Unknown credential scenario");
                     if (scenario == "config_locked") { File.WriteAllText(config + ".lock", "owned credential test"); locked = true; }
                     if (scenario == "commit_failure") File.SetAttributes(config, attributes | FileAttributes.ReadOnly);
-                    var save = (Button)controls["ConfirmCredentials"];
-                    save.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    if (!clearCancelled) save.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    else ((Button)controls["CancelCredentials"]).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     for (var attempt = 0; attempt < 200 && !save.IsEnabled; attempt++) await Task.Delay(30);
                     if (!save.IsEnabled) throw new InvalidOperationException("Credential save did not complete");
-                    var saved = Native.RepositoryCredentials.Get(repo.FullPath, remote);
-                    var success = ((TextBlock)controls["CredentialStatus"]).Text?.StartsWith("已保存此仓库", StringComparison.Ordinal) == true;
+                    var saved = Native.RepositoryCredentials.Get(repo.FullPath, storageRemote);
+                    var status = (TextBlock)controls["CredentialStatus"];
+                    var success = status.Text == App.Text("TreeGit.Credentials.Saved");
                     completion.SetResult(new { success, configurationUnchanged = before.AsSpan().SequenceEqual(File.ReadAllBytes(config)),
                         originalCredentialPreserved = saved.HasValue && saved.Value.Username == "stored-test-user" && saved.Value.Password == "stored-test-secret",
                         emptyPasswordSaved = saved.HasValue && saved.Value.Password.Length == 0,
                         newUsernameSaved = saved.HasValue && saved.Value.Username == "new-test-user",
+                        storedAccountShown, cleared = !saved.HasValue, automaticallyClosed = !dialog.IsVisible,
+                        localizedInputError = scenario != "oversized" || status.Text == App.Text("TreeGit.Credentials.TooLong") && status.Foreground == Avalonia.Media.Brushes.IndianRed,
                         systemMode = Native.RepositoryCredentials.UsesCredentialManager(repo.FullPath) });
                 }
                 catch (Exception error) { completion.SetException(error); }
@@ -593,7 +654,7 @@ namespace SourceGit.Tests
                 }
             };
             try { await dialog.ShowDialog(owner); return await completion.Task; }
-            finally { Native.RepositoryCredentials.Forget(repo.FullPath, remote); }
+            finally { Native.RepositoryCredentials.Forget(repo.FullPath, remote); Native.RepositoryCredentials.Forget(repo.FullPath, storageRemote); }
         }
     }
 }

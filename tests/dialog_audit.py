@@ -11,6 +11,7 @@ import sys
 import tempfile
 import threading
 import time
+from qa_process import close_owned_gui
 
 sys.stdout.reconfigure(encoding='utf-8')
 
@@ -109,7 +110,8 @@ try:
             dialogs=state['dialogs']
             check(f'preferences {page} {zoom} remains within screen',len(dialogs)==1 and within(dialogs[0]))
             probe=state['layoutProbe']['dialogs'][0]
-            check(f'preferences {page} {zoom} has five useful tabs',len(probe['tabs'])==1 and len(probe['tabs'][0]['headers'])==5)
+            own_settings = not probe['tabs'] if page=='integration' else len(probe['tabs'])==1 and len(probe['tabs'][0]['visibleHeaders'])==4
+            check(f'preferences {page} {zoom} shows only its own settings',own_settings and bool(probe['content']))
         tool('ui_command',{'command':'close_dialog'})
         tool('ui_command',{'repo':str(repo),'command':'repository_settings'})
         for page in ['remotes','advanced']:
@@ -147,8 +149,7 @@ finally:
     try:p.wait(timeout=10)
     except subprocess.TimeoutExpired:p.kill()
     if pid:
-        code="$p=Get-Process -Id "+str(pid)+" -ErrorAction SilentlyContinue; if($p){if($p.Path -ne '"+str(exe).replace("'","''")+"'){throw 'Wrong QA process'};if(-not $p.CloseMainWindow()){throw 'Owned QA window did not close'};if(-not $p.WaitForExit(15000)){throw 'Owned QA window did not exit'}}"
-        subprocess.run(['powershell','-NoProfile','-Command',code],capture_output=True,check=True)
+        close_owned_gui(exe,pid)
     assert root.name.startswith('TreeGit dialog audit ') and repo.parent==root and not root.is_symlink() and not root.is_junction()
     def readonly(fn,path,_):
         owned=Path(path)

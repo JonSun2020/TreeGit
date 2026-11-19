@@ -1,51 +1,38 @@
 ﻿using System.Diagnostics;
 using System.Threading.Tasks;
-using System.IO;
+using System;
 
 namespace SourceGit.Commands
 {
-    public class Replay : Command
+    public class Replay : MergePreview
     {
         public Replay(string repo, string onto, string range)
         {
             WorkingDirectory = repo;
             Context = repo;
             RaiseError = false;
-            // Git 2.56 changed replay's default to updating refs. This command is
-            // exclusively a preview; the config is harmless on older versions.
-            Args = $"-c replay.refAction=print replay --onto {onto.Quoted()} {range.Quoted()}";
+            _onto = onto;
+            _range = range;
         }
 
-        public async Task<int> GetExitCodeAsync()
+        protected override async Task<(string Arguments, string Head)> PreparePreviewAsync()
         {
-            if (CancellationToken.IsCancellationRequested) return -1;
-            using var proc = new Process();
-            proc.StartInfo = CreateGitStartInfo(true);
-
-            var exitCode = -1;
-            try
-            {
-                Native.ProcessLauncher.Start(proc);
-                var gate = new object();
-                var running = true;
-                using var registration = CancellationToken.Register(() =>
-                {
-                    lock (gate)
-                        if (running && !proc.HasExited) Native.OS.TerminateProcess(proc);
-                });
-                var stdout = proc.StandardOutput.BaseStream.CopyToAsync(Stream.Null);
-                var stderr = proc.StandardError.BaseStream.CopyToAsync(Stream.Null);
-                await proc.WaitForExitAsync().ConfigureAwait(false);
-                await Task.WhenAll(stdout, stderr).ConfigureAwait(false);
-                lock (gate) running = false;
-                exitCode = CancellationToken.IsCancellationRequested ? -1 : proc.ExitCode;
-            }
-            catch
-            {
-                // Ignore any exceptions and just return -1
-            }
-
-            return exitCode;
+            // Resolve one two-dot range before leaving the repository; the
+            // isolated preview deliberately contains no mutable branch refs.
+            var separator = _range.IndexOf("..", StringComparison.Ordinal);
+            if (separator <= 0 || _range.IndexOf("..", separator + 2, StringComparison.Ordinal) >= 0) return default;
+            var onto = await ResolveCommitAsync(_onto).ConfigureAwait(false);
+            var start = await ResolveCommitAsync(_range[..separator]).ConfigureAwait(false);
+            var end = await ResolveCommitAsync(_range[(separator + 2)..]).ConfigureAwait(false);
+            if (!IsObjectId(onto) || !IsObjectId(start) || !IsObjectId(end) || onto.Length != start.Length || onto.Length != end.Length) return default;
+            // Git 2.56 otherwise updates refs by default. Keep the explicit
+            // print setting even though all writes now go to quarantine.
+            // Git checks a two-dot range as a possible filename even with --.
+            // Separate endpoints avoid the 130-character SHA-256 filename that
+            // otherwise exceeds Windows path limits under a deep working dir.
+            return ($"-c replay.refAction=print -c merge.renormalize=false replay --onto {onto} {end} ^{start} --", end);
         }
+
+        private readonly string _onto, _range;
     }
 }

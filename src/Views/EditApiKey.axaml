@@ -64,7 +64,7 @@
       <TextBlock Margin="0,12,0,0"
                  Text="{DynamicResource Text.EditApiKey.ApiKey}"
                  IsVisible="{Binding Storage, Converter={x:Static ObjectConverters.NotEqual}, ConverterParameter={x:Static ai:ApiKeyStorage.EnvironmentVariable}}"/>
-      <TextBox Margin="0,4,0,0"
+      <v:PasswordTextBox Margin="0,4,0,0"
                CornerRadius="3"
                Height="28"
                PasswordChar="*"
@@ -78,7 +78,7 @@
                         Classes="toggle_untracked"
                         Width="26" Height="14"/>
         </TextBox.InnerRightContent>
-      </TextBox>
+      </v:PasswordTextBox>
       <Grid ColumnDefinitions="Auto,*"
             Margin="0,4,0,0"
             IsVisible="{Binding !IsValidStorage, Mode=OneWay}">

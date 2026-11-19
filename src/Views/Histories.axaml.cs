@@ -218,6 +218,9 @@ namespace SourceGit.Views
             if (_pendingSelectionReveal == null || _commitItems == null) return;
             var target = _commitItems.Find(c => c.SHA == _pendingSelectionReveal);
             if (target == null) return;
+            if (SelectedCommits is { Count: 1 } selection && selection[0].SHA == target.SHA &&
+                (SelectedItems.Count != 1 || !ReferenceEquals(SelectedItems[0], target)))
+                ApplySelection();
 #if INTEGRATION_TESTS
             Automation.UiLayoutProbe.TraceHistory("reveal", new { sha = target.SHA, selected = SelectedCommits is { Count: 1 } ? SelectedCommits[0].SHA : null, IsLoaded });
 #endif
@@ -432,6 +435,16 @@ namespace SourceGit.Views
                     foreach (var commit in SelectedCommits) wanted.Add(commit.SHA);
                 if (wanted.Count == 0)
                     SelectedItems.Clear();
+                else if (wanted.Count == 1 && _commitItems?.Find(c => wanted.Contains(c.SHA)) is { } target)
+                {
+                    // The graph refresh replaces commit objects. Select the row
+                    // from the current grid even when its SHA is already open.
+                    if (SelectedItems.Count != 1 || !ReferenceEquals(SelectedItems[0], target))
+                    {
+                        if (ReferenceEquals(SelectedItem, target)) SelectedItem = null;
+                        SelectedItem = target;
+                    }
+                }
                 else if (_commitItems != null && wanted.Count == _commitItems.Count && _commitItems.TrueForAll(item => wanted.Contains(item.SHA)))
                     SelectAll();
                 else
@@ -558,6 +571,13 @@ namespace SourceGit.Views
         {
             InitializeComponent();
             InitializeColumnResizing();
+            CollapseDetailsButton.IsCheckedChanged += (_, _) => CloseDetailsToolTips();
+        }
+
+        private void CloseDetailsToolTips()
+        {
+            ToolTip.SetIsOpen(CollapseDetailsButton, false);
+            ToolTip.SetIsOpen(OpenDetailsStandaloneButton, false);
         }
 
         public async Task GotoParent()
@@ -1024,6 +1044,7 @@ namespace SourceGit.Views
 
         private void OnOpenDetailsAsStandalone(object sender, RoutedEventArgs e)
         {
+            CloseDetailsToolTips();
             if (DataContext is ViewModels.Histories vm)
             {
                 if (vm.DetailContext is ViewModels.CommitDetail detail)

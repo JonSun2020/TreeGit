@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using System;
 using System.IO;
 using Avalonia.Media.Imaging;
 
@@ -35,10 +36,21 @@ namespace SourceGit.Models
         }
     }
 
-    public class RevisionTextFile
+    public class RevisionTextFile(string fileName, System.ArraySegment<byte> bytes) : CommunityToolkit.Mvvm.ComponentModel.ObservableObject
     {
-        public string FileName { get; set; }
-        public string Content { get; set; }
+        public string FileName { get; } = fileName;
+        public string Content { get; private set; } = DisplayEncoding.Decode(bytes.AsSpan());
+        public int DisplayEncodingIndex
+        {
+            get => _encodingIndex;
+            set
+            {
+                if (value < 0 || !SetProperty(ref _encodingIndex, value)) return;
+                Content = DisplayEncoding.Decode(bytes.AsSpan(), DisplayEncoding.CodePage(value));
+                OnPropertyChanged(nameof(Content));
+            }
+        }
+        private int _encodingIndex;
     }
 
     public class RevisionLFSObject

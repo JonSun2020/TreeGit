@@ -16,7 +16,7 @@ verifier_retries=[]
 def verify_git_process(arguments,**options):
     for attempt in range(3):
         try:
-            return subprocess.run([verifier_git,*arguments],env=env,stdin=subprocess.DEVNULL,creationflags=subprocess.CREATE_NO_WINDOW,**options)
+            return subprocess.run([verifier_git,*arguments],env=env,stdin=subprocess.DEVNULL,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0,**options)
         except PermissionError as error:
             if getattr(error,'winerror',None)!=5 or attempt==2:raise
             verifier_retries.append({'seconds':round(time.monotonic()-start,2),'attempt':attempt+1,'error':str(error)})
@@ -33,9 +33,13 @@ def make_repo(index):
         for i in range(count):head=git(repo,'commit-tree',tree,'-p',head,'-m','Seed history '+str(i))
         if count:git(repo,'update-ref','refs/heads/main',head)
     return repo
-p=subprocess.Popen([str(exe),'--mcp'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',env=env,creationflags=subprocess.CREATE_NO_WINDOW)
+p=subprocess.Popen([str(exe),'--mcp'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',env=env,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
 replies=queue.Queue();threading.Thread(target=lambda:[replies.put(line) for line in p.stdout],daemon=True).start()
-seq=0;pid=None;latencies=[];samples=[];snapshots=set();cycle=0;merge_cycles=0;failure=None;start=time.monotonic();rng=random.Random(704)
+seq=0;pid=None;latencies=[];samples=[];snapshots=set();cycle=0;merge_cycles=0;comparison_cycles=0;failure=None;runtime_git=None;start=time.monotonic();rng=random.Random(704)
+
+def crash_log_files():
+    return [{'name':path.name,'exception':path.read_text('utf-8',errors='replace').splitlines()[0]}
+            for path in sorted((exe.parent/'data/crashes').glob('*.log'))]
 def rpc(method,params=None):
     global seq
     seq+=1;p.stdin.write(json.dumps({'jsonrpc':'2.0','id':seq,'method':method,'params':params or {}},ensure_ascii=False)+'\n');p.stdin.flush()
@@ -52,10 +56,12 @@ def close_repositories():
 def save_result():
     ordered=sorted(latencies)
     pending=out/'desktop-soak-results.tmp'
-    pending.write_text(json.dumps({'exe':str(exe),'build':build,'root':str(root),'seconds':round(time.monotonic()-start,1),'requestedDurationSeconds':seconds,'stoppedByRequest':(out/'stop-requested').exists(),'verifierGit':verifier_git,'verifierLaunchRetries':verifier_retries,'cycles':cycle,'mergeEditorCycles':merge_cycles,'requests':len(latencies),'maxRequestSeconds':max(latencies,default=0),'p95RequestSeconds':ordered[int(len(ordered)*.95)] if ordered else 0,'samples':samples,'ownedSnapshotCount':len(snapshots),'remainingSnapshots':[str(s) for s in snapshots if s.exists()],'failure':failure},ensure_ascii=False,indent=2),encoding='utf-8')
+    pending.write_text(json.dumps({'exe':str(exe),'build':build,'root':str(root),'seconds':round(time.monotonic()-start,1),'requestedDurationSeconds':seconds,'stoppedByRequest':(out/'stop-requested').exists(),'runtimeGit':runtime_git,'verifierGit':verifier_git,'verifierLaunchRetries':verifier_retries,'cycles':cycle,'mergeEditorCycles':merge_cycles,'comparisonCycles':comparison_cycles,'requests':len(latencies),'maxRequestSeconds':max(latencies,default=0),'p95RequestSeconds':ordered[int(len(ordered)*.95)] if ordered else 0,'samples':samples,'ownedSnapshotCount':len(snapshots),'remainingSnapshots':[str(s) for s in snapshots if s.exists()],'failure':failure},ensure_ascii=False,indent=2),encoding='utf-8')
     pending.replace(out/'desktop-soak-results.json')
 def sample(label):
     state=tool('ui_state');assert state['processId']==pid and not state['dialogs'],state['dialogs']
+    unexpected=crash_log_files()
+    assert not unexpected,('Unexpected application exception logs',unexpected)
     process=process_sample(exe,pid)
     temporary_bytes=0
     for directory,dirs,files in os.walk(root,followlinks=False):
@@ -71,7 +77,10 @@ def sample(label):
     assert temporary_bytes<2*1024*1024*1024, 'Owned test fixtures exceeded 2 GiB'
     save_result()
 try:
-    rpc('initialize',{'protocolVersion':'2025-11-25'});state=tool('ui_state');pid=state['processId'];close_repositories();sample('baseline')
+    rpc('initialize',{'protocolVersion':'2025-11-25'});state=tool('ui_state');pid=state['processId'];runtime_git=state['git']
+    if os.environ.get('TREEGIT_SOAK_EXPECT_GIT'):
+        assert Path(runtime_git['path']).resolve()==Path(os.environ['TREEGIT_SOAK_EXPECT_GIT']).resolve() and runtime_git['bundled'],runtime_git
+    close_repositories();sample('baseline')
     repos=[make_repo(i) for i in range(8)]
     for repo in repos:tool('ui_open_repository',{'repo':str(repo)})
     # Verify overflow with many repositories, then dispose the extra watchers/tabs.
@@ -97,7 +106,7 @@ try:
         if cycle%12==0:
             tool('ui_window',{'width':1024 if cycle%24==0 else 1600,'height':720 if cycle%24==0 else 1000,'zoom':[1,1.5,2][(cycle//12)%3],'theme':['Blue','Dark','Light'][(cycle//12)%3]})
         old=(repo/'firmware.bin').read_bytes();new=bytearray(old);offset=(cycle*7919+17)%len(new);new[offset]^=0x80
-        (repo/'firmware.bin').write_bytes(new);note='Repository '+repo.name+' cycle '+str(cycle)+'\n';(repo/'note.txt').write_text(note,encoding='utf-8')
+        (repo/'firmware.bin').write_bytes(new);note='Repository '+repo.name+' cycle '+str(cycle)+'\n'+('Wrapped comparison example '*24)+'\n';(repo/'note.txt').write_text(note,encoding='utf-8')
         tool('ui_working_copy',{'repo':str(repo)});tool('ui_refresh',{'repo':str(repo)})
         for attempt in range(60):
             selected=tool('ui_diff',{'repo':str(repo),'action':'select','file':'firmware.bin','source':'unstaged'},True)
@@ -162,7 +171,14 @@ try:
                 else:raise AssertionError(('Explicitly navigating to the same old commit did not reveal its row',bar,next(r for r in tool('ui_state')['repositories'] if Path(r['repo'])==repo)['historyRows']))
                 print('PASS old commit reveal, refresh preserves viewport, repeated navigation reveals row',flush=True)
             expected=set(git(repo,'for-each-ref','--contains='+target,'--format=%(refname)','refs/heads/','refs/remotes/').splitlines())
-            assert {b['reference'] for b in (scope['local'] or [])+(scope['remote'] or [])}==expected
+            # Folded folders intentionally keep their children out of Rows.
+            # Compare the complete coverage independently, then check the
+            # rendered leaves without forcing the user's folders open.
+            assert set(rs['detailBranches']['branches'])==expected,(rs['detailBranches'],expected)
+            highlighted={b['reference'] for b in (scope['local'] or [])+(scope['remote'] or [])}
+            assert highlighted<=expected,(highlighted,expected)
+            visible={b['reference'] for b in (rs['localBranchTargets'] or [])+(rs['remoteBranchTargets'] or [])}
+            assert visible.intersection(expected)<=highlighted,(visible,highlighted,expected)
             if rs['detailBranches']['extraCount']:
                 tool('ui_command',{'repo':str(repo),'command':'commit_branches'})
                 for attempt in range(100):
@@ -214,6 +230,28 @@ try:
             else:raise AssertionError('Unchanged merge editor did not close')
             assert (merge_repo/'note.txt').read_bytes()==original_conflict and git(merge_repo,'ls-files','-u')
             merge_cycles+=1
+            tool('ui_open_repository',{'repo':str(repo)});tool('ui_select_commit',{'repo':str(repo),'revision':'HEAD'})
+            for attempt in range(100):
+                current=next(r for r in tool('ui_state')['repositories'] if Path(r['repo'])==repo)
+                if current['historySelectedCommits']==[git(repo,'rev-parse','HEAD')]:break
+                time.sleep(.05)
+            for attempt in range(100):
+                selected=tool('ui_diff',{'repo':str(repo),'action':'select','file':'note.txt','source':'history'},True)
+                if selected is not None:break
+                time.sleep(.05)
+            else:raise AssertionError('Selected commit details did not finish loading the text comparison')
+            tool('ui_command',{'command':'external_diff'})
+            for attempt in range(100):
+                dialogs=tool('ui_state')['dialogs']
+                if len(dialogs)==1 and dialogs[0]['type']=='InternalDiffWindow':break
+                time.sleep(.05)
+            else:raise AssertionError('Repeated standalone text comparison did not open')
+            tool('ui_command',{'command':'close_dialog'})
+            for attempt in range(100):
+                if not tool('ui_state')['dialogs']:break
+                time.sleep(.05)
+            else:raise AssertionError('Standalone comparison remained open after closing')
+            comparison_cycles+=1
             sample('running');print('PASS sustained cycles',cycle,'elapsed',round(time.monotonic()-start),'seconds',flush=True)
         time.sleep(rng.choice([.05,.2,.7,1.1]))
     tool('ui_window',{'zoom':1,'theme':'Blue','width':1440,'height':900});close_repositories()
@@ -237,4 +275,7 @@ finally:
     remove_fixture(root,root_parent,'TreeGit s ')
     report=out/'desktop-soak-results.json';result=json.loads(report.read_text('utf-8'))
     result['fixtureRemoved']=not root.exists();result['ownedApplicationExited']=True
+    result['unexpectedCrashLogs']=crash_log_files()
+    if result['unexpectedCrashLogs'] and not result['failure']:result['failure']='Unexpected application exception logs'
     report.write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
+    assert not result['unexpectedCrashLogs'],result['unexpectedCrashLogs']

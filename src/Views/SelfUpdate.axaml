@@ -27,7 +27,7 @@
         </StackPanel>
         <TextBlock Text="{Binding Message}" TextWrapping="Wrap"/>
         <StackPanel IsVisible="{Binding ShowProgress}" Spacing="5">
-          <ProgressBar Height="6" Minimum="0" Maximum="100" Value="{Binding Progress}" IsIndeterminate="{Binding IsIndeterminate}"/>
+          <v:ActivityProgressBar Height="6" ReportedValue="{Binding Progress}" IsRunning="{Binding IsWorking}"/>
           <TextBlock Text="{Binding ProgressText}" HorizontalAlignment="Right" Foreground="{DynamicResource Brush.FG2}"/>
         </StackPanel>
         <Border IsVisible="{Binding ShowNotes}" Background="{DynamicResource Brush.Contents}" BorderBrush="{DynamicResource Brush.Border1}" BorderThickness="1" Padding="12">
@@ -38,9 +38,9 @@
     <Grid Grid.Row="2" RowDefinitions="Auto,Auto" Margin="20,10,20,16">
       <Button Grid.Row="0" HorizontalAlignment="Left" Margin="0,0,0,8" Classes="flat" Content="{DynamicResource Text.SelfUpdate.Flow.Manual}" IsVisible="{Binding ShowManualDownload}" Click="GotoDownload"/>
       <WrapPanel Grid.Row="1" HorizontalAlignment="Right">
-        <Button Classes="flat primary" MinWidth="110" Height="32" Padding="12,0" Margin="0,0,0,4" Content="{Binding ActionText}" IsVisible="{Binding CanAct}" Click="OnAction"/>
-        <Button x:Name="BackgroundUpdate" Classes="flat" MinWidth="90" Height="32" Padding="12,0" Margin="8,0,0,4" Content="{DynamicResource Text.SelfUpdate.Flow.Background}" IsVisible="{Binding CanBackground}" Click="OnBackground"/>
-        <Button Classes="flat" MinWidth="90" Height="32" Padding="12,0" Margin="8,0,0,4" Content="{Binding DismissText}" IsEnabled="{Binding CanDismiss}" Click="OnDismiss"/>
+        <Button x:Name="UpdateAction" Classes="flat primary dialog_action" Margin="0,0,0,4" Content="{Binding ActionText}" IsVisible="{Binding CanAct}" Click="OnAction"/>
+        <Button x:Name="BackgroundUpdate" Classes="flat dialog_action" Margin="8,0,0,4" Content="{DynamicResource Text.SelfUpdate.Flow.Background}" IsVisible="{Binding CanBackground}" Click="OnBackground"/>
+        <Button x:Name="UpdateDismiss" Classes="flat dialog_action" Margin="8,0,0,4" Content="{Binding DismissText}" IsEnabled="{Binding CanDismiss}" Click="OnDismiss"/>
       </WrapPanel>
     </Grid>
   </Grid>

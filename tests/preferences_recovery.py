@@ -1,24 +1,23 @@
 """Recover corrupt settings without discarding the original or overwriting a locked file."""
-import json, msvcrt, queue, shutil, subprocess, sys, threading
+import json, msvcrt, queue, subprocess, sys, threading
 from pathlib import Path
+from qa_profile import IsolatedProfile
+from qa_process import close_owned_gui
 
-source = Path(sys.argv[1]).resolve().parent
+exe = Path(sys.argv[1]).resolve()
 out = Path(sys.argv[2]).resolve(); out.mkdir(parents=True, exist_ok=True)
+profile = IsolatedProfile(exe, out)
 records = []
-for case, original in [('null','null'), ('malformed','{"Locale":'), ('layout-null','{"Layout":null}'), ('workspaces-null','{"Workspaces":null}'), ('nested-null','{"RepositoryNodes":[{"Id":"folder","SubNodes":[null]}]}'), ('locked',json.dumps({'Locale':'zh_CN','Theme':'Blue','Check4UpdatesOnStartup':False}))]:
-    root = out/(case+'-app'); root.mkdir()
-    for file in source.iterdir():
-        if file.is_file(): shutil.copy2(file, root/file.name)
-    data = root/'data'; data.mkdir(); preference = data/'preference.json'; preference.write_text(original,'utf-8')
+def run_case(case, original):
+    data = profile.reset()/'data'; preference = data/'preference.json'; preference.write_text(original,'utf-8')
     (data/'sentinel.txt').write_text('keep user files','utf-8')
     held = None
     if case == 'locked':
         held = preference.open('r+b'); msvcrt.locking(held.fileno(), msvcrt.LK_NBLCK, 1)
-    exe = root/'TreeGit.exe'
     p = subprocess.Popen([str(exe),'--mcp'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',creationflags=subprocess.CREATE_NO_WINDOW)
     replies = queue.Queue(); threading.Thread(target=lambda:[replies.put(line) for line in p.stdout],daemon=True).start(); seq = 0; pid = None
     def rpc(method, params):
-        global seq
+        nonlocal seq
         seq += 1; p.stdin.write(json.dumps({'jsonrpc':'2.0','id':seq,'method':method,'params':params})+'\n'); p.stdin.flush()
         response = json.loads(replies.get(timeout=40)); assert 'error' not in response, response
         return response['result']
@@ -26,9 +25,7 @@ for case, original in [('null','null'), ('malformed','{"Locale":'), ('layout-nul
         result = rpc('tools/call',{'name':name,'arguments':args or {}}); assert not result.get('isError'),result
         return json.loads(result['content'][0]['text'])
     def close_gui():
-        literal = str(exe).replace("'","''")
-        script = "$ErrorActionPreference='Stop';Get-Process -Name TreeGit -ErrorAction SilentlyContinue | Where-Object {$_.Path -eq '"+literal+"'} | ForEach-Object {$null=$_.CloseMainWindow();if(-not $_.WaitForExit(10000)){$_.Kill();$_.WaitForExit();throw 'Owned QA window did not exit normally'}};exit 0"
-        subprocess.run(['powershell','-NoProfile','-Command',script],check=True,capture_output=True)
+        if pid:close_owned_gui(exe,pid)
     try:
         rpc('initialize',{'protocolVersion':'2025-11-25'})
         state = tool('ui_state'); pid = state['processId']; assert state['application']=='TreeGit'
@@ -53,3 +50,9 @@ for case, original in [('null','null'), ('malformed','{"Locale":'), ('layout-nul
             try:p.wait(timeout=10)
             except subprocess.TimeoutExpired:p.kill();p.wait()
         if pid:close_gui()
+try:
+    for case, original in [('null','null'), ('malformed','{"Locale":'), ('layout-null','{"Layout":null}'), ('workspaces-null','{"Workspaces":null}'), ('nested-null','{"RepositoryNodes":[{"Id":"folder","SubNodes":[null]}]}'), ('locked',json.dumps({'Locale':'zh_CN','Theme':'Blue','Check4UpdatesOnStartup':False}))]:
+        run_case(case, original)
+finally:
+    (out/'preferences-recovery-results.json').write_text(json.dumps(records,indent=2),'utf-8')
+    profile.close()

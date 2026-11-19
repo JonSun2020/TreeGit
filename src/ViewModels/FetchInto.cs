@@ -26,6 +26,7 @@ namespace SourceGit.ViewModels
             CanTerminate = true;
         }
 
+        public override Task<bool> VerifyCredentialsAsync() => VerifyRemoteAsync(_repo.FullPath, _remote);
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
@@ -37,21 +38,21 @@ namespace SourceGit.ViewModels
             _cancellation = new CancellationTokenSource();
             var token = _cancellation.Token;
 
-            await new Commands.Fetch(_repo.FullPath, _remote, Upstream, Local)
+            var success = await new Commands.Fetch(_repo.FullPath, _remote, Upstream, Local)
                 .WithCancellation(token)
                 .Use(log)
                 .ExecAsync();
 
             log.Complete();
 
-            if (_repo.SelectedViewIndex == 0 && !token.IsCancellationRequested)
+            if (success && _repo.SelectedViewIndex == 0 && !token.IsCancellationRequested && !log.AuthenticationCancelled)
             {
                 var newHead = await new Commands.QueryRevisionByRefName(_repo.FullPath, Local.Name).GetResultAsync();
                 _repo.NavigateToCommit(newHead, true);
             }
 
             _cancellation = null;
-            return true;
+            return success && !token.IsCancellationRequested && !log.AuthenticationCancelled;
         }
 
         public override void Terminate()

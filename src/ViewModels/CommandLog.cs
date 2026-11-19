@@ -8,6 +8,21 @@ namespace SourceGit.ViewModels
 {
     public class CommandLog : ObservableObject, Models.ICommandLog
     {
+        public bool AuthenticationCancelled { get; private set; }
+        public void MarkAuthenticationCancelled() => AuthenticationCancelled = true;
+        internal System.Threading.CancellationToken OperationToken { get; set; }
+        public System.Threading.CancellationToken OperationCancellation => OperationToken;
+        public bool HasOperationPanel { get; internal set; }
+        public void ReportAuthenticationState(string state)
+        {
+            if (!Dispatcher.UIThread.CheckAccess()) { Dispatcher.UIThread.Post(() => ReportAuthenticationState(state)); return; }
+            foreach (var receiver in _receivers.ToArray()) receiver.OnAuthenticationState(state);
+        }
+        public void MarkFailed(string message)
+        {
+            if (!Dispatcher.UIThread.CheckAccess()) { Dispatcher.UIThread.Post(() => MarkFailed(message)); return; }
+            foreach (var receiver in _receivers.ToArray()) receiver.OnCommandFailed(message);
+        }
         public string Name
         {
             get;
@@ -70,7 +85,7 @@ namespace SourceGit.ViewModels
             }
             else
             {
-                var newline = line ?? string.Empty;
+                var newline = Native.RepositoryCredentials.RedactLog(line ?? string.Empty);
                 if (_buffer != null)
                     _buffer.AppendLine(newline);
                 else

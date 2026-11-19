@@ -35,7 +35,8 @@
                         IsVisible="{OnPlatform True, macOS=False}"/>
     </Grid>
 
-    <StackPanel Grid.Row="1" Margin="0,16" Orientation="Vertical">
+    <Grid Grid.Row="1" Margin="0,16" RowDefinitions="*,Auto">
+    <StackPanel x:Name="CredentialFields" Grid.Row="0" Orientation="Vertical">
       <Border Margin="16,0">
         <TextBlock x:Name="TxtDescription" MaxWidth="480" Text="{DynamicResource Text.Askpass.Passphrase}" TextWrapping="Wrap"/>
       </Border>
@@ -46,7 +47,7 @@
         <TextBlock Text="{DynamicResource Text.TreeGit.Credentials.OptionalPassword}" Margin="0,6,0,0"/>
       </StackPanel>
 
-      <TextBox x:Name="TxtPassphrase"
+      <v:PasswordTextBox x:Name="TxtPassphrase"
                Margin="16"
                MinWidth="300"
                Height="32"
@@ -62,21 +63,26 @@
                         ToolTip.Tip="{DynamicResource Text.TreeGit.Credentials.TogglePassword}"
                         Width="26" Height="14"/>
         </TextBox.InnerRightContent>
-      </TextBox>
-      <TextBlock x:Name="ValidationMessage" Margin="16,0,16,12" MaxWidth="480" TextWrapping="Wrap" IsVisible="False"/>
+      </v:PasswordTextBox>
+      <TextBlock x:Name="ValidationMessage" Margin="16,0,16,12" MaxWidth="480" TextWrapping="Wrap" Foreground="IndianRed" IsVisible="False"/>
+    </StackPanel>
+    <Grid x:Name="VerificationOverlay" Grid.Row="0" IsVisible="False" IsHitTestVisible="False" MinHeight="100">
+      <Border Background="{DynamicResource Brush.Window}" Opacity="0.8"/>
+      <TextBlock x:Name="VerificationStatus" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="18" FontWeight="SemiBold" Margin="20" TextWrapping="Wrap" TextAlignment="Center"/>
+    </Grid>
 
-      <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-        <Button Classes="flat primary"
+      <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,8,0,0">
+        <Button x:Name="ConfirmAuthentication" Classes="flat primary"
                 Width="80"
                 Content="{DynamicResource Text.Sure}"
                 Click="EnterPassword"
                 HotKey="Enter"/>
         <Button Classes="flat"
                 Width="80"
-                Margin="16,0,0,0"
+              Margin="8,0,0,0"
                 Content="{DynamicResource Text.Cancel}"
                 Click="CloseWindow"/>
       </StackPanel>
-    </StackPanel>
+    </Grid>
   </Grid>
 </v:ChromelessWindow>

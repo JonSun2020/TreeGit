@@ -11,10 +11,15 @@ from qa_cleanup import remove_fixture
 
 class IsolatedProfile:
     def __init__(self, executable, output):
-        assert os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ.get('RUNNER_OS') == 'Windows', 'Application profile tests require an owned CI runner'
         self.exe = Path(executable).resolve()
         self.out = Path(output).resolve()
-        allowed = [Path(os.environ[k]).resolve() for k in ('RUNNER_TEMP', 'GITHUB_WORKSPACE') if os.environ.get(k)]
+        if os.environ.get('TREEGIT_LOCAL_QA_ROOT'):
+            from qa_cleanup import verify_local_runtime
+            verify_local_runtime(self.exe)
+            allowed = [self.exe.parent.parent]
+        else:
+            assert os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ.get('RUNNER_OS') == 'Windows', 'Application profile tests require an owned CI runner'
+            allowed = [Path(os.environ[k]).resolve() for k in ('RUNNER_TEMP', 'GITHUB_WORKSPACE') if os.environ.get(k)]
         assert self.exe.is_file() and any(self.exe.is_relative_to(p) for p in allowed), 'Application must belong to the CI workspace'
         assert any(self.out.is_relative_to(p) for p in allowed), 'QA output must belong to the CI workspace'
         self.out.mkdir(parents=True, exist_ok=True)

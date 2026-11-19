@@ -112,6 +112,8 @@ namespace SourceGit.ViewModels
             }
         }
 
+        public override Task<bool> VerifyCredentialsAsync() => VerifyRemoteAsync(_repo.FullPath, _selectedRemote);
+
         public override async Task<bool> Sure()
         {
             using var lockWatcher = _repo.LockWatcher();
@@ -143,15 +145,24 @@ namespace SourceGit.ViewModels
             var success = false;
             try
             {
-                if (DealWithLocalChanges == Models.DealWithLocalChanges.StashAndReapply &&
-                    !await protectedChanges.SaveAsync("PULL_AUTO_STASH")) return false;
-                if (DealWithLocalChanges == Models.DealWithLocalChanges.Discard &&
-                    !await Commands.Discard.AllAsync(_repo.FullPath, true, false, false, log)) return false;
                 if (cancellation.IsCancellationRequested) return false;
                 var target = Current?.Upstream == _selectedBranch.FullName ? null : _selectedBranch;
                 var result = await Commands.SafePull.RunAsync(_repo.FullPath, _repo.GitDir, _selectedRemote, target,
                     _selectedBranch.FullName, UseRebase, false, cancellation.Token, log,
-                    () => Avalonia.Threading.Dispatcher.UIThread.Post(() => CanTerminate = false));
+                    () => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                    {
+                        CanTerminate = false;
+                        ReportPartProgress(94);
+                    }),
+                    async () =>
+                    {
+                        if (cancellation.IsCancellationRequested) return false;
+                        if (DealWithLocalChanges == Models.DealWithLocalChanges.StashAndReapply &&
+                            !await protectedChanges.SaveAsync("PULL_AUTO_STASH")) return false;
+                        return DealWithLocalChanges != Models.DealWithLocalChanges.Discard ||
+                            await Commands.Discard.AllAsync(_repo.FullPath, true, false, false, log);
+                    });
+                if (result.AuthenticationCancelled) return true;
                 success = result.IsSuccess;
                 var conflicts = await new Commands.QueryConflictEntries(_repo.FullPath).GetResultAsync();
                 if (!string.IsNullOrEmpty(conflicts) || InProgressContext.HasPendingOperation(_repo.GitDir))
