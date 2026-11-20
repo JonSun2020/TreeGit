@@ -153,6 +153,9 @@ namespace SourceGit
                         Environment.Exit(1);
                         return;
                     }
+                    ViewModels.Preferences.DeferDesktopServices =
+                        Environment.GetEnvironmentVariable("SOURCEGIT_LAUNCH_AS_ASKPASS") != "TRUE" &&
+                        (args.Length == 0 || args.Length == 1 && !args[0].StartsWith("--", StringComparison.Ordinal) || args[0] == "--updated");
                     BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
                 }
             }
@@ -707,16 +710,21 @@ namespace SourceGit
                 return;
             }
 
-            Models.AvatarManager.Instance.Start();
+            var ready = false;
+            var pending = new Queue<string>();
+            void OpenWhenReady(string path)
+            {
+                if (string.IsNullOrEmpty(path)) return;
+                if (ready) _launcher.TryOpenRepositoryFromPath(path);
+                else pending.Enqueue(path);
+            }
 
             if (this.TryGetFeature<IActivatableLifetime>() is { } activatable)
-            {
                 activatable.Activated += (_, e) =>
                 {
-                    if (e is FileActivatedEventArgs { Files: { Count: > 0 } } fileArgs)
-                        _launcher?.TryOpenRepositoryFromPath(fileArgs.Files[0].Path.LocalPath);
+                    if (e is FileActivatedEventArgs { Files: { Count: > 0 } } files)
+                        OpenWhenReady(files.Files[0].Path.LocalPath);
                 };
-            }
 
             string startupRepo = null;
             Native.StartupTrace.Mark("startup-services");
@@ -728,23 +736,73 @@ namespace SourceGit
             }
 
             var pref = ViewModels.Preferences.Instance;
-            pref.SetCanModify();
+            var savedGitMode = pref.UseBundledGit;
+            var savedGitPath = pref.GitInstallPath;
+            Views.Launcher main = null;
+            var stage = "Workspace";
+            IProgress<string> progress = new Progress<string>(reported =>
+            {
+                stage = reported;
+                if (!ready && main?.IsVisible == true) main.ShowStartupStage(stage);
+            });
+            // Probe Git on a worker while the main thread builds and renders the window.
+            var startupServices = Task.Run(() =>
+            {
+                if (ViewModels.Preferences.DeferDesktopServices)
+                    pref.PrepareDesktopServices(progress.Report);
+                Models.AvatarManager.Instance.Start();
+            });
 
-            _launcher = new ViewModels.Launcher(startupRepo);
+            _launcher = new ViewModels.Launcher();
             Native.StartupTrace.Mark("launcher-model");
-            desktop.MainWindow = new Views.Launcher() { DataContext = _launcher };
+            main = new Views.Launcher { DataContext = _launcher };
+            desktop.MainWindow = main;
+            main.ShowStartupStage(stage);
 #if INTEGRATION_TESTS
-            Automation.UiLayoutProbe.AttachPointerTrace(desktop.MainWindow);
+            Automation.UiLayoutProbe.AttachPointerTrace(main);
 #endif
             Native.StartupTrace.Mark("launcher-window");
-            if (pref.LoadRecovery != 0)
-                desktop.MainWindow.Opened += (_, _) => Models.Notification.Send(string.Empty, App.Text(pref.LoadRecovery == 1 ? "PreferenceRecovery.Backup" : "PreferenceRecovery.Readonly"), true);
-            if (Native.TreeGitUpdateInstaller.BootstrapPlan != null)
-                desktop.MainWindow.Opened += (_, _) => OpenUpdater(bootstrap: true);
-            else
-                desktop.MainWindow.Opened += async (_, _) => await ReportUpdateResultAsync();
-            Automation.GuiBridge.Start();
-            Automation.McpServer.EndDesktopStartup();
+            main.Opened += async (_, _) =>
+            {
+                try { await startupServices; }
+                catch (Exception error)
+                {
+                    Native.OS.LogException(error);
+                    if (main.IsVisible) Models.Notification.Send(string.Empty, App.Text("TreeGit.Startup.SettingsFailed"), true);
+                }
+                if (!main.IsVisible) return;
+                if (startupRepo != null || _launcher.ActivePage?.Node.IsRepository == true)
+                    main.ShowStartupStage("Repositories");
+                try { await _launcher.LoadStartupRepositoryAsync(startupRepo); }
+                catch (Exception error)
+                {
+                    Native.OS.LogException(error);
+                    if (main.IsVisible) Models.Notification.Send(string.Empty, App.Text("Repository.OpenFailed"), true);
+                }
+                if (!main.IsVisible) return;
+                pref.SetCanModify();
+                if (savedGitMode != pref.UseBundledGit || savedGitPath != pref.GitInstallPath) pref.SaveDetectedGit();
+                ready = true;
+                main.FinishStartup();
+                Native.StartupTrace.Mark("startup-ready", true);
+                Automation.GuiBridge.Start();
+                Automation.McpServer.EndDesktopStartup();
+                if (string.IsNullOrEmpty(Native.OS.GitVersionString))
+                    Models.Notification.Send(string.Empty, App.Text("NotConfigured"), true);
+                if (pref.LoadRecovery != 0)
+                    Models.Notification.Send(string.Empty, App.Text(pref.LoadRecovery == 1 ? "PreferenceRecovery.Backup" : "PreferenceRecovery.Readonly"), true);
+                while (pending.TryDequeue(out var path)) OpenWhenReady(path);
+                if (Native.TreeGitUpdateInstaller.BootstrapPlan != null) OpenUpdater(bootstrap: true);
+                else
+                {
+                    _ = ReportUpdateResultAsync();
+#if !DISABLE_UPDATE_DETECTION
+                    if (pref.ShouldCheck4UpdateOnStartup()) Check4Update();
+#endif
+                }
+                try { await _launcher.LoadDeferredRepositoriesAsync(main.ShowBackgroundLoading); }
+                finally { if (main.IsVisible) main.FinishStartup(); }
+            };
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
             // Fix macOS crash when quiting from Dock
@@ -769,16 +827,13 @@ namespace SourceGit
             {
                 Dispatcher.UIThread.Invoke(() =>
                 {
-                    _launcher.TryOpenRepositoryFromPath(repo);
+                    OpenWhenReady(repo);
                     if (desktop.MainWindow is Views.Launcher main)
                         main.BringToTop();
                 });
             };
 
-#if !DISABLE_UPDATE_DETECTION
-            if (Native.TreeGitUpdateInstaller.BootstrapPlan == null && pref.ShouldCheck4UpdateOnStartup())
-                Check4Update();
-#endif
+
         }
         #endregion
 

@@ -14,13 +14,17 @@ namespace SourceGit.Models
         private readonly List<(Commit Commit, int Branch)> _branchCommits = [];
         private int _colorVersion = -1;
 
-        private void RecordNeighbors(IEnumerable<(int Column, int Branch)> lanes)
+        private void RecordOrderedNeighbors(IEnumerable<int> branches)
         {
-            var ordered = lanes.OrderBy(l => l.Column).Select(l => l.Branch).Distinct().ToArray();
-            for (var i = 1; i < ordered.Length; i++)
+            var previous = -1;
+            foreach (var branch in branches.Distinct())
             {
-                _branchNeighbors[ordered[i - 1]].Add(ordered[i]);
-                _branchNeighbors[ordered[i]].Add(ordered[i - 1]);
+                if (previous >= 0)
+                {
+                    _branchNeighbors[previous].Add(branch);
+                    _branchNeighbors[branch].Add(previous);
+                }
+                previous = branch;
             }
         }
 
@@ -43,8 +47,11 @@ namespace SourceGit.Models
             var used = new HashSet<int> { 0 };
             double NeighborDistance(int branch, int candidate)
             {
-                var neighbors = _branchNeighbors[branch].Where(n => assigned[n] >= 0).ToArray();
-                return neighbors.Length == 0 ? 180 : neighbors.Min(n => Difference(candidate, assigned[n]));
+                var distance = double.PositiveInfinity;
+                foreach (var neighbor in _branchNeighbors[branch])
+                    if (assigned[neighbor] >= 0)
+                        distance = Math.Min(distance, Difference(candidate, assigned[neighbor]));
+                return double.IsPositiveInfinity(distance) ? 180 : distance;
             }
             int Choose(int branch)
             {

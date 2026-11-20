@@ -41,7 +41,7 @@
         </TextBox.InnerRightContent>
       </TextBox>
 
-      <TextBlock Grid.Row="2" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" Text="{DynamicResource Text.Apply.WS}"/>
+      <TextBlock Grid.Row="2" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" Classes="option_dependent" IsEnabled="{Binding !IgnoreWhiteSpace}" Text="{DynamicResource Text.Apply.WS}"/>
       <ComboBox Grid.Row="2" Grid.Column="1" Height="28" Padding="8,0" VerticalAlignment="Center" HorizontalAlignment="Stretch" ItemsSource="{Binding Source={x:Static m:ApplyWhiteSpaceMode.Supported}}" SelectedItem="{Binding SelectedWhiteSpaceMode, Mode=TwoWay}" IsEnabled="{Binding !IgnoreWhiteSpace}" Grid.IsSharedSizeScope="True">
         <ComboBox.ItemTemplate>
           <DataTemplate DataType="m:ApplyWhiteSpaceMode">

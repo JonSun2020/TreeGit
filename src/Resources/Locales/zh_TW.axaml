@@ -636,7 +636,7 @@
   <x:String x:Key="Text.MoveRepositoryNode.Target" xml:space="preserve">請選擇目標分組:</x:String>
   <x:String x:Key="Text.Name" xml:space="preserve">名稱:</x:String>
   <x:String x:Key="Text.No" xml:space="preserve">否</x:String>
-  <x:String x:Key="Text.NotConfigured" xml:space="preserve">尚未設定 Git。請開啟 [偏好設定] 以設定 Git 路徑。</x:String>
+  <x:String x:Key="Text.NotConfigured" xml:space="preserve">尚未設定 Git。請開啟 「工具 → 外部工具整合」 以設定 Git 路徑。</x:String>
   <x:String x:Key="Text.Open" xml:space="preserve">開啟</x:String>
   <x:String x:Key="Text.Open.SystemDefaultEditor" xml:space="preserve">系統預設編輯器</x:String>
   <x:String x:Key="Text.OpenAppDataDir" xml:space="preserve">瀏覽程式資料目錄</x:String>
@@ -740,7 +740,7 @@
   <x:String x:Key="Text.Preferences.GPG.TagEnabled" xml:space="preserve">啟用標籤簽章</x:String>
   <x:String x:Key="Text.Preferences.GPG.UserKey" xml:space="preserve">使用者簽章金鑰</x:String>
   <x:String x:Key="Text.Preferences.GPG.UserKey.Placeholder" xml:space="preserve">填寫簽章提交所使用的金鑰</x:String>
-  <x:String x:Key="Text.Preferences.Integration" xml:space="preserve">第三方工具整合</x:String>
+  <x:String x:Key="Text.Preferences.Integration" xml:space="preserve">外部工具整合</x:String>
   <x:String x:Key="Text.Preferences.Shell" xml:space="preserve">終端機/Shell</x:String>
   <x:String x:Key="Text.Preferences.Shell.Args" xml:space="preserve">啟動參數</x:String>
   <x:String x:Key="Text.Preferences.Shell.Args.ToolTip" xml:space="preserve">您可以使用「.」表示目前工作目錄，以及「$FOLDER_NAME」表示其資料夾名稱</x:String>
@@ -1690,7 +1690,7 @@ SSH 金鑰仍在遠端設定中設定。</x:String>
   <x:String x:Key="Text.TreeGit.ApiKey.PlainText" xml:space="preserve">明文</x:String>
   <x:String x:Key="Text.TreeGit.Tool.GitConfiguration">使用 Git 設定</x:String>
   <x:String x:Key="Text.TreeGit.Tool.MergeNotSaved">合併結果未儲存，或仍有未解決的衝突。請在 TreeGit 中檢查後再標記為已解決。</x:String>
-  <x:String x:Key="Text.TreeGit.Tool.CannotOpen">無法開啟所選工具。請在偏好設定中確認工具路徑，或選擇 TreeGit。</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.CannotOpen">無法開啟所選工具。請在「工具 → 外部工具整合」中確認工具路徑，或選擇 TreeGit。</x:String>
   <x:String x:Key="Text.TreeGit.Progress.AddToIgnore">正在新增忽略檔案…</x:String>
   <x:String x:Key="Text.TreeGit.Progress.AddSubmodule">正在新增子模組…</x:String>
   <x:String x:Key="Text.TreeGit.Progress.AddRemote">正在新增遠端儲存庫…</x:String>
@@ -1823,9 +1823,9 @@ SSH 金鑰仍在遠端設定中設定。</x:String>
   <x:String x:Key="Text.TreeGit.Search.Previous" xml:space="preserve">尋找上一處 (Shift+F3)</x:String>
   <x:String x:Key="Text.TreeGit.Search.Next" xml:space="preserve">尋找下一處 (F3)</x:String>
   <x:String x:Key="Text.TreeGit.Global" xml:space="preserve">全域</x:String>
-  <x:String x:Key="Text.TreeGit.Tool.NotConfigured">請在偏好設定中選擇比較工具並設定其程式路徑。</x:String>
-  <x:String x:Key="Text.TreeGit.Tool.GitDiffMissing">Git 尚未設定比較工具，請在偏好設定中選擇 TreeGit 或設定其他工具。</x:String>
-  <x:String x:Key="Text.TreeGit.Tool.GitMergeMissing">Git 尚未設定合併工具，請在偏好設定中選擇 TreeGit 或設定其他工具。</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.NotConfigured">請在「工具 → 外部工具整合」中選擇比較工具並設定其程式路徑。</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.GitDiffMissing">Git 尚未設定比較工具，請在「工具 → 外部工具整合」中選擇 TreeGit 或設定其他工具。</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.GitMergeMissing">Git 尚未設定合併工具，請在「工具 → 外部工具整合」中選擇 TreeGit 或設定其他工具。</x:String>
   <x:String x:Key="Text.TreeGit.Tool.ConsoleUnsupported">「{0}」需要互動式終端機，請在偏好設定中選擇圖形比較工具。</x:String>
   <x:String x:Key="Text.TreeGit.Message.CloneFolderSelect">無法選擇複製目錄：{0}</x:String>
   <x:String x:Key="Text.TreeGit.Message.ThemeFileSelect">無法選擇佈景主題檔案：{0}</x:String>
@@ -1903,6 +1903,18 @@ SSH 金鑰仍在遠端設定中設定。</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Verifying">驗證中…</x:String>
   <x:String x:Key="Text.TreeGit.Operation.AuthenticationFailed">帳號驗證失敗，請重新輸入。</x:String>
   <x:String x:Key="Text.TreeGit.Operation.VerificationTimeout">驗證逾時，請重試。</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.SettingsFailed">部分啟動設定未能載入。請在「工具 → 外部工具整合」中檢查 Git 設定。</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.OtherRepositories">正在背景載入其他儲存庫（{0}/{1}）…</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.Heading">正在啟動 TreeGit</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.Workspace">正在還原工作區…</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.Git">正在偵測本機 Git…</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.Bundled">正在準備內建 Git…</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.Tools">正在載入終端機與工具設定…</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.Repositories">正在開啟目前的儲存庫…</x:String>
+  <x:String x:Key="Text.TreeGit.Git.Detect">自動偵測</x:String>
+  <x:String x:Key="Text.TreeGit.Git.UseBundledOption">使用內建Git</x:String>
+  <x:String x:Key="Text.TreeGit.Git.UseBundled">未偵測到本機 Git，將使用內建 Git。</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.GitUnavailable">無法啟動內建 Git，請重新解壓縮完整的 TreeGit 套件。</x:String>
   <x:String x:Key="Text.TreeGit.Operation.ConnectionFailed">連線失敗，請檢查網路與遠端位址。</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Authenticated">驗證成功</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Running">正在{0}…</x:String>

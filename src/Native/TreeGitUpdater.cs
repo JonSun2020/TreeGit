@@ -111,6 +111,15 @@ namespace SourceGit.Native
                 }
                 var payload = Path.Combine(stage, "TreeGit");
                 ValidatePayload(payload, version);
+                if (File.Exists(Path.Combine(_root, "git", "usr", "bin", "sh.exe")) &&
+                    File.Exists(Path.Combine(payload, "git", "payload-manifest.json")))
+                {
+                    // Keep an expanded installation expanded. Compare and replace only changed components.
+                    token.ThrowIfCancellationRequested();
+                    if (GitRuntimeArchive.FindOrExtract(payload, null) == null ||
+                        File.Exists(Path.Combine(payload, "git", "runtime.zip"))) throw new Models.UpdateProblem("invalid");
+                    ValidatePayload(payload, version);
+                }
                 foreach (var source in Directory.EnumerateFiles(payload, "*", SearchOption.AllDirectories))
                 {
                     token.ThrowIfCancellationRequested();

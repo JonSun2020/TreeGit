@@ -205,7 +205,9 @@ namespace SourceGit.Tests
                         var metadata = await updater.CheckAsync(CancellationToken.None);
                         Check("GitHub release metadata and asset digests are understood", metadata.TagName == release.TagName && metadata.Assets[0].Digest == release.Assets[0].Digest);
                         var prepared = await updater.PrepareAsync(release, null, CancellationToken.None);
-                        Check("the actual release ZIP is validated and staged", prepared.TargetVersion == fixtureVersion && prepared.Files.Count > 300);
+                        Check("the actual release ZIP is validated and staged", prepared.TargetVersion == fixtureVersion &&
+                            prepared.Files.Any(f => f.Path == "TreeGit.exe") && prepared.Files.Any(f => f.Path == "git/runtime-manifest.json") &&
+                            (prepared.Files.Any(f => f.Path == "git/runtime.zip") || prepared.Files.Any(f => f.Path == "git/usr/bin/ssh.exe")));
                         Check("staging never includes personal settings or custom MCP configuration", !prepared.Files.Any(file => file.Path.StartsWith("data/") || file.Path.StartsWith("log/") || file.Path == "mcp-readwrite.json"));
                         Check("download and staging do not change the installed program", File.ReadAllText(Path.Combine(root, "TreeGit.exe")) == "old program");
                     }

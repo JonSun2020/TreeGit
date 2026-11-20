@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -13,12 +13,19 @@ namespace SourceGit.Models
             public LockContext(Watcher target)
             {
                 _target = target;
-                Interlocked.Increment(ref _target._lockCount);
+                lock (target._gate)
+                    target._lockCount++;
             }
 
             public void Dispose()
             {
-                Interlocked.Decrement(ref _target._lockCount);
+                var target = Interlocked.Exchange(ref _target, null);
+                if (target == null) return;
+                lock (target._gate)
+                {
+                    if (--target._lockCount == 0)
+                        target.ArmNext();
+                }
             }
 
             private Watcher _target;
@@ -78,15 +85,19 @@ namespace SourceGit.Models
                 _watchers.Add(git);
             }
 
-            _timer = new Timer(Tick, null, 100, 100);
+            _timer = new Timer(Tick, null, Timeout.Infinite, Timeout.Infinite);
 
             // Starts filesystem watchers in another thread to avoid UI blocking
             Task.Run(() =>
             {
                 try
                 {
-                    foreach (var watcher in _watchers)
-                        watcher.EnableRaisingEvents = true;
+                    lock (_gate)
+                    {
+                        if (_disposed) return;
+                        foreach (var watcher in _watchers)
+                            watcher.EnableRaisingEvents = true;
+                    }
                 }
                 catch
                 {
@@ -100,133 +111,102 @@ namespace SourceGit.Models
             return new LockContext(this);
         }
 
-        public void MarkBranchUpdated()
+        [Flags]
+        private enum Changes { Branch = 1, Worktree = 2, Submodules = 4, Stashes = 8, Tags = 16 }
+
+        public void MarkBranchUpdated() => Clear(Changes.Branch | Changes.Worktree);
+        public void MarkTagUpdated() => Clear(Changes.Tags);
+        public void MarkWorkingCopyUpdated() => Clear(Changes.Worktree);
+        public void MarkStashUpdated() => Clear(Changes.Stashes);
+        public void MarkSubmodulesUpdated() => Clear(Changes.Submodules);
+
+        private void Clear(Changes changes)
         {
-            Interlocked.Exchange(ref _updateBranch, 0);
-            Interlocked.Exchange(ref _updateWC, 0);
+            lock (_gate)
+                SetDeadlines(changes, 0);
         }
 
-        public void MarkTagUpdated()
+        private void Schedule(Changes changes, int delay)
         {
-            Interlocked.Exchange(ref _updateTags, 0);
+            lock (_gate)
+            {
+                if (_disposed) return;
+                SetDeadlines(changes, Environment.TickCount64 + delay);
+                ArmNext();
+            }
         }
 
-        public void MarkWorkingCopyUpdated()
+        private void SetDeadlines(Changes changes, long deadline)
         {
-            Interlocked.Exchange(ref _updateWC, 0);
+            for (var i = 0; i < _deadlines.Length; i++)
+                if ((changes & (Changes)(1 << i)) != 0)
+                    _deadlines[i] = deadline;
         }
 
-        public void MarkStashUpdated()
+        // Called under _gate. A quiet repository has no scheduled callbacks.
+        private void ArmNext()
         {
-            Interlocked.Exchange(ref _updateStashes, 0);
-        }
+            if (_disposed || _lockCount > 0 || !_repo.IsAutoRefreshEnabled)
+                return;
 
-        public void MarkSubmodulesUpdated()
-        {
-            Interlocked.Exchange(ref _updateSubmodules, 0);
+            var next = long.MaxValue;
+            foreach (var deadline in _deadlines)
+                if (deadline > 0 && deadline < next)
+                    next = deadline;
+            if (next < _scheduledAt)
+            {
+                _scheduledAt = next;
+                _timer.Change(Math.Max(0, next - Environment.TickCount64), Timeout.Infinite);
+            }
         }
 
         public void Dispose()
         {
-            foreach (var watcher in _watchers)
+            lock (_gate)
             {
-                watcher.EnableRaisingEvents = false;
-                watcher.Dispose();
+                if (_disposed) return;
+                _disposed = true;
+                _timer.Dispose();
             }
-
-            _watchers.Clear();
-            _timer.Dispose();
-            _timer = null;
+            foreach (var watcher in _watchers)
+                watcher.Dispose();
         }
 
         private void Tick(object sender)
         {
-            if (!_repo.IsAutoRefreshEnabled) return;
-            if (Interlocked.Read(ref _lockCount) > 0)
-                return;
-
-            var now = DateTime.Now.ToFileTime();
-            var refreshCommits = false;
-            var refreshSubmodules = false;
-            var refreshWC = false;
-
-            var oldUpdateBranch = Interlocked.Exchange(ref _updateBranch, -1);
-            if (oldUpdateBranch > 0)
+            Changes due = 0;
+            lock (_gate)
             {
-                if (now > oldUpdateBranch)
+                _scheduledAt = long.MaxValue;
+                if (_disposed || _lockCount > 0 || !_repo.IsAutoRefreshEnabled)
+                    return;
+                var now = Environment.TickCount64;
+                for (var i = 0; i < _deadlines.Length; i++)
+                    if (_deadlines[i] > 0 && _deadlines[i] <= now)
+                    {
+                        due |= (Changes)(1 << i);
+                        _deadlines[i] = 0;
+                    }
+                if ((due & Changes.Branch) != 0)
                 {
-                    refreshCommits = true;
-                    refreshSubmodules = _repo.MayHaveSubmodules();
-                    refreshWC = true;
-
-                    _repo.RefreshBranches();
-                    _repo.RefreshWorktrees();
+                    due |= Changes.Worktree;
+                    if (_repo.MayHaveSubmodules())
+                        due |= Changes.Submodules;
+                    SetDeadlines(due, 0);
                 }
-                else
-                {
-                    Interlocked.CompareExchange(ref _updateBranch, oldUpdateBranch, -1);
-                }
+                ArmNext();
             }
 
-            if (refreshWC)
+            if ((due & Changes.Branch) != 0)
             {
-                Interlocked.Exchange(ref _updateWC, -1);
-                _repo.RefreshWorkingCopyChanges();
+                _repo.RefreshBranches();
+                _repo.RefreshWorktrees();
             }
-            else
-            {
-                var oldUpdateWC = Interlocked.Exchange(ref _updateWC, -1);
-                if (oldUpdateWC > 0)
-                {
-                    if (now > oldUpdateWC)
-                        _repo.RefreshWorkingCopyChanges();
-                    else
-                        Interlocked.CompareExchange(ref _updateWC, oldUpdateWC, -1);
-                }
-            }
-
-            if (refreshSubmodules)
-            {
-                Interlocked.Exchange(ref _updateSubmodules, -1);
-                _repo.RefreshSubmodules();
-            }
-            else
-            {
-                var oldUpdateSubmodule = Interlocked.Exchange(ref _updateSubmodules, -1);
-                if (oldUpdateSubmodule > 0)
-                {
-                    if (now > oldUpdateSubmodule)
-                        _repo.RefreshSubmodules();
-                    else
-                        Interlocked.CompareExchange(ref _updateSubmodules, oldUpdateSubmodule, -1);
-                }
-            }
-
-            var oldUpdateStashes = Interlocked.Exchange(ref _updateStashes, -1);
-            if (oldUpdateStashes > 0)
-            {
-                if (now > oldUpdateStashes)
-                    _repo.RefreshStashes();
-                else
-                    Interlocked.CompareExchange(ref _updateStashes, oldUpdateStashes, -1);
-            }
-
-            var oldUpdateTags = Interlocked.Exchange(ref _updateTags, -1);
-            if (oldUpdateTags > 0)
-            {
-                if (now > oldUpdateTags)
-                {
-                    refreshCommits = true;
-                    _repo.RefreshTags();
-                }
-                else
-                {
-                    Interlocked.CompareExchange(ref _updateTags, oldUpdateTags, -1);
-                }
-            }
-
-            if (refreshCommits)
-                _repo.RefreshCommits();
+            if ((due & Changes.Worktree) != 0) _repo.RefreshWorkingCopyChanges();
+            if ((due & Changes.Submodules) != 0) _repo.RefreshSubmodules();
+            if ((due & Changes.Stashes) != 0) _repo.RefreshStashes();
+            if ((due & Changes.Tags) != 0) _repo.RefreshTags();
+            if ((due & (Changes.Branch | Changes.Tags)) != 0) _repo.RefreshCommits();
         }
 
         private void OnRepositoryChanged(object o, FileSystemEventArgs e)
@@ -250,13 +230,9 @@ namespace SourceGit.Models
         /// </summary>
         private void OnWatcherError(object o, ErrorEventArgs e)
         {
-            var desired = DateTime.Now.AddSeconds(1).ToFileTime();
-            Interlocked.Exchange(ref _updateBranch, desired);
-            Interlocked.Exchange(ref _updateTags, desired);
-            Interlocked.Exchange(ref _updateStashes, desired);
-            Interlocked.Exchange(ref _updateWC, desired);
-            if (_repo.MayHaveSubmodules())
-                Interlocked.Exchange(ref _updateSubmodules, desired);
+            var changes = Changes.Branch | Changes.Worktree | Changes.Stashes | Changes.Tags;
+            if (_repo.MayHaveSubmodules()) changes |= Changes.Submodules;
+            Schedule(changes, 1000);
         }
 
         private void OnGitDirChanged(object o, FileSystemEventArgs e)
@@ -287,7 +263,7 @@ namespace SourceGit.Models
             if (name.Equals("config", StringComparison.Ordinal) || name.Equals("config.worktree", StringComparison.Ordinal) || name.EndsWith("/config.worktree", StringComparison.Ordinal))
             {
                 Native.RepositoryCredentials.InvalidateMode(_root);
-                Interlocked.Exchange(ref _updateBranch, DateTime.Now.AddSeconds(.5).ToFileTime());
+                Schedule(Changes.Branch, 500);
                 return;
             }
 
@@ -301,24 +277,22 @@ namespace SourceGit.Models
                 if (name.EndsWith("/HEAD", StringComparison.Ordinal) ||
                     name.EndsWith("/ORIG_HEAD", StringComparison.Ordinal))
                 {
-                    var desired = DateTime.Now.AddSeconds(1).ToFileTime();
-                    Interlocked.Exchange(ref _updateSubmodules, desired);
-                    Interlocked.Exchange(ref _updateWC, desired);
+                    Schedule(Changes.Submodules | Changes.Worktree, 1000);
                 }
             }
             else if (name.Equals("MERGE_HEAD", StringComparison.Ordinal) ||
                 name.Equals("AUTO_MERGE", StringComparison.Ordinal))
             {
                 if (_repo.MayHaveSubmodules())
-                    Interlocked.Exchange(ref _updateSubmodules, DateTime.Now.AddSeconds(1).ToFileTime());
+                    Schedule(Changes.Submodules, 1000);
             }
             else if (name.StartsWith("refs/tags", StringComparison.Ordinal))
             {
-                Interlocked.Exchange(ref _updateTags, DateTime.Now.AddSeconds(.5).ToFileTime());
+                Schedule(Changes.Tags, 500);
             }
             else if (name.StartsWith("refs/stash", StringComparison.Ordinal) || name.Equals("logs/refs/stash", StringComparison.Ordinal))
             {
-                Interlocked.Exchange(ref _updateStashes, DateTime.Now.AddSeconds(.5).ToFileTime());
+                Schedule(Changes.Stashes, 500);
             }
             else if (name.Equals("HEAD", StringComparison.Ordinal) ||
                 name.Equals("BISECT_START", StringComparison.Ordinal) ||
@@ -328,24 +302,19 @@ namespace SourceGit.Models
                 name.StartsWith("refs/remotes/", StringComparison.Ordinal) ||
                 (name.StartsWith("worktrees/", StringComparison.Ordinal) && name.EndsWith("/HEAD", StringComparison.Ordinal)))
             {
-                Interlocked.Exchange(ref _updateBranch, DateTime.Now.AddSeconds(.5).ToFileTime());
+                Schedule(Changes.Branch, 500);
             }
             else if (name.Equals("packed-refs", StringComparison.Ordinal))
             {
-                var desired = DateTime.Now.AddSeconds(.5).ToFileTime();
-                Interlocked.Exchange(ref _updateBranch, desired);
-                Interlocked.Exchange(ref _updateTags, desired);
+                Schedule(Changes.Branch | Changes.Tags, 500);
             }
             else if (name.StartsWith("reftable/", StringComparison.Ordinal))
             {
-                var desired = DateTime.Now.AddSeconds(.5).ToFileTime();
-                Interlocked.Exchange(ref _updateBranch, desired);
-                Interlocked.Exchange(ref _updateTags, desired);
-                Interlocked.Exchange(ref _updateStashes, desired);
+                Schedule(Changes.Branch | Changes.Tags | Changes.Stashes, 500);
             }
             else if (name.StartsWith("objects/", StringComparison.Ordinal) || name.Equals("index", StringComparison.Ordinal))
             {
-                Interlocked.Exchange(ref _updateWC, DateTime.Now.AddSeconds(1).ToFileTime());
+                Schedule(Changes.Worktree, 1000);
             }
         }
 
@@ -356,20 +325,18 @@ namespace SourceGit.Models
 
             if (name.Equals(".gitmodules", StringComparison.Ordinal))
             {
-                var desired = DateTime.Now.AddSeconds(1).ToFileTime();
-                Interlocked.Exchange(ref _updateSubmodules, desired);
-                Interlocked.Exchange(ref _updateWC, desired);
+                Schedule(Changes.Submodules | Changes.Worktree, 1000);
                 return;
             }
 
             var dir = Directory.Exists(fullpath) ? fullpath : Path.GetDirectoryName(fullpath);
             if (IsInSubmodule(dir))
             {
-                Interlocked.Exchange(ref _updateSubmodules, DateTime.Now.AddSeconds(1).ToFileTime());
+                Schedule(Changes.Submodules, 1000);
                 return;
             }
 
-            Interlocked.Exchange(ref _updateWC, DateTime.Now.AddSeconds(1).ToFileTime());
+            Schedule(Changes.Worktree, 1000);
         }
 
         private bool IsInSubmodule(string folder)
@@ -385,14 +352,12 @@ namespace SourceGit.Models
 
         private readonly IRepository _repo;
         private readonly string _root;
-        private List<FileSystemWatcher> _watchers;
-        private Timer _timer;
-
-        private long _lockCount;
-        private long _updateWC;
-        private long _updateBranch;
-        private long _updateSubmodules;
-        private long _updateStashes;
-        private long _updateTags;
+        private readonly List<FileSystemWatcher> _watchers;
+        private readonly Timer _timer;
+        private readonly object _gate = new();
+        private readonly long[] _deadlines = new long[5];
+        private long _scheduledAt = long.MaxValue;
+        private int _lockCount;
+        private bool _disposed;
     }
 }

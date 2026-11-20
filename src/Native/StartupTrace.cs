@@ -12,11 +12,14 @@ namespace SourceGit.Native
         {
             if (string.IsNullOrEmpty(_path))
                 return;
-            _phases.Add(new { phase, elapsedMs = Math.Round(_watch.Elapsed.TotalMilliseconds, 2) });
-            if (!complete)
-                return;
-            try { File.WriteAllText(_path, JsonSerializer.Serialize(_phases)); }
-            catch (Exception) { /* Optional diagnostics must not affect startup. */ }
+            lock (_phases)
+            {
+                _phases.Add(new { phase, elapsedMs = Math.Round(_watch.Elapsed.TotalMilliseconds, 2) });
+                if (!complete)
+                    return;
+                try { File.WriteAllText(_path, JsonSerializer.Serialize(_phases)); }
+                catch (Exception) { /* Optional diagnostics must not affect startup. */ }
+            }
         }
 
         private static readonly string _path = Environment.GetEnvironmentVariable("TREEGIT_STARTUP_TRACE");

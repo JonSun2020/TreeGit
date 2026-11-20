@@ -56,7 +56,7 @@ try:
    client.tool('ui_window',locale=locale,theme=theme,zoom=1.5,width=1100,height=750)
    client.tool('ui_command',command='preferences',page='general');wait(lambda:state()['dialogs'])
    tabs=state()['layoutProbe']['dialogs'][0]['tabs'][0]
-   check(locale+' '+theme+' general preferences excludes integrations',len(tabs['visibleHeaders'])==4)
+   check(locale+' '+theme+' general preferences excludes integrations',len(tabs['visibleHeaders'])==3)
    close('CancelPreferencesButton')
    before=json.loads(profile.read_text('utf-8'))
    open_tools();dialog=state()['layoutProbe']['dialogs'][0]
@@ -70,7 +70,7 @@ try:
    open_tools();edit_tool(6,'accepted-tool.exe');trap_identity();close('SavePreferencesButton')
    after=json.loads(profile.read_text('utf-8'))
    check(locale+' '+theme+' confirm saves tool configuration and closes',after['ExternalMergeToolType']==6 and after['ExternalMergeToolPath']=='accepted-tool.exe')
-   check(locale+' '+theme+' tool configuration never changes Git identity',global_config.read_bytes()==original)
+   check(locale+' '+theme+' integration settings preserve hidden signing configuration',global_config.read_bytes()==original)
  client.close();client=Client();open_tools()
  check('integration settings survive restarting',json.loads(profile.read_text('utf-8'))['ExternalMergeToolPath']=='accepted-tool.exe')
  close('CancelPreferencesButton')

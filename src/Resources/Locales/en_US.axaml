@@ -644,7 +644,7 @@
   <x:String x:Key="Text.MoveRepositoryNode.Target" xml:space="preserve">Select parent node for:</x:String>
   <x:String x:Key="Text.Name" xml:space="preserve">Name:</x:String>
   <x:String x:Key="Text.No" xml:space="preserve">NO</x:String>
-  <x:String x:Key="Text.NotConfigured" xml:space="preserve">No usable Git was found. Extract the complete application, including the git folder, or select Git in [Preferences].</x:String>
+  <x:String x:Key="Text.NotConfigured" xml:space="preserve">No usable Git was found. Extract the complete application, including the git folder, or select Git in Tools → External Tool Integration.</x:String>
   <x:String x:Key="Text.Open" xml:space="preserve">Open</x:String>
   <x:String x:Key="Text.Open.SystemDefaultEditor" xml:space="preserve">Default Editor (System)</x:String>
   <x:String x:Key="Text.OpenAppDataDir" xml:space="preserve">Open Data Storage Directory</x:String>
@@ -748,7 +748,7 @@
   <x:String x:Key="Text.Preferences.GPG.TagEnabled" xml:space="preserve">Tag GPG signing</x:String>
   <x:String x:Key="Text.Preferences.GPG.UserKey" xml:space="preserve">User Signing Key</x:String>
   <x:String x:Key="Text.Preferences.GPG.UserKey.Placeholder" xml:space="preserve">User's gpg signing key</x:String>
-  <x:String x:Key="Text.Preferences.Integration" xml:space="preserve">INTEGRATION</x:String>
+  <x:String x:Key="Text.Preferences.Integration" xml:space="preserve">EXTERNAL TOOL INTEGRATION</x:String>
   <x:String x:Key="Text.Preferences.Shell" xml:space="preserve">SHELL/TERMINAL</x:String>
   <x:String x:Key="Text.Preferences.Shell.Args" xml:space="preserve">Arguments</x:String>
   <x:String x:Key="Text.Preferences.Shell.Args.ToolTip" xml:space="preserve">You can use '.' to indicate working directory and '$FOLDER_NAME' for the pure folder name of it.</x:String>
@@ -1631,7 +1631,7 @@ Configure SSH keys in the remote settings.</x:String>
   <x:String x:Key="Text.TreeGit.ApiKey.PlainText" xml:space="preserve">Plain Text</x:String>
   <x:String x:Key="Text.TreeGit.Tool.GitConfiguration">Use Git settings</x:String>
   <x:String x:Key="Text.TreeGit.Tool.MergeNotSaved">The merge result was not saved or still has unresolved conflicts. Review it in TreeGit before marking it resolved.</x:String>
-  <x:String x:Key="Text.TreeGit.Tool.CannotOpen">The selected tool could not be opened. Check its path in Preferences, or select TreeGit.</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.CannotOpen">The selected tool could not be opened. Check its path in Tools → External Tool Integration, or select TreeGit.</x:String>
   <x:String x:Key="Text.TreeGit.Progress.AddToIgnore">Adding Ignored File(s) ...</x:String>
   <x:String x:Key="Text.TreeGit.Progress.AddSubmodule">Adding submodule...</x:String>
   <x:String x:Key="Text.TreeGit.Progress.AddRemote">Adding remote ...</x:String>
@@ -1764,9 +1764,9 @@ Configure SSH keys in the remote settings.</x:String>
   <x:String x:Key="Text.TreeGit.Search.Previous" xml:space="preserve">Find previous (Shift+F3)</x:String>
   <x:String x:Key="Text.TreeGit.Search.Next" xml:space="preserve">Find next (F3)</x:String>
   <x:String x:Key="Text.TreeGit.Global" xml:space="preserve">GLOBAL</x:String>
-  <x:String x:Key="Text.TreeGit.Tool.NotConfigured">Choose a comparison tool and its executable in Preferences.</x:String>
-  <x:String x:Key="Text.TreeGit.Tool.GitDiffMissing">No comparison tool is configured in Git. Choose TreeGit or configure another tool in Preferences.</x:String>
-  <x:String x:Key="Text.TreeGit.Tool.GitMergeMissing">No merge tool is configured in Git. Choose TreeGit or configure another tool in Preferences.</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.NotConfigured">Choose a comparison tool and its executable in Tools → External Tool Integration.</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.GitDiffMissing">No comparison tool is configured in Git. Choose TreeGit or configure another tool in Tools → External Tool Integration.</x:String>
+  <x:String x:Key="Text.TreeGit.Tool.GitMergeMissing">No merge tool is configured in Git. Choose TreeGit or configure another tool in Tools → External Tool Integration.</x:String>
   <x:String x:Key="Text.TreeGit.Tool.ConsoleUnsupported">“{0}” requires an interactive terminal. Choose a graphical comparison tool in Preferences.</x:String>
   <x:String x:Key="Text.TreeGit.Message.CloneFolderSelect">The clone folder could not be selected: {0}</x:String>
   <x:String x:Key="Text.TreeGit.Message.ThemeFileSelect">The theme file could not be selected: {0}</x:String>
@@ -1844,6 +1844,18 @@ Configure SSH keys in the remote settings.</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Verifying">Verifying…</x:String>
   <x:String x:Key="Text.TreeGit.Operation.AuthenticationFailed">Account verification failed. Please try again.</x:String>
   <x:String x:Key="Text.TreeGit.Operation.VerificationTimeout">Verification timed out. Please try again.</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.SettingsFailed">Some startup settings could not be loaded. Check Git in Tools → External Tool Integration.</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.OtherRepositories">Loading other repositories ({0}/{1})…</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.Heading">Starting TreeGit</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.Workspace">Restoring workspace…</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.Git">Checking for a local Git installation…</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.Bundled">Preparing bundled Git…</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.Tools">Loading terminal and tool settings…</x:String>
+  <x:String x:Key="Text.TreeGit.Startup.Repositories">Opening the current repository…</x:String>
+  <x:String x:Key="Text.TreeGit.Git.Detect">Auto-detect</x:String>
+  <x:String x:Key="Text.TreeGit.Git.UseBundledOption">Use bundled Git</x:String>
+  <x:String x:Key="Text.TreeGit.Git.UseBundled">No system Git found. TreeGit will use its bundled Git.</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.GitUnavailable">Bundled Git could not start. Extract the complete TreeGit package and try again.</x:String>
   <x:String x:Key="Text.TreeGit.Operation.ConnectionFailed">Connection failed. Check the network and remote address.</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Authenticated">Verified successfully</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Running">{0} in progress…</x:String>

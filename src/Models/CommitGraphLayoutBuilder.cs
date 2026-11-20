@@ -32,6 +32,8 @@ namespace SourceGit.Models
 
             var reserveFirst = focused.Count > 0;
             var incoming = new List<RowLane>();
+            var outgoing = new List<RowLane>();
+            var matched = new List<RowLane>();
             var maxColumn = 0;
             if (reserveFirst) graph._branchNeighbors.Add([]);
             int NewBranch()
@@ -56,14 +58,19 @@ namespace SourceGit.Models
                 var primary = focused.Contains(commit.SHA);
                 var nodeColumn = primary ? 0 : -1;
                 var nextColumn = reserveFirst ? 1 : 0;
-                var outgoing = new List<RowLane>();
-                var matched = new List<RowLane>();
-                graph.RecordNeighbors(incoming.Select(l => (l.Column, l.Branch)));
-                var continuingIncoming = commit.Parents.Count == 0 ? null : incoming
-                    .OrderBy(l => l.Column)
-                    .FirstOrDefault(l => l.Next == commit.SHA && (!primary || l.Primary));
+                outgoing.Clear();
+                matched.Clear();
+                // Preserve tie order when lanes meet, and skip sorting single-lane rows.
+                var ordered = incoming;
+                if (incoming.Count > 1)
+                {
+                    ordered = incoming.OrderBy(l => l.Column).ToList();
+                    graph.RecordOrderedNeighbors(ordered.Select(l => l.Branch));
+                }
+                var continuingIncoming = commit.Parents.Count == 0 ? null :
+                    ordered.Find(l => l.Next == commit.SHA && (!primary || l.Primary));
 
-                foreach (var lane in incoming.OrderBy(l => l.Column))
+                foreach (var lane in ordered)
                 {
                     var targetNode = lane.Next == commit.SHA;
                     int column;
@@ -118,7 +125,7 @@ namespace SourceGit.Models
                     AppendPoint(continuation.Path, new Point(node.X, row + 1));
                     outgoing.Add(continuation);
 
-                    if (!firstParentOnlyEnabled)
+                    if (!firstParentOnlyEnabled && commit.Parents.Count > 1)
                     {
                         foreach (var parent in commit.Parents.Skip(1).Distinct())
                         {
@@ -147,8 +154,10 @@ namespace SourceGit.Models
                     }
                 }
 
-                graph.RecordNeighbors(outgoing.Select(l => (l.Column, l.Branch)).Append((nodeColumn, nodeBranch)));
-                incoming = outgoing;
+                if (outgoing.Count > 1 || (outgoing.Count == 1 && outgoing[0].Branch != nodeBranch))
+                    graph.RecordOrderedNeighbors(outgoing.Select(l => (l.Column, l.Branch)).Append((nodeColumn, nodeBranch))
+                        .OrderBy(l => l.Item1).Select(l => l.Item2));
+                (incoming, outgoing) = (outgoing, incoming);
             }
 
             var descriptionLeft = Math.Max(20, FirstColumnX + maxColumn * ColumnWidth + 8);

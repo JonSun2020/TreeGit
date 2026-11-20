@@ -55,14 +55,87 @@ namespace SourceGit.Native
 
         public static string GitExecutable
         {
-            get => _gitExecutable;
+            get
+            {
+                var path = Volatile.Read(ref _gitExecutable);
+                var engine = Volatile.Read(ref _gitEngine);
+                if (OperatingSystem.IsWindows() && _monitorGit &&
+                    (!File.Exists(path) || GitVersion < Models.GitVersions.MINIMAL || (engine != null && !File.Exists(engine))))
+                    return RecoverGit(path) ?? string.Empty;
+                return path;
+            }
             set
             {
-                if (_gitExecutable != value)
+                lock (_gitGate)
                 {
-                    _gitExecutable = value;
-                    UpdateGitVersion();
+                    if (_gitExecutable != value)
+                    {
+                        _gitExecutable = value;
+                        _gitRuntimeRoot = OperatingSystem.IsWindows() ? GitExecutableLocator.RuntimeRoot(value) : null;
+                        _gitEngine = null;
+                        if (_gitRuntimeRoot != null)
+                            foreach (var prefix in new[] { "ucrt64", "mingw64" })
+                            {
+                                var engine = Path.Combine(_gitRuntimeRoot, prefix, "bin", "git.exe");
+                                if (File.Exists(engine)) { _gitEngine = engine; break; }
+                            }
+                        UpdateGitVersion();
+                    }
                 }
+            }
+        }
+
+        internal static bool IsUsingBundledGit => GitExecutableLocator.IsBundled(Volatile.Read(ref _gitExecutable));
+
+        internal static void MonitorGitInstallation(Action usingBundled)
+        {
+            if (!OperatingSystem.IsWindows()) return;
+            ProcessLauncher.RecoverGitBeforeStart = RecoverGitStart;
+            _usingBundled = usingBundled;
+            _monitorGit = true;
+        }
+
+        private static string RecoverGit(string failed)
+        {
+            lock (_gitGate)
+            {
+                if (!string.Equals(failed, _gitExecutable, StringComparison.OrdinalIgnoreCase))
+                    return _gitExecutable;
+                var next = GitExecutableLocator.FindBundledGit();
+                if (string.IsNullOrEmpty(next))
+                    return null;
+                _previousGit = failed;
+                _previousGitRoot = _gitRuntimeRoot;
+                if (string.Equals(failed, next, StringComparison.OrdinalIgnoreCase))
+                    UpdateGitVersion();
+                else
+                    GitExecutable = next;
+                _usingBundled?.Invoke();
+                return next;
+            }
+        }
+
+        private static bool RecoverGitStart(ProcessStartInfo start)
+        {
+            lock (_gitGate)
+            {
+                var failed = start.FileName;
+                if (!string.Equals(failed, _gitExecutable, StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(failed, _previousGit, StringComparison.OrdinalIgnoreCase))
+                    return false;
+                if (!string.IsNullOrEmpty(start.WorkingDirectory) && !Directory.Exists(start.WorkingDirectory)) return false;
+                var replacement = RecoverGit(failed);
+                if (string.IsNullOrEmpty(replacement)) return false;
+                start.FileName = replacement;
+                var ssh = GitExecutableLocator.ConfigureProcess(start, replacement);
+                if (_previousGitRoot != null && ssh != null && start.Environment.TryGetValue("GIT_SSH_COMMAND", out var command))
+                {
+                    static string Quote(string path) => "'" + path.Replace('\\', '/').Replace("'", "'\\''", StringComparison.Ordinal) + "'";
+                    var old = Quote(Path.Combine(_previousGitRoot, "usr", "bin", "ssh.exe"));
+                    if (command == old || command?.StartsWith(old + " ", StringComparison.OrdinalIgnoreCase) == true)
+                        start.Environment["GIT_SSH_COMMAND"] = Quote(ssh) + command[old.Length..];
+                }
+                return true;
             }
         }
 
@@ -373,7 +446,7 @@ namespace SourceGit.Native
             if (GitExecutableLocator.TryReadVersion(_gitExecutable, out var text, out var version))
             {
                 GitVersion = version;
-                GitVersionString = text.Substring("git version ".Length).Trim();
+                GitVersionString = text;
                 Task.Run(UpdateGitFlowVersion);
             }
         }
@@ -419,6 +492,10 @@ namespace SourceGit.Native
 
         private static IBackend _backend = null;
         private static string _gitExecutable = string.Empty;
+        private static readonly object _gitGate = new();
+        private static string _gitRuntimeRoot, _gitEngine, _previousGit, _previousGitRoot;
+        private static Action _usingBundled;
+        private static volatile bool _monitorGit;
         private static bool _enableSystemWindowFrame = false;
     }
 }

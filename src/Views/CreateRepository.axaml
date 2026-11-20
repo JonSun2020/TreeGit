@@ -22,11 +22,11 @@
     <CheckBox x:Name="CreateRepositoryGitHub" IsEnabled="{Binding CanChangeRemoteChoice}" IsChecked="{Binding CreateOnGitHub, Mode=TwoWay}">
       <TextBlock Text="{DynamicResource Text.TreeGit.CreateRepository.GitHub}" TextWrapping="Wrap"/>
     </CheckBox>
-    <StackPanel IsVisible="{Binding CreateOnGitHub}" Spacing="8">
+    <StackPanel IsEnabled="{Binding CreateOnGitHub}" Spacing="8">
       <CheckBox x:Name="CreateRepositoryPrivate" IsEnabled="{Binding CanChangeRemoteChoice}" IsChecked="{Binding IsPrivate, Mode=TwoWay}">
-        <TextBlock Text="{DynamicResource Text.TreeGit.CreateRepository.Private}" TextWrapping="Wrap"/>
+        <TextBlock Classes="option_dependent" Text="{DynamicResource Text.TreeGit.CreateRepository.Private}" TextWrapping="Wrap"/>
       </CheckBox>
-      <TextBlock Text="{DynamicResource Text.TreeGit.CreateRepository.TokenHint}" Foreground="{DynamicResource Brush.FG2}" TextWrapping="Wrap"/>
+      <TextBlock Classes="option_dependent" Text="{DynamicResource Text.TreeGit.CreateRepository.TokenHint}" Foreground="{DynamicResource Brush.FG2}" TextWrapping="Wrap"/>
       <Grid ColumnDefinitions="*,Auto">
         <v:PasswordTextBox x:Name="CreateRepositoryToken" Height="32" PasswordChar="*" IsEnabled="{Binding CanEditGitHub}"
                  Watermark="{DynamicResource Text.TreeGit.CreateRepository.Token}" Text="{Binding GitHubToken, Mode=TwoWay}">
@@ -42,14 +42,14 @@
       <Button HorizontalAlignment="Left" HorizontalContentAlignment="Left" VerticalContentAlignment="Center"
               Margin="0,-2,0,0" Padding="0" Classes="icon_button" Cursor="Hand" Click="OnTokenHelp">
         <StackPanel Spacing="1.5" UseLayoutRounding="False">
-          <TextBlock x:Name="GitHubTokenHelpLabel" Foreground="{DynamicResource Brush.ExternalLink}"
+          <TextBlock Classes="option_dependent" x:Name="GitHubTokenHelpLabel" Foreground="{DynamicResource Brush.ExternalLink}"
                      Text="{DynamicResource Text.TreeGit.CreateRepository.TokenHelp}"/>
           <Border x:Name="GitHubTokenHelpUnderline" Height="0.5" Background="{DynamicResource Brush.ExternalLink}" UseLayoutRounding="False"/>
         </StackPanel>
       </Button>
       <SelectableTextBlock x:Name="VerifiedGitHubAccount" Text="{Binding Account}" FontWeight="Bold"
                            IsVisible="{Binding Account, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
-      <TextBlock Text="{DynamicResource Text.TreeGit.CreateRepository.EmptyRemote}" Foreground="{DynamicResource Brush.FG2}" TextWrapping="Wrap"/>
+      <TextBlock Classes="option_dependent" Text="{DynamicResource Text.TreeGit.CreateRepository.EmptyRemote}" Foreground="{DynamicResource Brush.FG2}" TextWrapping="Wrap"/>
     </StackPanel>
     <TextBlock IsVisible="{Binding HasCreatedRemote}" FontWeight="SemiBold" TextWrapping="Wrap"
                Text="{DynamicResource Text.TreeGit.CreateRepository.RemoteReady}"/>

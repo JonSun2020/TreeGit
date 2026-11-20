@@ -88,8 +88,7 @@ namespace SourceGit.Automation
             if (action == "preferences_identity_trap")
             {
                 var preferenceWindow = ((Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).Windows.OfType<Views.Preferences>().Single();
-                preferenceWindow.DefaultUser = "Must not be saved by the integration dialog";
-                preferenceWindow.DefaultEmail = "not-saved@example.invalid";
+                preferenceWindow.GPGUserKey = "Signing settings are outside the integration dialog";
                 return new { changed = true };
             }
             if (action.StartsWith("diff_", StringComparison.Ordinal))

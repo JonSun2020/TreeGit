@@ -11,7 +11,9 @@ namespace SourceGit.Native
         internal static Action<Process, int> BeforeStart;
 #endif
 
-        internal static void Start(Process process)
+        internal static Func<ProcessStartInfo, bool> RecoverGitBeforeStart { private get; set; }
+
+        internal static void Start(Process process, bool allowGitRecovery = true)
         {
             for (var attempt = 0; ; attempt++)
             {
@@ -22,6 +24,12 @@ namespace SourceGit.Native
 #endif
                     process.Start();
                     return;
+                }
+                catch (Win32Exception error) when (allowGitRecovery && OperatingSystem.IsWindows() &&
+                    error.NativeErrorCode is 2 or 3 or 126 or 193 or 216 && !process.StartInfo.UseShellExecute && !HasProcess(process))
+                {
+                    if (RecoverGitBeforeStart?.Invoke(process.StartInfo) != true) throw;
+                    allowGitRecovery = false;
                 }
                 catch (Win32Exception error) when (attempt < 2 && OperatingSystem.IsWindows() &&
                     error.NativeErrorCode == 5 && !process.StartInfo.UseShellExecute && !HasProcess(process))

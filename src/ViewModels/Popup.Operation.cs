@@ -15,7 +15,7 @@ namespace SourceGit.ViewModels
             "LFSFetch" or "LFSPull" or "LFSPush";
         public bool OperationPanelVisible { get => _operationPanelVisible; private set => SetProperty(ref _operationPanelVisible, value); }
         public bool ShowFullOutput { get => _showFullOutput; set => SetProperty(ref _showFullOutput, value); }
-        public bool OperationPhaseFailed => _operationStage is "AuthenticationFailed" or "ConnectionFailed" or "VerificationTimeout" or "Failed";
+        public bool OperationPhaseFailed => _operationStage is "AuthenticationFailed" or "ConnectionFailed" or "GitUnavailable" or "VerificationTimeout" or "Failed";
         public string OperationStage => _operationStage == "Running" ? App.Text("TreeGit.Operation.Running", DialogTitle) : App.Text("TreeGit.Operation." + _operationStage);
         public string StatusDescription => UsesOperationPanel ? OperationStage : ProgressDescription;
         public bool ShowStatus => InProgress || UsesOperationPanel && OperationPhaseFailed;
@@ -156,7 +156,13 @@ namespace SourceGit.ViewModels
                 command.Log = log;
                 command.UseCredentialManager = useManager;
                 var success = command is Commands.VerifyPushCredentials write ? await write.VerifyAsync() : await command.ExecAsync();
-                if (!success && !command.WasAuthenticationCancelled) OnAuthenticationState(_operationCancelRequested ? "Cancelled" : "ConnectionFailed");
+                if (!success && !command.WasAuthenticationCancelled)
+                {
+                    var stage = command.LastExitCode.HasValue ? "ConnectionFailed" : "Failed";
+                    if (!command.LastExitCode.HasValue && OperatingSystem.IsWindows() && string.IsNullOrEmpty(Native.OS.GitExecutable))
+                        stage = "GitUnavailable";
+                    OnAuthenticationState(_operationCancelRequested ? "Cancelled" : stage);
+                }
                 return success && !_operationCancelRequested;
             }
             finally { log.Complete(); }

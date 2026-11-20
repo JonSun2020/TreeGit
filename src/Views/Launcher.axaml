@@ -200,5 +200,17 @@
         </Border>
       </Border>
     </Border>
+    <Grid x:Name="StartupProgressLayer" Grid.RowSpan="2" Margin="0,30,0,0" ZIndex="200"
+          IsVisible="False" Background="Transparent">
+      <Border Margin="18" Padding="16,12" Width="310" HorizontalAlignment="Right" VerticalAlignment="Top"
+              Background="{DynamicResource Brush.Popup}" BorderBrush="{DynamicResource Brush.PopupBorder}"
+              BorderThickness="1" CornerRadius="4">
+        <StackPanel Spacing="9">
+          <TextBlock Classes="bold" Text="{DynamicResource Text.TreeGit.Startup.Heading}"/>
+          <TextBlock x:Name="StartupStatus" TextWrapping="Wrap"/>
+          <ProgressBar Height="4" IsIndeterminate="True" Foreground="{DynamicResource Brush.Accent}"/>
+        </StackPanel>
+      </Border>
+    </Grid>
   </Grid>
 </v:ChromelessWindow>

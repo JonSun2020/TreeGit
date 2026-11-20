@@ -9,6 +9,7 @@
   <ItemGroup>
     <Compile Include="UpdaterProbe.cs"/>
     <Compile Include="../src/Native/TreeGitUpdater.cs"/>
+    <Compile Include="../src/Native/GitRuntimeArchive.cs"/>
     <Compile Include="../src/Native/TreeGitUpdateInstaller.cs"/>
     <Compile Include="../src/Models/UpdatePackage.cs"/>
     <Compile Include="../src/Models/SelfUpdate.cs"/>

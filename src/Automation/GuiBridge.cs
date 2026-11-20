@@ -378,7 +378,7 @@ namespace SourceGit.Automation
                 return await Dispatcher.UIThread.InvokeAsync(() => UiLayoutController.Execute(args));
 
             if (name == "ui_tabs")
-                return await Dispatcher.UIThread.InvokeAsync(() =>
+                return await Dispatcher.UIThread.InvokeAsync<object>(async () =>
                 {
                     var launcher = App.GetLauncher();
                     var window = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).MainWindow;
@@ -390,7 +390,11 @@ namespace SourceGit.Automation
                         if (!args.TryGetProperty("index", out var index) || index.GetInt32() < 0 || index.GetInt32() >= launcher.Pages.Count)
                             throw new ArgumentException("Tab index is out of range.");
                         var page = launcher.Pages[index.GetInt32()];
-                        if (action == "select") tabBar.ActivateTab(page);
+                        if (action == "select")
+                        {
+                            tabBar.ActivateTab(page);
+                            if (page.Data is ViewModels.RepositoryLoading { Loading: { } loading }) await loading;
+                        }
                         else if (action == "close") launcher.CloseTab(page);
                         else
                         {

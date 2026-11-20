@@ -25,7 +25,7 @@ def check(label,condition):
 class Client:
     def __init__(self):
         env=os.environ.copy();env.pop('DOTNET_ROOT',None)
-        self.p=subprocess.Popen([str(exe),'--mcp'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',env=env,creationflags=subprocess.CREATE_NO_WINDOW)
+        self.p=subprocess.Popen([str(exe),'--mcp'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',env=env,creationflags=getattr(subprocess,"CREATE_NO_WINDOW",0))
         self.q=queue.Queue();threading.Thread(target=lambda:[self.q.put(line) for line in self.p.stdout],daemon=True).start();self.seq=0;self.pid=None
         self.rpc('initialize',{'protocolVersion':'2025-11-25'})
         self.pid=self.tool('ui_state')['processId']
@@ -93,8 +93,8 @@ try:
     check('background completion keeps the selected tab',tabs[4]['selected'] and not any(t['repo']==paths[7] for t in tabs))
     (out/'loaded-tabs.png').write_bytes(c.tool('ui_screenshot'))
     phases=json.loads((out/'startup-trace.json').read_text('utf-8'));names=[p['phase'] for p in phases]
-    check('window opens after selected repo and before background repo completion',names.index('active-repository-loaded')<names.index('opened')<names.index('deferred-repository-loaded'))
-    check('only the intended repository is loaded before the first window',names[:names.index('opened')].count('active-repository-loaded')==1)
+    check('window and Git startup precede the selected repository and background restoration',max(names.index('opened'),names.index('git-ready'))<=names.index('active-repository-loaded')<=names.index('startup-ready')<names.index('deferred-repository-loaded'))
+    check('only the selected repository loads during startup',names[:names.index('startup-ready')].count('active-repository-loaded')==1)
 finally:c.close()
 saved=json.loads(config.read_text('utf-8-sig'))['Workspaces'][0]
 check('closing a pending tab removes it from saved workspace',saved['Repositories']==expected and saved['ActiveIdx']==4)

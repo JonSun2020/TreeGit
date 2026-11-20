@@ -28,9 +28,9 @@ def git(repo,*args):
 repo=root/'repo with 空格';repo.mkdir();git(repo,'init','-b','main');git(repo,'config','user.name','Runtime QA');git(repo,'config','user.email','qa@example.invalid')
 (repo/'file.txt').write_text('initial\n');git(repo,'add','.');git(repo,'commit','-m','Initial')
 class Client:
- def __init__(self,no_system,saved=None,shell=0):
+ def __init__(self,no_system,saved=None,shell=0,force=False):
   data=exe.parent/'data';data.mkdir(exist_ok=True)
-  (data/'preference.json').write_text(json.dumps({'Locale':'zh_CN','GitInstallPath':str(saved) if saved else None,'ShellOrTerminalType':shell,'ShellOrTerminalPath':'Z:/old-computer/git-bash.exe','Workspaces':[]}),encoding='utf-8')
+  (data/'preference.json').write_text(json.dumps({'Locale':'zh_CN','UseBundledGit':force,'GitInstallPath':str(saved) if saved else None,'ShellOrTerminalType':shell,'ShellOrTerminalPath':'Z:/old-computer/git-bash.exe','Workspaces':[]}),encoding='utf-8')
   env={**os.environ,'GIT_CONFIG_GLOBAL':str(root/'global'),'GIT_CONFIG_NOSYSTEM':'1','PATH':str(Path(os.environ['SystemRoot'])/'System32')}
   if no_system:env['TREEGIT_TEST_NO_SYSTEM_GIT']='1'
   else:env.pop('TREEGIT_TEST_NO_SYSTEM_GIT',None)
@@ -69,7 +69,11 @@ def scenario(label,no_system,saved,expected_bundled,operations=False):
  finally:c.close()
 scenario('installed Git',False,None,False)
 scenario('missing saved path',True,root/'old-computer/git.exe',True,True)
-scenario('new system installation after bundled use',False,bundled,False)
+scenario('legacy automatically selected bundle detects a new system installation',False,bundled,False)
+c=Client(False,saved=shutil.which("git"),force=True)
+try:
+ check('explicit bundled mode overrides an available saved system Git',c.state['git']['bundled'])
+finally:c.close()
 c=Client(True,shell=999)
 try:check('an out-of-range saved terminal selection recovers',Path(c.state['terminal']['path']).is_file())
 finally:c.close()
@@ -82,7 +86,25 @@ if manual:
  try:check('a valid explicitly selected external Git is retained',Path(c.state['git']['path'])==manual)
  finally:c.close()
 old_host=root/'old portable installation';old_host.mkdir();shutil.copytree(exe.parent/'git',old_host/'git')
-(old_host/'TreeGit.exe').write_bytes(b'owned old portable installation marker');old_git=old_host/'git/cmd/git.exe'
+old_git=old_host/'git/cmd/git.exe'
+c=Client(True,old_git)
+try:
+ check('the disposable external Git is active before removal',Path(c.state['git']['path'])==old_git)
+ c.tool('ui_open_repository',{'repo':str(repo)})
+ held=old_git.with_suffix('.held');old_git.rename(held)
+ try:
+  result=c.tool('git_run',{'repo':str(repo),'arguments':['rev-parse','HEAD']})
+  state=c.tool('ui_state')
+  check('removing external Git while open switches runtime without restarting',result['isSuccess'] and result['stdout'].strip()==git(repo,'rev-parse','HEAD') and state['processId']==c.pid and Path(state['git']['path'])==bundled)
+  data=exe.parent/'data'/'preference.json'
+  for _ in range(30):
+   saved=json.loads(data.read_text(encoding='utf-8-sig'))
+   if saved.get('UseBundledGit'):break
+   time.sleep(.1)
+  check('automatic fallback persists the checkbox and preserves the external path',saved.get('UseBundledGit') and Path(saved['GitInstallPath'])==old_git)
+ finally:held.rename(old_git)
+finally:c.close()
+(old_host/'TreeGit.exe').write_bytes(b'owned old portable installation marker')
 c=Client(False,old_git)
 try:check('a copied old bundle cannot hide a system installation',Path(c.state['git']['path'])!=old_git and not c.state['git']['bundled'])
 finally:c.close()

@@ -228,25 +228,25 @@
                                  HorizontalAlignment="Right" VerticalAlignment="Center"
                                  Margin="0,0,8,0"
                                  Text="{DynamicResource Text.SSHKeyHelper.Generator.Passphrase}"
-                                 IsVisible="{Binding UsePassphrase, Mode=OneWay}"/>
+                                 Classes="option_dependent" IsEnabled="{Binding UsePassphrase, Mode=OneWay}"/>
                       <TextBox Grid.Row="3" Grid.Column="1"
                                Height="28" Margin="0,2"
                                CornerRadius="3"
                                VerticalAlignment="Center"
-                               Text="{Binding Passphrase, Mode=TwoWay}"
-                               IsVisible="{Binding UsePassphrase, Mode=OneWay}"/>
+                               Text="{Binding Passphrase, Mode=TwoWay}" PasswordChar="*"
+                               IsEnabled="{Binding UsePassphrase, Mode=OneWay}"/>
 
                       <TextBlock Grid.Row="4" Grid.Column="0"
                                  HorizontalAlignment="Right" VerticalAlignment="Center"
                                  Margin="0,0,8,0"
                                  Text="{DynamicResource Text.SSHKeyHelper.Generator.ConfirmPassphrase}"
-                                 IsVisible="{Binding UsePassphrase, Mode=OneWay}"/>
+                                 Classes="option_dependent" IsEnabled="{Binding UsePassphrase, Mode=OneWay}"/>
                       <TextBox Grid.Row="4" Grid.Column="1"
                                Height="28" Margin="0,2"
                                CornerRadius="3"
                                VerticalAlignment="Center"
-                               Text="{Binding ConfirmedPassphrase, Mode=TwoWay}"
-                               IsVisible="{Binding UsePassphrase, Mode=OneWay}"/>
+                               Text="{Binding ConfirmedPassphrase, Mode=TwoWay}" PasswordChar="*"
+                               IsEnabled="{Binding UsePassphrase, Mode=OneWay}"/>
 
                       <CheckBox Grid.Row="5" Grid.Column="1"
                                 Content="{DynamicResource Text.SSHKeyHelper.Generator.UsePassphrase}"

@@ -95,12 +95,32 @@ namespace SourceGit.Views
         private void OnTreeGitBranch(object sender, RoutedEventArgs e) => TreeGitRepository?.CreateNewBranch();
         private void OnTreeGitTag(object sender, RoutedEventArgs e) => TreeGitRepository?.CreateNewTag();
 
+        internal void ShowStartupStage(string stage)
+        {
+            StartupStatus.Text = App.Text("TreeGit.Startup." + stage);
+            StartupProgressLayer.IsVisible = true;
+            StartupProgressLayer.IsHitTestVisible = true;
+            PrimaryMenu.IsEnabled = false;
+        }
+
+        internal void ShowBackgroundLoading(int index, int total)
+        {
+            StartupStatus.Text = App.Text("TreeGit.Startup.OtherRepositories", index, total);
+            StartupProgressLayer.IsHitTestVisible = false;
+            StartupProgressLayer.IsVisible = true;
+        }
+
+        internal void FinishStartup()
+        {
+            StartupProgressLayer.IsVisible = false;
+            PrimaryMenu.IsEnabled = true;
+        }
+
         protected override void OnOpened(EventArgs e)
         {
             base.OnOpened(e);
             if (OperatingSystem.IsWindows()) Native.Windows.RegisterAuthenticationOwner(this);
             Native.StartupTrace.Mark("opened", true);
-            (DataContext as ViewModels.Launcher)?.LoadDeferredRepositories();
 
             var preferences = ViewModels.Preferences.Instance;
             WindowState = preferences.Layout.LauncherWindowState;
@@ -151,6 +171,7 @@ namespace SourceGit.Views
 
         protected override async void OnKeyDown(KeyEventArgs e)
         {
+            if (!PrimaryMenu.IsEnabled) { e.Handled = true; return; }
             if (DataContext is not ViewModels.Launcher vm)
                 return;
 

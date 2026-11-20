@@ -1,11 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading.Tasks;
 
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
 
 namespace SourceGit.Views
 {
@@ -160,14 +164,31 @@ namespace SourceGit.Views
             _initialGitValues = GetGitValues();
             _initialWindowFrame = pref.UseSystemWindowFrame;
             _editSession = pref.BeginEdit();
-            UpdateGitVersion();
             InitializeComponent();
+            AutoFetchIntervalInput.Maximum = ViewModels.Preferences.MaximumAutoFetchInterval;
+            AutoFetchIntervalInput.AddHandler(TextBox.TextChangedEvent, OnAutoFetchIntervalTextChanged);
+            AutoFetchIntervalInput.LostFocus += (_, _) => FillEmptyAutoFetchInterval();
+            _initialGitPath = pref.GitInstallPath ?? string.Empty;
+            GitPathInput.Text = _initialGitPath;
+            UseBundledGitChoice.IsVisible = OperatingSystem.IsWindows();
+            UseBundledGitChoice.IsChecked = OperatingSystem.IsWindows() && pref.UseBundledGit;
+            UseBundledGitChoice.IsCheckedChanged += async (_, _) =>
+            {
+                if (UseBundledGitChoice.IsChecked == false)
+                    await DetectGitAsync();
+                else if (_noSystemGitFound)
+                    ShowGitVersion(string.Empty, null);
+            };
             if (pref.IsGitConfigured() && !_configurationKnown)
             {
                 PreferencesSaveError.Text = App.Text("Preferences.Save.ReadFailed");
                 PreferencesSaveError.IsVisible = true;
             }
-            Opened += (_, _) => FitToScreen();
+            Opened += (_, _) =>
+            {
+                FitToScreen();
+                if (_integrationOnly) _ = LoadGitVersionsAsync();
+            };
             ViewModels.Preferences.Instance.PropertyChanged += OnPreferencesChanged;
             Closed += (_, _) =>
             {
@@ -181,13 +202,14 @@ namespace SourceGit.Views
 
         public void SelectPage(string page)
         {
-            _integrationOnly = page == "integration";
+            _integrationOnly = page is "integration" or "git";
             IntegrationSettings.IsVisible = _integrationOnly;
             PreferenceTabs.IsVisible = !_integrationOnly;
+            if (_integrationOnly && IsVisible) _ = LoadGitVersionsAsync();
             App.BindText(this, TitleProperty, _integrationOnly ? "Preferences.Integration" : "Preferences");
             if (!_integrationOnly) PreferenceTabs.SelectedIndex = page switch
             {
-                "general" => 0, "appearance" => 1, "git" => 2, "signing" => 3,
+                "general" => 0, "appearance" => 1, "signing" => 2,
                 _ => throw new ArgumentException("Unknown preferences page."),
             };
         }
@@ -195,6 +217,8 @@ namespace SourceGit.Views
         private void OnPreferencesChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(ViewModels.Preferences.Zoom)) FitToScreen();
+            if (!_saving && e.PropertyName == nameof(ViewModels.Preferences.UseBundledGit))
+                UseBundledGitChoice.IsChecked = ViewModels.Preferences.Instance.UseBundledGit;
         }
 
         private void FitToScreen()
@@ -278,30 +302,59 @@ namespace SourceGit.Views
 
         public async Task<bool> SaveChangesAsync()
         {
-            if (_saving) return false;
+            if (_saving || _detectingGit) return false;
+            if (_integrationOnly) FillEmptyAutoFetchInterval();
             _saving = true; SettingsBody.IsEnabled = false;
             SavePreferencesButton.IsEnabled = CancelPreferencesButton.IsEnabled = false;
             PreferencesSaveError.IsVisible = false;
             try
             {
-                var changes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                foreach (var (key, value) in (_integrationOnly ? new Dictionary<string, string>() : GetGitValues()))
+                var pref = ViewModels.Preferences.Instance;
+                var input = GitPathInput.Text?.Trim().Trim('"') ?? string.Empty;
+                var forceBundled = OperatingSystem.IsWindows() && UseBundledGitChoice.IsChecked == true;
+                string selected = null;
+                if (_integrationOnly && (input != _initialGitPath || forceBundled != pref.UseBundledGit))
                 {
+                    selected = await Task.Run(() =>
+                    {
+                        if (forceBundled) return Native.GitExecutableLocator.FindBundledGit();
+                        if (Native.GitExecutableLocator.IsUsable(input)) return input;
+                        return OperatingSystem.IsWindows() ? Native.GitExecutableLocator.FindBundledGit() : Native.OS.FindGitExecutable();
+                    });
+                    if (string.IsNullOrEmpty(selected))
+                        throw new InvalidOperationException(App.Text(OperatingSystem.IsWindows() ? "TreeGit.Operation.GitUnavailable" : "Preferences.Git.Invalid"));
+                }
+                var changes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var (key, value) in GetGitValues())
+                {
+                    var gitPage = key is "user.name" or "user.email" or "core.autocrlf" or "fetch.prune" or "http.sslverify";
+                    if (gitPage != _integrationOnly) continue;
                     _initialGitValues.TryGetValue(key, out var old);
                     if (old != value) changes[key] = value;
                 }
                 if (changes.Count > 0 && !_configurationKnown)
                     throw new InvalidOperationException(App.Text("Preferences.Save.ReadFailed"));
                 using var git = await Commands.GlobalConfigEdit.PrepareAsync(changes, _initialConfig);
-                _editSession.SaveCandidate();
-                try { git.Commit(); }
+                var oldPath = pref.GitInstallPath;
+                var oldBundled = pref.UseBundledGit;
+                try
+                {
+                    if (selected != null)
+                    {
+                        pref.GitInstallPath = input;
+                        pref.UseBundledGit = OperatingSystem.IsWindows() && Native.GitExecutableLocator.IsBundled(selected);
+                    }
+                    _editSession.SaveCandidate();
+                    git.Commit();
+                }
                 catch
                 {
-                    // Put original editable preferences back on disk while retaining
-                    // the visible draft for retry; Git's file was not replaced.
-                    ViewModels.Preferences.Instance.Save(requireSuccess: true);
+                    pref.GitInstallPath = oldPath;
+                    pref.UseBundledGit = oldBundled;
+                    pref.Save(requireSuccess: true);
                     throw;
                 }
+                if (selected != null) Native.OS.GitExecutable = selected;
                 _editSession.Accept(); _accepted = true;
                 if (RestartRequired) _ = ConfirmRestartAfterSavingAsync();
                 else Close();
@@ -376,8 +429,7 @@ namespace SourceGit.Views
                 var selected = await StorageProvider.OpenFilePickerAsync(options);
                 if (selected is { Count: 1 })
                 {
-                    ViewModels.Preferences.Instance.GitInstallPath = selected[0].Path.LocalPath;
-                    UpdateGitVersion();
+                    GitPathInput.Text = selected[0].Path.LocalPath;
                 }
             }
             catch (Exception ex)
@@ -510,9 +562,146 @@ namespace SourceGit.Views
             e.Handled = true;
         }
 
-        private void OnGitInstallPathChanged(object sender, TextChangedEventArgs e)
+        private void OnAutoFetchIntervalTogglePressed(object sender, PointerPressedEventArgs e)
         {
-            UpdateGitVersion();
+            if (!e.GetCurrentPoint((Control)sender).Properties.IsLeftButtonPressed) return;
+
+            var enable = AutoFetchCheckBox.IsChecked != true;
+            AutoFetchCheckBox.SetCurrentValue(ToggleButton.IsCheckedProperty, enable);
+            if (enable)
+                Dispatcher.UIThread.Post(() => AutoFetchIntervalInput.Focus(), DispatcherPriority.Input);
+            e.Handled = true;
+        }
+
+        private void OnAutoFetchIntervalTextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (e.Source is not TextBox input || string.IsNullOrEmpty(input.Text)) return;
+
+            var text = input.Text;
+            var number = 0;
+            var digitsAfterCaret = 0;
+            for (var index = 0; index < text.Length; index++)
+            {
+                var digit = CharUnicodeInfo.GetDecimalDigitValue(text, index);
+                if (digit < 0) continue;
+                number = Math.Min(ViewModels.Preferences.MaximumAutoFetchInterval, number * 10 + digit);
+                if (index >= input.CaretIndex) digitsAfterCaret++;
+                if (char.IsSurrogatePair(text, index)) index++;
+            }
+
+            var normalized = Math.Max(1, number).ToString(CultureInfo.InvariantCulture);
+            if (normalized == text) return;
+
+            input.SetCurrentValue(TextBox.TextProperty, normalized);
+            input.CaretIndex = Math.Max(0, normalized.Length - digitsAfterCaret);
+        }
+
+        private void FillEmptyAutoFetchInterval()
+        {
+            if (string.IsNullOrEmpty(AutoFetchIntervalInput.Text))
+                AutoFetchIntervalInput.SetCurrentValue(NumericUpDown.TextProperty, "1");
+        }
+
+        private async Task LoadGitVersionsAsync()
+        {
+            var local = RefreshGitVersionAsync();
+            if (OperatingSystem.IsWindows())
+            {
+                var bundled = await Task.Run(Native.GitExecutableLocator.ReadBundledVersion);
+                if (IsVisible && !string.IsNullOrEmpty(bundled)) BundledGitVersionLabel.Text = $"- {bundled}";
+            }
+            await local;
+        }
+
+        private async void OnGitInstallPathChanged(object sender, TextChangedEventArgs e)
+        {
+            if (!_integrationOnly || !IsVisible || _detectingGit || GitPathInput.Text == _versionPath)
+                return;
+            await RefreshGitVersionAsync(debounce: true);
+        }
+
+        private async Task RefreshGitVersionAsync(bool debounce = false)
+        {
+            var path = GitPathInput.Text;
+            var revision = ++_gitVersionRevision;
+            ShowGitVersion(string.Empty, null);
+            if (debounce) await Task.Delay(250);
+            if (!IsVisible || revision != _gitVersionRevision) return;
+
+            var (version, number) = await Task.Run(() => ReadGitVersion(path));
+            if (!IsVisible || revision != _gitVersionRevision || GitPathInput.Text != path) return;
+            _versionPath = path;
+            ShowGitVersion(version, number);
+        }
+
+        private async void OnDetectGit(object sender, RoutedEventArgs e) => await DetectGitAsync();
+
+        private async Task DetectGitAsync()
+        {
+            if (!_integrationOnly || !IsVisible || _detectingGit || _saving || UseBundledGitChoice.IsChecked == true)
+                return;
+
+            _detectingGit = true;
+            _gitVersionRevision++;
+            var currentPath = GitPathInput.Text ?? string.Empty;
+            GitPathInput.IsEnabled = DetectGitButton.IsEnabled = SavePreferencesButton.IsEnabled = false;
+            try
+            {
+                var detected = await Task.Run(() =>
+                {
+                    var path = currentPath.Trim().Trim('"');
+                    var (version, number) = ReadGitVersion(path);
+                    if (number >= Models.GitVersions.MINIMAL &&
+                        (!OperatingSystem.IsWindows() || !Native.GitExecutableLocator.IsManagedBundle(path)))
+                        return (Path: path, Version: version, Number: number);
+
+                    path = OperatingSystem.IsWindows() ? Native.GitExecutableLocator.FindInstalledWindowsGit() : Native.OS.FindGitExecutable();
+                    (version, number) = ReadGitVersion(path);
+                    return (Path: path ?? string.Empty, Version: version, Number: number);
+                });
+                if (!IsVisible) return;
+
+                if (detected.Number >= Models.GitVersions.MINIMAL)
+                {
+                    _versionPath = detected.Path;
+                    GitPathInput.Text = detected.Path;
+                    ShowGitVersion(detected.Version, detected.Number);
+                }
+                else
+                {
+                    var (version, number) = await Task.Run(() => ReadGitVersion(currentPath));
+                    if (!IsVisible) return;
+                    _versionPath = currentPath;
+                    ShowGitVersion(version, number);
+                    if (string.IsNullOrEmpty(version) && UseBundledGitChoice.IsChecked != true)
+                    {
+                        _noSystemGitFound = true;
+                        GitVersion = App.Text(OperatingSystem.IsWindows() ? "TreeGit.Git.UseBundled" : "Preferences.Git.Invalid");
+                    }
+                }
+            }
+            catch (Exception error) when (error is System.IO.IOException or UnauthorizedAccessException or System.Security.SecurityException)
+            {
+                ShowGitVersion(string.Empty, null);
+            }
+            finally
+            {
+                _detectingGit = false;
+                GitPathInput.IsEnabled = DetectGitButton.IsEnabled = SavePreferencesButton.IsEnabled = true;
+            }
+        }
+
+        private static (string Text, Version Number) ReadGitVersion(string path)
+        {
+            Native.GitExecutableLocator.TryReadVersion(path?.Trim().Trim('"'), out var text, out var number);
+            return (text ?? string.Empty, number);
+        }
+
+        private void ShowGitVersion(string version, Version number)
+        {
+            _noSystemGitFound = false;
+            GitVersion = version;
+            ShowGitVersionWarning = number != null && number < Models.GitVersions.MINIMAL;
         }
 
         private void OnAddCustomAction(object sender, RoutedEventArgs e)
@@ -589,18 +778,17 @@ namespace SourceGit.Views
             e.Handled = true;
         }
 
-        private void UpdateGitVersion()
-        {
-            GitVersion = Native.OS.GitVersionString;
-            ShowGitVersionWarning = !string.IsNullOrEmpty(GitVersion) && Native.OS.GitVersion < Models.GitVersions.MINIMAL;
-        }
-
         private ViewModels.Preferences.EditSession _editSession;
         private Dictionary<string, string> _initialConfig = new(StringComparer.OrdinalIgnoreCase);
         private Dictionary<string, string> _initialGitValues;
         private bool _configurationKnown;
         private bool _initialWindowFrame;
         private bool _saving;
+        private bool _detectingGit;
+        private readonly string _initialGitPath;
+        private string _versionPath;
+        private int _gitVersionRevision;
+        private bool _noSystemGitFound;
         private bool _accepted;
         private string _gitVersion = string.Empty;
         private bool _showGitVersionWarning = false;

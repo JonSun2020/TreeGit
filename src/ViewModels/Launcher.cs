@@ -64,71 +64,89 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _newVersion, value);
         }
 
-        public Launcher(string startupRepo)
+        public Launcher()
         {
             Models.Notification.Raised += DispatchNotification;
             _ignoreIndexChange = true;
-
             ActiveWorkspace = Preferences.Instance.GetActiveWorkspace();
             Pages = new AvaloniaList<LauncherPage>();
             RestoreWorkspaceTabs();
+        }
 
-            _ignoreIndexChange = false;
+        public async Task LoadStartupRepositoryAsync(string path)
+        {
+            try
+            {
+                if (!string.IsNullOrEmpty(path))
+                {
+                    var inspected = await Task.Run(() => InspectLaunchPath(path));
+                    if (_isClosing) return;
+                    OpenLaunchPath(path, inspected.IsBare, inspected.Result, defer: true);
+                }
 
-            if (!TryOpenRepositoryFromPath(startupRepo))
-                EnsureRepositoryLoaded(ActivePage);
+                await LoadPageAsync(ActivePage, "active-repository-loaded");
+            }
+            finally { _ignoreIndexChange = false; }
+            if (ActivePage?.Node.IsRepository == true)
+                ActiveWorkspace.ActiveIdx = ActiveWorkspace.Repositories.IndexOf(ActivePage.Node.Id);
+        }
 
-            PostActivePageChanged();
+        private static (bool IsBare, Commands.Command.Result Result) InspectLaunchPath(string path)
+        {
+            var bare = new Commands.IsBareRepository(path).GetResult();
+            return (bare, bare ? null : new Commands.QueryRepositoryRootPath(path).GetResult());
         }
 
         public bool TryOpenRepositoryFromPath(string repo)
         {
-            if (!string.IsNullOrEmpty(repo) && Directory.Exists(repo))
-            {
-                var isBare = new Commands.IsBareRepository(repo).GetResult();
-                if (isBare)
-                {
-                    var node = Preferences.Instance.FindOrAddNodeByRepositoryPath(repo, null, false);
-                    Welcome.Instance.Refresh();
-                    OpenRepositoryInTab(node, null);
-                    return true;
-                }
+            if (string.IsNullOrEmpty(repo) || !Directory.Exists(repo)) return false;
+            var inspected = InspectLaunchPath(repo);
+            return OpenLaunchPath(repo, inspected.IsBare, inspected.Result, defer: false);
+        }
 
-                var test = new Commands.QueryRepositoryRootPath(repo).GetResult();
-                if (test.IsSuccess && !string.IsNullOrEmpty(test.StdOut))
-                {
-                    var node = Preferences.Instance.FindOrAddNodeByRepositoryPath(test.StdOut.Trim(), null, false);
-                    Welcome.Instance.Refresh();
-                    OpenRepositoryInTab(node, null);
-                    return true;
-                }
+        private bool OpenLaunchPath(string repo, bool bare, Commands.Command.Result test, bool defer)
+        {
+            if (bare || test.IsSuccess && !string.IsNullOrEmpty(test.StdOut))
+            {
+                var node = Preferences.Instance.FindOrAddNodeByRepositoryPath(bare ? repo : test.StdOut.Trim(), null, false);
+                Welcome.Instance.Refresh();
+                if (!defer) OpenRepositoryInTab(node, null);
                 else
                 {
-                    var untrusted = Models.SafeDirectories.IsUntrustedRepository(test.StdErr);
-                    var notRepository = test.StdErr.Contains("not a git repository", StringComparison.OrdinalIgnoreCase);
-                    if (!untrusted && !notRepository)
+                    var page = Pages.FirstOrDefault(p => p.Node.Id == node.Id);
+                    if (page == null)
                     {
-                        Models.Notification.Send(null, App.Text("Repository.OpenFailed"), true);
-                        return true;
+                        page = new LauncherPage(node, new RepositoryLoading());
+                        if (ActivePage?.Data is Welcome) Pages[Pages.IndexOf(ActivePage)] = page;
+                        else Pages.Add(page);
+                        ActiveWorkspace.Repositories.Add(node.Id);
                     }
-                    if (ActivePage is not { Data: Welcome { }, Popup: null })
-                        AddNewTab();
-
-                    if (untrusted)
-                    {
-                        if (Models.SafeDirectories.TryGetSafeDirectoryValue(repo, test.StdErr, out var safeDirectory))
-                            ActivePage.Popup = new TrustRepository(ActivePage.Node.Id, repo, test.StdErr, safeDirectory, null, false, true, 0);
-                        else
-                            Models.Notification.Send(null, App.Text("Repository.OpenFailed"), true);
-                    }
-                    else
-                        ActivePage.Popup = new Init(ActivePage.Node.Id, repo, null, 0, test.StdErr ?? "Unknown error occurred while opening the repository.");
-
-                    return true;
+                    ActivePage = page;
                 }
+                return true;
             }
 
-            return false;
+            var untrusted = Models.SafeDirectories.IsUntrustedRepository(test.StdErr);
+            var notRepository = test.StdErr.Contains("not a git repository", StringComparison.OrdinalIgnoreCase);
+            if (!untrusted && !notRepository)
+            {
+                Models.Notification.Send(null, App.Text("Repository.OpenFailed"), true);
+                return true;
+            }
+            if (ActivePage is not { Data: Welcome { }, Popup: null })
+                AddNewTab();
+
+            if (untrusted)
+            {
+                if (Models.SafeDirectories.TryGetSafeDirectoryValue(repo, test.StdErr, out var safeDirectory))
+                    ActivePage.Popup = new TrustRepository(ActivePage.Node.Id, repo, test.StdErr, safeDirectory, null, false, true, 0);
+                else
+                    Models.Notification.Send(null, App.Text("Repository.OpenFailed"), true);
+            }
+            else
+                ActivePage.Popup = new Init(ActivePage.Node.Id, repo, null, 0, test.StdErr ?? "Unknown error occurred while opening the repository.");
+
+            return true;
         }
 
         public bool CanCloseAll() => _isClosing || CanClosePages(Pages);
@@ -191,7 +209,7 @@ namespace SourceGit.ViewModels
 
             _ignoreIndexChange = false;
             PostActivePageChanged();
-            LoadDeferredRepositories();
+            _ = LoadDeferredRepositoriesAsync();
             Preferences.Instance.Save();
             GC.Collect();
         }
@@ -567,7 +585,7 @@ namespace SourceGit.ViewModels
             if (_ignoreIndexChange)
                 return;
 
-            EnsureRepositoryLoaded(_activePage);
+            _ = LoadPageAsync(_activePage, "active-repository-loaded");
             if (_activePage?.Node.IsRepository == true)
                 _activeWorkspace.ActiveIdx = _activeWorkspace.Repositories.IndexOf(_activePage.Node.Id);
 
@@ -629,41 +647,52 @@ namespace SourceGit.ViewModels
             catch (Exception error) { FailRepositoryLoad(page, pending, error); }
         }
 
-        public async void LoadDeferredRepositories()
+        private Task LoadPageAsync(LauncherPage page, string phase)
+        {
+            if (page?.Data is not RepositoryLoading pending) return Task.CompletedTask;
+            return pending.Loading ??= InspectAndOpenAsync(page, pending, phase);
+        }
+
+        private async Task InspectAndOpenAsync(LauncherPage page, RepositoryLoading pending, string phase)
+        {
+            pending.Failed = false;
+            var path = page.Node.Id;
+            try
+            {
+                var details = await Task.Run(() => InspectRepository(path));
+                if (_isClosing || !Pages.Contains(page) || page.Data != pending) return;
+                CompleteRepositoryLoad(page, details);
+                Native.StartupTrace.Mark(phase, true);
+            }
+            catch (Exception error)
+            {
+                if (!_isClosing && Pages.Contains(page) && page.Data == pending) FailRepositoryLoad(page, pending, error);
+            }
+            finally { pending.Loading = null; }
+        }
+
+        public async Task LoadDeferredRepositoriesAsync(Action<int, int> progress = null)
         {
             if (_isClosing || _backgroundGeneration == _restoreGeneration) return;
-            var generation = _restoreGeneration;
-            _backgroundGeneration = generation;
-            var pages = Pages.ToArray();
+            var generation = _backgroundGeneration = _restoreGeneration;
+            var pages = Pages.Where(p => p != ActivePage && p.Data is RepositoryLoading { Failed: false }).ToArray();
+            if (pages.Length == 0) return;
+            progress?.Invoke(1, pages.Length);
             await Task.Delay(500);
-            foreach (var page in pages)
+            for (var i = 0; i < pages.Length; i++)
             {
+                var page = pages[i];
                 if (_isClosing || generation != _restoreGeneration) return;
-                if (!Pages.Contains(page) || page.Data is not RepositoryLoading pending || pending.Failed) continue;
-                // Let the visible history finish its first query before spending time on hidden tabs.
+                if (!Pages.Contains(page) || page.Data is not RepositoryLoading { Failed: false }) continue;
+                progress?.Invoke(i + 1, pages.Length);
                 for (var wait = 0; wait < 50 && _activePage?.Data is Repository { Histories.IsLoading: true }; wait++)
                 {
                     await Task.Delay(100);
                     if (_isClosing || generation != _restoreGeneration) return;
                 }
-                if (!Pages.Contains(page) || !ReferenceEquals(page.Data, pending)) continue;
-                try
-                {
-                    var path = page.Node.Id;
-                    var details = await Task.Run(() => InspectRepository(path));
-                    if (_isClosing || generation != _restoreGeneration) return;
-                    if (Pages.Contains(page) && ReferenceEquals(page.Data, pending) && !pending.Failed)
-                    {
-                        CompleteRepositoryLoad(page, details);
-                        Native.StartupTrace.Mark("deferred-repository-loaded", true);
-                    }
-                }
-                catch (Exception error)
-                {
-                    if (!_isClosing && generation == _restoreGeneration && Pages.Contains(page) && ReferenceEquals(page.Data, pending))
-                        FailRepositoryLoad(page, pending, error);
-                }
-                await Task.Delay(150);
+                if (!Pages.Contains(page)) continue;
+                await LoadPageAsync(page, "deferred-repository-loaded");
+                if (i + 1 < pages.Length) await Task.Delay(150);
             }
         }
 

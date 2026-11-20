@@ -73,8 +73,12 @@
     <AvaloniaResource Include="Resources/Grammars/*" />
     <AvaloniaResource Include="Resources/Images/*" />
     <AvaloniaResource Include="Resources/Images/ExternalToolIcons/*" />
+    <AvaloniaResource Remove="Resources/Images/ExternalToolIcons/xcode.png"
+                      Condition="$(RuntimeIdentifier.StartsWith('win-'))" />
     <AvaloniaResource Include="Resources/Images/ExternalToolIcons/JetBrains/*" />
-    <AvaloniaResource Include="Resources/Images/ShellIcons/*" />
+    <AvaloniaResource Include="Resources/Images/ShellIcons/*" Condition="!$(RuntimeIdentifier.StartsWith('win-'))" />
+    <AvaloniaResource Include="Resources/Images/ShellIcons/cmd.png;Resources/Images/ShellIcons/git-bash.png;Resources/Images/ShellIcons/pwsh.png;Resources/Images/ShellIcons/wt.png"
+                      Condition="$(RuntimeIdentifier.StartsWith('win-'))" />
   </ItemGroup>
 
   <ItemGroup>

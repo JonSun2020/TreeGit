@@ -52,7 +52,6 @@ namespace SourceGit.ViewModels
                 Track(nameof(ShowTagsInGraph), () => owner.ShowTagsInGraph, v => owner.ShowTagsInGraph = v);
                 Track(nameof(UseCompactBranchNamesInGraph), () => owner.UseCompactBranchNamesInGraph, v => owner.UseCompactBranchNamesInGraph = v);
                 Track(nameof(EnableCompactFoldersInChangesTree), () => owner.EnableCompactFoldersInChangesTree, v => owner.EnableCompactFoldersInChangesTree = v);
-                Track(nameof(GitInstallPath), () => owner.GitInstallPath, v => owner.GitInstallPath = v);
                 Track(nameof(GitDefaultCloneDir), () => owner.GitDefaultCloneDir, v => owner.GitDefaultCloneDir = v);
                 Track(nameof(UseLibsecretInsteadOfGCM), () => owner.UseLibsecretInsteadOfGCM, v => owner.UseLibsecretInsteadOfGCM = v);
                 Track(nameof(UseStashAndReapplyByDefault), () => owner.UseStashAndReapplyByDefault, v => owner.UseStashAndReapplyByDefault = v);

@@ -1149,6 +1149,12 @@
         </Grid>
       </ControlTemplate>
     </Setter>
+    <Style Selector="^:not(:checked):not(:disabled) /template/ Border#Border">
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.FG1}"/>
+    </Style>
+    <Style Selector="^:not(:checked) /template/ ContentPresenter#ContentPresenter, ^:disabled /template/ ContentPresenter#ContentPresenter">
+      <Setter Property="Opacity" Value="0.68"/>
+    </Style>
     <Style Selector="^:pointerover /template/ Border#Border">
       <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}"/>
     </Style>
@@ -1539,6 +1545,10 @@
   <Style Selector="TabItem:disabled TextBlock.tab_header">
     <Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/>
     <Setter Property="Opacity" Value="0.35"/>
+  </Style>
+
+  <Style Selector=":is(Control).option_dependent:disabled">
+    <Setter Property="Opacity" Value="0.68"/>
   </Style>
 
   <Style Selector="NumericUpDown">

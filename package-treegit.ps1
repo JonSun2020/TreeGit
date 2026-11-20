@@ -16,8 +16,14 @@ if(Test-Path -LiteralPath $archive){throw 'This versioned archive already exists
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $partial=$archive+'.partial-'+[Guid]::NewGuid().ToString('N')
+$runtimeArchive=$partial+'.git'
 $checksum=Join-Path $Destination 'SHA256SUMS.txt'
 $partialChecksum=$checksum+'.partial-'+[Guid]::NewGuid().ToString('N')
+# Modern .NET supports denser standard ZIP entries. Windows PowerShell 5 uses its best available setting.
+$compression=[IO.Compression.CompressionLevel]::Optimal
+if([Enum]::IsDefined([IO.Compression.CompressionLevel],'SmallestSize')){
+    $compression=[Enum]::Parse([IO.Compression.CompressionLevel],'SmallestSize')
+}
 $published=$false
 try {
 $zip=[IO.Compression.ZipFile]::Open($partial,[IO.Compression.ZipArchiveMode]::Create)
@@ -26,7 +32,7 @@ try {
     $programFiles=@('TreeGit.exe','LICENSE','THIRD-PARTY-LICENSES.md','使用说明.md','MCP-使用说明.md','build-info.json')
     foreach($file in Get-ChildItem -LiteralPath $Source -File){
         if($file.Name -notin $programFiles -and $file.Extension -ne '.dll'){continue}
-        [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip,$file.FullName,('TreeGit/'+$file.Name),[IO.Compression.CompressionLevel]::Optimal) | Out-Null
+        [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip,$file.FullName,('TreeGit/'+$file.Name),$compression) | Out-Null
     }
     # Installed MCP files may contain personal commands, paths or secrets.
     # Package fresh examples without reading or overwriting those files.
@@ -34,27 +40,49 @@ try {
         $exampleArgs=if($readOnly){@('--mcp','--read-only')}else{@('--mcp')}
         $exampleName=if($readOnly){'mcp-readonly.json'}else{'mcp-readwrite.json'}
         $example=@{mcpServers=@{treegit=@{command='C:\Tools\TreeGit\TreeGit.exe';args=@($exampleArgs)}}}
-        $entry=$zip.CreateEntry(('TreeGit/'+$exampleName),[IO.Compression.CompressionLevel]::Optimal)
+        $entry=$zip.CreateEntry(('TreeGit/'+$exampleName),$compression)
         $writer=[IO.StreamWriter]::new($entry.Open(),[Text.UTF8Encoding]::new($false))
         try{$writer.WriteLine(($example | ConvertTo-Json -Depth 6))}finally{$writer.Dispose()}
     }
     $zip.CreateEntry('TreeGit/data/') | Out-Null
     $treeGitRuntimeRoot=Join-Path $Source 'git'
-    foreach($entry in $treeGitRuntime.files){
-        [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip,(Join-Path $treeGitRuntimeRoot $entry.path),('TreeGit/git/'+$entry.path),[IO.Compression.CompressionLevel]::Optimal) | Out-Null
+    $inner=[IO.Compression.ZipFile]::Open($runtimeArchive,[IO.Compression.ZipArchiveMode]::Create)
+    try {
+        foreach($file in $treeGitRuntime.files){
+            $entry=$inner.CreateEntry($file.path,$compression)
+            $entry.LastWriteTime=[DateTimeOffset]::new(2000,1,1,0,0,0,[TimeSpan]::Zero)
+            $inputFile=[IO.File]::OpenRead((Join-Path $treeGitRuntimeRoot $file.path))
+            try {
+                $outputFile=$entry.Open()
+                try{$inputFile.CopyTo($outputFile)}finally{$outputFile.Dispose()}
+            } finally {$inputFile.Dispose()}
+        }
+    } finally {$inner.Dispose()}
+    # The previous updater checks the real Windows launcher and a flat hash manifest.
+    $payloadFiles=[ordered]@{'cmd/git.exe'=(Join-Path $treeGitRuntimeRoot 'cmd/git.exe');'payload-manifest.json'=(Join-Path $treeGitRuntimeRoot 'runtime-manifest.json');'runtime.zip'=$runtimeArchive}
+    foreach($notice in @('COMPONENTS.md','LICENSE.txt','licenses/Git-LFS-LICENSE.md','licenses/Git-Flow-LICENSE')){
+        $payloadFiles[$notice]=Join-Path $treeGitRuntimeRoot $notice
     }
-    [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip,(Join-Path $treeGitRuntimeRoot 'runtime-manifest.json'),'TreeGit/git/runtime-manifest.json',[IO.Compression.CompressionLevel]::Optimal) | Out-Null
+    $records=foreach($relative in $payloadFiles.Keys){
+        $path=$payloadFiles[$relative]
+        $level=if($relative -eq 'runtime.zip'){[IO.Compression.CompressionLevel]::NoCompression}else{$compression}
+        [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip,$path,('TreeGit/git/'+$relative),$level) | Out-Null
+        @{path=$relative;sha256=(Get-TreeGitHash $path)}
+    }
+    $entry=$zip.CreateEntry('TreeGit/git/runtime-manifest.json',$compression)
+    $writer=[IO.StreamWriter]::new($entry.Open(),[Text.UTF8Encoding]::new($false))
+    try{$writer.Write((@{schema=1;files=@($records)}|ConvertTo-Json -Depth 4))}finally{$writer.Dispose()}
 } finally {$zip.Dispose()}
 $hash=Get-TreeGitHash $partial
 [IO.File]::WriteAllText($partialChecksum,($hash+'  '+$name+"`n"),[Text.UTF8Encoding]::new($false))
 [IO.File]::Move($partial,$archive)
 $published=$true
-if(Test-Path -LiteralPath $checksum){[IO.File]::Replace($partialChecksum,$checksum,$null)}
+if(Test-Path -LiteralPath $checksum){[IO.File]::Replace($partialChecksum,$checksum,[NullString]::Value)}
 else{[IO.File]::Move($partialChecksum,$checksum)}
 Write-Output $archive
 } catch {
     if($published -and (Test-Path -LiteralPath $archive)){Remove-Item -LiteralPath $archive -Force}
     throw
 } finally {
-    foreach($temporary in @($partial,$partialChecksum)){if(Test-Path -LiteralPath $temporary){Remove-Item -LiteralPath $temporary -Force}}
+    foreach($temporary in @($partial,$partialChecksum,$runtimeArchive)){if(Test-Path -LiteralPath $temporary){Remove-Item -LiteralPath $temporary -Force}}
 }

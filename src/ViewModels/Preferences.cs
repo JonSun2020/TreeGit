@@ -24,11 +24,7 @@ namespace SourceGit.ViewModels
                 Native.StartupTrace.Mark("preferences-loaded");
                 _instance._isLoading = false;
 
-                _instance.PrepareGit();
-                Native.StartupTrace.Mark("git-ready");
-                _instance.PrepareShellOrTerminal();
-                Native.StartupTrace.Mark("terminal-ready");
-                _instance.PrepareExternalDiffMergeTool();
+                if (!DeferDesktopServices) _instance.PrepareDesktopServices();
                 _instance.PrepareWorkspaces();
 
                 return _instance;
@@ -282,11 +278,15 @@ namespace SourceGit.ViewModels
             set;
         } = false;
 
+        public const int MaximumAutoFetchInterval = 9999;
+
         public int AutoFetchInterval
         {
-            get;
-            set;
-        } = 10;
+            get => _autoFetchInterval;
+            set => SetProperty(ref _autoFetchInterval, Math.Clamp(value, 1, MaximumAutoFetchInterval));
+        }
+
+        private int _autoFetchInterval = 10;
 
         public bool IgnoreWhitespaceChangesInDiff
         {
@@ -338,15 +338,14 @@ namespace SourceGit.ViewModels
 
         public string GitInstallPath
         {
-            get => Native.OS.GitExecutable;
-            set
-            {
-                if (Native.OS.GitExecutable != value)
-                {
-                    Native.OS.GitExecutable = value;
-                    OnPropertyChanged();
-                }
-            }
+            get => _gitInstallPath;
+            set => SetProperty(ref _gitInstallPath, value ?? string.Empty);
+        }
+
+        public bool UseBundledGit
+        {
+            get => _useBundledGit;
+            set => SetProperty(ref _useBundledGit, value);
         }
 
         public string GitDefaultCloneDir
@@ -514,7 +513,7 @@ namespace SourceGit.ViewModels
 
         public bool IsGitConfigured()
         {
-            var path = GitInstallPath;
+            var path = Native.OS.GitExecutable;
             return !string.IsNullOrEmpty(path) && File.Exists(path);
         }
 
@@ -701,12 +700,73 @@ namespace SourceGit.ViewModels
             }
         }
 
-        private void PrepareGit()
+        internal static bool DeferDesktopServices { get; set; }
+
+        internal void PrepareDesktopServices(Action<string> stage = null)
         {
-            var path = Native.OS.GitExecutable;
-            if (string.IsNullOrEmpty(path) || !File.Exists(path) || Native.OS.GitVersion < Models.GitVersions.MINIMAL ||
-                (OperatingSystem.IsWindows() && Native.GitExecutableLocator.IsManagedBundle(path)))
-                GitInstallPath = Native.OS.FindGitExecutable();
+            PrepareGit(stage);
+            Native.StartupTrace.Mark("git-ready");
+            stage?.Invoke("Tools");
+            PrepareShellOrTerminal();
+            PrepareExternalDiffMergeTool();
+            Native.StartupTrace.Mark("terminal-ready");
+        }
+
+        private void PrepareGit(Action<string> stage)
+        {
+            var configured = GitInstallPath;
+            var windows = OperatingSystem.IsWindows();
+            var bundled = windows && UseBundledGit;
+            if (windows && Native.GitExecutableLocator.IsManagedBundle(configured))
+                configured = GitInstallPath = string.Empty;
+            string path = null;
+            if (!bundled)
+            {
+                stage?.Invoke("Git");
+                if (string.IsNullOrEmpty(configured))
+                    path = OperatingSystem.IsWindows() ? Native.GitExecutableLocator.FindInstalledWindowsGit() : Native.OS.FindGitExecutable();
+                else
+                {
+                    // Selecting a path already reads its version. Reuse that result on returning launches.
+                    Native.OS.GitExecutable = configured;
+                    if (Native.OS.GitVersion >= Models.GitVersions.MINIMAL) path = configured;
+                    else if (!windows) path = Native.OS.FindGitExecutable();
+                }
+            }
+
+            if (windows && string.IsNullOrEmpty(path))
+            {
+                stage?.Invoke("Bundled");
+                path = Native.GitExecutableLocator.FindBundledGit();
+            }
+
+            Native.OS.GitExecutable = path;
+            if (path != null && windows && Native.GitExecutableLocator.IsBundled(path))
+            {
+                if (!UseBundledGit)
+                {
+                    UseBundledGit = true;
+                    Avalonia.Threading.Dispatcher.UIThread.Post(SaveDetectedGit);
+                }
+            }
+            else if (path != null)
+                GitInstallPath = path;
+
+            if (windows) Native.GitExecutableLocator.FinishExpandedUpgrade();
+            Native.OS.MonitorGitInstallation(() => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                if (!UseBundledGit && Native.OS.IsUsingBundledGit)
+                {
+                    UseBundledGit = true;
+                    SaveDetectedGit();
+                }
+            }));
+        }
+
+        internal void SaveDetectedGit()
+        {
+            try { Save(); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { System.Diagnostics.Trace.TraceWarning(ex.Message); }
         }
 
         private void PrepareShellOrTerminal()
@@ -892,6 +952,8 @@ namespace SourceGit.ViewModels
         private bool _enableCompactFoldersInChangesTree = false;
         private Models.ChangeViewMode _changeViewMode = Models.ChangeViewMode.List;
 
+        private string _gitInstallPath = string.Empty;
+        private bool _useBundledGit;
         private string _gitDefaultCloneDir = string.Empty;
         private int _shellOrTerminalType = -1;
     }

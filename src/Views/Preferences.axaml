@@ -301,34 +301,119 @@
                   </ScrollViewer>
         </TabItem>
 
+
         <TabItem>
           <TabItem.Header>
-            <TextBlock Classes="tab_header" Text="{DynamicResource Text.Preferences.Git}"/>
+            <TextBlock Classes="tab_header" Text="{DynamicResource Text.Preferences.GPG}"/>
           </TabItem.Header>
           <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
 
-          <Grid Margin="8" RowDefinitions="32,32,32,32,32,32,32,32,Auto,32,32" ColumnDefinitions="Auto,*">
+          <Grid Margin="8" RowDefinitions="32,Auto,32,32,32" ColumnDefinitions="Auto,*">
             <TextBlock Grid.Row="0" Grid.Column="0"
+                       Text="{DynamicResource Text.Preferences.GPG.Format}"
+                       HorizontalAlignment="Right"
+                       Margin="0,0,16,0"/>
+            <ComboBox Grid.Row="0" Grid.Column="1"
+                      MinHeight="28"
+                      Padding="8,0"
+                      HorizontalAlignment="Stretch"
+                      ItemsSource="{Binding Source={x:Static m:GPGFormat.Supported}}"
+                      x:Name="SigningFormatBox" SelectedItem="{Binding #ThisControl.GPGFormat, Mode=TwoWay}">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="{x:Type m:GPGFormat}">
+                  <Grid ColumnDefinitions="Auto,*">
+                    <TextBlock Grid.Column="0" Text="{Binding Name}"/>
+                    <TextBlock Grid.Column="1" Text="{Binding Desc}" Foreground="{DynamicResource Brush.FG2}" HorizontalAlignment="Right"/>
+                  </Grid>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+
+            <TextBlock Grid.Row="1" Grid.Column="0"
+                       Text="{DynamicResource Text.Preferences.GPG.Path}"
+                       HorizontalAlignment="Right"
+                       Margin="0,0,16,0"
+                       IsVisible="{Binding #ThisControl.GPGFormat.NeedFindProgram}"/>
+            <TextBox Grid.Row="1" Grid.Column="1"
+                     Height="28"
+                     CornerRadius="3"
+                     Text="{Binding #ThisControl.GPGExecutableFile, Mode=TwoWay}"
+                     Watermark="{DynamicResource Text.Preferences.GPG.Path.Placeholder}"
+                     IsVisible="{Binding #ThisControl.GPGFormat.NeedFindProgram}">
+              <TextBox.InnerRightContent>
+                <Button Classes="icon_button" Width="30" Height="30" Click="SelectGPGExecutable">
+                  <Path Data="{StaticResource Icons.Folder.Open}" Fill="{DynamicResource Brush.FG1}"/>
+                </Button>
+              </TextBox.InnerRightContent>
+            </TextBox>
+
+            <TextBlock Grid.Row="2" Grid.Column="0"
+                       Text="{DynamicResource Text.Preferences.GPG.UserKey}"
+                       HorizontalAlignment="Right"
+                       Margin="0,0,16,0"/>
+            <TextBox Grid.Row="2" Grid.Column="1"
+                     Height="28"
+                     CornerRadius="3"
+                     Text="{Binding #ThisControl.GPGUserKey, Mode=TwoWay}"
+                     Watermark="{DynamicResource Text.Preferences.GPG.UserKey.Placeholder}"/>
+
+            <CheckBox Grid.Row="3" Grid.Column="1"
+                      Content="{DynamicResource Text.Preferences.GPG.CommitEnabled}"
+                      IsChecked="{Binding #ThisControl.EnableGPGCommitSigning, Mode=TwoWay}"
+                      ToolTip.Tip="commit.gpgsign=true"/>
+
+            <CheckBox Grid.Row="4" Grid.Column="1"
+                      Content="{DynamicResource Text.Preferences.GPG.TagEnabled}"
+                      IsChecked="{Binding #ThisControl.EnableGPGTagSigning, Mode=TwoWay}"
+                      ToolTip.Tip="tag.gpgsign=true"/>
+          </Grid>
+                  </ScrollViewer>
+        </TabItem>
+
+      </TabControl>
+      <ScrollViewer x:Name="IntegrationSettings" IsVisible="False"
+                    HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+
+          <StackPanel Margin="8" Orientation="Vertical" Grid.IsSharedSizeScope="True">
+            <StackPanel.Styles>
+              <Style Selector="TextBlock.git_install_inactive, StackPanel.git_install_inactive">
+                <Setter Property="Opacity" Value="0.68"/>
+              </Style>
+            </StackPanel.Styles>
+            <TextBlock Classes="bold" Text="{DynamicResource Text.Preferences.Git}"/>
+            <Rectangle Margin="0,2.67,0,8" Fill="{DynamicResource Brush.Border2}" Height=".6" HorizontalAlignment="Stretch"/>
+            <CheckBox x:Name="UseBundledGitChoice" Margin="8,2,0,4"
+                      AutomationProperties.Name="{DynamicResource Text.TreeGit.Git.UseBundledOption}">
+              <WrapPanel Orientation="Horizontal">
+                <TextBlock Text="{DynamicResource Text.TreeGit.Git.UseBundledOption}"/>
+                <TextBlock x:Name="BundledGitVersionLabel" Margin="8,0,0,0"/>
+              </WrapPanel>
+            </CheckBox>
+          <Grid Margin="8" RowDefinitions="32,32,32,32,32,32,32,32,Auto,32,32" ColumnDefinitions="Auto,*">
+            <TextBlock Classes.git_install_inactive="{Binding #UseBundledGitChoice.IsChecked}" Grid.Row="0" IsEnabled="{Binding !#UseBundledGitChoice.IsChecked}" Grid.Column="0"
                        Text="{DynamicResource Text.Preferences.Git.Path}"
                        HorizontalAlignment="Right"
                        Margin="0,0,16,0"/>
-            <TextBox Grid.Row="0" Grid.Column="1"
+            <Grid Grid.Row="0" IsEnabled="{Binding !#UseBundledGitChoice.IsChecked}" Grid.Column="1" ColumnDefinitions="*,Auto">
+              <TextBox x:Name="GitPathInput" Grid.Column="0"
                      Height="28"
                      CornerRadius="3"
-                     Text="{Binding GitInstallPath, Mode=TwoWay}"
                      TextChanged="OnGitInstallPathChanged">
               <TextBox.InnerRightContent>
                 <Button Classes="icon_button" Width="30" Height="30" Click="SelectGitExecutable">
                   <Path Data="{StaticResource Icons.Folder.Open}" Fill="{DynamicResource Brush.FG1}"/>
                 </Button>
               </TextBox.InnerRightContent>
-            </TextBox>
+              </TextBox>
+              <Button Grid.Column="1" x:Name="DetectGitButton" Classes="flat" Margin="6,0,0,0"
+                      Height="28" Padding="10,0" Content="{DynamicResource Text.TreeGit.Git.Detect}" Click="OnDetectGit"/>
+            </Grid>
 
-            <TextBlock Grid.Row="1" Grid.Column="0"
+            <TextBlock Classes.git_install_inactive="{Binding #UseBundledGitChoice.IsChecked}" Grid.Row="1" IsEnabled="{Binding !#UseBundledGitChoice.IsChecked}" Grid.Column="0"
                        Text="{DynamicResource Text.Preferences.Git.Version}"
                        HorizontalAlignment="Right"
                        Margin="0,0,16,0"/>
-            <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal">
+            <StackPanel Grid.Row="1" Classes.git_install_inactive="{Binding #UseBundledGitChoice.IsChecked}" IsEnabled="{Binding !#UseBundledGitChoice.IsChecked}" Grid.Column="1" Orientation="Horizontal">
               <TextBlock Margin="0,0,8,0"
                          Text="{Binding #ThisControl.GitVersion}"
                          IsVisible="{Binding #ThisControl.GitVersion, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
@@ -414,103 +499,47 @@
                         Content="{DynamicResource Text.Configure.Git.AutoFetch}"
                         IsChecked="{Binding EnableAutoFetch, Mode=TwoWay}"/>
 
-              <NumericUpDown Minimum="1" Maximum="60" Increment="1"
-                             Height="26" Width="110"
-                             Margin="8,0,0,0" Padding="4"
-                             BorderThickness="1" BorderBrush="{DynamicResource Brush.Border1}"
-                             CornerRadius="3"
-                             ParsingNumberStyle="Integer"
-                             FormatString="0"
-                             Value="{Binding AutoFetchInterval, Mode=TwoWay, FallbackValue=10}"
-                             IsEnabled="{Binding #AutoFetchCheckBox.IsChecked}"/>
+              <Grid>
+                <StackPanel Orientation="Horizontal" IsEnabled="{Binding #AutoFetchCheckBox.IsChecked}">
+                  <NumericUpDown x:Name="AutoFetchIntervalInput" Classes="fetch_interval"
+                                 Minimum="1"
+                                 Increment="1" ShowButtonSpinner="False" ClipValueToMinMax="True"
+                                 TextAlignment="Center" Height="24" Width="54"
+                                 Margin="8,0,0,0" Padding="4,0"
+                                 BorderThickness="1" BorderBrush="{DynamicResource Brush.Border1}"
+                                 CornerRadius="3"
+                                 ParsingNumberStyle="Integer"
+                                 FormatString="0"
+                                 Value="{Binding AutoFetchInterval, Mode=TwoWay, FallbackValue=10}">
+                    <NumericUpDown.Styles>
+                      <Style Selector="NumericUpDown.fetch_interval /template/ ButtonSpinner#PART_Spinner">
+                        <Setter Property="Height" Value="24"/>
+                        <Setter Property="MinWidth" Value="0"/>
+                      </Style>
+                      <Style Selector="NumericUpDown.fetch_interval /template/ TextBox#PART_TextBox">
+                        <Setter Property="Height" Value="24"/>
+                      </Style>
+                    </NumericUpDown.Styles>
+                  </NumericUpDown>
 
-              <TextBlock VerticalAlignment="Center"
-                         Margin="5,0,0,0"
-                         Text="{DynamicResource Text.Configure.Git.AutoFetchIntervalSuffix}" />
+                  <TextBlock Classes="option_dependent" VerticalAlignment="Center"
+                             Margin="5,0,0,0"
+                             PointerPressed="OnAutoFetchIntervalTogglePressed"
+                             Text="{DynamicResource Text.Configure.Git.AutoFetchIntervalSuffix}"/>
+                </StackPanel>
+                <Border Background="Transparent"
+                        IsVisible="{Binding !#AutoFetchCheckBox.IsChecked}"
+                        PointerPressed="OnAutoFetchIntervalTogglePressed"/>
+              </Grid>
             </StackPanel>
           </Grid>
-                  </ScrollViewer>
-        </TabItem>
 
-        <TabItem>
-          <TabItem.Header>
-            <TextBlock Classes="tab_header" Text="{DynamicResource Text.Preferences.GPG}"/>
-          </TabItem.Header>
-          <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-
-          <Grid Margin="8" RowDefinitions="32,Auto,32,32,32" ColumnDefinitions="Auto,*">
-            <TextBlock Grid.Row="0" Grid.Column="0"
-                       Text="{DynamicResource Text.Preferences.GPG.Format}"
-                       HorizontalAlignment="Right"
-                       Margin="0,0,16,0"/>
-            <ComboBox Grid.Row="0" Grid.Column="1"
-                      MinHeight="28"
-                      Padding="8,0"
-                      HorizontalAlignment="Stretch"
-                      ItemsSource="{Binding Source={x:Static m:GPGFormat.Supported}}"
-                      x:Name="SigningFormatBox" SelectedItem="{Binding #ThisControl.GPGFormat, Mode=TwoWay}">
-              <ComboBox.ItemTemplate>
-                <DataTemplate x:DataType="{x:Type m:GPGFormat}">
-                  <Grid ColumnDefinitions="Auto,*">
-                    <TextBlock Grid.Column="0" Text="{Binding Name}"/>
-                    <TextBlock Grid.Column="1" Text="{Binding Desc}" Foreground="{DynamicResource Brush.FG2}" HorizontalAlignment="Right"/>
-                  </Grid>
-                </DataTemplate>
-              </ComboBox.ItemTemplate>
-            </ComboBox>
-
-            <TextBlock Grid.Row="1" Grid.Column="0"
-                       Text="{DynamicResource Text.Preferences.GPG.Path}"
-                       HorizontalAlignment="Right"
-                       Margin="0,0,16,0"
-                       IsVisible="{Binding #ThisControl.GPGFormat.NeedFindProgram}"/>
-            <TextBox Grid.Row="1" Grid.Column="1"
-                     Height="28"
-                     CornerRadius="3"
-                     Text="{Binding #ThisControl.GPGExecutableFile, Mode=TwoWay}"
-                     Watermark="{DynamicResource Text.Preferences.GPG.Path.Placeholder}"
-                     IsVisible="{Binding #ThisControl.GPGFormat.NeedFindProgram}">
-              <TextBox.InnerRightContent>
-                <Button Classes="icon_button" Width="30" Height="30" Click="SelectGPGExecutable">
-                  <Path Data="{StaticResource Icons.Folder.Open}" Fill="{DynamicResource Brush.FG1}"/>
-                </Button>
-              </TextBox.InnerRightContent>
-            </TextBox>
-
-            <TextBlock Grid.Row="2" Grid.Column="0"
-                       Text="{DynamicResource Text.Preferences.GPG.UserKey}"
-                       HorizontalAlignment="Right"
-                       Margin="0,0,16,0"/>
-            <TextBox Grid.Row="2" Grid.Column="1"
-                     Height="28"
-                     CornerRadius="3"
-                     Text="{Binding #ThisControl.GPGUserKey, Mode=TwoWay}"
-                     Watermark="{DynamicResource Text.Preferences.GPG.UserKey.Placeholder}"/>
-
-            <CheckBox Grid.Row="3" Grid.Column="1"
-                      Content="{DynamicResource Text.Preferences.GPG.CommitEnabled}"
-                      IsChecked="{Binding #ThisControl.EnableGPGCommitSigning, Mode=TwoWay}"
-                      ToolTip.Tip="commit.gpgsign=true"/>
-
-            <CheckBox Grid.Row="4" Grid.Column="1"
-                      Content="{DynamicResource Text.Preferences.GPG.TagEnabled}"
-                      IsChecked="{Binding #ThisControl.EnableGPGTagSigning, Mode=TwoWay}"
-                      ToolTip.Tip="tag.gpgsign=true"/>
-          </Grid>
-                  </ScrollViewer>
-        </TabItem>
-
-      </TabControl>
-      <ScrollViewer x:Name="IntegrationSettings" IsVisible="False"
-                    HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-
-          <StackPanel Margin="8" Orientation="Vertical" Grid.IsSharedSizeScope="True">
             <StackPanel Orientation="Horizontal">
               <Path Width="12" Height="12" Data="{StaticResource Icons.Terminal}"/>
               <TextBlock Classes="bold" Margin="4,0,0,0" Text="{DynamicResource Text.Preferences.Shell}"/>
             </StackPanel>
-            <Rectangle Margin="0,8" Fill="{DynamicResource Brush.Border2}" Height=".6" HorizontalAlignment="Stretch"/>
-            <Grid Margin="8,0,0,0" RowDefinitions="32,Auto,Auto">
+            <Rectangle Margin="0,2.67,0,8" Fill="{DynamicResource Brush.Border2}" Height=".6" HorizontalAlignment="Stretch"/>
+            <Grid Margin="8,0,8,0" RowDefinitions="32,Auto,Auto">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" SharedSizeGroup="IntegrationLabel"/>
                 <ColumnDefinition Width="*"/>
@@ -579,8 +608,8 @@
               <Path Width="12" Height="12" Data="{StaticResource Icons.Diff}"/>
               <TextBlock Classes="bold" Margin="4,0,0,0" Text="{DynamicResource Text.Preferences.DiffMerge}"/>
             </StackPanel>
-            <Rectangle Margin="0,8" Fill="{DynamicResource Brush.Border2}" Height=".6" HorizontalAlignment="Stretch"/>
-            <Grid Margin="8,0,0,8" RowDefinitions="32,Auto,Auto,Auto">
+            <Rectangle Margin="0,2.67,0,8" Fill="{DynamicResource Brush.Border2}" Height=".6" HorizontalAlignment="Stretch"/>
+            <Grid Margin="8,0,8,8" RowDefinitions="32,Auto,Auto,Auto">
               <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto" SharedSizeGroup="IntegrationLabel"/>
                 <ColumnDefinition Width="*"/>

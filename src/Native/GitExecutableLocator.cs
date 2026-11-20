@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.Versioning;
 using System.Runtime.InteropServices;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -15,53 +16,105 @@ namespace SourceGit.Native
     {
         public static string BundledPath => Path.Combine(AppContext.BaseDirectory, "git", "cmd", "git.exe");
 
-        public static bool IsBundled(string path) => IsWithin(path, Path.Combine(AppContext.BaseDirectory, "git"));
+        private static string UserCache => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TreeGit", GitRuntimeArchive.CacheDirectory);
+
+        public static bool IsBundled(string path) => IsWithin(path, Path.Combine(AppContext.BaseDirectory, "git")) ||
+            IsWithin(path, Path.Combine(AppContext.BaseDirectory, GitRuntimeArchive.CacheDirectory)) || IsWithin(path, UserCache);
 
         public static bool IsManagedBundle(string path)
         {
             if (IsBundled(path)) return true;
             var root = RuntimeRoot(path);
             var host = root == null ? null : Path.GetDirectoryName(root);
+            if (host != null && Path.GetFileName(host) == GitRuntimeArchive.CacheDirectory && File.Exists(Path.Combine(root, ".ready"))) return true;
             return host != null && File.Exists(Path.Combine(root, "runtime-manifest.json")) &&
                 (File.Exists(Path.Combine(host, "TreeGit.exe")) || File.Exists(Path.Combine(host, "SourceGit.exe")));
         }
 
         [SupportedOSPlatform("windows")]
         public static string FindWindowsGit()
+            => FindInstalledWindowsGit() ?? FindBundledGit();
+
+        [SupportedOSPlatform("windows")]
+        internal static string FindInstalledWindowsGit()
         {
-            string selected;
+            IEnumerable<string> candidates = GetWindowsCandidates();
 #if INTEGRATION_TESTS
             if (Environment.GetEnvironmentVariable("TREEGIT_TEST_NO_SYSTEM_GIT") == "1")
-                selected = Resolve([], BundledPath);
-            else
+                candidates = [];
 #endif
-                selected = Resolve(GetWindowsCandidates(), BundledPath);
-            if (selected != null && IsBundled(selected))
+            return Resolve(candidates, BundledPath, false);
+        }
+
+        internal static void FinishExpandedUpgrade()
+        {
+            var app = AppContext.BaseDirectory;
+            var payload = Path.Combine(app, "git", "payload-manifest.json");
+            if (!File.Exists(payload) || !File.Exists(Path.Combine(app, "git", "usr", "bin", "sh.exe"))) return;
+            _ = Task.Run(async () =>
             {
-                var root = Path.Combine(AppContext.BaseDirectory, "git");
-                foreach (var relative in new[] { "usr/bin/ssh.exe", "usr/bin/sh.exe", "ucrt64/etc/ssl/certs/ca-bundle.crt",
-                    "ucrt64/libexec/git-core/git-lfs.exe", "ucrt64/libexec/git-core/git-flow.exe" })
-                    if (!File.Exists(Path.Combine(root, relative.Replace('/', Path.DirectorySeparatorChar))))
-                        return null;
+                try
+                {
+                    // An older updater can install a compact package over its existing expanded Git.
+                    var marker = Path.Combine(app, ".treegit-update", "active.json");
+                    for (int i = 0; i < 60 && File.Exists(marker); i++)
+                        await Task.Delay(2000).ConfigureAwait(false);
+                    if (!File.Exists(marker) && File.Exists(payload))
+                        GitRuntimeArchive.FindOrExtract(app, null, IsUsable);
+                }
+                catch (Exception e) when (e is IOException or InvalidDataException or UnauthorizedAccessException or
+                    System.Text.Json.JsonException or KeyNotFoundException or InvalidOperationException or ArgumentException) { }
+            });
+        }
+
+        internal static string ReadBundledVersion()
+        {
+            var directory = Path.GetDirectoryName(Path.GetDirectoryName(BundledPath));
+            // The full manifest moves into place after on-demand extraction.
+            foreach (var name in new[] { "payload-manifest.json", "runtime-manifest.json" })
+            {
+                try
+                {
+                    using var stream = File.OpenRead(Path.Combine(directory, name));
+                    using var manifest = JsonDocument.Parse(stream);
+                    if (manifest.RootElement.TryGetProperty("gitVersion", out var property) &&
+                        property.ValueKind == JsonValueKind.String && property.GetString() is { Length: > 0 } release)
+                        return release;
+                }
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException) { }
             }
-            return selected;
+
+            return TryReadVersion(BundledPath, out var version, out _) ? version : string.Empty;
+        }
+
+        internal static string FindBundledGit()
+        {
+            try
+            {
+                return GitRuntimeArchive.FindOrExtract(AppContext.BaseDirectory, UserCache, IsUsable);
+            }
+            catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or
+                System.Text.Json.JsonException or KeyNotFoundException or InvalidOperationException or ArgumentException)
+            {
+                return null;
+            }
         }
 
         // Kept separate from registry enumeration so absence, stale installations
         // and broken executables can be tested without modifying the user's OS.
-        internal static string Resolve(IEnumerable<string> systemCandidates, string bundledPath)
+        internal static string Resolve(IEnumerable<string> systemCandidates, string bundledPath, bool useBundled = true)
         {
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var bundledRoot = Path.GetDirectoryName(Path.GetDirectoryName(bundledPath));
             foreach (var candidate in systemCandidates)
             {
                 var path = Normalize(candidate);
-                if (path == null || IsWithin(path, bundledRoot) || !seen.Add(path))
+                if (path == null || IsWithin(path, bundledRoot) || !seen.Add(path) || (!useBundled && IsManagedBundle(path)))
                     continue;
                 if (IsUsable(path))
                     return path;
             }
-            return IsUsable(bundledPath) ? Path.GetFullPath(bundledPath) : null;
+            return useBundled && IsUsable(bundledPath) ? Path.GetFullPath(bundledPath) : null;
         }
 
         internal static bool IsUsable(string path)
@@ -85,7 +138,7 @@ namespace SourceGit.Native
                 }};
                 uint previousMode = 0;
                 var changedMode = OperatingSystem.IsWindows() && SetThreadErrorMode(GetThreadErrorMode() | 1, out previousMode);
-                try { ProcessLauncher.Start(process); }
+                try { ProcessLauncher.Start(process, allowGitRecovery: false); }
                 finally { if (changedMode) SetThreadErrorMode(previousMode, out _); }
                 var stdout = process.StandardOutput.ReadToEndAsync();
                 var stderr = process.StandardError.ReadToEndAsync();
@@ -97,9 +150,12 @@ namespace SourceGit.Native
                 }
                 if (process.ExitCode != 0 || !Task.WhenAll(stdout, stderr).Wait(1000))
                     return false;
-                text = stdout.Result.Trim();
-                var match = Regex.Match(text, @"^git version (\d+)\.(\d+)\.(\d+)");
-                return match.Success && Version.TryParse($"{match.Groups[1]}.{match.Groups[2]}.{match.Groups[3]}", out version);
+                var output = stdout.Result.Trim();
+                var match = Regex.Match(output, @"^git version (\d+)\.(\d+)\.(\d+)");
+                if (!match.Success || !Version.TryParse($"{match.Groups[1]}.{match.Groups[2]}.{match.Groups[3]}", out version))
+                    return false;
+                text = output["git version ".Length..];
+                return true;
             }
             catch (Exception e) when (e is IOException || e is System.ComponentModel.Win32Exception ||
                 e is InvalidOperationException || e is UnauthorizedAccessException || e is AggregateException)

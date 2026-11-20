@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
@@ -56,6 +57,37 @@ internal static class GitDiscoveryProbe
         Check("SSH and PATH follow the selected runtime", GitExecutableLocator.ConfigureProcess(start, installed) == Path.Combine(root, "_system", "usr", "bin", "ssh.exe") &&
             start.Environment["PATH"].StartsWith(Path.Combine(root, "_system", "cmd")) && !start.Environment["PATH"].Contains("_bundle") && start.Environment["PATH"].EndsWith("original-path"));
         if (args.Length > 1) Check("the real bundled Git is runnable", GitExecutableLocator.IsUsable(Path.GetFullPath(args[1])));
+        if (args.Length > 2)
+        {
+            var app = Path.Combine(root, "on-demand");
+            Directory.CreateDirectory(app);
+            try
+            {
+                using (var zip = ZipFile.OpenRead(args[2]))
+                    foreach (var relative in new[] { "cmd/git.exe", "runtime.zip", "payload-manifest.json", "runtime-manifest.json" })
+                    {
+                        var destination = Path.Combine(app, "git", relative);
+                        Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
+                        zip.GetEntry("TreeGit/git/" + relative)!.ExtractToFile(destination);
+                    }
+                var gitDirectory = Path.Combine(app, "git");
+                var inner = Path.Combine(gitDirectory, "runtime.zip");
+                var payloadManifest = Path.Combine(gitDirectory, "payload-manifest.json");
+                var originalManifest = File.ReadAllBytes(payloadManifest);
+                Check("failed validation retains the compressed payload",
+                    GitRuntimeArchive.FindOrExtract(app, null, _ => false) == null && File.Exists(inner) && File.Exists(payloadManifest));
+                var cached = GitRuntimeArchive.FindOrExtract(app, null, GitExecutableLocator.IsUsable);
+                Check("a compact release expands to a working offline Git", GitExecutableLocator.IsUsable(cached));
+                var stamp = File.GetLastWriteTimeUtc(cached);
+                Check("activation releases the archive and restores the original manifest",
+                    !File.Exists(inner) && !File.Exists(payloadManifest) && originalManifest.AsSpan().SequenceEqual(
+                        File.ReadAllBytes(Path.Combine(gitDirectory, "runtime-manifest.json"))));
+                Check("the verified runtime is reused in place without another extraction",
+                    GitRuntimeArchive.FindOrExtract(app, null) == cached && File.GetLastWriteTimeUtc(cached) == stamp &&
+                    !Directory.Exists(Path.Combine(app, GitRuntimeArchive.CacheDirectory)));
+            }
+            finally { Directory.Delete(app, true); }
+        }
         File.WriteAllText(Path.Combine(root, "git-discovery-results.json"), JsonSerializer.Serialize(new { passed = checks.Count, checks }, new JsonSerializerOptions { WriteIndented = true }));
         return 0;
     }

@@ -10,6 +10,8 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _message, value);
         }
 
+        internal System.Threading.Tasks.Task Loading { get; set; }
+
         public bool Failed { get; set; }
 
         private string _message = App.Text("Repository.Loading");

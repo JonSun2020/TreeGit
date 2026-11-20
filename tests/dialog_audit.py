@@ -110,7 +110,7 @@ try:
             dialogs=state['dialogs']
             check(f'preferences {page} {zoom} remains within screen',len(dialogs)==1 and within(dialogs[0]))
             probe=state['layoutProbe']['dialogs'][0]
-            own_settings = not probe['tabs'] if page=='integration' else len(probe['tabs'])==1 and len(probe['tabs'][0]['visibleHeaders'])==4
+            own_settings = not probe['tabs'] if page in ('integration','git') else len(probe['tabs'])==1 and len(probe['tabs'][0]['visibleHeaders'])==3
             check(f'preferences {page} {zoom} shows only its own settings',own_settings and bool(probe['content']))
         tool('ui_command',{'command':'close_dialog'})
         tool('ui_command',{'repo':str(repo),'command':'repository_settings'})

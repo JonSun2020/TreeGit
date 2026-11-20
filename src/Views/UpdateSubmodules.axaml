@@ -22,7 +22,7 @@
       <TextBlock Grid.Row="0" Grid.Column="0"
                  HorizontalAlignment="Right" VerticalAlignment="Center"
                  Margin="0,0,8,0"
-                 Text="{DynamicResource Text.UpdateSubmodules.Target}"/>
+                 Classes="option_dependent" IsEnabled="{Binding !UpdateAll}" Text="{DynamicResource Text.UpdateSubmodules.Target}"/>
       <ComboBox Grid.Row="0" Grid.Column="1"
                 Height="28" Padding="8,0"
                 VerticalAlignment="Center" HorizontalAlignment="Stretch"

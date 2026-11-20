@@ -246,7 +246,8 @@ jobs:
         run: |
           dotnet build tests/GitDiscoveryProbe.csproj -c Release -o "$env:RUNNER_TEMP/discovery-probe" -v:q
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          & "$env:RUNNER_TEMP/discovery-probe/GitDiscoveryProbe.exe" "$env:RUNNER_TEMP/discovery-results" "$env:RUNNER_TEMP/TreeGit/git/cmd/git.exe"
+          $archive = (Get-ChildItem TreeGit-*-Windows-x64.zip | Select-Object -First 1).FullName
+          & "$env:RUNNER_TEMP/discovery-probe/GitDiscoveryProbe.exe" "$env:RUNNER_TEMP/discovery-results" "$env:RUNNER_TEMP/TreeGit/git/cmd/git.exe" $archive
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify update validation and recovery
         if: ${{ !inputs.preview }}

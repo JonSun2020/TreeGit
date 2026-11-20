@@ -1,5 +1,5 @@
 """The release ZIP must exclude local files and reject integration builds/reused versions."""
-import hashlib, json, msvcrt, subprocess, sys, tempfile, zipfile
+import hashlib, io, json, msvcrt, subprocess, sys, tempfile, zipfile
 from pathlib import Path
 from qa_cleanup import new_fixture, remove_fixture
 out=Path(sys.argv[1]).resolve();out.mkdir(parents=True,exist_ok=True)
@@ -27,7 +27,12 @@ if r.returncode!=0:raise RuntimeError(r.stdout.decode('utf-8',errors='replace')+
 check('a normal build creates a versioned archive',(first/'TreeGit-0.0.1-Windows-x64.zip').is_file())
 archive=first/'TreeGit-0.0.1-Windows-x64.zip'
 with zipfile.ZipFile(archive) as z:
-    check('program files, verified Git and an empty data directory enter the ZIP',set(z.namelist())=={'TreeGit/'+name for name in files}|{'TreeGit/data/'}|{'TreeGit/git/'+n for n in required+['runtime-manifest.json']})
+    wrappers={'cmd/git.exe','runtime.zip','runtime-manifest.json','payload-manifest.json','COMPONENTS.md','LICENSE.txt','licenses/Git-LFS-LICENSE.md','licenses/Git-Flow-LICENSE'}
+    check('the portable package keeps Git compressed',set(z.namelist())=={'TreeGit/'+name for name in files}|{'TreeGit/data/'}|{'TreeGit/git/'+n for n in wrappers})
+    wrapper=json.loads(z.read('TreeGit/git/runtime-manifest.json'))['files']
+    check('the previous updater can verify the compact payload', {x['path'] for x in wrapper}==wrappers-{'runtime-manifest.json'} and all(hashlib.sha256(z.read('TreeGit/git/'+x['path'])).hexdigest()==x['sha256'] for x in wrapper))
+    with zipfile.ZipFile(io.BytesIO(z.read('TreeGit/git/runtime.zip'))) as payload:
+        check('every verified component is recoverable offline',set(payload.namelist())==set(required) and all(payload.read(n)==(runtime/n).read_bytes() for n in required))
     for name,args in [('mcp-readonly.json',['--mcp','--read-only']),('mcp-readwrite.json',['--mcp'])]:
         check(name+' ships only a generic example without personal commands or secrets',json.loads(z.read('TreeGit/'+name))=={'mcpServers':{'treegit':{'command':r'C:\Tools\TreeGit\TreeGit.exe','args':args}}})
 check('packaging leaves both personal MCP configurations unchanged',all((source/name).read_bytes()==private_mcp for name in ['mcp-readonly.json','mcp-readwrite.json']))
