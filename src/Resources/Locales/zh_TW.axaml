@@ -1435,6 +1435,7 @@
   <x:String x:Key="Text.TreeGit.Binary.GoTo" xml:space="preserve">跳至</x:String>
   <x:String x:Key="Text.TreeGit.Binary.SeparateWindow" xml:space="preserve">獨立視窗</x:String>
   <x:String x:Key="Text.TreeGit.Binary.Loading" xml:space="preserve">正在讀取並比較二進位檔案…</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.Indexing">正在統計差異…</x:String>
   <x:String x:Key="Text.TreeGit.Binary.OldPrefix" xml:space="preserve">舊版本 · </x:String>
   <x:String x:Key="Text.TreeGit.Binary.NewPrefix" xml:space="preserve">新版本 · </x:String>
   <x:String x:Key="Text.TreeGit.Binary.Summary" xml:space="preserve">舊：{0:N0} 位元組    新：{1:N0} 位元組    差異：{2:N0} 位元組 · 依相同偏移量比較（唯讀）</x:String>

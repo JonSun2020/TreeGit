@@ -9,6 +9,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Markup.Xaml.MarkupExtensions;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 namespace SourceGit.Views
@@ -24,8 +25,11 @@ namespace SourceGit.Views
         private readonly HexPane _left;
         private readonly HexPane _right;
         private CancellationTokenSource _cancel;
+        private ComparisonSession _session;
+        private ComparisonSession _sharedSession;
         private Models.BinaryComparison _comparison;
         private Task _navigation = Task.CompletedTask;
+        private int _navigationVersion;
         private long _selected = -1;
         private int _bytesPerRow = 16;
         private bool _attached;
@@ -87,11 +91,21 @@ namespace SourceGit.Views
             Grid.SetColumn(_scroll, 3); content.Children.Add(_scroll);
             Grid.SetRow(content, 3); root.Children.Add(content);
             Content = root;
-            _scroll.PropertyChanged += (_, e) => { if (e.Property == RangeBase.ValueProperty) Redraw(); };
+            _scroll.PropertyChanged += (_, e) =>
+            {
+                if (e.Property != RangeBase.ValueProperty) return;
+                _navigationVersion++;
+                Redraw();
+            };
             SizeChanged += (_, _) => ResizeRows();
             _left.SizeChanged += (_, _) => ResizeRows();
             _right.SizeChanged += (_, _) => ResizeRows();
-            PointerWheelChanged += (_, e) => { _scroll.Value = Math.Clamp(_scroll.Value - e.Delta.Y * 3, 0, _scroll.Maximum); e.Handled = true; };
+            PointerWheelChanged += (_, e) =>
+            {
+                _navigationVersion++;
+                _scroll.Value = Math.Clamp(_scroll.Value - e.Delta.Y * 3, 0, _scroll.Maximum);
+                e.Handled = true;
+            };
             _address.KeyDown += (_, e) => { if (e.Key == Key.Enter) { Jump(); e.Handled = true; } };
         }
 
@@ -121,23 +135,33 @@ namespace SourceGit.Views
             if (DataContext is not Models.BinaryDiff diff) return;
             _oldTitle.Text = App.Text("TreeGit.Binary.OldPrefix") + Label(diff.OldRevision, diff.NewRevision) + " · " + diff.OldFilePath;
             _newTitle.Text = App.Text("TreeGit.Binary.NewPrefix") + Label(diff.NewRevision) + " · " + diff.FilePath;
-            if (_comparison is { } comparison)
+            if (Status == "error")
+                _summary.Text = App.Text("BinaryDiff.LoadFailed");
+            else if (_comparison is { } comparison)
             {
-                _summary.Text = App.Text("TreeGit.Binary.Summary", comparison.OldSize, comparison.NewSize, comparison.DifferentBytes);
-                _oldTitle.Text += App.Text("TreeGit.Binary.ByteCount", comparison.OldSize);
-                _newTitle.Text += App.Text("TreeGit.Binary.ByteCount", comparison.NewSize);
+                _summary.Text = _session.IsIndexed
+                    ? App.Text("TreeGit.Binary.Summary", comparison.OldSize, comparison.NewSize, comparison.DifferentBytes)
+                    : App.Text("TreeGit.Binary.Indexing");
             }
-            else _summary.Text = App.Text(Status == "error" ? "BinaryDiff.LoadFailed" : "TreeGit.Binary.Loading");
+            else _summary.Text = App.Text("TreeGit.Binary.Loading");
+            if (_comparison is { } snapshot)
+            {
+                _oldTitle.Text += App.Text("TreeGit.Binary.ByteCount", snapshot.OldSize);
+                _newTitle.Text += App.Text("TreeGit.Binary.ByteCount", snapshot.NewSize);
+            }
             _left.InvalidateVisual(); _right.InvalidateVisual();
         }
 
         private async void Stop()
         {
             var cancellation = _cancel; _cancel = null; cancellation?.Cancel();
-            var comparison = _comparison; _comparison = null;
+            var session = _session; _session = null; _comparison = null;
+            var navigation = _navigation; _navigation = Task.CompletedTask;
             _selected = -1; _address.Text = string.Empty; ResizeRows();
-            try { await _navigation; } catch (OperationCanceledException) { }
-            comparison?.Dispose(); cancellation?.Dispose();
+            _navigationVersion = 0;
+            await navigation;
+            if (session != null) await session.ReleaseAsync();
+            cancellation?.Dispose();
         }
 
         private async void Reload()
@@ -145,28 +169,39 @@ namespace SourceGit.Views
             Stop();
             if (DataContext is not Models.BinaryDiff diff) return;
             var cancellation = new CancellationTokenSource(); _cancel = cancellation;
+            var token = cancellation.Token;
+            var session = _sharedSession?.Retain() ?? new ComparisonSession(diff);
+            _sharedSession = null;
+            _session = session;
             _retry.IsVisible = false; _errorDetails = null;
             Status = "loading"; _summary.Text = App.Text("TreeGit.Binary.Loading");
             _oldTitle.Text = App.Text("TreeGit.Binary.OldPrefix") + Label(diff.OldRevision, diff.NewRevision) + " · " + diff.OldFilePath;
             _newTitle.Text = App.Text("TreeGit.Binary.NewPrefix") + Label(diff.NewRevision) + " · " + diff.FilePath;
             try
             {
-                var comparison = await Commands.BinarySnapshots.LoadAsync(diff, cancellation.Token);
-                if (_cancel != cancellation) { comparison.Dispose(); return; }
+                var comparison = await session.Snapshots.WaitAsync(token);
+                if (_cancel != cancellation) return;
                 _comparison = comparison; _selected = -1;
-                _summary.Text = App.Text("TreeGit.Binary.Summary", comparison.OldSize, comparison.NewSize, comparison.DifferentBytes);
-                _oldTitle.Text += App.Text("TreeGit.Binary.ByteCount", comparison.OldSize);
-                _newTitle.Text += App.Text("TreeGit.Binary.ByteCount", comparison.NewSize);
-                ResizeRows(); await NavigateAsync("first");
-                if (_cancel == cancellation) Status = "ready";
+                RefreshLocalizedLabels();
+                ResizeRows();
+                if (!session.IsIndexed)
+                    await Dispatcher.UIThread.InvokeAsync(() => { }, DispatcherPriority.Background, token);
+                await session.IndexAsync(comparison).WaitAsync(token);
+                if (_cancel != cancellation) return;
+                if (_navigationVersion == 0 && TopOffset == 0) await NavigateAsync("first");
+                if (_cancel != cancellation || Status == "error") return;
+                Status = "ready";
+                RefreshLocalizedLabels();
             }
             catch (OperationCanceledException) { }
-            catch (Exception ex)
-            {
-                if (_cancel != cancellation) return;
-                Status = "error"; _errorDetails = ex.Message;
-                _summary.Text = App.Text("BinaryDiff.LoadFailed"); _retry.IsVisible = true;
-            }
+            catch (Exception ex) { ReportFailure(cancellation, ex); }
+        }
+
+        private void ReportFailure(CancellationTokenSource cancellation, Exception error)
+        {
+            if (_cancel != cancellation) return;
+            Status = "error"; _errorDetails = error.Message;
+            _summary.Text = App.Text("BinaryDiff.LoadFailed"); _retry.IsVisible = true;
         }
 
         public void Retry()
@@ -187,23 +222,36 @@ namespace SourceGit.Views
         public async Task NavigateAsync(string action)
         {
             if (_comparison == null || _cancel == null) return;
-            var comparison = _comparison; var cancellation = _cancel;
+            var comparison = _comparison;
+            var session = _session;
+            var cancellation = _cancel;
             var direction = action is "previous" or "last" ? -1 : 1;
             var current = action is "first" or "last" ? -1 : _selected;
+            var request = ++_navigationVersion;
+            var pending = NavigateCoreAsync(comparison, session, cancellation, current, direction, request);
+            // Detaching must allow all readers to finish before releasing the session.
+            _navigation = Task.WhenAll(_navigation, pending);
+            await pending;
+        }
+
+        private async Task NavigateCoreAsync(Models.BinaryComparison comparison, ComparisonSession session,
+            CancellationTokenSource cancellation, long current, int direction, int request)
+        {
+            var token = cancellation.Token;
             try
             {
-                var pending = Task.Run(() => comparison.Navigate(current, direction, cancellation.Token), cancellation.Token);
-                // Chain all readers so detaching the view cannot dispose a snapshot in use.
-                _navigation = Task.WhenAll(_navigation, pending);
-                var offset = await pending;
-                if (_comparison == comparison && offset >= 0) GoTo(offset);
+                await session.IndexAsync(comparison).WaitAsync(token);
+                var offset = await Task.Run(() => comparison.Navigate(current, direction, token), token);
+                if (_cancel == cancellation && request == _navigationVersion && offset >= 0) GoTo(offset);
             }
             catch (OperationCanceledException) { }
+            catch (Exception ex) { ReportFailure(cancellation, ex); }
         }
 
         public void GoTo(long offset)
         {
             if (_comparison == null || offset < 0 || offset >= _comparison.Length) return;
+            _navigationVersion++;
             _selected = offset; _address.Text = offset.ToString("X");
             _scroll.Value = Math.Min(_scroll.Maximum, offset / _bytesPerRow); Redraw();
         }
@@ -235,7 +283,8 @@ namespace SourceGit.Views
         {
             if (!_allowSeparateWindow || DataContext is not Models.BinaryDiff diff || TopLevel.GetTopLevel(this) is not Window owner || owner is InternalDiffWindow) return;
             var window = new OwnedNativeWindow { [!Window.TitleProperty] = App.TextBinding("TreeGit.Binary.WindowTitle"), Width = 1340, Height = 760, MinWidth = 640, MinHeight = 360,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner, Content = new BinaryDiffView(false) { DataContext = diff } };
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Content = new BinaryDiffView(false) { DataContext = diff, _sharedSession = Status == "error" ? null : _session } };
             // Use native frame for this independent inspector, including move/resize/close.
             window.SystemDecorations = SystemDecorations.Full;
             window.KeyDown += (_, e) => { if (e.Key == Key.Escape) { window.Close(); e.Handled = true; } };
@@ -258,6 +307,46 @@ namespace SourceGit.Views
                     area.Y + (int)Math.Max(8 * scaling, (area.Height - (window.Height + 48) * scaling) / 2));
             }
             window.Show(owner);
+        }
+
+        // Both inspectors keep the same immutable pair and one difference index.
+        // The final view releases the files after snapshot work and readers finish.
+        private sealed class ComparisonSession
+        {
+            private readonly CancellationTokenSource _lifetime = new();
+            private Task _index;
+            private int _views = 1;
+            public Task<Models.BinaryComparison> Snapshots { get; }
+
+            public ComparisonSession(Models.BinaryDiff diff)
+            {
+                Snapshots = Commands.BinarySnapshots.LoadAsync(diff, _lifetime.Token);
+            }
+            public bool IsIndexed => _index?.IsCompletedSuccessfully == true;
+
+            public ComparisonSession Retain()
+            {
+                _views++;
+                return this;
+            }
+
+            public Task IndexAsync(Models.BinaryComparison comparison) => _index ??= comparison.ScanAsync(_lifetime.Token);
+
+            public async Task ReleaseAsync()
+            {
+                if (--_views != 0) return;
+                _lifetime.Cancel();
+                try
+                {
+                    using var comparison = await Snapshots;
+                    if (_index != null) await _index;
+                }
+                catch (Exception)
+                {
+                    // Load and scan failures are reported by the view that requested them.
+                }
+                finally { _lifetime.Dispose(); }
+            }
         }
 
         private sealed class HexPane(BinaryDiffView owner, bool old) : Control

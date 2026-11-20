@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Numerics;
+using System.Runtime.Intrinsics;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -11,8 +13,8 @@ namespace SourceGit.Models
     public sealed class BinaryComparison : IDisposable
     {
         public const int PageSize = 65536;
-        public long OldSize => _old.Length;
-        public long NewSize => _new.Length;
+        public long OldSize { get; }
+        public long NewSize { get; }
         public long Length => Math.Max(OldSize, NewSize);
         public long DifferentBytes { get; private set; }
         public int IndexedPages => _pages.Count;
@@ -21,49 +23,85 @@ namespace SourceGit.Models
         private readonly FileStream _old;
         private readonly FileStream _new;
         private readonly string _directory;
-        private readonly List<Page> _pages = [];
+        private List<Page> _pages = [];
         private readonly record struct Page(long Offset, int Length, int Count);
 
         public BinaryComparison(string oldFile, string newFile, string ownedDirectory = null)
         {
             _directory = ownedDirectory;
             _old = File.OpenRead(oldFile);
-            try { _new = File.OpenRead(newFile); }
-            catch { _old.Dispose(); throw; }
+            try
+            {
+                OldSize = _old.Length;
+                _new = File.OpenRead(newFile);
+                NewSize = _new.Length;
+            }
+            catch { _new?.Dispose(); _old.Dispose(); throw; }
         }
 
         public byte[] Read(bool old, long offset, int count)
         {
-            var stream = old ? _old : _new;
-            count = (int)Math.Min(Math.Max(0, stream.Length - offset), count);
+            count = (int)Math.Min(Math.Max(0, (old ? OldSize : NewSize) - offset), count);
             var bytes = new byte[count];
+            var read = ReadInto(old ? _old : _new, offset, bytes);
+            return read == count ? bytes : bytes[..read];
+        }
+
+        private static int ReadInto(FileStream stream, long offset, Span<byte> bytes)
+        {
             var read = 0;
-            while (read < count)
+            while (read < bytes.Length)
             {
-                var n = RandomAccess.Read(stream.SafeFileHandle, bytes.AsSpan(read), offset + read);
+                var n = RandomAccess.Read(stream.SafeFileHandle, bytes[read..], offset + read);
                 if (n == 0) break;
                 read += n;
             }
-            return read == count ? bytes : bytes[..read];
+            return read;
         }
 
         public Task ScanAsync(CancellationToken token) => Task.Run(() =>
         {
-            _pages.Clear();
-            DifferentBytes = 0;
-            for (long offset = 0; offset < Length; offset += PageSize)
+            var pages = new List<Page>();
+            var oldBuffer = new byte[PageSize];
+            var newBuffer = new byte[PageSize];
+            var total = 0L;
+            var length = Length;
+            for (long offset = 0; offset < length; offset += PageSize)
             {
                 token.ThrowIfCancellationRequested();
-                var a = Read(true, offset, PageSize);
-                var b = Read(false, offset, PageSize);
-                var length = Math.Max(a.Length, b.Length);
-                var count = 0;
-                for (var i = 0; i < length; i++)
-                    if (Different(a, b, i)) count++;
-                if (count > 0) _pages.Add(new Page(offset, length, count));
-                DifferentBytes += count;
+                var oldCount = (int)Math.Clamp(OldSize - offset, 0, PageSize);
+                var newCount = (int)Math.Clamp(NewSize - offset, 0, PageSize);
+                var a = oldBuffer.AsSpan(0, ReadInto(_old, offset, oldBuffer.AsSpan(0, oldCount)));
+                var b = newBuffer.AsSpan(0, ReadInto(_new, offset, newBuffer.AsSpan(0, newCount)));
+                var count = CountDifferences(a, b);
+                if (count > 0) pages.Add(new Page(offset, Math.Max(a.Length, b.Length), count));
+                total += count;
             }
+            token.ThrowIfCancellationRequested();
+            _pages = pages;
+            DifferentBytes = total;
         }, token);
+
+        private static int CountDifferences(ReadOnlySpan<byte> a, ReadOnlySpan<byte> b)
+        {
+            var common = Math.Min(a.Length, b.Length);
+            var count = Math.Abs(a.Length - b.Length);
+            if (a[..common].SequenceEqual(b[..common])) return count;
+
+            var i = 0;
+            if (Vector128.IsHardwareAccelerated)
+            {
+                var width = Vector128<byte>.Count;
+                for (; i <= common - width; i += width)
+                {
+                    var matches = Vector128.Equals(Vector128.Create(a[i..]), Vector128.Create(b[i..]));
+                    count += width - BitOperations.PopCount(matches.ExtractMostSignificantBits());
+                }
+            }
+            for (; i < common; i++)
+                if (a[i] != b[i]) count++;
+            return count;
+        }
 
         public long Navigate(long current, int direction, CancellationToken token)
         {

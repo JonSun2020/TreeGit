@@ -136,6 +136,7 @@ namespace SourceGit.Tests
                                         Repository = repo.FullPath, OldRevision = data.GetProperty("oldRevision").GetString(), NewRevision = string.Empty,
                                         OldFilePath = data.GetProperty("oldPath").GetString(), FilePath = data.GetProperty("path").GetString(),
                                     }, default);
+                                    await snapshot.ScanAsync(default);
                                     operationDetails = new { success = true, oldSize = snapshot.OldSize, newSize = snapshot.NewSize, differences = snapshot.DifferentBytes };
                                 }
                                 catch (IOException snapshotError) { operationDetails = new { success = false, error = snapshotError.Message }; }

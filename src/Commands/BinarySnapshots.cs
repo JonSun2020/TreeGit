@@ -12,21 +12,18 @@ namespace SourceGit.Commands
         {
             var folder = Path.Combine(Path.GetTempPath(), "TreeGit-binary-" + Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(folder);
-            Models.BinaryComparison comparison = null;
             try
             {
                 var oldFile = Path.Combine(folder, "old.bin");
                 var newFile = Path.Combine(folder, "new.bin");
                 await SaveAsync(diff.Repository, diff.OldRevision, diff.OldFilePath, oldFile, token).ConfigureAwait(false);
                 await SaveAsync(diff.Repository, diff.NewRevision, diff.FilePath, newFile, token).ConfigureAwait(false);
-                comparison = new Models.BinaryComparison(oldFile, newFile, folder);
-                await comparison.ScanAsync(token).ConfigureAwait(false);
-                return comparison;
+                token.ThrowIfCancellationRequested();
+                return new Models.BinaryComparison(oldFile, newFile, folder);
             }
             catch
             {
-                if (comparison != null) comparison.Dispose();
-                else Directory.Delete(folder, true);
+                Directory.Delete(folder, true);
                 throw;
             }
         }
@@ -47,8 +44,25 @@ namespace SourceGit.Commands
                 return;
             }
 
-            // Resolve only refs here. A missing path is a valid added/deleted side;
-            // a broken ref must not silently look like an empty file.
+            // Reading the blob also resolves its type and revision. Check them
+            // separately only on failure, when an absent side can be valid.
+            var spec = revision + ":" + path;
+            IOException readFailure;
+            using (var process = Start(repo, "cat-file", "blob", "--", spec))
+            {
+                try
+                {
+                    await CopyAsync(process, output, token).ConfigureAwait(false);
+                    return;
+                }
+                catch (IOException ex) when (process.HasExited && process.ExitCode != 0 && output.Position == 0)
+                {
+                    token.ThrowIfCancellationRequested();
+                    readFailure = ex;
+                }
+            }
+
+            // A broken ref must not silently look like an empty file.
             if (revision.Length > 0)
             {
                 using var check = Start(repo, "rev-parse", "--verify", "--end-of-options", revision + "^{tree}");
@@ -66,7 +80,6 @@ namespace SourceGit.Commands
                     throw new IOException("Cannot resolve binary comparison revision: " + revision);
                 }
             }
-            var spec = revision + ":" + path;
             using var exists = Start(repo, "cat-file", "-t", spec);
             var (type, existsCode) = await FinishAsync(exists, token).ConfigureAwait(false);
             if (existsCode != 0)
@@ -76,11 +89,10 @@ namespace SourceGit.Commands
                     Start(repo, "ls-tree", "--full-tree", "-z", revision, "--", path);
                 var (entryText, entryCode) = await FinishAsync(entry, token).ConfigureAwait(false);
                 if (revision.Length == 0 ? entryCode == 1 : entryCode == 0 && entryText.Length == 0) return;
-                throw new IOException("Cannot read binary comparison file: " + spec);
+                throw new IOException("Cannot read binary comparison file: " + spec, readFailure);
             }
             if (type.Trim() != "blob") throw new IOException("The selected path is not a file.");
-            using var process = Start(repo, "cat-file", "blob", spec);
-            await CopyAsync(process, output, token).ConfigureAwait(false);
+            throw new IOException("Cannot read binary comparison file: " + spec, readFailure);
         }
 
         internal static async Task CopyAsync(Process process, Stream output, CancellationToken token)

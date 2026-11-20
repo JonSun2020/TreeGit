@@ -1450,6 +1450,7 @@ Server: {1}</x:String>
   <x:String x:Key="Text.TreeGit.Binary.GoTo" xml:space="preserve">Go to</x:String>
   <x:String x:Key="Text.TreeGit.Binary.SeparateWindow" xml:space="preserve">Separate window</x:String>
   <x:String x:Key="Text.TreeGit.Binary.Loading" xml:space="preserve">Reading and comparing binary files…</x:String>
+  <x:String x:Key="Text.TreeGit.Binary.Indexing">Counting differences…</x:String>
   <x:String x:Key="Text.TreeGit.Binary.OldPrefix" xml:space="preserve">Old version · </x:String>
   <x:String x:Key="Text.TreeGit.Binary.NewPrefix" xml:space="preserve">New version · </x:String>
   <x:String x:Key="Text.TreeGit.Binary.Summary" xml:space="preserve">Old: {0:N0} bytes    New: {1:N0} bytes    Different: {2:N0} bytes · Same-offset comparison (read-only)</x:String>

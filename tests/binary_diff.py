@@ -109,6 +109,8 @@ state = diff('previous'); check('previous difference reaches the end of the prec
 state = diff('last'); check('last difference selects the final added byte', state['selectedOffset'] == len(working)-1)
 state = diff('goto', offset=16)
 check('address jump reads the two matching snapshot offsets', bytes.fromhex(state['oldHex']) == staged[state['topOffset']:state['topOffset']+256] and bytes.fromhex(state['newHex']) == working[state['topOffset']:state['topOffset']+256])
+primary_snapshots = set(snapshot_root.glob('TreeGit-binary-*')) - snapshot_baseline
+check('the main comparison has one immutable snapshot pair', len(primary_snapshots) == 1)
 (out/'binary-side-by-side.png').write_bytes(tool('ui_screenshot'))
 tool('ui_window', {'width':1024, 'height':720}); time.sleep(.3)
 (out/'binary-narrow.png').write_bytes(tool('ui_screenshot'))
@@ -141,6 +143,8 @@ check('independent comparison uses the available screen width and preserves both
       and state['bytesPerRow'] == expected_columns and state['differentBytes'] == expected
       and bytes.fromhex(state['oldHex']) == staged[state['topOffset']:state['topOffset']+256]
       and bytes.fromhex(state['newHex']) == working[state['topOffset']:state['topOffset']+256])
+check('the independent comparison reuses the displayed immutable snapshots',
+      set(snapshot_root.glob('TreeGit-binary-*')) - snapshot_baseline == primary_snapshots)
 (out/'binary-independent.png').write_bytes(tool('ui_screenshot', {'window':'active'}))
 tool('ui_window', {'zoom':2})
 for _ in range(100):
@@ -151,6 +155,8 @@ check('independent comparison adapts at high zoom without changing comparison re
 (out/'binary-independent-high-zoom.png').write_bytes(tool('ui_screenshot', {'window':'active'}))
 tool('ui_window', {'zoom':1})
 tool('ui_command', {'command':'close_dialog'})
+check('closing the inspector preserves the main view and its separate selection',
+      diff()['selectedOffset'] == 16 and set(snapshot_root.glob('TreeGit-binary-*')) - snapshot_baseline == primary_snapshots)
 
 for command in ['external_diff']:
     tool('ui_command', {'command':command})
