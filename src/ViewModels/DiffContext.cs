@@ -62,7 +62,22 @@ namespace SourceGit.ViewModels
                 if (SetProperty(ref _content, value)) OnPropertyChanged(nameof(CanChooseEncoding));
             }
         }
-        public bool CanChooseEncoding => Content is TextDiffContext or Models.BinaryDiff or Models.NoOrEOLChange;
+        public bool CanChooseEncoding => Content is TextDiffContext or Models.NoOrEOLChange;
+        public int DisplayEncodingIndex
+        {
+            get => _displayEncodingIndex;
+            set
+            {
+                Preferences.Instance.SetFileEncodingIndex(_repo, _option.Path, value);
+                RefreshDisplayEncoding();
+            }
+        }
+
+        internal void RefreshDisplayEncoding()
+        {
+            if (SetProperty(ref _displayEncodingIndex, Preferences.Instance.GetFileEncodingIndex(_repo, _option.Path), nameof(DisplayEncodingIndex)))
+                CheckSettings();
+        }
 
         public int UnifiedLines
         {
@@ -75,6 +90,7 @@ namespace SourceGit.ViewModels
             Settings = standalone ? Preferences.Instance.StandaloneDiffSettings ??= new() : Preferences.Instance;
             _repo = repo;
             _option = option;
+            _displayEncodingIndex = Preferences.Instance.GetFileEncodingIndex(_repo, _option.Path);
 
             if (previous != null && string.Equals(previous._repo, repo, StringComparison.Ordinal) &&
                 previous._option.ToString() == option.ToString())
@@ -125,7 +141,7 @@ namespace SourceGit.ViewModels
         public void CheckSettings()
         {
             var pref = Settings;
-            if (_info == null || _info.CodePage != Models.DisplayEncoding.CodePage(pref.DisplayEncodingIndex))
+            if (_info == null || _info.CodePage != Models.DisplayEncoding.CodePage(DisplayEncodingIndex))
             {
                 LoadContent();
                 return;
@@ -153,9 +169,11 @@ namespace SourceGit.ViewModels
 
         private void LoadContent()
         {
-            var loadVersion = Interlocked.Increment(ref _loadVersion);
+            CancelLoad();
+            var loadVersion = Volatile.Read(ref _loadVersion);
             if (_option.Path.EndsWith('/'))
             {
+                LoadCompletion = Task.CompletedTask;
                 OldMode = 0;
                 NewMode = 160000;
                 IsTextDiff = false;
@@ -165,94 +183,125 @@ namespace SourceGit.ViewModels
                 return;
             }
 
-            Task.Run(async () =>
+            var load = new CancellationTokenSource();
+            var token = load.Token;
+            var encoding = Models.DisplayEncoding.CodePage(DisplayEncodingIndex);
+            _loadCancellation = load;
+            LoadCompletion = Task.Run(async () =>
             {
-                var pref = Settings;
-                var numLines = pref.UseFullTextDiff ? _entireFileLines : _unifiedLines;
-                var ignoreWhitespace = pref.IgnoreWhitespaceChangesInDiff;
-                var ignoreCRAtEOL = pref.IgnoreCRAtEOLInDiff;
-
-                var codePage = Models.DisplayEncoding.CodePage(pref.DisplayEncodingIndex);
-                var latest = await new Commands.Diff(_repo, _option, numLines, ignoreWhitespace, ignoreCRAtEOL, codePage)
-                    .ReadAsync()
-                    .ConfigureAwait(false);
-
-                var info = new Info(_option, numLines, ignoreWhitespace, codePage, latest);
-                if (_info != null && info.IsSame(_info))
-                    return;
-
-                object rs = null;
-                if ((latest.IsBinary || Models.DisplayEncoding.IsWide(codePage)) && ImageSource.GetDecoder(_option.Path) == Models.ImageDecoder.None)
+                try { await ReadContentAsync(loadVersion, encoding, token).ConfigureAwait(false); }
+                catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+                catch (Exception error) { Native.OS.LogException(error); }
+                finally
                 {
-                    var decoded = await TryWideDiffAsync(latest, codePage, numLines, ignoreWhitespace, ignoreCRAtEOL).ConfigureAwait(false);
-                    if (decoded != null)
-                    {
-                        latest.TextDiff = decoded.Lines.Count > 0 ? decoded : null;
-                        latest.IsBinary = false;
-                    }
+                    if (Interlocked.CompareExchange(ref _loadCancellation, null, load) == load) load.Dispose();
                 }
-                if (latest.TextDiff is { } textDiff)
+            });
+        }
+
+        internal Task LoadCompletion { get; private set; } = Task.CompletedTask;
+
+        internal void CancelLoad()
+        {
+            Interlocked.Increment(ref _loadVersion);
+            if (Interlocked.Exchange(ref _loadCancellation, null) is { } load)
+                _ = CancelAndDisposeAsync(load);
+        }
+
+        private static async Task CancelAndDisposeAsync(CancellationTokenSource source)
+        {
+            try { await source.CancelAsync().ConfigureAwait(false); }
+            finally { source.Dispose(); }
+        }
+
+        private async Task ReadContentAsync(int loadVersion, int codePage, CancellationToken token)
+        {
+            token.ThrowIfCancellationRequested();
+            var pref = Settings;
+            var numLines = pref.UseFullTextDiff ? _entireFileLines : _unifiedLines;
+            var ignoreWhitespace = pref.IgnoreWhitespaceChangesInDiff;
+            var ignoreCRAtEOL = pref.IgnoreCRAtEOLInDiff;
+
+            var command = new Commands.Diff(_repo, _option, numLines, ignoreWhitespace, ignoreCRAtEOL, codePage) { CancellationToken = token };
+            var latest = await command.ReadAsync()
+                .ConfigureAwait(false);
+
+            var info = new Info(_option, numLines, ignoreWhitespace, codePage, latest);
+            if (_info != null && info.IsSame(_info))
+                return;
+
+            object rs = null;
+            if ((codePage == 0 && latest.IsBinary || Models.DisplayEncoding.IsWide(codePage)) && ImageSource.GetDecoder(_option.Path) == Models.ImageDecoder.None)
+            {
+                var decoded = await TryWideDiffAsync(latest, codePage, numLines, ignoreWhitespace, ignoreCRAtEOL, token).ConfigureAwait(false);
+                if (decoded != null)
                 {
-                    rs = textDiff;
+                    latest.TextDiff = decoded.Lines.Count > 0 ? decoded : null;
+                    latest.IsBinary = false;
                 }
-                else if (latest.LFSDiff is { } lfs)
+            }
+            if (latest.TextDiff is { } textDiff)
+            {
+                rs = textDiff;
+            }
+            else if (latest.LFSDiff is { } lfs)
+            {
+                var imgDecoder = ImageSource.GetDecoder(_option.Path);
+                if (imgDecoder != Models.ImageDecoder.None)
+                    rs = new LFSImageDiff(_repo, lfs, imgDecoder);
+                else
+                    rs = lfs;
+            }
+            else if (latest.IsBinary)
+            {
+                var imgDecoder = ImageSource.GetDecoder(_option.Path);
+                if (imgDecoder != Models.ImageDecoder.None)
+                    rs = await CreateImageDiffAsync(imgDecoder).ConfigureAwait(false);
+                else
+                    rs = await CreateBinaryDiffAsync().ConfigureAwait(false);
+            }
+            else if (latest.IsSubmoduleChange)
+            {
+                rs = await CreateSubmoduleDiffAsync(latest.OldHash, latest.NewHash).ConfigureAwait(false);
+            }
+            else if (IsEmptyFileHash(latest.OldHash) || IsEmptyFileHash(latest.NewHash))
+            {
+                rs = new Models.EmptyFile();
+            }
+            else
+            {
+                rs = new Models.NoOrEOLChange();
+            }
+
+            token.ThrowIfCancellationRequested();
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (loadVersion != Volatile.Read(ref _loadVersion)) return;
+                OldMode = latest.OldMode;
+                NewMode = latest.NewMode;
+
+                if (rs is Models.TextDiff cur)
                 {
-                    var imgDecoder = ImageSource.GetDecoder(_option.Path);
-                    if (imgDecoder != Models.ImageDecoder.None)
-                        rs = new LFSImageDiff(_repo, lfs, imgDecoder);
+                    IsTextDiff = true;
+                    IsIgnoreWhitespaceVisible = true;
+
+                    var option = cur.IsDisplayOnly ? _option.AsDisplayOnly() : _option;
+                    if (Settings.UseSideBySideDiff && !cur.IsNewOrDeletedFile)
+                        Content = new TwoSideTextDiff(option, cur, _content as TextDiffContext);
                     else
-                        rs = lfs;
-                }
-                else if (latest.IsBinary)
-                {
-                    var imgDecoder = ImageSource.GetDecoder(_option.Path);
-                    if (imgDecoder != Models.ImageDecoder.None)
-                        rs = await CreateImageDiffAsync(imgDecoder).ConfigureAwait(false);
-                    else
-                        rs = await CreateBinaryDiffAsync().ConfigureAwait(false);
-                }
-                else if (latest.IsSubmoduleChange)
-                {
-                    rs = await CreateSubmoduleDiffAsync(latest.OldHash, latest.NewHash).ConfigureAwait(false);
-                }
-                else if (IsEmptyFileHash(latest.OldHash) || IsEmptyFileHash(latest.NewHash))
-                {
-                    rs = new Models.EmptyFile();
+                        Content = new CombinedTextDiff(option, cur, _content as TextDiffContext);
                 }
                 else
                 {
-                    rs = new Models.NoOrEOLChange();
+                    IsTextDiff = false;
+                    IsIgnoreWhitespaceVisible = (rs is Models.NoOrEOLChange);
+                    Content = rs;
                 }
 
-                Dispatcher.UIThread.Post(() =>
-                {
-                    if (loadVersion != Volatile.Read(ref _loadVersion)) return;
-                    OldMode = latest.OldMode;
-                    NewMode = latest.NewMode;
-
-                    if (rs is Models.TextDiff cur)
-                    {
-                        IsTextDiff = true;
-                        IsIgnoreWhitespaceVisible = true;
-
-                        var option = cur.IsDisplayOnly ? _option.AsDisplayOnly() : _option;
-                        if (Settings.UseSideBySideDiff && !cur.IsNewOrDeletedFile)
-                            Content = new TwoSideTextDiff(option, cur, _content as TextDiffContext);
-                        else
-                            Content = new CombinedTextDiff(option, cur, _content as TextDiffContext);
-                    }
-                    else
-                    {
-                        IsTextDiff = false;
-                        IsIgnoreWhitespaceVisible = (rs is Models.NoOrEOLChange);
-                        Content = rs;
-                    }
-
-                    // Publish the cache identity with its content on the UI
-                    // thread. A newly selected context must never inherit a
-                    // completed identity while the matching content is pending.
-                    _info = info;
-                });
+                // Publish the cache identity with its content on the UI
+                // thread. A newly selected context must never inherit a
+                // completed identity while the matching content is pending.
+                _info = info;
             });
         }
 
@@ -317,18 +366,24 @@ namespace SourceGit.ViewModels
             return imgDiff;
         }
 
-        private async Task<Models.TextDiff> TryWideDiffAsync(Models.DiffResult result, int codePage, int context, bool ignoreSpace, bool ignoreCR)
+        private async Task<Models.TextDiff> TryWideDiffAsync(Models.DiffResult result, int codePage, int context, bool ignoreSpace, bool ignoreCR, CancellationToken token)
         {
             try
             {
-                var current = await Commands.WideTextPreview.ReadAsync(_repo, _option.BinaryNewRevision, _option.BinaryNewPath, result.NewHash, codePage).ConfigureAwait(false);
-                if (current == null) return null;
-                var old = await Commands.WideTextPreview.ReadAsync(_repo, _option.BinaryOldRevision, _option.BinaryOldPath, result.OldHash, codePage).ConfigureAwait(false);
-                if (old == null || (codePage == 0 && Models.DisplayEncoding.DetectWide(old) == 0 && Models.DisplayEncoding.DetectWide(current) == 0)) return null;
-                // A revision can change the encoding itself. Preserve the old
-                // revision's explicit byte order when viewing the new Unicode text.
-                var oldMark = Models.DisplayEncoding.WidePreamble(old);
-                var before = Models.DisplayEncoding.Decode(old, Models.DisplayEncoding.IsWide(codePage) && oldMark != 0 ? oldMark : codePage);
+                var oldRead = Commands.WideTextPreview.ReadAsync(_repo, _option.BinaryOldRevision, _option.BinaryOldPath, result.OldHash, codePage, token);
+                var newRead = Commands.WideTextPreview.ReadAsync(_repo, _option.BinaryNewRevision, _option.BinaryNewPath, result.NewHash, codePage, token);
+                await Task.WhenAll(oldRead, newRead).ConfigureAwait(false);
+                var old = await oldRead.ConfigureAwait(false);
+                var current = await newRead.ConfigureAwait(false);
+                if (codePage == 0)
+                {
+                    if (Models.DisplayEncoding.HeaderCodePage(old) == 0 && Models.DisplayEncoding.HeaderCodePage(current) == 0) return null;
+                    // One marked text revision is enough to read the other as a possible UTF-8 or GB2312 revision.
+                    old ??= await Commands.WideTextPreview.ReadAsync(_repo, _option.BinaryOldRevision, _option.BinaryOldPath, result.OldHash, 0, token, allowUnmarkedText: true).ConfigureAwait(false);
+                    current ??= await Commands.WideTextPreview.ReadAsync(_repo, _option.BinaryNewRevision, _option.BinaryNewPath, result.NewHash, 0, token, allowUnmarkedText: true).ConfigureAwait(false);
+                }
+                if (old == null || current == null) return null;
+                var before = Models.DisplayEncoding.Decode(old, codePage);
                 var after = Models.DisplayEncoding.Decode(current, codePage);
                 if (!Models.DisplayEncoding.IsReadableText(before) || !Models.DisplayEncoding.IsReadableText(after) ||
                     before.AsSpan().Count('\n') + after.AsSpan().Count('\n') > 100000) return null;
@@ -433,5 +488,7 @@ namespace SourceGit.ViewModels
         private object _content = null;
         private Info _info = null;
         private int _loadVersion;
+        private int _displayEncodingIndex;
+        private CancellationTokenSource _loadCancellation;
     }
 }

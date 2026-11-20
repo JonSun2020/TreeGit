@@ -116,7 +116,7 @@ namespace SourceGit.ViewModels
             SetState(_newAvailable ? "available" : "current", _newAvailable ? App.Text("SelfUpdate.Flow.AvailableHint") : string.Empty);
         }
 
-        private async Task DownloadAsync()
+        private async Task DownloadAsync(bool preferAppPackage = true)
         {
             _taskActive = true;
             var cancellation = ResetCancellation();
@@ -132,7 +132,7 @@ namespace SourceGit.ViewModels
             try
             {
                 using var updater = _factory();
-                _plan = await Task.Run(() => updater.PrepareAsync(_release, progress, cancellation.Token));
+                _plan = await Task.Run(() => updater.PrepareAsync(_release, progress, cancellation.Token, preferAppPackage));
                 if (!_closed) SetState("ready", App.Text("SelfUpdate.Flow.ReadyHint"));
             }
             catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
@@ -171,6 +171,16 @@ namespace SourceGit.ViewModels
             }
             try
             {
+                var pending = _plan;
+                if (pending.BundledGitIdentity != null &&
+                    !await Task.Run(() => Native.GitRuntimeArchive.VerifyForUpdate(pending.InstallRoot, pending.BundledGitIdentity)))
+                {
+                    _plan = null;
+                    Native.TreeGitUpdateInstaller.IsApplying = false;
+                    Automation.GuiBridge.EndUpdate();
+                    await DownloadAsync(preferAppPackage: false);
+                    return;
+                }
                 try
                 {
                     Preferences.Instance.Save(requireSuccess: true);

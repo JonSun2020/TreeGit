@@ -18,6 +18,84 @@ namespace SourceGit.Native
             "ucrt64/etc/ssl/certs/ca-bundle.crt", "ucrt64/libexec/git-core/git-flow.exe",
             "ucrt64/libexec/git-core/git-lfs.exe", "etc/gitconfig"
         ];
+        private static readonly string[] CompactFiles = [
+            "cmd/git.exe", "runtime.zip", "payload-manifest.json", "COMPONENTS.md", "LICENSE.txt",
+            "licenses/Git-LFS-LICENSE.md", "licenses/Git-Flow-LICENSE",
+        ];
+
+        internal static bool HasExpandedFiles(string app)
+        {
+            var root = CheckedUpdatePath(app, "git");
+            return RequiredFiles.Skip(1).Any(name => File.Exists(CheckedUpdatePath(root, name)));
+        }
+
+        internal static string ReadUpdateIdentity(string app) => InspectUpdateRuntime(app, null, default);
+
+        internal static bool VerifyForUpdate(string app, string identity, CancellationToken token = default)
+            => identity != null && InspectUpdateRuntime(app, identity, token) == identity;
+
+        private static string InspectUpdateRuntime(string app, string expected, CancellationToken token)
+        {
+            try
+            {
+                var root = CheckedUpdatePath(app, "git");
+                var payload = CheckedUpdatePath(root, "payload-manifest.json");
+                var manifest = CheckedUpdatePath(root, "runtime-manifest.json");
+                var compact = File.Exists(payload);
+                var files = ReadManifest(compact ? payload : manifest, out var version);
+                if (string.IsNullOrWhiteSpace(version) || version.Length > 64 || version.Any(c => !char.IsAsciiLetterOrDigit(c) && c != '.') ||
+                    !RequiredFiles.All(files.ContainsKey)) return null;
+
+                // Ignore JSON formatting and component enumeration order across builds.
+                var entries = files.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => pair.Key + "\t" + pair.Value);
+                var identity = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(version + "\n" + string.Join('\n', entries))));
+                if (expected == null) return identity;
+                if (identity != expected) return null;
+
+                if (!compact) return Complete(root, files, verifyConfig: true, token: token) ? identity : null;
+                var wrapped = ReadManifest(manifest);
+                if (wrapped.Count != CompactFiles.Length || !CompactFiles.All(wrapped.ContainsKey) ||
+                    wrapped["cmd/git.exe"] != files["cmd/git.exe"] ||
+                    !Complete(root, wrapped, verifyConfig: true, token: token)) return null;
+
+                // A partially expanded layout may still have entries beside its archive.
+                // Check them too, while ignoring paths outside the shipped manifest.
+                foreach (var (name, hash) in files)
+                {
+                    token.ThrowIfCancellationRequested();
+                    var path = CheckedUpdatePath(root, name);
+                    if ((File.Exists(path) || Directory.Exists(path)) && !Matches(path, hash)) return null;
+                }
+
+                using var archive = ZipFile.OpenRead(CheckedUpdatePath(root, "runtime.zip"));
+                if (archive.Entries.Count != files.Count || archive.Entries.Sum(entry => entry.Length) > 1024L * 1024 * 1024) return null;
+                var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (var entry in archive.Entries)
+                {
+                    token.ThrowIfCancellationRequested();
+                    if (!seen.Add(entry.FullName) || !files.TryGetValue(entry.FullName, out var hash) ||
+                        ((entry.ExternalAttributes >> 16) & 0xF000) == 0xA000) return null;
+                    using var input = entry.Open();
+                    if (Convert.ToHexStringLower(SHA256.HashData(input)) != hash) return null;
+                }
+                return identity;
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidDataException or
+                JsonException or KeyNotFoundException or ArgumentException or InvalidOperationException)
+            {
+                return null;
+            }
+        }
+
+        private static string CheckedUpdatePath(string root, string relative)
+        {
+            var prefix = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
+            var path = Path.GetFullPath(Path.Combine(prefix, relative));
+            if (!path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) throw new InvalidDataException("Invalid bundled Git path.");
+            for (var current = path; current.Length >= prefix.Length; current = Path.GetDirectoryName(current)!)
+                if (Path.Exists(current)) RejectLink(current);
+            return path;
+        }
 
         internal static string FindOrExtract(string app, string fallbackCache, Func<string, bool> usable = null)
         {
@@ -224,12 +302,14 @@ namespace SourceGit.Native
 
         private static string FileStamp(FileInfo file) => FormattableString.Invariant($"{file.Length}/{file.LastWriteTimeUtc.Ticks}");
 
-        private static bool Complete(string root, Dictionary<string, string> files, string[] receipt = null)
+        private static bool Complete(string root, Dictionary<string, string> files, string[] receipt = null,
+            bool verifyConfig = false, CancellationToken token = default)
         {
             var checkedDirectories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var index = 0;
             foreach (var name in files.Keys.Order(StringComparer.Ordinal))
             {
+                token.ThrowIfCancellationRequested();
                 index++;
                 var path = Path.Combine(root, name);
                 var info = new FileInfo(path);
@@ -239,17 +319,20 @@ namespace SourceGit.Native
                     RejectLink(parent);
                     if (parent.Equals(root, StringComparison.OrdinalIgnoreCase)) break;
                 }
-                if (IsConfig(name)) continue;
+                if (!verifyConfig && IsConfig(name)) continue;
                 if (receipt?.Length == files.Count + 1 && receipt[index] == FileStamp(info)) continue;
                 if (!Matches(path, files[name])) return false;
             }
             return true;
         }
 
-        private static Dictionary<string, string> ReadManifest(string path)
+        private static Dictionary<string, string> ReadManifest(string path) => ReadManifest(path, out _);
+
+        private static Dictionary<string, string> ReadManifest(string path, out string gitVersion)
         {
             if (new FileInfo(path).Length > 2 * 1024 * 1024) throw new InvalidDataException("Invalid bundled Git manifest size.");
             using var json = JsonDocument.Parse(File.ReadAllBytes(path));
+            gitVersion = json.RootElement.TryGetProperty("gitVersion", out var version) ? version.GetString() : null;
             var entries = json.RootElement.GetProperty("files");
             if (entries.GetArrayLength() is < 1 or > 5000) throw new InvalidDataException("Invalid bundled Git manifest size.");
             var files = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

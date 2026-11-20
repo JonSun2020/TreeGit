@@ -89,12 +89,17 @@ try:
   import codecs
   from hashlib import sha256
   check('automatic is the default display encoding',client.probe('diff_decoded_text')['encoding']==0)
-  choices=client.probe('diff_encoding',0)['labels']
-  check('display options start with Automatic and include the Unicode and Chinese families',choices==['Automatic','UTF-8','UTF-16 LE','UTF-16 BE','UTF-32 LE','UTF-32 BE','GB2312','GBK','GB18030','Big5','Windows-1252'],choices)
+  picker=client.probe('diff_encoding',0);choices=picker['labels']
+  check('encoding has its own control to the left of the first-difference arrow',picker['beforeFirst'],picker)
+  for locale, caption in [('zh_CN','文件编码'),('zh_TW','檔案編碼'),('en_US','File encoding')]:
+   client.tool('ui_window',locale=locale)
+   picker=wait(lambda: p if (p:=client.probe('diff_encoding',0))['caption']==caption and p['labelBeforePicker'] and p['labelVisible'] else None)
+   check(locale+' displays the file encoding label to the left of its control',bool(picker))
+  check('encoding choices retain the Unicode and Chinese families',choices==['Automatic','UTF-8','UTF-16 LE','UTF-16 BE','UTF-32 LE','UTF-32 BE','GB2312','GBK','GB18030','Big5','Windows-1252'],choices)
   corpora=[
-   ('mixed-lines','UTF 温度𠮷\r\n'.encode()+'GB 使用传感器\n'.encode('gbk')+'EXT 采样𠀀结束'.encode('gb18030'),0,['UTF 温度𠮷','GB 使用传感器','EXT 采样𠀀结束']),
-   ('single-encoding-line','测试'.encode()+'使用传感器'.encode('gbk'),0,('测试'.encode()+'使用传感器'.encode('gbk')).decode('gb18030')),
-   ('western','Prix: 20 €'.encode('cp1252'),0,'Prix: 20 €'),
+   ('mixed-lines','UTF 温度𠮷\r\n'.encode()+'GB 使用传感器\n'.encode('gb2312'),0,['UTF 温度𠮷','GB 使用传感器']),
+   ('no-western-guess','Prix: 20 €'.encode('cp1252'),0,'Prix: 20 \ufffd'),
+   ('manual-western','Prix: 22 €'.encode('cp1252'),10,'Prix: 22 €'),
    ('gb18030','采样𠀀结束'.encode('gb18030'),8,'采样𠀀结束'),
    ('big5','傳統字庫'.encode('big5'),9,'傳統字庫'),
    ('gb2312','新测试'.encode('gb2312'),6,'新测试'),
@@ -121,6 +126,35 @@ try:
    try:state=wait(lambda:s if (s:=client.probe('diff_decoded_text'))['encoding']==index and all(any(row.rstrip('\r')==text for row in (s['rows'] or [])) for text in expected_rows) else None)
    except AssertionError as error:raise AssertionError((label,client.probe('diff_decoded_text'))) from error
    check(label+' renders expected text without changing file, index, or commit',checksum==(sha256((repo/filename).read_bytes()).digest(),git('write-tree'),git('rev-parse','HEAD')),state)
+  client.probe('diff_encoding',6)
+  client.tool('ui_select_commit',repo=str(repo),revision=before[0])
+  wait(lambda:views().get('main') and (s:=client.probe('diff_decoded_text'))['file']=='example.c' and s['kind'])
+  check('a different file of the same type in this repository uses the manual encoding',client.probe('diff_decoded_text')['encoding']==6)
+  (repo/'other-format.txt').write_text('A different type\n','utf-8')
+  wait(lambda:any('other-format.txt' in (r.get('workingCopyState') or {}).get('unstaged',[]) for r in client.tool('ui_state')['repositories']))
+  client.tool('ui_diff',repo=str(repo),action='select',file='other-format.txt',source='unstaged')
+  wait(lambda:views().get('main') and (s:=client.probe('diff_decoded_text'))['file']=='other-format.txt' and s['kind'])
+  check('a different file type stays automatic',client.probe('diff_decoded_text')['encoding']==0)
+  other_repo=root/'Other'
+  other_repo.mkdir()
+  subprocess.run(['git','-C',str(other_repo),'init','-b','main'],env=env,check=True,capture_output=True)
+  (other_repo/'other.c').write_text('A different repository\n','utf-8')
+  client.tool('ui_open_repository',repo=str(other_repo))
+  wait(lambda:any('other.c' in (r.get('workingCopyState') or {}).get('unstaged',[]) for r in client.tool('ui_state')['repositories']))
+  client.tool('ui_diff',repo=str(other_repo),action='select',file='other.c',source='unstaged')
+  wait(lambda:views().get('main') and (s:=client.probe('diff_decoded_text'))['file']=='other.c' and s['kind'])
+  check('the same type in a different repository has no manual override',client.probe('diff_decoded_text')['encoding']==0)
+  client.close();client=Client()
+  client.tool('ui_open_repository',repo=str(repo));client.tool('ui_select_commit',repo=str(repo),revision=before[0])
+  wait(lambda:views().get('main') and (s:=client.probe('diff_decoded_text'))['file']=='example.c' and s['kind'])
+  check('the repository and type encoding is remembered after restart',client.probe('diff_decoded_text')['encoding']==6)
+  client.probe('diff_encoding',0)
+  check('selecting Automatic clears that type override',client.probe('diff_decoded_text')['encoding']==0)
+  (repo/'sample.bin').write_bytes(b'\x00 ASCII~\x7f\x80\xff')
+  wait(lambda:any('sample.bin' in (r.get('workingCopyState') or {}).get('unstaged',[]) for r in client.tool('ui_state')['repositories']))
+  client.tool('ui_diff',repo=str(repo),action='select',file='sample.bin',source='unstaged')
+  binary=wait(lambda: s if (s:=client.probe('diff_decoded_text'))['kind']=='BinaryDiff' else None)
+  check('binary comparisons hide both the file encoding label and its selector',not binary['encodingVisible'] and not binary['labelVisible'],binary)
 except BaseException:
  failure=traceback.format_exc();traceback.print_exc()
  if client:

@@ -1,5 +1,7 @@
 using System;
 
+using System.ComponentModel;
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -50,10 +52,14 @@ namespace SourceGit.Views
             base.OnLoaded(e);
 
             TextArea.TextView.ContextRequested += OnTextViewContextRequested;
+            ViewModels.Preferences.Instance.PropertyChanged += OnRepositoryEncodingChanged;
 
             _textMate ??= Models.TextMateHelper.CreateForEditor(this);
             if (DataContext is Models.RevisionTextFile file)
+            {
+                file.RefreshDisplayEncoding();
                 Models.TextMateHelper.SetGrammarByFileName(_textMate, file.FileName);
+            }
         }
 
         protected override void OnUnloaded(RoutedEventArgs e)
@@ -61,6 +67,7 @@ namespace SourceGit.Views
             base.OnUnloaded(e);
 
             TextArea.TextView.ContextRequested -= OnTextViewContextRequested;
+            ViewModels.Preferences.Instance.PropertyChanged -= OnRepositoryEncodingChanged;
 
             if (_textMate != null)
             {
@@ -69,6 +76,12 @@ namespace SourceGit.Views
             }
 
             GC.Collect();
+        }
+
+        private void OnRepositoryEncodingChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ViewModels.Preferences.RepositoryDisplayEncodings) && DataContext is Models.RevisionTextFile text)
+                text.RefreshDisplayEncoding();
         }
 
         protected override void OnDataContextChanged(EventArgs e)

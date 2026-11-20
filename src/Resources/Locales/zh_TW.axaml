@@ -1355,7 +1355,7 @@
   <x:String x:Key="Text.UI.SortName" xml:space="preserve">按檔名排序</x:String>
   <x:String x:Key="Text.UI.SortStatus" xml:space="preserve">按狀態排序</x:String>
   <x:String x:Key="Text.UI.DisplayOptions" xml:space="preserve">顯示選項</x:String>
-  <x:String x:Key="Text.UI.DisplayEncoding">文字編碼</x:String>
+  <x:String x:Key="Text.UI.DisplayEncoding">檔案編碼</x:String>
   <x:String x:Key="Text.UI.AutoEncoding">自動適配</x:String>
   <x:String x:Key="Text.UI.MoreContext" xml:space="preserve">增加上下文</x:String>
   <x:String x:Key="Text.UI.LessContext" xml:space="preserve">減少上下文</x:String>

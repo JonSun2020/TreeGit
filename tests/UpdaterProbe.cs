@@ -9,6 +9,7 @@ using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -234,12 +235,89 @@ namespace SourceGit.Tests
                     using (var updater = new Native.TreeGitUpdater(root, new HttpClient(new FixtureHandler(archive, damaged))))
                         await Reject("a mismatched package hash prevents installation", () => updater.PrepareAsync(damaged, null, CancellationToken.None), "damaged");
                     Check("damaged downloads are removed without touching the installed program", !Directory.EnumerateFiles(Path.Combine(root, ".treegit-update/downloads"), "*.partial").Any() && File.ReadAllText(Path.Combine(root, "TreeGit.exe")) == "old program");
+                    if (args.Length > 2) await VerifyAppUpdateAsync(archive, Path.GetFullPath(args[2]), fixtureVersion);
                 }
                 Console.WriteLine("Updater checks passed: " + Checks.Count);
                 return 0;
             }
             catch (Exception error) { failure = error.ToString(); Console.Error.WriteLine(failure); return 1; }
             finally { File.WriteAllText(Path.Combine(_out, "results.json"), JsonSerializer.Serialize(new { passed = Checks.Count, checks = Checks, failure })); }
+        }
+
+        private static async Task VerifyAppUpdateAsync(string full, string app, string version)
+        {
+            var release = FixtureRelease(full, version);
+            var appName = Path.GetFileName(app);
+            release.Assets.Add(new()
+            {
+                Name = appName, Size = new FileInfo(app).Length, Digest = "sha256:" + Native.TreeGitUpdater.Hash(app),
+                DownloadUrl = "https://github.com/JonSun2020/TreeGit/releases/download/" + release.TagName + "/" + appName,
+            });
+            foreach (var scenario in new[] { "compact", "expanded", "damaged-compact", "missing", "modified", "newer-release-git", "changed-after-prepare" })
+            {
+                var root = NewRoot();
+                try
+                {
+                    using (var zip = ZipFile.OpenRead(full))
+                    {
+                        foreach (var entry in zip.Entries.Where(e => e.FullName.StartsWith("TreeGit/git/") && e.Name.Length > 0))
+                        {
+                            var file = Native.TreeGitUpdater.SafeChild(root, entry.FullName[8..]);
+                            Directory.CreateDirectory(Path.GetDirectoryName(file)!);
+                            entry.ExtractToFile(file);
+                        }
+                    }
+                    var git = Path.Combine(root, "git");
+                    var packed = Path.Combine(git, "runtime.zip");
+                    var launcher = Path.Combine(git, "cmd/git.exe");
+                    if (scenario is not ("compact" or "damaged-compact"))
+                        Check(scenario + " expands the released Git fixture", Native.GitRuntimeArchive.FindOrExtract(root, null) == launcher.Replace('/', Path.DirectorySeparatorChar));
+                    var config = Path.Combine(git, "etc/gitconfig");
+                    var ssh = Path.Combine(git, "usr/bin/sh.exe");
+                    var stockConfig = File.Exists(config) ? Native.TreeGitUpdater.Hash(config) : null;
+                    var extra = Path.Combine(git, "user-added.txt");
+                    File.WriteAllText(extra, "my extra file");
+                    if (scenario == "damaged-compact") File.AppendAllText(packed, "changed");
+                    if (scenario == "missing") File.Delete(ssh);
+                    if (scenario == "modified") File.AppendAllText(config, "\n# modified stock file\n");
+                    if (scenario == "newer-release-git")
+                    {
+                        var manifest = Path.Combine(git, "runtime-manifest.json");
+                        var state = JsonNode.Parse(File.ReadAllText(manifest))!;
+                        state["gitVersion"] = "2.45.0.windows.1";
+                        File.WriteAllText(manifest, state.ToJsonString());
+                    }
+                    var handler = new FixtureHandler(full, release, app);
+                    using var updater = new Native.TreeGitUpdater(root, new HttpClient(handler));
+                    _ = await updater.CheckAsync(CancellationToken.None);
+                    Check(scenario + " initial version check does not download a package", handler.RequestedAssets.Count == 0);
+                    var plan = await updater.PrepareAsync(release, null, CancellationToken.None);
+                    var light = scenario is "compact" or "expanded" or "changed-after-prepare";
+                    Check(scenario + " selects the expected package", handler.RequestedAssets.SequenceEqual([release.Assets[light ? 1 : 0].Name]) &&
+                        (plan.BundledGitIdentity != null) == light);
+                    Check(scenario + " detects its prepared package after reopening", updater.FindPrepared(release)?.Id == plan.Id);
+                    if (scenario == "changed-after-prepare")
+                    {
+                        File.AppendAllText(config, "\n# changed after download\n");
+                        Check("prepared lightweight update rejects Git that changed while waiting", updater.FindPrepared(release) == null);
+                        await Reject("the installation worker rechecks unused Git before replacing the program",
+                            () => { Native.TreeGitUpdateInstaller.Apply(plan); return Task.CompletedTask; }, "changed");
+                        plan = await updater.PrepareAsync(release, null, CancellationToken.None);
+                        Check("a changed runtime can be repaired with the full package", plan.BundledGitIdentity == null && handler.RequestedAssets[^1] == release.Assets[0].Name);
+                    }
+                    var verifiedIdentity = Native.GitRuntimeArchive.ReadUpdateIdentity(root);
+                    Native.TreeGitUpdateInstaller.Apply(plan);
+                    Check(scenario + " preserves files added by the user", File.ReadAllText(extra) == "my extra file");
+                    Check(scenario + " installs the program and a valid runtime", Native.TreeGitUpdater.ReadInstalledVersion(root) == version &&
+                        Native.GitRuntimeArchive.VerifyForUpdate(root, appName[(appName.LastIndexOf('-') + 1)..^4]));
+                    if (light && scenario != "changed-after-prepare")
+                        Check(scenario + " app-only update does not touch the Git layout", verifiedIdentity == Native.GitRuntimeArchive.ReadUpdateIdentity(root) &&
+                            !plan.Files.Any(file => file.Path.StartsWith("git/", StringComparison.OrdinalIgnoreCase)) && File.Exists(packed) == (scenario == "compact"));
+                    if (scenario is "modified" or "changed-after-prepare")
+                        Check(scenario + " restores the shipped config", Native.TreeGitUpdater.Hash(config) == stockConfig);
+                }
+                finally { Directory.Delete(root, true); }
+            }
         }
 
         private static Models.Version FixtureRelease(string archive, string version) => new()
@@ -254,15 +332,18 @@ namespace SourceGit.Tests
                 Task.FromResult(new HttpResponseMessage(status) { Content = new StringContent(body, Encoding.UTF8, "application/json") });
         }
 
-        private sealed class FixtureHandler(string archive, Models.Version release) : HttpMessageHandler
+        private sealed class FixtureHandler(string archive, Models.Version release, string appArchive = null) : HttpMessageHandler
         {
             public long? RequestedOffset { get; private set; }
             public bool IgnoreRange { get; init; }
+            public List<string> RequestedAssets { get; } = [];
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)
             {
                 if (request.RequestUri!.AbsoluteUri == Native.TreeGitUpdater.LatestUrl)
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(release), Encoding.UTF8, "application/json") });
-                var stream = File.OpenRead(archive);
+                var name = Path.GetFileName(request.RequestUri.LocalPath);
+                RequestedAssets.Add(name);
+                var stream = File.OpenRead(appArchive != null && name == Path.GetFileName(appArchive) ? appArchive : archive);
                 var offset = request.Headers.Range?.Ranges.Single().From;
                 RequestedOffset = offset;
                 if (IgnoreRange) offset = null;

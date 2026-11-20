@@ -28,6 +28,13 @@
 
           <!-- Toolbar Buttons -->
           <StackPanel Grid.Column="4" Margin="8,0,0,0" Orientation="Horizontal" VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,4,0" IsVisible="{Binding CanChooseEncoding}">
+              <TextBlock x:Name="DiffEncodingLabel" Text="{DynamicResource Text.UI.DisplayEncoding}"
+                         FontSize="11" VerticalAlignment="Center"/>
+              <v:DisplayEncodingPicker x:Name="DiffEncodingPicker" Classes="dialog_selections" Height="24" MinHeight="24" MinWidth="98"
+                                       Padding="6,0" FontSize="11" VerticalAlignment="Center"
+                                       SelectedIndex="{Binding DisplayEncodingIndex, Mode=TwoWay}"/>
+            </StackPanel>
             <Button x:Name="BtnGotoFirstChange" Classes="icon_button" Width="28" Click="OnGotoFirstChange" IsVisible="{Binding IsTextDiff}">
               <ToolTip.Tip>
                 <TextBlock>
@@ -80,12 +87,8 @@
               <Path Width="12" Height="12" Stretch="Uniform" Margin="0,6,0,0" Data="{StaticResource Icons.Bottom}"/>
             </Button>
 
-            <Button Name="DiffDisplayOptions" Classes="flat" Margin="4,0" Content="{DynamicResource Text.UI.DisplayOptions}" IsVisible="{Binding CanChooseEncoding}">
+            <Button Name="DiffDisplayOptions" Classes="flat" Margin="4,0" Content="{DynamicResource Text.UI.DisplayOptions}" IsVisible="{Binding IsTextDiff}">
               <Button.Flyout><Flyout><StackPanel Classes="dialog_selections" Spacing="8" MinWidth="190">
-                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
-                  <TextBlock VerticalAlignment="Center" Text="{DynamicResource Text.UI.DisplayEncoding}"/>
-                  <v:DisplayEncodingPicker Grid.Column="1" SelectedIndex="{Binding #DiffViewRoot.Settings.DisplayEncodingIndex, Mode=TwoWay}"/>
-                </Grid>
                 <StackPanel Spacing="8" IsVisible="{Binding IsTextDiff}">
                 <StackPanel Orientation="Horizontal" Spacing="6"><Button Classes="flat" Command="{Binding IncrUnified}" IsEnabled="{Binding #DiffViewRoot.Settings.UseFullTextDiff, Converter={x:Static BoolConverters.Not}}" Content="{DynamicResource Text.UI.MoreContext}"/><Button Classes="flat" Command="{Binding DecrUnified}" Content="{DynamicResource Text.UI.LessContext}"><Button.IsEnabled><MultiBinding Converter="{x:Static BoolConverters.And}"><Binding Path="UnifiedLines" Converter="{x:Static c:IntConverters.IsGreaterThanFour}"/><Binding Path="#DiffViewRoot.Settings.UseFullTextDiff" Converter="{x:Static BoolConverters.Not}"/></MultiBinding></Button.IsEnabled></Button></StackPanel>
                 <ToggleButton x:Name="ToggleDiffFullFile" IsChecked="{Binding #DiffViewRoot.Settings.UseFullTextDiff, Mode=TwoWay}" Content="{DynamicResource Text.Diff.VisualLines.All}"/>

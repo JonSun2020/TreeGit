@@ -63,9 +63,15 @@ namespace SourceGit.Commands
         {
             try
             {
+                CancellationToken.ThrowIfCancellationRequested();
                 using var proc = new Process();
                 proc.StartInfo = CreateGitStartInfo(true);
                 Native.ProcessLauncher.Start(proc);
+                using var cancellation = CancellationToken.Register(() =>
+                {
+                    try { if (!proc.HasExited) Native.OS.TerminateProcess(proc); }
+                    catch (InvalidOperationException) { }
+                });
                 proc.BeginErrorReadLine();
 
                 using var ms = new MemoryStream();
@@ -77,6 +83,7 @@ namespace SourceGit.Commands
                     var end = buffer.Offset + buffer.Count;
                     while (start < end)
                     {
+                        CancellationToken.ThrowIfCancellationRequested();
                         var lineEnd = Array.IndexOf(buffer.Array, (byte)'\n', start, end - start);
                         if (lineEnd < 0)
                         {
@@ -94,6 +101,7 @@ namespace SourceGit.Commands
 
                 await proc.WaitForExitAsync(CancellationToken).ConfigureAwait(false);
             }
+            catch (OperationCanceledException) when (CancellationToken.IsCancellationRequested) { throw; }
             catch
             {
                 // Ignore exceptions.
@@ -154,7 +162,7 @@ namespace SourceGit.Commands
             if (lineBytes.Count == 0) return;
             var bytes = lineBytes.AsSpan();
             var line = _isInChunk && bytes[0] is (byte)'+' or (byte)'-' or (byte)' '
-                ? ((char)bytes[0]).ToString() + Models.DisplayEncoding.Decode(bytes[1..], _displayCodePage)
+                ? ((char)bytes[0]).ToString() + DecodePatchLine(bytes)
                 : Encoding.UTF8.GetString(bytes);
             if (line.Length == 0)
                 return;
@@ -179,6 +187,19 @@ namespace SourceGit.Commands
 
             // Fallback to diff headers to support type-changed diff (multiple headers).
             ParseDiffHeaderLine(line);
+        }
+
+        private string DecodePatchLine(ReadOnlySpan<byte> bytes)
+        {
+            var firstLine = bytes[0] switch
+            {
+                (byte)'-' => _oldLine == 1,
+                (byte)'+' => _newLine == 1,
+                _ => _oldLine == 1 || _newLine == 1,
+            };
+            return _displayCodePage != 0 || firstLine
+                ? Models.DisplayEncoding.Decode(bytes[1..], _displayCodePage)
+                : Models.DisplayEncoding.DecodeNarrow(bytes[1..]);
         }
 
         private void ParseDiffHeaderLine(string line)

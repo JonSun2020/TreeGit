@@ -48,12 +48,15 @@ namespace SourceGit.ViewModels
             var graph = _repo.Histories.Commits?.ToList() ?? [];
             var locals = _repo.Branches.Where(b => b.IsLocal && !b.IsDetachedHead).ToList();
             var key = string.Join('\n', locals.OrderBy(b => b.FullName, StringComparer.Ordinal).Select(b => b.FullName + " " + b.Head));
-            if (_originSnapshot == null || _originSnapshotKey != key || (_originSnapshotToken.IsCancellationRequested && !_originSnapshot.IsCompletedSuccessfully))
+            if (_originSnapshot == null || _originSnapshotKey != key || _originSnapshot.IsFaulted || _originSnapshot.IsCanceled)
             {
+                // The snapshot describes the branch heads, so successive commit clicks can share one read.
+                if (_originSnapshotCancellation != null) _ = _originSnapshotCancellation.CancelAsync();
+                _originSnapshotCancellation = new CancellationTokenSource();
+                var snapshotToken = _originSnapshotCancellation.Token;
                 _originSnapshotKey = key;
-                _originSnapshotToken = token;
-                _originSnapshot = Task.Run(() => new Commands.QueryLocalCommitOrigins(_repo.FullPath) { CancellationToken = token }
-                    .GetResultAsync(new HashSet<string>(locals.Select(b => b.FullName), StringComparer.Ordinal)), token);
+                _originSnapshot = Task.Run(() => new Commands.QueryLocalCommitOrigins(_repo.FullPath) { CancellationToken = snapshotToken }
+                    .GetResultAsync(new HashSet<string>(locals.Select(b => b.FullName), StringComparer.Ordinal)), snapshotToken);
             }
             var origins = _originSnapshot;
             Task.Run(async () =>
@@ -94,6 +97,6 @@ namespace SourceGit.ViewModels
         private bool _hasBranchDetailsError;
         private Task<Dictionary<string, string>> _originSnapshot;
         private string _originSnapshotKey;
-        private CancellationToken _originSnapshotToken;
+        private CancellationTokenSource _originSnapshotCancellation;
     }
 }

@@ -57,13 +57,16 @@ namespace SourceGit.Native
             if (plan == null || plan.Format != 1 || plan.Product != "TreeGit" || !Guid.TryParseExact(plan.Id, "N", out _) ||
                 !TreeGitUpdater.TryVersion("treegit-v" + plan.BeforeVersion, out _) || !TreeGitUpdater.TryVersion("treegit-v" + plan.TargetVersion, out _) ||
                 new System.Version(plan.TargetVersion) <= new System.Version(plan.BeforeVersion) || !TreeGitUpdater.IsHash(plan.BeforeExeSha256) ||
+                (plan.BundledGitIdentity != null && !TreeGitUpdater.IsHash(plan.BundledGitIdentity)) ||
                 !Path.GetFullPath(path).Equals(PlanPath(plan), StringComparison.OrdinalIgnoreCase) || plan.Files.Count is < 1 or > 6000 ||
                 !File.Exists(Path.Combine(plan.InstallRoot, "TreeGit.exe")))
                 throw new Models.UpdateProblem("invalid");
             var unique = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var file in plan.Files)
             {
-                if (!TreeGitUpdater.AllowedFile(file.Path) || !TreeGitUpdater.IsHash(file.Sha256) || (file.BeforeSha256 != null && !TreeGitUpdater.IsHash(file.BeforeSha256)) || !unique.Add(file.Path))
+                if (!TreeGitUpdater.AllowedFile(file.Path) || !TreeGitUpdater.IsHash(file.Sha256) ||
+                    (file.BeforeSha256 != null && !TreeGitUpdater.IsHash(file.BeforeSha256)) || !unique.Add(file.Path) ||
+                    (plan.BundledGitIdentity != null && file.Path.StartsWith("git/", StringComparison.OrdinalIgnoreCase)))
                     throw new Models.UpdateProblem("invalid");
                 _ = TreeGitUpdater.SafeChild(plan.InstallRoot, file.Path);
             }
@@ -261,6 +264,8 @@ namespace SourceGit.Native
         internal static void Apply(Models.UpdatePlan plan)
         {
             if (plan.State != "Prepared" || TreeGitUpdater.Hash(Path.Combine(plan.InstallRoot, "TreeGit.exe")) != plan.BeforeExeSha256)
+                throw new Models.UpdateProblem("changed");
+            if (plan.BundledGitIdentity != null && !GitRuntimeArchive.VerifyForUpdate(plan.InstallRoot, plan.BundledGitIdentity))
                 throw new Models.UpdateProblem("changed");
             var job = JobRoot(plan);
             var handles = new List<SafeFileHandle>();

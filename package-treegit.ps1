@@ -1,4 +1,4 @@
-﻿param([Parameter(Mandatory=$true)][string]$Source, [string]$Destination=$PSScriptRoot)
+﻿param([Parameter(Mandatory=$true)][string]$Source, [string]$Destination=$PSScriptRoot, [switch]$WithAppUpdate)
 $ErrorActionPreference='Stop'
 $Source=[IO.Path]::GetFullPath($Source)
 $Destination=[IO.Path]::GetFullPath($Destination)
@@ -13,10 +13,14 @@ New-Item -ItemType Directory -Path $Destination -Force | Out-Null
 $name='TreeGit-'+$info.version+'-Windows-x64.zip'
 $archive=Join-Path $Destination $name
 if(Test-Path -LiteralPath $archive){throw 'This versioned archive already exists; choose a new version or output directory'}
+$appName=if($WithAppUpdate){'TreeGit-'+$info.version+'-Windows-x64-App-'+(Get-TreeGitRuntimeFingerprint $treeGitRuntime)+'.zip'}
+$appArchive=if($WithAppUpdate){Join-Path $Destination $appName}
+if($WithAppUpdate -and (Test-Path -LiteralPath $appArchive)){throw 'This application update archive already exists'}
 Add-Type -AssemblyName System.IO.Compression
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $partial=$archive+'.partial-'+[Guid]::NewGuid().ToString('N')
 $runtimeArchive=$partial+'.git'
+$partialApp=$partial+'.app'
 $checksum=Join-Path $Destination 'SHA256SUMS.txt'
 $partialChecksum=$checksum+'.partial-'+[Guid]::NewGuid().ToString('N')
 # Modern .NET supports denser standard ZIP entries. Windows PowerShell 5 uses its best available setting.
@@ -25,14 +29,13 @@ if([Enum]::IsDefined([IO.Compression.CompressionLevel],'SmallestSize')){
     $compression=[Enum]::Parse([IO.Compression.CompressionLevel],'SmallestSize')
 }
 $published=$false
-try {
-$zip=[IO.Compression.ZipFile]::Open($partial,[IO.Compression.ZipArchiveMode]::Create)
-try {
+$appPublished=$false
+function Add-TreeGitProgramFiles([IO.Compression.ZipArchive]$Zip) {
     # Only program files from the build output. Never package preferences, cache or credentials.
     $programFiles=@('TreeGit.exe','LICENSE','THIRD-PARTY-LICENSES.md','使用说明.md','MCP-使用说明.md','build-info.json')
     foreach($file in Get-ChildItem -LiteralPath $Source -File){
         if($file.Name -notin $programFiles -and $file.Extension -ne '.dll'){continue}
-        [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip,$file.FullName,('TreeGit/'+$file.Name),$compression) | Out-Null
+        [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($Zip,$file.FullName,('TreeGit/'+$file.Name),$compression) | Out-Null
     }
     # Installed MCP files may contain personal commands, paths or secrets.
     # Package fresh examples without reading or overwriting those files.
@@ -40,11 +43,16 @@ try {
         $exampleArgs=if($readOnly){@('--mcp','--read-only')}else{@('--mcp')}
         $exampleName=if($readOnly){'mcp-readonly.json'}else{'mcp-readwrite.json'}
         $example=@{mcpServers=@{treegit=@{command='C:\Tools\TreeGit\TreeGit.exe';args=@($exampleArgs)}}}
-        $entry=$zip.CreateEntry(('TreeGit/'+$exampleName),$compression)
+        $entry=$Zip.CreateEntry(('TreeGit/'+$exampleName),$compression)
         $writer=[IO.StreamWriter]::new($entry.Open(),[Text.UTF8Encoding]::new($false))
         try{$writer.WriteLine(($example | ConvertTo-Json -Depth 6))}finally{$writer.Dispose()}
     }
-    $zip.CreateEntry('TreeGit/data/') | Out-Null
+    $Zip.CreateEntry('TreeGit/data/') | Out-Null
+}
+try {
+$zip=[IO.Compression.ZipFile]::Open($partial,[IO.Compression.ZipArchiveMode]::Create)
+try {
+    Add-TreeGitProgramFiles $zip
     $treeGitRuntimeRoot=Join-Path $Source 'git'
     $inner=[IO.Compression.ZipFile]::Open($runtimeArchive,[IO.Compression.ZipArchiveMode]::Create)
     try {
@@ -74,15 +82,25 @@ try {
     try{$writer.Write((@{schema=1;files=@($records)}|ConvertTo-Json -Depth 4))}finally{$writer.Dispose()}
 } finally {$zip.Dispose()}
 $hash=Get-TreeGitHash $partial
-[IO.File]::WriteAllText($partialChecksum,($hash+'  '+$name+"`n"),[Text.UTF8Encoding]::new($false))
+$checksums=$hash+'  '+$name+"`n"
+if($WithAppUpdate){
+    $appZip=[IO.Compression.ZipFile]::Open($partialApp,[IO.Compression.ZipArchiveMode]::Create)
+    try { Add-TreeGitProgramFiles $appZip } finally { $appZip.Dispose() }
+    $checksums+=(Get-TreeGitHash $partialApp)+'  '+$appName+"`n"
+    [IO.File]::Move($partialApp,$appArchive)
+    $appPublished=$true
+}
+[IO.File]::WriteAllText($partialChecksum,$checksums,[Text.UTF8Encoding]::new($false))
 [IO.File]::Move($partial,$archive)
 $published=$true
 if(Test-Path -LiteralPath $checksum){[IO.File]::Replace($partialChecksum,$checksum,[NullString]::Value)}
 else{[IO.File]::Move($partialChecksum,$checksum)}
 Write-Output $archive
+if($WithAppUpdate){Write-Output $appArchive}
 } catch {
     if($published -and (Test-Path -LiteralPath $archive)){Remove-Item -LiteralPath $archive -Force}
+    if($appPublished -and (Test-Path -LiteralPath $appArchive)){Remove-Item -LiteralPath $appArchive -Force}
     throw
 } finally {
-    foreach($temporary in @($partial,$partialChecksum,$runtimeArchive)){if(Test-Path -LiteralPath $temporary){Remove-Item -LiteralPath $temporary -Force}}
+    foreach($temporary in @($partial,$partialChecksum,$runtimeArchive,$partialApp)){if(Test-Path -LiteralPath $temporary){Remove-Item -LiteralPath $temporary -Force}}
 }

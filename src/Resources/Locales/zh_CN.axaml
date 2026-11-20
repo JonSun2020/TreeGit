@@ -1374,7 +1374,7 @@
   <x:String x:Key="Text.UI.SortName" xml:space="preserve">按文件名排序</x:String>
   <x:String x:Key="Text.UI.SortStatus" xml:space="preserve">按状态排序</x:String>
   <x:String x:Key="Text.UI.DisplayOptions" xml:space="preserve">显示选项</x:String>
-  <x:String x:Key="Text.UI.DisplayEncoding">文字编码</x:String>
+  <x:String x:Key="Text.UI.DisplayEncoding">文件编码</x:String>
   <x:String x:Key="Text.UI.AutoEncoding">自动适配</x:String>
   <x:String x:Key="Text.UI.MoreContext" xml:space="preserve">增加上下文</x:String>
   <x:String x:Key="Text.UI.LessContext" xml:space="preserve">减少上下文</x:String>

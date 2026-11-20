@@ -34,7 +34,7 @@ namespace SourceGit.Views
 
         private void OnViewSettingsChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (e.PropertyName is not (nameof(ViewModels.IDiffViewSettings.DisplayEncodingIndex) or nameof(ViewModels.IDiffViewSettings.UseSideBySideDiff) or nameof(ViewModels.IDiffViewSettings.UseFullTextDiff) or
+            if (e.PropertyName is not (nameof(ViewModels.IDiffViewSettings.UseSideBySideDiff) or nameof(ViewModels.IDiffViewSettings.UseFullTextDiff) or
                 nameof(ViewModels.IDiffViewSettings.UseSyntaxHighlighting) or nameof(ViewModels.IDiffViewSettings.EnableDiffViewWordWrap) or
                 nameof(ViewModels.IDiffViewSettings.IgnoreWhitespaceChangesInDiff) or nameof(ViewModels.IDiffViewSettings.IgnoreCRAtEOLInDiff) or
                 nameof(ViewModels.IDiffViewSettings.ShowHiddenSymbolsInDiffView))) return;
@@ -47,6 +47,7 @@ namespace SourceGit.Views
             base.OnAttachedToVisualTree(e);
             _settingsActive = true;
             BindViewSettings();
+            ViewModels.Preferences.Instance.PropertyChanged += OnRepositoryEncodingChanged;
             BtnOpenExternalMergeTool.IsVisible = TopLevel.GetTopLevel(this) is not InternalDiffWindow;
             App.LocaleChanged += OnLocaleChanged;
             OnLocaleChanged();
@@ -55,6 +56,7 @@ namespace SourceGit.Views
         protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
         {
             _settingsActive = false;
+            ViewModels.Preferences.Instance.PropertyChanged -= OnRepositoryEncodingChanged;
             if (_observedSettings != null) _observedSettings.PropertyChanged -= OnViewSettingsChanged;
             _observedSettings = null;
             App.LocaleChanged -= OnLocaleChanged;
@@ -62,6 +64,12 @@ namespace SourceGit.Views
         }
 
         private void OnLocaleChanged() => (DataContext as ViewModels.DiffContext)?.RefreshLocalizedText();
+
+        private void OnRepositoryEncodingChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(ViewModels.Preferences.RepositoryDisplayEncodings))
+                (DataContext as ViewModels.DiffContext)?.RefreshDisplayEncoding();
+        }
 
         public void ToggleHotkeyBindings(bool enabled)
         {

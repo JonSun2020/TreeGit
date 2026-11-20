@@ -16,13 +16,13 @@ runtime=source/'git'
 required=['cmd/git.exe','usr/bin/ssh.exe','usr/bin/ssh-keygen.exe','ucrt64/libexec/git-core/git-lfs.exe','ucrt64/libexec/git-core/git-flow.exe','etc/gitconfig','ucrt64/etc/ssl/certs/ca-bundle.crt','LICENSE.txt','licenses/Git-LFS-LICENSE.md','licenses/Git-Flow-LICENSE','COMPONENTS.md']
 for name in required:
  p=runtime/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(('component fixture '+name).encode())
-manifest={'schema':1,'inputLockSha256':hashlib.sha256((script.parent/'build/git-runtime.lock.json').read_bytes()).hexdigest(),'files':[{'path':name,'sha256':hashlib.sha256((runtime/name).read_bytes()).hexdigest()} for name in required]}
+manifest={'schema':1,'gitVersion':'2.56.0.windows.4','inputLockSha256':hashlib.sha256((script.parent/'build/git-runtime.lock.json').read_bytes()).hexdigest(),'files':[{'path':name,'sha256':hashlib.sha256((runtime/name).read_bytes()).hexdigest()} for name in required]}
 (runtime/'runtime-manifest.json').write_text(json.dumps(manifest),'utf-8')
-def pack(destination):return subprocess.run(['powershell','-NoProfile','-ExecutionPolicy','Bypass','-File',str(script),'-Source',str(source),'-Destination',str(destination)],capture_output=True)
+def pack(destination, app=False):return subprocess.run(['powershell','-NoProfile','-ExecutionPolicy','Bypass','-File',str(script),'-Source',str(source),'-Destination',str(destination)]+(['-WithAppUpdate'] if app else []),capture_output=True)
 checks=[]
 def check(name,condition):
     assert condition,name;checks.append(name);print('PASS',name,flush=True)
-first=root/'assets';r=pack(first)
+first=root/'assets';r=pack(first, app=True)
 if r.returncode!=0:raise RuntimeError(r.stdout.decode('utf-8',errors='replace')+r.stderr.decode('utf-8',errors='replace'))
 check('a normal build creates a versioned archive',(first/'TreeGit-0.0.1-Windows-x64.zip').is_file())
 archive=first/'TreeGit-0.0.1-Windows-x64.zip'
@@ -37,6 +37,14 @@ with zipfile.ZipFile(archive) as z:
         check(name+' ships only a generic example without personal commands or secrets',json.loads(z.read('TreeGit/'+name))=={'mcpServers':{'treegit':{'command':r'C:\Tools\TreeGit\TreeGit.exe','args':args}}})
 check('packaging leaves both personal MCP configurations unchanged',all((source/name).read_bytes()==private_mcp for name in ['mcp-readonly.json','mcp-readwrite.json']))
 check('the published SHA256 matches the complete archive',hashlib.sha256(archive.read_bytes()).hexdigest()==(first/'SHA256SUMS.txt').read_text().split()[0])
+entries=sorted((entry['path'],entry['sha256']) for entry in manifest['files'])
+identity=hashlib.sha256('\n'.join([manifest['gitVersion']]+[f'{path}\t{sha}' for path,sha in entries]).encode()).hexdigest()
+app=first/f'TreeGit-0.0.1-Windows-x64-App-{identity}.zip'
+check('the lightweight update identifies the exact shipped Git version and component files',app.is_file())
+with zipfile.ZipFile(archive) as full,zipfile.ZipFile(app) as program:
+    program_names=[name for name in full.namelist() if not name.startswith('TreeGit/git/')]
+    check('the lightweight package has the same program and no Git files',set(program.namelist())==set(program_names) and all(program.read(name)==full.read(name) for name in program_names))
+check('both full and lightweight packages have published SHA256 values',hashlib.sha256(app.read_bytes()).hexdigest()+'  '+app.name in (first/'SHA256SUMS.txt').read_text())
 private=runtime/'private-user-config';private.write_bytes(b'must not publish')
 blocked=root/'unexpected';r=pack(blocked);check('extra runtime files are rejected before an archive exists',r.returncode!=0 and not list(blocked.glob('*.zip')));private.unlink()
 ssh=runtime/'usr/bin/ssh.exe';saved=ssh.read_bytes();ssh.unlink()

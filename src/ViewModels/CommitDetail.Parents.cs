@@ -15,7 +15,7 @@ namespace SourceGit.ViewModels
             private set => SetProperty(ref _parentRevisions, value);
         }
 
-        private void RefreshParentRevisions(Models.Commit commit, CancellationToken token)
+        private void RefreshParentRevisions(Models.Commit commit, CancellationToken token, bool resolveShortNames = true)
         {
             var request = ++_parentRevisionsRequest;
             var parents = commit?.Parents.ToArray() ?? [];
@@ -23,7 +23,7 @@ namespace SourceGit.ViewModels
             // discard a user's active selection or a click in progress.
             if (!ParentRevisions.Select(parent => parent.SHA).SequenceEqual(parents, StringComparer.Ordinal))
                 ParentRevisions = parents.Select(sha => new Models.CommitParent(sha)).ToArray();
-            if (parents.Length == 0) return;
+            if (!resolveShortNames || parents.Length == 0) return;
             Task.Run(async () =>
             {
                 try

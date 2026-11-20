@@ -252,6 +252,46 @@ namespace SourceGit.ViewModels
 
         public DiffViewSettings StandaloneDiffSettings { get; set; } = new();
         public int DisplayEncodingIndex { get => _displayEncodingIndex; set => SetProperty(ref _displayEncodingIndex, Math.Max(0, value)); }
+        public Dictionary<string, Dictionary<string, int>> RepositoryDisplayEncodings { get; set; } = [];
+
+        internal int GetFileEncodingIndex(string repository, string file)
+        {
+            var repo = EncodingRepositoryKey(repository);
+            var snapshot = RepositoryDisplayEncodings;
+            return snapshot != null && snapshot.TryGetValue(repo, out var encodings) && encodings != null &&
+                encodings.TryGetValue(EncodingFileKey(file), out var index) && Models.DisplayEncoding.CodePage(index) != 0 ? index : 0;
+        }
+
+        internal void SetFileEncodingIndex(string repository, string file, int index)
+        {
+            if (index < 0 || index != 0 && Models.DisplayEncoding.CodePage(index) == 0 ||
+                GetFileEncodingIndex(repository, file) == index) return;
+            var repo = EncodingRepositoryKey(repository);
+            var kind = EncodingFileKey(file);
+            var repositories = new Dictionary<string, Dictionary<string, int>>(RepositoryDisplayEncodings ?? []);
+            repositories.TryGetValue(repo, out var current);
+            var encodings = new Dictionary<string, int>(current ?? []);
+            if (index == 0) encodings.Remove(kind);
+            else encodings[kind] = index;
+            if (encodings.Count == 0) repositories.Remove(repo);
+            else repositories[repo] = encodings;
+            RepositoryDisplayEncodings = repositories;
+            OnPropertyChanged(nameof(RepositoryDisplayEncodings));
+            Save();
+        }
+
+        private static string EncodingRepositoryKey(string repository)
+        {
+            var key = Path.TrimEndingDirectorySeparator(Path.GetFullPath(repository));
+            return OperatingSystem.IsWindows() ? key.ToUpperInvariant() : key;
+        }
+
+        private static string EncodingFileKey(string file)
+        {
+            var name = Path.GetFileName(file);
+            var extension = Path.GetExtension(name);
+            return (extension.Length == 0 || extension == name ? "name:" + name : "ext:" + extension).ToLowerInvariant();
+        }
         private int _displayEncodingIndex;
 
         public bool UseSyntaxHighlighting

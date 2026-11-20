@@ -6,6 +6,19 @@ function Get-TreeGitHash([string]$Path) {
     finally { $stream.Dispose(); $algorithm.Dispose() }
 }
 
+function Get-TreeGitRuntimeFingerprint($Manifest) {
+    if ($Manifest.gitVersion -cnotmatch '^[0-9A-Za-z.]{1,64}$') { throw 'Invalid bundled Git version' }
+    $hashes=@{}
+    foreach($file in $Manifest.files) { $hashes.Add($file.path,$file.sha256.ToLowerInvariant()) }
+    [string[]]$paths=$hashes.Keys
+    [Array]::Sort($paths,[StringComparer]::Ordinal)
+    $entries=foreach($path in $paths) { $path+"`t"+$hashes[$path] }
+    $bytes=[Text.Encoding]::UTF8.GetBytes($Manifest.gitVersion+"`n"+($entries -join "`n"))
+    $algorithm=[Security.Cryptography.SHA256]::Create()
+    try { return ([BitConverter]::ToString($algorithm.ComputeHash($bytes))).Replace('-','').ToLowerInvariant() }
+    finally { $algorithm.Dispose() }
+}
+
 function Test-TreeGitRuntime([string]$Path) {
     $root=[IO.Path]::GetFullPath($Path).TrimEnd([IO.Path]::DirectorySeparatorChar)
     $manifestPath=Join-Path $root 'runtime-manifest.json'

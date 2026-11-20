@@ -36,20 +36,40 @@ namespace SourceGit.Models
         }
     }
 
-    public class RevisionTextFile(string fileName, System.ArraySegment<byte> bytes) : CommunityToolkit.Mvvm.ComponentModel.ObservableObject
+    public class RevisionTextFile : CommunityToolkit.Mvvm.ComponentModel.ObservableObject
     {
-        public string FileName { get; } = fileName;
-        public string Content { get; private set; } = DisplayEncoding.Decode(bytes.AsSpan());
+        public string FileName { get; }
+        public string Content { get; private set; }
+
+        public RevisionTextFile(string repository, string fileName, ArraySegment<byte> bytes)
+        {
+            _repository = repository;
+            _bytes = bytes;
+            FileName = fileName;
+            _encodingIndex = ViewModels.Preferences.Instance.GetFileEncodingIndex(repository, fileName);
+            Content = DisplayEncoding.Decode(bytes.AsSpan(), DisplayEncoding.CodePage(_encodingIndex));
+        }
+
         public int DisplayEncodingIndex
         {
             get => _encodingIndex;
             set
             {
-                if (value < 0 || !SetProperty(ref _encodingIndex, value)) return;
-                Content = DisplayEncoding.Decode(bytes.AsSpan(), DisplayEncoding.CodePage(value));
-                OnPropertyChanged(nameof(Content));
+                ViewModels.Preferences.Instance.SetFileEncodingIndex(_repository, FileName, value);
+                RefreshDisplayEncoding();
             }
         }
+
+        internal void RefreshDisplayEncoding()
+        {
+            var index = ViewModels.Preferences.Instance.GetFileEncodingIndex(_repository, FileName);
+            if (!SetProperty(ref _encodingIndex, index, nameof(DisplayEncodingIndex))) return;
+            Content = DisplayEncoding.Decode(_bytes.AsSpan(), DisplayEncoding.CodePage(index));
+            OnPropertyChanged(nameof(Content));
+        }
+
+        private readonly string _repository;
+        private readonly ArraySegment<byte> _bytes;
         private int _encodingIndex;
     }
 

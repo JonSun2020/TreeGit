@@ -315,7 +315,12 @@ namespace SourceGit.ViewModels
         public object DetailContext
         {
             get => _detailContext;
-            private set => SetProperty(ref _detailContext, value);
+            private set
+            {
+                if (ReferenceEquals(_detailContext, value)) return;
+                (_detailContext as DiffContext)?.CancelLoad();
+                SetProperty(ref _detailContext, value);
+            }
         }
 
         public string CommitMessage

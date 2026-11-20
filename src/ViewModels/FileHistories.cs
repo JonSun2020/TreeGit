@@ -129,10 +129,11 @@ namespace SourceGit.ViewModels
                     var size = await new Commands.QueryFileSize(_repo, _file, _revision.SHA).GetResultAsync().ConfigureAwait(false);
                     if (size is > 0 and <= 8 * 1024 * 1024)
                     {
-                        var bytes = await Commands.WideTextPreview.ReadAsync(_repo, _revision.SHA, _file, obj.SHA, 0).ConfigureAwait(false);
-                        if (bytes != null && Models.DisplayEncoding.DetectWide(bytes) != 0)
+                        var encoding = Models.DisplayEncoding.CodePage(Preferences.Instance.GetFileEncodingIndex(_repo, _file));
+                        var bytes = await Commands.WideTextPreview.ReadAsync(_repo, _revision.SHA, _file, obj.SHA, encoding).ConfigureAwait(false);
+                        if (bytes != null)
                         {
-                            var wideText = new Models.RevisionTextFile(_file, bytes);
+                            var wideText = new Models.RevisionTextFile(_repo, _file, bytes);
                             if (Models.DisplayEncoding.IsReadableText(wideText.Content)) return new FileHistoriesRevisionFile(_file, wideText, true);
                         }
                     }
@@ -142,7 +143,7 @@ namespace SourceGit.ViewModels
 
                 await using var contentStream = await Commands.QueryFileContent.RunAsync(_repo, _revision.SHA, _file).ConfigureAwait(false);
                 contentStream.TryGetBuffer(out var buffer);
-                var txt = new Models.RevisionTextFile(obj.Path, buffer);
+                var txt = new Models.RevisionTextFile(_repo, obj.Path, buffer);
                 var lfs = Models.LFSObject.Parse(txt.Content);
                 if (lfs != null)
                 {

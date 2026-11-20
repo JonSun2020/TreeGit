@@ -54,28 +54,64 @@ namespace SourceGit.Native
             return release;
         }
 
-        public async Task<Models.UpdatePlan> PrepareAsync(Models.Version release, IProgress<Models.UpdateProgress> progress, CancellationToken token)
+        public async Task<Models.UpdatePlan> PrepareAsync(Models.Version release, IProgress<Models.UpdateProgress> progress,
+            CancellationToken token, bool preferAppPackage = true)
         {
             if (!OperatingSystem.IsWindows() || System.Runtime.InteropServices.RuntimeInformation.ProcessArchitecture != System.Runtime.InteropServices.Architecture.X64)
                 throw new Models.UpdateProblem("platform");
             if (!TryVersion(release.TagName, out var version)) throw new Models.UpdateProblem("invalid");
             var before = ReadInstalledVersion(_root);
             if (new System.Version(version) <= new System.Version(before)) throw new Models.UpdateProblem("not-newer");
-            var name = "TreeGit-" + version + "-Windows-x64.zip";
-            var asset = release.Assets.SingleOrDefault(a => a.Name == name);
-            if (asset == null || asset.Size <= 0 || asset.Size > 512L * 1024 * 1024) throw new Models.UpdateProblem("invalid");
-            var uri = ValidateAssetUrl(asset.DownloadUrl, release.TagName, name);
-            var expected = asset.Digest?.StartsWith("sha256:", StringComparison.Ordinal) == true ? asset.Digest[7..].ToLowerInvariant() : null;
-            if (!IsHash(expected)) throw new Models.UpdateProblem("invalid");
+            var prefix = "TreeGit-" + version + "-Windows-x64";
+            var full = FindPackage(release, prefix + ".zip") ?? throw new Models.UpdateProblem("invalid");
             EnsureWritable(_root);
+            if (preferAppPackage && release.Assets.Any(asset => asset.Name?.StartsWith(prefix + "-App-", StringComparison.Ordinal) == true))
+            {
+                var identity = GitRuntimeArchive.ReadUpdateIdentity(_root);
+                var app = identity == null ? null : FindPackage(release, AppPackageName(version, identity));
+                if (app != null && app.Size < full.Size && GitRuntimeArchive.VerifyForUpdate(_root, identity, token))
+                {
+                    try { return await PreparePackageAsync(before, version, app, identity, progress, token).ConfigureAwait(false); }
+                    catch (Models.UpdateProblem error) when (error.Code is "invalid" or "damaged" or "git-changed")
+                    {
+                        // The complete portable package remains the recovery path.
+                    }
+                }
+            }
+            return await PreparePackageAsync(before, version, full, null, progress, token).ConfigureAwait(false);
+        }
+
+        private sealed record Package(Uri Uri, long Size, string Hash);
+
+        private static string AppPackageName(string version, string identity) => $"TreeGit-{version}-Windows-x64-App-{identity}.zip";
+
+        private static Package FindPackage(Models.Version release, string name)
+        {
+            var assets = release.Assets.Where(asset => asset.Name == name).Take(2).ToArray();
+            if (assets.Length != 1 || assets[0].Size is <= 0 or > 512L * 1024 * 1024) return null;
+            var asset = assets[0];
+            var hash = asset.Digest?.StartsWith("sha256:", StringComparison.Ordinal) == true ? asset.Digest[7..].ToLowerInvariant() : null;
+            if (!IsHash(hash)) return null;
+            try { return new(ValidateAssetUrl(asset.DownloadUrl, release.TagName, name), asset.Size, hash); }
+            catch (Models.UpdateProblem) { return null; }
+        }
+
+        private async Task<Models.UpdatePlan> PreparePackageAsync(string before, string version, Package package, string gitIdentity,
+            IProgress<Models.UpdateProgress> progress, CancellationToken token)
+        {
             var downloads = SafeChild(_root, ".treegit-update/downloads");
             CreateSafeDirectory(_root, downloads);
-            var archive = SafeChild(downloads, version + "-" + expected[..12] + ".zip");
-            if (!File.Exists(archive) || new FileInfo(archive).Length != asset.Size || Hash(archive) != expected)
-                await DownloadAsync(uri, archive, asset.Size, expected, progress, token).ConfigureAwait(false);
+            var archive = SafeChild(downloads, version + "-" + package.Hash[..12] + ".zip");
+            if (!File.Exists(archive) || new FileInfo(archive).Length != package.Size || Hash(archive) != package.Hash)
+                await DownloadAsync(package.Uri, archive, package.Size, package.Hash, progress, token).ConfigureAwait(false);
             progress?.Report(new("verify"));
             token.ThrowIfCancellationRequested();
-            var plan = new Models.UpdatePlan { InstallRoot = _root, BeforeVersion = before, TargetVersion = version, BeforeExeSha256 = Hash(Path.Combine(_root, "TreeGit.exe")), PackageSha256 = expected };
+            var plan = new Models.UpdatePlan
+            {
+                InstallRoot = _root, BeforeVersion = before, TargetVersion = version,
+                BeforeExeSha256 = Hash(Path.Combine(_root, "TreeGit.exe")),
+                PackageSha256 = package.Hash, BundledGitIdentity = gitIdentity,
+            };
             var job = SafeChild(_root, ".treegit-update/jobs/" + plan.Id);
             CreateSafeDirectory(_root, job);
             TreeGitUpdateInstaller.WriteOwner(plan);
@@ -100,7 +136,8 @@ namespace SourceGit.Native
                             throw new Models.UpdateProblem("invalid");
                         if (path.EndsWith('/')) continue;
                         var relative = path[8..];
-                        if (!AllowedFile(relative)) throw new Models.UpdateProblem("invalid");
+                        if (!AllowedFile(relative) || gitIdentity != null && relative.StartsWith("git/", StringComparison.Ordinal))
+                            throw new Models.UpdateProblem("invalid");
                         var destination = SafeChild(stage, path);
                         Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
                         await using (var input = entry.Open())
@@ -110,8 +147,14 @@ namespace SourceGit.Native
                     }
                 }
                 var payload = Path.Combine(stage, "TreeGit");
-                ValidatePayload(payload, version);
-                if (File.Exists(Path.Combine(_root, "git", "usr", "bin", "sh.exe")) &&
+                if (gitIdentity == null) ValidatePayload(payload, version);
+                else
+                {
+                    ValidateProgramPayload(payload, version);
+                    if (!GitRuntimeArchive.VerifyForUpdate(_root, gitIdentity, token))
+                        throw new Models.UpdateProblem("git-changed");
+                }
+                if (gitIdentity == null && GitRuntimeArchive.HasExpandedFiles(_root) &&
                     File.Exists(Path.Combine(payload, "git", "payload-manifest.json")))
                 {
                     // Keep an expanded installation expanded. Compare and replace only changed components.
@@ -126,7 +169,6 @@ namespace SourceGit.Native
                     var relative = Path.GetRelativePath(payload, source).Replace('\\', '/');
                     var target = SafeChild(_root, relative);
                     if ((relative is "mcp-readonly.json" or "mcp-readwrite.json") && File.Exists(target)) continue;
-                    if (IsCustomGitConfiguration(relative, target)) continue;
                     var hash = Hash(source);
                     var old = File.Exists(target) ? Hash(target) : null;
                     if (hash == old) continue;
@@ -198,9 +240,8 @@ namespace SourceGit.Native
         internal Models.UpdatePlan FindPrepared(Models.Version release)
         {
             if (!TryVersion(release.TagName, out var version)) return null;
-            var asset = release.Assets.FirstOrDefault(asset => asset.Name == "TreeGit-" + version + "-Windows-x64.zip");
-            var expected = asset?.Digest?.StartsWith("sha256:", StringComparison.Ordinal) == true ? asset.Digest[7..].ToLowerInvariant() : null;
-            if (!IsHash(expected)) return null;
+            var full = FindPackage(release, "TreeGit-" + version + "-Windows-x64.zip");
+            if (full == null) return null;
             var jobs = SafeChild(_root, ".treegit-update/jobs");
             if (!Directory.Exists(jobs)) return null;
             var current = Hash(Path.Combine(_root, "TreeGit.exe"));
@@ -209,7 +250,10 @@ namespace SourceGit.Native
                 try
                 {
                     var plan = TreeGitUpdateInstaller.LoadPlan(SafeChild(folder, "plan.json"));
-                    if (plan.State != "Prepared" || plan.TargetVersion != version || plan.BeforeExeSha256 != current || plan.PackageSha256 != expected) continue;
+                    if (plan.State != "Prepared" || plan.TargetVersion != version || plan.BeforeExeSha256 != current) continue;
+                    var expected = plan.BundledGitIdentity == null ? full.Hash : FindPackage(release, AppPackageName(version, plan.BundledGitIdentity))?.Hash;
+                    if (plan.PackageSha256 != expected ||
+                        plan.BundledGitIdentity != null && !GitRuntimeArchive.VerifyForUpdate(_root, plan.BundledGitIdentity)) continue;
                     var exe = SafeChild(TreeGitUpdateInstaller.JobRoot(plan), "stage/TreeGit/TreeGit.exe");
                     if (File.Exists(exe) && Hash(exe) == plan.Files.Single(file => file.Path == "TreeGit.exe").Sha256) return plan;
                 }
@@ -248,13 +292,8 @@ namespace SourceGit.Native
 
         internal static void ValidatePayload(string root, string version)
         {
-            if (ReadInstalledVersion(root) != version) throw new Models.UpdateProblem("invalid");
-            foreach (var file in Models.TreeGitRelease.WindowsNativeLibraries.Append("git/cmd/git.exe"))
-                if (!File.Exists(Path.Combine(root, file))) throw new Models.UpdateProblem("invalid");
-            var exe = FileVersionInfo.GetVersionInfo(Path.Combine(root, "TreeGit.exe"));
-            var expected = new System.Version(version);
-            if (exe.FileMajorPart != expected.Major || exe.FileMinorPart != expected.Minor || exe.FileBuildPart != expected.Build)
-                throw new Models.UpdateProblem("invalid");
+            ValidateProgramPayload(root, version);
+            if (!File.Exists(Path.Combine(root, "git/cmd/git.exe"))) throw new Models.UpdateProblem("invalid");
             using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(root, "git/runtime-manifest.json")));
             var entries = document.RootElement.GetProperty("files");
             if (entries.GetArrayLength() is < 1 or > 5000) throw new Models.UpdateProblem("invalid");
@@ -267,6 +306,17 @@ namespace SourceGit.Native
                 if (!File.Exists(path) || Hash(path) != entry.GetProperty("sha256").GetString()?.ToLowerInvariant()) throw new Models.UpdateProblem("invalid");
             }
             if (!files.SetEquals(Directory.EnumerateFiles(Path.Combine(root, "git"), "*", SearchOption.AllDirectories).Select(path => Path.GetRelativePath(Path.Combine(root, "git"), path).Replace('\\', '/'))))
+                throw new Models.UpdateProblem("invalid");
+        }
+
+        private static void ValidateProgramPayload(string root, string version)
+        {
+            if (ReadInstalledVersion(root) != version) throw new Models.UpdateProblem("invalid");
+            foreach (var file in Models.TreeGitRelease.WindowsNativeLibraries)
+                if (!File.Exists(Path.Combine(root, file))) throw new Models.UpdateProblem("invalid");
+            var exe = FileVersionInfo.GetVersionInfo(Path.Combine(root, "TreeGit.exe"));
+            var expected = new System.Version(version);
+            if (exe.FileMajorPart != expected.Major || exe.FileMinorPart != expected.Minor || exe.FileBuildPart != expected.Build)
                 throw new Models.UpdateProblem("invalid");
         }
 
@@ -329,18 +379,6 @@ namespace SourceGit.Native
         {
             using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             return Convert.ToHexString(SHA256.HashData(stream)).ToLowerInvariant();
-        }
-
-        private bool IsCustomGitConfiguration(string relative, string target)
-        {
-            if (relative is not ("git/etc/gitconfig" or "git/ucrt64/etc/gitconfig" or "git/mingw64/etc/gitconfig") || !File.Exists(target)) return false;
-            try
-            {
-                using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(_root, "git/runtime-manifest.json")));
-                var entry = document.RootElement.GetProperty("files").EnumerateArray().FirstOrDefault(file => file.GetProperty("path").GetString()?.Replace('\\', '/') == relative[4..]);
-                return entry.ValueKind == JsonValueKind.Undefined || Hash(target) != entry.GetProperty("sha256").GetString()?.ToLowerInvariant();
-            }
-            catch { return true; }
         }
 
         internal static bool IsHash(string hash) => hash?.Length == 64 && hash.All(Uri.IsHexDigit);

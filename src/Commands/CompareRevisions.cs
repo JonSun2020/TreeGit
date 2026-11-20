@@ -35,12 +35,18 @@ namespace SourceGit.Commands
             var changes = new List<Models.Change>();
             try
             {
+                CancellationToken.ThrowIfCancellationRequested();
                 using var proc = new Process();
                 proc.StartInfo = CreateGitStartInfo(true);
                 Native.ProcessLauncher.Start(proc);
+                using var cancellation = CancellationToken.Register(() =>
+                {
+                    try { if (!proc.HasExited) Native.OS.TerminateProcess(proc); }
+                    catch (System.InvalidOperationException) { }
+                });
                 proc.BeginErrorReadLine();
 
-                while (await proc.StandardOutput.ReadLineAsync().ConfigureAwait(false) is { } line)
+                while (await proc.StandardOutput.ReadLineAsync(CancellationToken).ConfigureAwait(false) is { } line)
                 {
                     var match = REG_FORMAT().Match(line);
                     if (!match.Success)
@@ -81,7 +87,7 @@ namespace SourceGit.Commands
                     }
                 }
 
-                await proc.WaitForExitAsync().ConfigureAwait(false);
+                await proc.WaitForExitAsync(CancellationToken).ConfigureAwait(false);
 
                 changes.Sort((l, r) => Models.NumericSort.Compare(l.Path, r.Path));
             }

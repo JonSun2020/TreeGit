@@ -44,6 +44,7 @@ namespace SourceGit.ViewModels
 
                     if (DiffContext == null)
                         UpdateDetails();
+                    ReadSignatureIfVisible();
                 }
             }
         }
@@ -122,7 +123,12 @@ namespace SourceGit.ViewModels
         public DiffContext DiffContext
         {
             get => _diffContext;
-            private set => SetProperty(ref _diffContext, value);
+            private set
+            {
+                if (ReferenceEquals(_diffContext, value)) return;
+                _diffContext?.CancelLoad();
+                SetProperty(ref _diffContext, value);
+            }
         }
 
         public string SearchChangeFilter
@@ -472,12 +478,13 @@ namespace SourceGit.ViewModels
         private void Refresh()
         {
             if (_cancellationSource is { IsCancellationRequested: false })
-                _cancellationSource.Cancel();
+                _ = _cancellationSource.CancelAsync();
 
             _requestingRevisionFiles = false;
             _revisionFiles = null;
 
             SignInfo = null;
+            _signatureCommit = null;
             ViewRevisionFileContent = null;
             ViewRevisionFilePath = string.Empty;
             CanOpenRevisionFileWithDefaultEditor = false;
@@ -498,14 +505,57 @@ namespace SourceGit.ViewModels
             _cancellationSource = new CancellationTokenSource();
             var token = _cancellationSource.Token;
             var selectedCommit = _commit;
+            RefreshBranchDetails(null, default);
+            IsBranchDetailsLoading = true;
+            RefreshParentRevisions(selectedCommit, token, resolveShortNames: false);
 
-            RefreshBranchDetails(_commit, token);
-            RefreshParentRevisions(_commit, token);
-
-            var messageRevision = _commit.SHA;
             Task.Run(async () =>
             {
-                var message = await new Commands.QueryCommitFullMessage(_repo.FullPath, messageRevision)
+                var changes = await new Commands.CompareRevisions(_repo.FullPath, selectedCommit.FirstParentToCompare, selectedCommit.SHA) { CancellationToken = token }
+                    .ReadAsync().ConfigureAwait(false);
+                if (token.IsCancellationRequested) return;
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (token.IsCancellationRequested || _commit?.SHA != selectedCommit.SHA) return;
+                    Changes = changes;
+                    RefreshVisibleChanges();
+                    ChangeSelection = new(VisibleChanges.Count == 0 ? null : VisibleChanges.GetRange(0, 1));
+                    _ = LoadSupplementaryDetailsAsync(selectedCommit, token);
+                });
+            }, token);
+        }
+
+        private async Task LoadSupplementaryDetailsAsync(Models.Commit selectedCommit, CancellationToken token)
+        {
+            try
+            {
+                while (ActiveTabIndex == 1 && DiffContext is { } diff)
+                {
+                    var completion = diff.LoadCompletion;
+                    await completion.WaitAsync(token);
+                    // Leave the next file selection a short head start after the first diff appears.
+                    await Task.Delay(180, token);
+                    if (ReferenceEquals(diff, DiffContext) && ReferenceEquals(completion, diff.LoadCompletion)) break;
+                }
+            }
+            catch (OperationCanceledException) when (token.IsCancellationRequested) { return; }
+
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (token.IsCancellationRequested || _commit?.SHA != selectedCommit.SHA) return;
+                RefreshBranchDetails(_commit, token);
+                RefreshParentRevisions(_commit, token);
+                ReadCommitMetadata(selectedCommit, token);
+                ReadSignatureIfVisible();
+            }, DispatcherPriority.Background);
+        }
+
+        private void ReadCommitMetadata(Models.Commit selectedCommit, CancellationToken token)
+        {
+            var messageRevision = selectedCommit.SHA;
+            Task.Run(async () =>
+            {
+                var message = await new Commands.QueryCommitFullMessage(_repo.FullPath, messageRevision) { CancellationToken = token }
                     .GetResultAsync()
                     .ConfigureAwait(false);
                 var inlines = await ParseInlinesInMessageAsync(message).ConfigureAwait(false);
@@ -521,10 +571,17 @@ namespace SourceGit.ViewModels
                         };
                     });
             }, token);
+        }
 
+        private void ReadSignatureIfVisible()
+        {
+            var selectedCommit = _commit;
+            if (ActiveTabIndex != 0 || selectedCommit == null || _signatureCommit == selectedCommit.SHA || _cancellationSource == null) return;
+            _signatureCommit = selectedCommit.SHA;
+            var token = _cancellationSource.Token;
             Task.Run(async () =>
             {
-                var signInfo = await new Commands.QueryCommitSignInfo(_repo.FullPath, selectedCommit.SHA, !_repo.HasAllowedSignersFile)
+                var signInfo = await new Commands.QueryCommitSignInfo(_repo.FullPath, selectedCommit.SHA, !_repo.HasAllowedSignersFile) { CancellationToken = token }
                     .GetResultAsync()
                     .ConfigureAwait(false);
 
@@ -534,28 +591,6 @@ namespace SourceGit.ViewModels
                         if (token.IsCancellationRequested || _commit?.SHA != selectedCommit.SHA) return;
                         SignInfo = signInfo;
                     });
-            }, token);
-
-            Task.Run(async () =>
-            {
-                var changes = await new Commands.CompareRevisions(_repo.FullPath, selectedCommit.FirstParentToCompare, selectedCommit.SHA)
-                    .ReadAsync()
-                    .ConfigureAwait(false);
-
-                if (!token.IsCancellationRequested)
-                {
-                    Dispatcher.UIThread.Post(() =>
-                    {
-                        if (token.IsCancellationRequested || _commit?.SHA != selectedCommit.SHA) return;
-                        Changes = changes;
-                        RefreshVisibleChanges();
-
-                        if (VisibleChanges.Count == 0)
-                            ChangeSelection = new(null);
-                        else
-                            ChangeSelection = new(VisibleChanges.GetRange(0, 1));
-                    });
-                }
             }, token);
         }
 
@@ -712,10 +747,11 @@ namespace SourceGit.ViewModels
                     var size = await new Commands.QueryFileSize(_repo.FullPath, file.Path, _commit.SHA).GetResultAsync();
                     if (size is > 0 and <= 8 * 1024 * 1024)
                     {
-                        var bytes = await Commands.WideTextPreview.ReadAsync(_repo.FullPath, _commit.SHA, file.Path, file.SHA, 0);
-                        if (bytes != null && Models.DisplayEncoding.DetectWide(bytes) != 0)
+                        var encoding = Models.DisplayEncoding.CodePage(Preferences.Instance.GetFileEncodingIndex(_repo.FullPath, file.Path));
+                        var bytes = await Commands.WideTextPreview.ReadAsync(_repo.FullPath, _commit.SHA, file.Path, file.SHA, encoding);
+                        if (bytes != null)
                         {
-                            var textFile = new Models.RevisionTextFile(file.Path, bytes);
+                            var textFile = new Models.RevisionTextFile(_repo.FullPath, file.Path, bytes);
                             if (Models.DisplayEncoding.IsReadableText(textFile.Content)) { ViewRevisionFileContent = textFile; return; }
                         }
                     }
@@ -727,7 +763,7 @@ namespace SourceGit.ViewModels
 
             await using var contentStream = await Commands.QueryFileContent.RunAsync(_repo.FullPath, _commit.SHA, file.Path);
             contentStream.TryGetBuffer(out var buffer);
-            var text = new Models.RevisionTextFile(file.Path, buffer);
+            var text = new Models.RevisionTextFile(_repo.FullPath, file.Path, buffer);
             var lfs = Models.LFSObject.Parse(text.Content);
             if (lfs != null)
             {
@@ -763,6 +799,7 @@ namespace SourceGit.ViewModels
         private Models.Commit _commit = null;
         private Models.CommitFullMessage _fullMessage = null;
         private Models.CommitSignInfo _signInfo = null;
+        private string _signatureCommit;
         private List<Models.Change> _changes = [];
         private List<Models.Change> _visibleChanges = [];
         private ChangeSelection _changeSelection = new(null);

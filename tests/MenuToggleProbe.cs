@@ -102,21 +102,24 @@ namespace SourceGit.Automation
                 }
                 else if (action == "diff_encoding")
                 {
-                    var button = profileViews.First(v => v.Settings is ViewModels.Preferences).FindControl<Button>("DiffDisplayOptions");
-                    var flyout = (Flyout)button.Flyout;
-                    flyout.ShowAt(button);
-                    var picker = ((Control)flyout.Content).GetVisualDescendants().OfType<Views.DisplayEncodingPicker>().Single();
+                    var view = profileViews.First(v => v.Settings is ViewModels.Preferences);
+                    var picker = view.FindControl<Views.DisplayEncodingPicker>("DiffEncodingPicker");
+                    var label = view.FindControl<TextBlock>("DiffEncodingLabel");
+                    var first = view.FindControl<Button>("BtnGotoFirstChange");
+                    var beforeFirst = picker.TranslatePoint(new Point(picker.Bounds.Width, 0), view)?.X <= first.TranslatePoint(default, view)?.X;
+                    var labelBeforePicker = label.TranslatePoint(new Point(label.Bounds.Width, 0), view)?.X <= picker.TranslatePoint(default, view)?.X;
                     var labels = picker.Items.OfType<ComboBoxItem>().Select(item => item.Content?.ToString()).ToArray();
                     picker.SetCurrentValue(SelectingItemsControl.SelectedIndexProperty, index);
-                    flyout.Hide();
-                    return new { labels, selected = picker.SelectedIndex };
+                    return new { labels, selected = picker.SelectedIndex, beforeFirst, caption = label.Text, labelBeforePicker, labelVisible = label.IsEffectivelyVisible };
                 }
                 else if (action == "diff_decoded_text")
                 {
                     var view = profileViews.First(v => v.Settings is ViewModels.Preferences);
                     var model = (ViewModels.DiffContext)view.DataContext;
                     var decoded = model.Content as ViewModels.TextDiffContext;
-                    return new { file = model.Title, encoding = view.Settings.DisplayEncodingIndex, kind = model.Content?.GetType().Name,
+                    return new { file = model.Title, encoding = model.DisplayEncodingIndex, kind = model.Content?.GetType().Name,
+                        encodingVisible = view.FindControl<Views.DisplayEncodingPicker>("DiffEncodingPicker").IsEffectivelyVisible,
+                        labelVisible = view.FindControl<TextBlock>("DiffEncodingLabel").IsEffectivelyVisible,
                         displayOnly = decoded?.Data.IsDisplayOnly, rows = decoded?.Data.Lines.Take(30).Select(line => line.Content).ToArray() };
                 }
                 else if (action is "diff_toggle_main" or "diff_toggle_standalone")
