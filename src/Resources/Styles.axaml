@@ -648,7 +648,11 @@
   <Style Selector="Button.caption_button">
     <Setter Property="Width" Value="48"/>
     <Setter Property="BorderThickness" Value="0"/>
+    <Setter Property="Padding" Value="0"/>
+    <Setter Property="UseLayoutRounding" Value="False"/>
     <Setter Property="VerticalAlignment" Value="Stretch"/>
+    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+    <Setter Property="VerticalContentAlignment" Value="Center"/>
   </Style>
   <Style Selector="Button.caption_button > Path">
     <Setter Property="Fill" Value="{DynamicResource Brush.FG1}"/>

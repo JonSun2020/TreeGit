@@ -104,13 +104,13 @@ try:
     for zoom in ([float(os.environ['TREEGIT_AUDIT_ZOOM'])] if 'TREEGIT_AUDIT_ZOOM' in os.environ else [1,1.5,2,2.5]):
         print('Opening small window at zoom '+str(zoom),flush=True)
         tool('ui_window',{'width':1024,'height':720,'zoom':zoom})
-        for page in ['general','appearance','git','signing','integration']:
+        for page, tab_index in [('general',0),('appearance',1),('git',0),('signing',2),('integration',0),('terminal',1),('diff-merge',2)]:
             tool('ui_command',{'command':'preferences','page':page})
             state=capture(f'preferences-{page}-{zoom}',True)
             dialogs=state['dialogs']
             check(f'preferences {page} {zoom} remains within screen',len(dialogs)==1 and within(dialogs[0]))
             probe=state['layoutProbe']['dialogs'][0]
-            own_settings = not probe['tabs'] if page in ('integration','git') else len(probe['tabs'])==1 and len(probe['tabs'][0]['visibleHeaders'])==3
+            own_settings = len(probe['tabs']) == 1 and len(probe['tabs'][0]['visibleHeaders']) == 3 and probe['tabs'][0]['selected'] == tab_index
             check(f'preferences {page} {zoom} shows only its own settings',own_settings and bool(probe['content']))
         tool('ui_command',{'command':'close_dialog'})
         tool('ui_command',{'repo':str(repo),'command':'repository_settings'})

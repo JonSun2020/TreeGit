@@ -67,6 +67,17 @@ namespace SourceGit.Views
             e.Handled = true;
         }
 
+        protected static void KeepDropdownAnchor(ComboBox dropdown)
+        {
+            var keyboardFocus = false;
+            dropdown.GotFocus += (_, args) => keyboardFocus = args.NavigationMethod is NavigationMethod.Tab or NavigationMethod.Directional;
+            // Handle the focus request before the surrounding scroll viewer moves the open dropdown.
+            dropdown.AddHandler(Control.RequestBringIntoViewEvent, (_, args) =>
+            {
+                if (dropdown.IsDropDownOpen || !keyboardFocus) args.Handled = true;
+            }, RoutingStrategies.Bubble);
+        }
+
         protected override void OnOpened(EventArgs e)
         {
             DialogButtons.Apply(this);

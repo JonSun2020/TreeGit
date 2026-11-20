@@ -10,7 +10,6 @@ using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Layout;
 using Avalonia.Media;
-using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 
 namespace SourceGit.Views
@@ -160,21 +159,8 @@ namespace SourceGit.Views
             // Preserve existing template data, while removing its orphaned editor:
             // the current commit page uses branch history rather than this picker.
             var scroll = new ScrollViewer { Name = "RepositorySettingsScroll", Content = remotePage, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto };
-            // ComboBox focus/selection asks its ancestors to bring it into view.
-            // At the bottom of an expanded section that moves the scroll and
-            // the already opening dropdown to different screen coordinates.
-            void KeepDropdownAnchor(ComboBox dropdown)
-            {
-                var keyboardFocus = false;
-                dropdown.GotFocus += (_, args) => keyboardFocus = args.NavigationMethod is Avalonia.Input.NavigationMethod.Tab or Avalonia.Input.NavigationMethod.Directional;
-                // This event bubbles only. Handle it at the dropdown before the
-                // enclosing ScrollContentPresenter has already moved the view.
-                dropdown.AddHandler(Control.RequestBringIntoViewEvent, (_, args) =>
-                {
-                    if (dropdown.IsDropDownOpen || !keyboardFocus) args.Handled = true;
-                }, RoutingStrategies.Bubble);
-            }
-            KeepDropdownAnchor(_defaultRemote); KeepDropdownAnchor(merge);
+            KeepDropdownAnchor(_defaultRemote);
+            KeepDropdownAnchor(merge);
             border.Child = scroll; Grid.SetRow(border, 2); root.Children.Add(border);
             void Select(bool advanced)
             {

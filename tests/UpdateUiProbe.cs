@@ -12,7 +12,9 @@ using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Styling;
 using Avalonia.VisualTree;
 using SourceGit.Automation;
 
@@ -36,15 +38,57 @@ namespace SourceGit.Tests
                 File.WriteAllText(Path.Combine(root, "build-info.json"), "{\"product\":\"TreeGit\",\"version\":\"2026.23.10\",\"integrationTests\":false}");
                 var server = new Server(archive);
                 ViewModels.SelfUpdate NewModel(string current = "2026.23.10") => new(root, current, () => new Native.TreeGitUpdater(root, new HttpClient(server, false)));
+                void CheckCaption(Window window, string label, int buttonCount = 1)
+                {
+                    if (Native.OS.UseSystemWindowFrame) return;
+                    var caption = window.GetVisualDescendants().OfType<Views.CaptionButtons>().Single(c => c.IsEffectivelyVisible);
+                    var centers = caption.GetVisualDescendants().OfType<Button>()
+                        .Where(b => b.Classes.Contains("caption_button") && b.IsEffectivelyVisible)
+                        .Select(b => (Avalonia.Controls.Shapes.Path)b.Content)
+                        .Select(glyph => glyph.RenderedGeometry is { } geometry && geometry.Bounds.Height > 0
+                            ? glyph.TranslatePoint(geometry.Bounds.Center, caption)?.Y : null)
+                        .ToArray();
+                    var tolerance = .5 / window.RenderScaling;
+                    Check($"{label} caption glyphs are centered vertically (centers: {string.Join(", ", centers)}; expected: {caption.Bounds.Height / 2:0.##})",
+                        centers.Length == buttonCount && centers.All(y => y.HasValue && Math.Abs(y.Value - caption.Bounds.Height / 2) <= tolerance)
+                        && centers.Max() - centers.Min() <= tolerance);
+                }
+
+                void CheckConfirmColor(Button button, string label)
+                {
+                    var expected = button.FindResource("Brush.TreeGit.Confirm") as ISolidColorBrush;
+                    var foreground = button.FindResource("Brush.FG1") as ISolidColorBrush;
+                    Check(label + " uses the dialog confirmation fill and text", expected != null && foreground != null &&
+                        (button.Background as ISolidColorBrush)?.Color == expected.Color &&
+                        (button.Foreground as ISolidColorBrush)?.Color == foreground.Color);
+                }
+
+                async Task CheckThemes(Button button, string label)
+                {
+                    var previous = App.Current.RequestedThemeVariant;
+                    try
+                    {
+                        foreach (var theme in new[] { ThemeVariant.Light, ThemeVariant.Dark, Models.TreeGitThemes.Blue })
+                        {
+                            App.Current.RequestedThemeVariant = theme;
+                            await Task.Delay(60);
+                            CheckConfirmColor(button, label + " " + theme);
+                        }
+                    }
+                    finally { App.Current.RequestedThemeVariant = previous; }
+                }
+
                 async Task Capture(Window window, string name)
                 {
                     await Task.Delay(120);
+                    CheckCaption(window, name);
                     if (window.DataContext is ViewModels.SelfUpdate current)
                     {
                         var actionButton = window.FindControl<Button>("UpdateAction");
                         var dismissButton = window.FindControl<Button>("UpdateDismiss");
                         Check(name + " action captions keep their live bindings", Equals(actionButton.Content, current.ActionText) && Equals(dismissButton.Content, current.DismissText));
                         Check(name + " footer actions keep common sizing", new[] { actionButton, dismissButton, window.FindControl<Button>("BackgroundUpdate") }.All(button => button.MinWidth == 120 && button.Height == 28));
+                        if (actionButton.IsEffectivelyVisible) CheckConfirmColor(actionButton, name);
                     }
                     var scale = window.RenderScaling;
                     using var bitmap = new RenderTargetBitmap(new PixelSize((int)Math.Ceiling(window.Bounds.Width * scale), (int)Math.Ceiling(window.Bounds.Height * scale)), new Vector(96 * scale, 96 * scale));
@@ -71,6 +115,7 @@ namespace SourceGit.Tests
                     await model.CheckAsync();
                     Check("a newer release shows a clear download action (state=" + model.State + ", message=" + model.Message + ")", model.State == "available" && model.CanAct && model.ActionText == App.Text("SelfUpdate.Flow.Download"));
                     await Capture(window, "available");
+                    await CheckThemes(window.FindControl<Button>("UpdateAction"), "download button");
                     server.Slow = true;
                     var download = model.ActAsync();
                     await Task.Delay(350);
@@ -189,6 +234,7 @@ namespace SourceGit.Tests
                     var closeDownload = model.ActAsync(); await Until(() => model.Progress > 0);
                     window.Close(); await Until(() => Choice() != null);
                     Check("X asks with explicit cancel-update and background-update choices", window.IsVisible && model.State == "download");
+                    await CheckThemes(Choice().FindControl<Button>("ContinueBackgroundUpdate"), "background update choice");
                     foreach (var zoom in new[] { 1.0, 1.5, 2.5 })
                     {
                         ViewModels.Preferences.Instance.Zoom = zoom; await Capture(Choice(), "update-close-choice-" + zoom);
@@ -231,6 +277,57 @@ namespace SourceGit.Tests
                     var ownerDownload = model.RunInBackgroundAsync(); await Until(() => model.Progress > 0 && !window.IsVisible);
                     temporaryOwner.Close(); await ownerDownload; await Task.Delay(100);
                     Check("closing the application owner cancels a hidden update without reopening it", !window.IsVisible && !model.IsBackground && desktop.MainWindow.IsVisible);
+
+                    if (OperatingSystem.IsWindows())
+                    {
+                        var integration = new Views.Preferences();
+                        integration.SelectPage("integration");
+                        integration.Show(desktop.MainWindow);
+                        await Task.Delay(150);
+                        integration.Height = Math.Min(integration.Height, 430);
+                        var tabs = integration.FindControl<TabControl>("ExternalToolTabs");
+                        var gitScroll = integration.FindControl<ScrollViewer>("ExternalGitSettingsScroll");
+                        Check("external tools opens the Git tab first", tabs.Items.Count == 3 && tabs.SelectedIndex == 0 && gitScroll.GetVisualRoot() == integration);
+                        tabs.SelectedIndex = 1;
+                        await Task.Delay(100);
+                        var terminal = integration.FindControl<ComboBox>("ShellSelector");
+                        var scroll = integration.FindControl<ScrollViewer>("ExternalTerminalSettingsScroll");
+                        Check("only terminal settings are shown on the terminal tab", scroll.GetVisualRoot() == integration && gitScroll.GetVisualRoot() == null);
+                        terminal.SelectedIndex = Models.ShellOrTerminal.Supported.FindIndex(shell => shell.Type == "git-bash");
+                        await Task.Delay(100);
+                        Check("terminal test selects Git Bash", terminal.SelectedItem is Models.ShellOrTerminal { Type: "git-bash" });
+                        CheckCaption(integration, "external tools");
+                        scroll.Offset = new Vector(0, scroll.Offset.Y + terminal.TranslatePoint(default, scroll).Value.Y + terminal.Bounds.Height - scroll.Viewport.Height + 3);
+                        await Task.Delay(100);
+                        var before = scroll.Offset;
+                        var anchor = terminal.TranslatePoint(default, integration).Value;
+                        for (var i = 0; i < 2; i++)
+                        {
+                            terminal.Focus();
+                            terminal.BringIntoView();
+                            terminal.IsDropDownOpen = true;
+                            await Task.Delay(100);
+                            Check("Git Bash dropdown opens in place " + (i + 1), terminal.IsDropDownOpen && Math.Abs(scroll.Offset.Y - before.Y) < .5 &&
+                                Math.Abs(terminal.TranslatePoint(default, integration).Value.Y - anchor.Y) < .5);
+                            terminal.IsDropDownOpen = false;
+                            await Task.Delay(100);
+                        }
+                        tabs.SelectedIndex = 2;
+                        await Task.Delay(100);
+                        Check("only comparison settings are shown on the comparison tab",
+                            integration.FindControl<ScrollViewer>("ExternalDiffSettingsScroll").GetVisualRoot() == integration && scroll.GetVisualRoot() == null);
+                        integration.Close();
+
+                        var titleBar = new Views.CaptionButtons { Height = 30, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
+                        var frame = new Views.ChromelessWindow { Width = 400, Height = 250, Content = titleBar };
+                        frame.Show(desktop.MainWindow);
+                        await Task.Delay(150);
+                        CheckCaption(frame, "main title bar (windowed)", 3);
+                        frame.WindowState = WindowState.Maximized;
+                        await Task.Delay(150);
+                        CheckCaption(frame, "main title bar (maximized)", 3);
+                        frame.Close();
+                    }
                 }
                 catch (Exception error) { failure = error.ToString(); }
                 finally

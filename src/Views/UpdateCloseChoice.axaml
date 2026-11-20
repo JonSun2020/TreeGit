@@ -13,7 +13,7 @@
     </ScrollViewer>
     <WrapPanel Grid.Row="2" HorizontalAlignment="Center" Margin="16,8,16,12">
       <Button x:Name="CancelUpdate" Classes="flat dialog_action" Margin="4,0,4,4" Content="{DynamicResource Text.SelfUpdate.Flow.CancelUpdate}" Click="OnCancelUpdate"/>
-      <Button x:Name="ContinueBackgroundUpdate" Classes="flat primary dialog_action" Margin="4,0,4,4" Content="{DynamicResource Text.SelfUpdate.Flow.Background}" Click="OnBackground"/>
+      <Button x:Name="ContinueBackgroundUpdate" Classes="flat primary dialog_action dialog_confirm" Margin="4,0,4,4" Content="{DynamicResource Text.SelfUpdate.Flow.Background}" Click="OnBackground"/>
     </WrapPanel>
   </Grid>
 </v:ChromelessWindow>

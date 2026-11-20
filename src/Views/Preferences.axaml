@@ -371,17 +371,18 @@
         </TabItem>
 
       </TabControl>
-      <ScrollViewer x:Name="IntegrationSettings" IsVisible="False"
-                    HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-
-          <StackPanel Margin="8" Orientation="Vertical" Grid.IsSharedSizeScope="True">
+      <TabControl x:Name="ExternalToolTabs" IsVisible="False">
+        <TabItem>
+          <TabItem.Header>
+            <TextBlock Classes="tab_header" Text="{DynamicResource Text.Preferences.Git}"/>
+          </TabItem.Header>
+          <ScrollViewer x:Name="ExternalGitSettingsScroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+          <StackPanel Margin="8" Orientation="Vertical">
             <StackPanel.Styles>
               <Style Selector="TextBlock.git_install_inactive, StackPanel.git_install_inactive">
                 <Setter Property="Opacity" Value="0.68"/>
               </Style>
             </StackPanel.Styles>
-            <TextBlock Classes="bold" Text="{DynamicResource Text.Preferences.Git}"/>
-            <Rectangle Margin="0,2.67,0,8" Fill="{DynamicResource Brush.Border2}" Height=".6" HorizontalAlignment="Stretch"/>
             <CheckBox x:Name="UseBundledGitChoice" Margin="8,2,0,4"
                       AutomationProperties.Name="{DynamicResource Text.TreeGit.Git.UseBundledOption}">
               <WrapPanel Orientation="Horizontal">
@@ -534,22 +535,21 @@
             </StackPanel>
           </Grid>
 
-            <StackPanel Orientation="Horizontal">
-              <Path Width="12" Height="12" Data="{StaticResource Icons.Terminal}"/>
-              <TextBlock Classes="bold" Margin="4,0,0,0" Text="{DynamicResource Text.Preferences.Shell}"/>
-            </StackPanel>
-            <Rectangle Margin="0,2.67,0,8" Fill="{DynamicResource Brush.Border2}" Height=".6" HorizontalAlignment="Stretch"/>
-            <Grid Margin="8,0,8,0" RowDefinitions="32,Auto,Auto">
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" SharedSizeGroup="IntegrationLabel"/>
-                <ColumnDefinition Width="*"/>
-              </Grid.ColumnDefinitions>
+          </StackPanel>
+          </ScrollViewer>
+        </TabItem>
 
+        <TabItem>
+          <TabItem.Header>
+            <TextBlock Classes="tab_header" Text="{DynamicResource Text.Preferences.Shell}"/>
+          </TabItem.Header>
+          <ScrollViewer x:Name="ExternalTerminalSettingsScroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <Grid Margin="16" RowDefinitions="32,Auto,Auto" ColumnDefinitions="Auto,*">
               <TextBlock Grid.Row="0" Grid.Column="0"
                          Text="{DynamicResource Text.Preferences.Shell.Type}"
                          HorizontalAlignment="Right" VerticalAlignment="Center"
                          Margin="0,0,16,0"/>
-              <ComboBox Grid.Row="0" Grid.Column="1"
+              <ComboBox x:Name="ShellSelector" Grid.Row="0" Grid.Column="1"
                         MinHeight="28"
                         Padding="8,0"
                         HorizontalAlignment="Stretch"
@@ -604,17 +604,15 @@
               </TextBox>
             </Grid>
 
-            <StackPanel Orientation="Horizontal" Margin="0,24,0,0">
-              <Path Width="12" Height="12" Data="{StaticResource Icons.Diff}"/>
-              <TextBlock Classes="bold" Margin="4,0,0,0" Text="{DynamicResource Text.Preferences.DiffMerge}"/>
-            </StackPanel>
-            <Rectangle Margin="0,2.67,0,8" Fill="{DynamicResource Brush.Border2}" Height=".6" HorizontalAlignment="Stretch"/>
-            <Grid Margin="8,0,8,8" RowDefinitions="32,Auto,Auto,Auto">
-              <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto" SharedSizeGroup="IntegrationLabel"/>
-                <ColumnDefinition Width="*"/>
-              </Grid.ColumnDefinitions>
+          </ScrollViewer>
+        </TabItem>
 
+        <TabItem>
+          <TabItem.Header>
+            <TextBlock Classes="tab_header" Text="{DynamicResource Text.Preferences.DiffMerge}"/>
+          </TabItem.Header>
+          <ScrollViewer x:Name="ExternalDiffSettingsScroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <Grid Margin="16" RowDefinitions="32,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
               <TextBlock Grid.Row="0" Grid.Column="0"
                          Text="{DynamicResource Text.Preferences.DiffMerge.Type}"
                          HorizontalAlignment="Right"
@@ -698,8 +696,9 @@
                 </TextBox.InnerRightContent>
               </TextBox>
             </Grid>
-          </StackPanel>
-      </ScrollViewer>
+          </ScrollViewer>
+        </TabItem>
+      </TabControl>
     </Grid>
     <StackPanel Grid.Row="2" Margin="8" Spacing="6">
       <TextBlock x:Name="PreferencesSaveError" IsVisible="False" TextWrapping="Wrap" Foreground="{DynamicResource Brush.FG1}" FontWeight="Bold"/>

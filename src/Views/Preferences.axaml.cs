@@ -165,6 +165,7 @@ namespace SourceGit.Views
             _initialWindowFrame = pref.UseSystemWindowFrame;
             _editSession = pref.BeginEdit();
             InitializeComponent();
+            KeepDropdownAnchor(ShellSelector);
             AutoFetchIntervalInput.Maximum = ViewModels.Preferences.MaximumAutoFetchInterval;
             AutoFetchIntervalInput.AddHandler(TextBox.TextChangedEvent, OnAutoFetchIntervalTextChanged);
             AutoFetchIntervalInput.LostFocus += (_, _) => FillEmptyAutoFetchInterval();
@@ -202,12 +203,17 @@ namespace SourceGit.Views
 
         public void SelectPage(string page)
         {
-            _integrationOnly = page is "integration" or "git";
-            IntegrationSettings.IsVisible = _integrationOnly;
+            var wasIntegrationOnly = _integrationOnly;
+            _integrationOnly = page is "integration" or "git" or "terminal" or "diff-merge";
+            ExternalToolTabs.IsVisible = _integrationOnly;
             PreferenceTabs.IsVisible = !_integrationOnly;
-            if (_integrationOnly && IsVisible) _ = LoadGitVersionsAsync();
             App.BindText(this, TitleProperty, _integrationOnly ? "Preferences.Integration" : "Preferences");
-            if (!_integrationOnly) PreferenceTabs.SelectedIndex = page switch
+            if (_integrationOnly)
+            {
+                ExternalToolTabs.SelectedIndex = page switch { "terminal" => 1, "diff-merge" => 2, _ => 0 };
+                if (IsVisible && !wasIntegrationOnly) _ = LoadGitVersionsAsync();
+            }
+            else PreferenceTabs.SelectedIndex = page switch
             {
                 "general" => 0, "appearance" => 1, "signing" => 2,
                 _ => throw new ArgumentException("Unknown preferences page."),

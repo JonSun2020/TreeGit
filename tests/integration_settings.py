@@ -44,6 +44,15 @@ def open_tools():
 def close(button):
  client.tool('ui_layout',window='active',action='test_click',button=button)
  wait(lambda:not state()['dialogs'])
+def select_page(page, index, scroll):
+ client.tool('ui_command',command='preferences',page=page)
+ def active_page():
+  tabs=state()['layoutProbe']['dialogs'][0]['tabs']
+  layout=client.tool('ui_layout',window='active')
+  visible=[item['name'] for item in layout['scrolls'] if item['visible'] and item['name'] in {
+   'ExternalGitSettingsScroll','ExternalTerminalSettingsScroll','ExternalDiffSettingsScroll'}]
+  return len(tabs)==1 and tabs[0]['selected']==index and visible==[scroll]
+ wait(active_page)
 def edit_tool(index,path=''):
  client.tool('ui_layout',window='active',action='test_set',button='ExternalToolSelector',value=index)
  if index:client.tool('ui_layout',window='active',action='test_set',button='ExternalToolPath',text=path)
@@ -60,14 +69,24 @@ try:
    close('CancelPreferencesButton')
    before=json.loads(profile.read_text('utf-8'))
    open_tools();dialog=state()['layoutProbe']['dialogs'][0]
-   check(locale+' '+theme+' tool dialog has no tab strip',not dialog['tabs'] and bool(dialog['content']))
-   check(locale+' '+theme+' integration title matches its caption',dialog['header']==state()['dialogs'][0]['title'])
+   expected={
+    'zh_CN':('外部工具',['GIT配置','终端/SHELL','对比/合并工具']),
+    'zh_TW':('外部工具',['Git 設定','終端機/Shell','對比/合併工具']),
+    'en_US':('External Tools',['GIT','SHELL/TERMINAL','DIFF/MERGE TOOL']),
+   }[locale]
+   check(locale+' '+theme+' tools starts with the localized Git tab',len(dialog['tabs'])==1 and dialog['tabs'][0]['visibleHeaders']==expected[1] and dialog['tabs'][0]['selected']==0)
+   check(locale+' '+theme+' external tools title matches its caption',dialog['header']==state()['dialogs'][0]['title']==expected[0])
    fill,text={'Light':('#FFA7DFCB','#FF333333'),'Dark':('#FF16836D','#FFDFDFDF'),'Blue':('#FFB6D9FA','#FF333333')}[theme]
    check(locale+' '+theme+' actual confirmation label and fill '+str(dialog['confirm']),dialog['confirm']['fill'].upper()==fill and dialog['confirm']['text'].upper()==text)
-   edit_tool(6,'not-saved-tool.exe');trap_identity();close('CancelPreferencesButton')
+   select_page('terminal',1,'ExternalTerminalSettingsScroll')
+   select_page('diff-merge',2,'ExternalDiffSettingsScroll')
+   edit_tool(6,'not-saved-tool.exe');trap_identity()
+   select_page('git',0,'ExternalGitSettingsScroll');close('CancelPreferencesButton')
    after=json.loads(profile.read_text('utf-8'))
    check(locale+' '+theme+' cancel restores tool configuration',after['ExternalMergeToolType']==before['ExternalMergeToolType'] and after['ExternalMergeToolPath']==before['ExternalMergeToolPath'])
-   open_tools();edit_tool(6,'accepted-tool.exe');trap_identity();close('SavePreferencesButton')
+   open_tools();select_page('diff-merge',2,'ExternalDiffSettingsScroll')
+   edit_tool(6,'accepted-tool.exe');trap_identity()
+   select_page('terminal',1,'ExternalTerminalSettingsScroll');close('SavePreferencesButton')
    after=json.loads(profile.read_text('utf-8'))
    check(locale+' '+theme+' confirm saves tool configuration and closes',after['ExternalMergeToolType']==6 and after['ExternalMergeToolPath']=='accepted-tool.exe')
    check(locale+' '+theme+' integration settings preserve hidden signing configuration',global_config.read_bytes()==original)

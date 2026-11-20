@@ -88,7 +88,7 @@
                           </ContentControl>
                           <TextBlock Text="{Binding DialogTitle}" Foreground="{DynamicResource Brush.FG1}" FontWeight="Bold" Margin="40,0"
                                      HorizontalAlignment="Center" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" IsHitTestVisible="False"/>
-                          <Button x:Name="ClosePopup" Classes="caption_button" Width="46" Height="28" HorizontalAlignment="Right" Cursor="Arrow"
+                          <Button x:Name="ClosePopup" Classes="caption_button" Width="46" HorizontalAlignment="Right" Cursor="Arrow"
                                   Click="OnPopupCancel" IsEnabled="{Binding !InProgress}" ToolTip.Tip="{DynamicResource Text.Close}">
                             <Path Width="9" Height="9" Data="{StaticResource Icons.Window.Close}"/>
                           </Button>
