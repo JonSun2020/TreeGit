@@ -28,11 +28,11 @@
 
 ## 下载与使用
 
-下载 [TreeGit 2026.24.7 · Windows x64](https://github.com/JonSun2020/TreeGit/releases/download/treegit-v2026.24.7/TreeGit-2026.24.7-Windows-x64.zip)，解压后运行 `TreeGit/TreeGit.exe`。包含 Git 与运行时，无需额外安装 .NET；校验值见 [Releases](https://github.com/JonSun2020/TreeGit/releases/latest)。现有用户可通过“帮助 → 检查更新”升级。
+下载 [TreeGit 2026.24.8 · Windows x64](https://github.com/JonSun2020/TreeGit/releases/download/treegit-v2026.24.8/TreeGit-2026.24.8-Windows-x64.zip)，解压后运行 `TreeGit/TreeGit.exe`。包含 Git 与运行时，无需额外安装 .NET；校验值见 [Releases](https://github.com/JonSun2020/TreeGit/releases/latest)。现有用户可通过“帮助 → 检查更新”升级。
 
 AI 连接：在“工具 → MCP · AI 连接”复制配置。详见 [MCP 使用说明](docs/MCP.md)。
 
-[完整功能与入口](docs/FUNCTIONALITY.md) · [便携版与构建说明](docs/PORTABLE.md) · [发行说明](docs/RELEASE-2026.24.7.md)
+[完整功能与入口](docs/FUNCTIONALITY.md) · [便携版与构建说明](docs/PORTABLE.md) · [发行说明](docs/RELEASE-2026.24.8.md)
 
 ## 开源与维护
 
