@@ -458,6 +458,7 @@ namespace SourceGit.Tests
                                 var scrollChecks = new System.Collections.Generic.List<object>();
                                 foreach (var dropdown in new[] { defaultRemote, mergeMode })
                                 {
+                                    var label = ((Grid)dropdown.Parent).Children.OfType<TextBlock>().Single();
                                     settingsScroll.Offset = new Vector(0, Math.Max(0, settingsScroll.Offset.Y + dropdown.TranslatePoint(default, settingsScroll).Value.Y + dropdown.Bounds.Height - settingsScroll.Viewport.Height + 4));
                                     await Task.Delay(80);
                                     var offsetBefore = settingsScroll.Offset;
@@ -466,6 +467,7 @@ namespace SourceGit.Tests
                                     await Task.Delay(100);
                                     var anchorAfter = dropdown.TranslatePoint(default, window).Value;
                                     scrollChecks.Add(new { dropdown = dropdown.Name, stable = Math.Abs(offsetBefore.Y - settingsScroll.Offset.Y) < .5 && Math.Abs(anchorBefore.Y - anchorAfter.Y) < .5,
+                                        rightAligned = label.HorizontalAlignment == Avalonia.Layout.HorizontalAlignment.Right,
                                         offsetBefore = offsetBefore.Y, offsetAfter = settingsScroll.Offset.Y, anchorBefore = anchorBefore.Y, anchorAfter = anchorAfter.Y });
                                     dropdown.IsDropDownOpen = false;
                                 }
@@ -595,8 +597,9 @@ namespace SourceGit.Tests
             var remote = new Commands.QueryRemotes(repo.FullPath).GetResult().Select(r => new Uri(r.URL)).First(u => u.Scheme is "http" or "https");
             var storageRemote = scenario.StartsWith("redirect_", StringComparison.Ordinal) ? new Uri(remote.AbsoluteUri.TrimEnd('/') + ".git") : remote;
             scenario = scenario.Replace("redirect_", string.Empty, StringComparison.Ordinal);
-            await new Commands.Config(repo.FullPath).SetAsync("sourcegit.credentialmanager", "true");
-            Native.RepositoryCredentials.SetCredentialManagerMode(repo.FullPath, true);
+            var initiallySystemMode = scenario != "early_input";
+            await new Commands.Config(repo.FullPath).SetAsync("sourcegit.credentialmanager", initiallySystemMode ? "true" : "false");
+            Native.RepositoryCredentials.SetCredentialManagerMode(repo.FullPath, initiallySystemMode);
             Native.RepositoryCredentials.Save(repo.FullPath, storageRemote, "stored-test-user", "stored-test-secret");
             var config = Path.Combine(Path.GetDirectoryName(repo.Settings.StoragePath)!, "config");
             var before = File.ReadAllBytes(config);
@@ -609,13 +612,42 @@ namespace SourceGit.Tests
                 try
                 {
                     var controls = dialog.GetLogicalDescendants().OfType<Control>().Where(c => c.Name != null).GroupBy(c => c.Name).ToDictionary(g => g.Key, g => g.First());
-                    if (scenario is not ("clear_button" or "clear_cancel")) ((CheckBox)controls["CredentialMode"]).IsChecked = false;
+                    var mode = (CheckBox)controls["CredentialMode"];
                     var save = (Button)controls["ConfirmCredentials"];
-                    for (var wait = 0; wait < 250 && !save.IsEnabled; wait++) await Task.Delay(20);
-                    if (!save.IsEnabled) throw new InvalidOperationException("Credential account lookup did not complete");
                     var user = (TextBox)controls["CredentialUsername"];
                     var password = (TextBox)controls["CredentialPassword"];
+                    var modeEnabledAtOpen = mode.IsEffectivelyEnabled;
+                    var stillLoadingAtOpen = !save.IsEnabled;
+                    var fieldsEnabledAtOpen = user.IsEffectivelyEnabled && password.IsEffectivelyEnabled;
+                    if (scenario is not ("clear_button" or "clear_cancel")) mode.IsChecked = false;
+                    var fieldsMatchModeWhileLoading = !save.IsEnabled && user.IsEffectivelyEnabled == (mode.IsChecked != true) &&
+                        password.IsEffectivelyEnabled == (mode.IsChecked != true);
+                    if (scenario == "early_input")
+                    {
+                        user.Text = "early-test-user";
+                        password.Text = "early-test-secret";
+                    }
+                    for (var wait = 0; wait < 250 && !save.IsEnabled; wait++) await Task.Delay(20);
+                    if (!save.IsEnabled) throw new InvalidOperationException("Credential account lookup did not complete");
+                    var userLabel = (TextBlock)controls["CredentialUsernameLabel"];
+                    var passwordLabel = (TextBlock)controls["CredentialPasswordLabel"];
+                    var remotePicker = (ComboBox)controls["CredentialRemote"];
+                    var remoteLabel = (TextBlock)controls["CredentialRemoteLabel"];
+                    dialog.UpdateLayout();
+                    Point Position(Control control, double y = 0) => control.TranslatePoint(new Point(0, y), dialog).Value;
+                    bool Inline(Control label, Control field) => Math.Abs(Position(label, label.Bounds.Height / 2).Y - Position(field, field.Bounds.Height / 2).Y) <= 1 &&
+                        Position(label).X + label.Bounds.Width < Position(field).X;
+                    var inlineFields = Inline(userLabel, user) && Inline(passwordLabel, password) && Math.Abs(Position(user).X - Position(password).X) <= 1;
+                    var remoteAligned = Inline(remoteLabel, remotePicker) && Math.Abs(Position(remotePicker).X - Position(user).X) <= 1 &&
+                        Math.Abs(remotePicker.Bounds.Width - user.Bounds.Width) <= 1 && Math.Abs(remotePicker.Bounds.Height - user.Bounds.Height) <= 1;
+                    var rightAligned = new[] { remoteLabel, userLabel, passwordLabel }.All(label => label.HorizontalAlignment == Avalonia.Layout.HorizontalAlignment.Right &&
+                        Math.Abs(Position(user).X - Position(label).X - label.Bounds.Width - 8) <= 1);
+                    var remoteCaption = remoteLabel.Text;
+                    var modeToFieldsGap = Position(user).Y - Position(mode, mode.Bounds.Height).Y;
+                    var passwordCaption = passwordLabel.Text;
+                    var passwordWatermark = password.Watermark?.ToString();
                     var storedAccountShown = user.Text == "stored-test-user";
+                    var earlyInputPreserved = user.Text == "early-test-user" && password.Text == "early-test-secret";
                     var clearCancelled = scenario == "clear_cancel";
                     if (scenario == "empty_password") user.Text = "new-test-user";
                     else if (scenario == "explicit_clear") { password.Text = "typed value"; password.Text = string.Empty; }
@@ -628,7 +660,7 @@ namespace SourceGit.Tests
                         clearButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     }
                     else if (scenario == "clear_text") user.Text = string.Empty;
-                    else if (scenario != "unchanged") throw new ArgumentException("Unknown credential scenario");
+                    else if (scenario is not ("unchanged" or "early_input")) throw new ArgumentException("Unknown credential scenario");
                     if (scenario == "config_locked") { File.WriteAllText(config + ".lock", "owned credential test"); locked = true; }
                     if (scenario == "commit_failure") File.SetAttributes(config, attributes | FileAttributes.ReadOnly);
                     if (!clearCancelled) save.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -643,6 +675,9 @@ namespace SourceGit.Tests
                         emptyPasswordSaved = saved.HasValue && saved.Value.Password.Length == 0,
                         newUsernameSaved = saved.HasValue && saved.Value.Username == "new-test-user",
                         storedAccountShown, cleared = !saved.HasValue, automaticallyClosed = !dialog.IsVisible,
+                        modeEnabledAtOpen, stillLoadingAtOpen, fieldsEnabledAtOpen, fieldsMatchModeWhileLoading, earlyInputPreserved,
+                        earlyInputSaved = saved.HasValue && saved.Value.Username == "early-test-user" && saved.Value.Password == "early-test-secret",
+                        inlineFields, remoteAligned, rightAligned, remoteCaption, modeToFieldsGap, passwordCaption, passwordWatermark,
                         localizedInputError = scenario != "oversized" || status.Text == App.Text("TreeGit.Credentials.TooLong") && status.Foreground == Avalonia.Media.Brushes.IndianRed,
                         systemMode = Native.RepositoryCredentials.UsesCredentialManager(repo.FullPath) });
                 }

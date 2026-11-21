@@ -28,6 +28,7 @@ namespace SourceGit.Automation
         private static string _phase;
         private static Control _tooltipTarget;
         private static (int Type, string Executable, string Merge, string Diff)? _externalSettings;
+        private static bool? _autoHideBeforeDropdownAudit;
 
         public static object Execute(Window window, JsonElement args)
         {
@@ -85,6 +86,12 @@ namespace SourceGit.Automation
                     return null;
                 return text.TranslatePoint(new Point(text.Padding.Left + line.Start + line.Width / 2, 0), reference)?.X;
             }
+            static double? TextStart(TextBlock text, Visual reference)
+            {
+                if (text == null || !text.IsArrangeValid || text.TextLayout.TextLines.FirstOrDefault() is not { } line)
+                    return null;
+                return text.TranslatePoint(new Point(text.Padding.Left + line.Start, 0), reference)?.X;
+            }
             static bool CaptionFits(TextBlock text, Control area, Thickness inset)
             {
                 if (area == null || text == null || !text.IsArrangeValid ||
@@ -96,10 +103,32 @@ namespace SourceGit.Automation
                     x.Value + line.Width - Math.Min(0, line.OverhangTrailing) <= area.Bounds.Width - inset.Right - 1;
             }
             object searchClick = null;
-            if (action is "settings_expanders" or "settings_remote_selection" or "settings_default_remote")
+            if (action is "settings_expanders" or "settings_remote_selection" or "settings_default_remote" or "settings_remote_form")
             {
                 var desktop = (Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime;
                 var dialog = desktop.Windows.Last(w => w.IsVisible && w is Views.RepositorySettings or Views.RepositoryRemoteEditor);
+                if (action == "settings_remote_form")
+                {
+                    var controls = dialog.GetVisualDescendants().OfType<Control>().ToArray();
+                    var editors = new[] { "RemoteEditorName", "RemoteEditorPath", "RemoteEditorSshKey" }
+                        .Select(name => controls.OfType<TextBox>().Single(c => c.Name == name)).ToArray();
+                    var fields = (Grid)editors[0].Parent;
+                    var labels = fields.Children.OfType<TextBlock>().OrderBy(Grid.GetRow).ToArray();
+                    var browse = controls.OfType<Button>().Single(b => b.Name == "RemoteEditorBrowseSshKey");
+                    Point At(Control c, double x = 0, double y = 0) => c.TranslatePoint(new Point(x, y), fields).Value;
+                    var gaps = labels.Zip(editors, (label, input) => At(input).X - At(label, label.Bounds.Width).X).ToArray();
+                    return new
+                    {
+                        captions = labels.Select(label => label.Text).ToArray(),
+                        rightAligned = labels.All(label => label.HorizontalAlignment == Avalonia.Layout.HorizontalAlignment.Right) && gaps.All(gap => Math.Abs(gap - 16) <= 1),
+                        inline = labels.Zip(editors, (label, input) => Math.Abs(At(label, y: label.Bounds.Height / 2).Y - At(input, y: input.Bounds.Height / 2).Y) <= 1).All(value => value),
+                        keyVisible = editors[2].IsEffectivelyVisible, keyHint = editors[2].Watermark?.ToString(),
+                        hasExpander = controls.OfType<Expander>().Any(),
+                        browseStyle = browse.Classes.Contains("flat") && !browse.Classes.Contains("dialog_action") && browse.Padding == new Thickness(10, 0) &&
+                            Math.Abs(browse.Bounds.Height - editors[2].Bounds.Height) <= 1 && Math.Abs(At(browse).X - At(editors[2], editors[2].Bounds.Width).X - 6) <= 1 &&
+                            Math.Abs(At(browse, y: browse.Bounds.Height / 2).Y - At(editors[2], y: editors[2].Bounds.Height / 2).Y) <= 1,
+                    };
+                }
                 if (action == "settings_default_remote")
                 {
                     var picker = dialog.GetVisualDescendants().OfType<ComboBox>().Single(c => c.Name == "DefaultRemote");
@@ -205,11 +234,8 @@ namespace SourceGit.Automation
                     pseudoClasses.Set(":pointerover", true);
                     var hoverTransparent = HeaderIsTransparent();
                     pseudoClasses.Set(":pointerover", wasHovered);
-                    var surface = e.GetVisualAncestors().OfType<Border>().FirstOrDefault(b => !Transparent(b.Background))?.Background;
-                    var body = e.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "ExpanderContent").Background;
                     return new { e.Name, expanded = e.IsExpanded, height = header.Bounds.Height,
-                        transparent = HeaderIsTransparent(), hoverTransparent, pressedTransparent,
-                        surface = surface?.ToString(), body = body?.ToString() };
+                        transparent = HeaderIsTransparent(), hoverTransparent, pressedTransparent };
                 }).ToArray();
                 return new { rows };
             }
@@ -443,11 +469,25 @@ namespace SourceGit.Automation
                 }
                 var layer = OverlayLayer.GetOverlayLayer(dropdown);
                 var root = TopLevel.GetTopLevel(dropdown);
+                static IEnumerable<TextBlock> Captions(Visual view) => (view?.GetVisualDescendants().OfType<TextBlock>() ?? []).Where(t =>
+                    t.IsEffectivelyVisible && t.Opacity > 0 && !string.IsNullOrEmpty(t.Text) && t.Name != "PlaceholderTextBlock");
+                var closedCaptions = Captions(dropdown.GetVisualDescendants().OfType<ContentControl>().FirstOrDefault(c => c.Name == "ContentPresenter")).ToArray();
+                var closed = dropdown is Views.BranchSelector
+                    ? dropdown.GetVisualDescendants().OfType<Views.BranchSelectorChoice>().FirstOrDefault()
+                    : closedCaptions.FirstOrDefault();
+                var closedStart = TextStart(closed, dropdown);
+                var choices = frame?.GetVisualDescendants().OfType<ComboBoxItem>().ToArray() ?? [];
+                var labels = dropdown is Views.BranchSelector
+                    ? (frame?.GetVisualDescendants().OfType<Views.BranchSelectorChoice>() ?? []).Cast<TextBlock>()
+                    : choices.Select(item => Captions(item).FirstOrDefault()).Where(t => t != null);
+                var offsets = labels.Select(t => new { caption = t.Text, offset = left + TextStart(t, frame) - closedStart }).ToArray();
+                var selectedCaptions = Captions(choices.FirstOrDefault(item => item.IsSelected));
+                var selectedOffsets = selectedCaptions.Zip(closedCaptions, (option, caption) => left + TextStart(option, frame) - TextStart(caption, dropdown)).ToArray();
                 return new { boxed = dropdown.Bounds.Width, left, right, popupOpen = popup?.IsOpen,
                     ready = frame?.IsArrangeValid == true && frame.Bounds.Width > 0 && frame.Bounds.Height > 0,
                     anchorX = anchor?.TranslatePoint(default, dropdown)?.X,
                     layerX = layer?.TranslatePoint(default, root)?.X,
-                    alignment = (dropdown as ComboBox)?.HorizontalContentAlignment.ToString() };
+                    alignment = (dropdown as ComboBox)?.HorizontalContentAlignment.ToString(), labelOffsets = offsets, selectedOffsets };
             }
             if (action.StartsWith("diff_", StringComparison.Ordinal))
             {
@@ -514,13 +554,26 @@ namespace SourceGit.Automation
                     var isContext = action == "diff_context_style";
                     var profileView = profileViews.First(v => v.Settings is ViewModels.Preferences);
                     var picker = profileView.FindControl<ComboBox>(isContext ? "DiffContextPicker" : "DiffEncodingPicker");
-                    picker.IsDropDownOpen = index == 1;
+                    if (!isContext && index == 2 && _autoHideBeforeDropdownAudit == null)
+                    {
+                        _autoHideBeforeDropdownAudit = ViewModels.Preferences.Instance.UseAutoHideScrollBars;
+                        ViewModels.Preferences.Instance.UseAutoHideScrollBars = false;
+                        picker.MaxDropDownHeight = 120;
+                    }
+                    picker.IsDropDownOpen = index > 0;
+                    if (!isContext && index == 0 && _autoHideBeforeDropdownAudit is bool original)
+                    {
+                        ViewModels.Preferences.Instance.UseAutoHideScrollBars = original;
+                        picker.ClearValue(ComboBox.MaxDropDownHeightProperty);
+                        _autoHideBeforeDropdownAudit = null;
+                    }
                     var parts = picker.GetVisualDescendants().ToArray();
                     var background = parts.OfType<Border>().FirstOrDefault(b => b.Name == "Background");
                     var selectionArea = parts.OfType<ContentControl>().FirstOrDefault(c => c.Name == "ContentPresenter");
                     var caption = parts.OfType<TextBlock>().FirstOrDefault(t => t.Name == (isContext ? "SelectedContextText" : "SelectedEncodingText"));
                     var guide = parts.OfType<Panel>().FirstOrDefault(p => p.Name == "ContextWidthGuide");
                     var popup = parts.OfType<Popup>().FirstOrDefault(p => p.Name == "PART_Popup");
+                    var scroll = popup?.Child?.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault();
                     var items = (popup?.Child?.GetVisualDescendants().OfType<ComboBoxItem>() ?? [])
                         .Select(i => (item: i, caption: i.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault()))
                         .Where(entry => entry.caption != null).ToArray();
@@ -541,6 +594,7 @@ namespace SourceGit.Automation
                         encodingBackground = encodingBackground?.ToString(),
                         popupAligned = popup?.CustomPopupPlacementCallback == Views.DropdownPlacement.Align &&
                             popup.HorizontalOffset == 0 && ReferenceEquals(popup.PlacementTarget, background),
+                        staticScrollbar = scroll is { AllowAutoHide: false } && scroll.Extent.Height > scroll.Viewport.Height,
                         dropdown = items.Select(entry => new { entry.caption.Text,
                             centerOffset = TextCenter(entry.caption, popup.Child) - areaCenter,
                             fits = CaptionFits(entry.caption, entry.item, entry.item.Padding) }).ToArray() };

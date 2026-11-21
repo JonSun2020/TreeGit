@@ -1521,11 +1521,11 @@ SSH 金鑰仍在遠端設定中設定。</x:String>
   <x:String x:Key="Text.TreeGit.Remote.UrlHint" xml:space="preserve">HTTPS／SSH 位址或本機儲存庫路徑</x:String>
   <x:String x:Key="Text.TreeGit.Remote.KeyHint" xml:space="preserve">留空以使用 OpenSSH 預設金鑰或代理程式</x:String>
   <x:String x:Key="Text.TreeGit.Settings.Name" xml:space="preserve">名稱</x:String>
-  <x:String x:Key="Text.TreeGit.Remote.Url" xml:space="preserve">遠端儲存庫路徑</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.EditorName" xml:space="preserve">名稱：</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.Url" xml:space="preserve">儲存庫路徑：</x:String>
   <x:String x:Key="Text.TreeGit.BrowseEllipsis" xml:space="preserve">瀏覽…</x:String>
   <x:String x:Key="Text.TreeGit.Remote.SelectKey" xml:space="preserve">選擇 SSH 私密金鑰</x:String>
-  <x:String x:Key="Text.TreeGit.Remote.OptionalKey" xml:space="preserve">SSH 私密金鑰（可選）</x:String>
-  <x:String x:Key="Text.TreeGit.Remote.Authentication" xml:space="preserve">驗證選項</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.OptionalKey" xml:space="preserve">SSH 私密金鑰：</x:String>
   <x:String x:Key="Text.TreeGit.Ok" xml:space="preserve">確定</x:String>
   <x:String x:Key="Text.TreeGit.Remote.InvalidName" xml:space="preserve">請輸入有效的遠端名稱（字母、數字、底線、點或連字號）。</x:String>
   <x:String x:Key="Text.TreeGit.Remote.NameExists" xml:space="preserve">同名遠端儲存庫已存在。</x:String>
@@ -1885,8 +1885,9 @@ SSH 金鑰仍在遠端設定中設定。</x:String>
   <x:String x:Key="Text.TreeGit.CreateRepository.FolderPickerFailed">暫時無法選擇目錄，請直接輸入上層目錄。</x:String>
   <x:String x:Key="Text.TreeGit.CreateRepository.SameAccountRequired">請驗證上次送出建立請求時使用的 GitHub 帳號，以核對結果。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Action">帳號與密碼</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.RemoteLabel">遠端名稱：</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.UsernameLabel">已儲存的帳號：</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.PasswordLabel">密碼或存取權杖（留空保留原密碼）：</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.PasswordLabel">密碼或存取權杖：</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.SystemManaged">此儲存庫使用系統驗證。帳號由系統驗證視窗管理；若要依儲存庫儲存及切換帳號，請取消勾選系統驗證。</x:String>
   <x:String x:Key="Text.TreeGit.CreateRepository.RemoteReady">GitHub 儲存庫已就緒，本機設定尚未完成。</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Connecting">連線中…</x:String>

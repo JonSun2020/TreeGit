@@ -155,35 +155,38 @@ try:
                   selection['column']==column and selection['focusedFrameVisible'] is False and
                   selection['fill']==selection['expectedFill'],selection)
         click('EditRepositoryRemote','active');wait(lambda:len(tool('ui_state')['dialogs'])==2)
-        check(locale+' the editor retains its address field label',
-              address_label in [label['text'] for label in tool('ui_layout',window='active')['labels']])
-        backgrounds={}
-        for scope,count in [('authentication',1),('advanced',4)]:
-            if scope=='advanced':tool('ui_command',command='repository_settings_advanced')
-            before=wait(lambda:v if len(v:=probe('settings_expanders')['rows'])==count and all(r['height']>0 for r in v) else None)
-            for i,initial in enumerate(before):
-                expander=initial['Name']
-                clicked=probe('settings_expanders',1,button=expander)['rows'][0]
-                after=wait(lambda:r if (r:=probe('settings_expanders',button=expander)['rows'][0])['expanded'] else None)
-                backgrounds[expander]=(initial['surface'],after['surface'],after['body'])
-                if theme=='Light' and i==0:(out/(scope+'-expanded.png')).write_bytes(tool('ui_screenshot',window='active'))
-                if expander=='TreeGitSettingsSyncMerge':
-                    automatic={'zh_CN':'自动选择','zh_TW':'自動選擇','en_US':'Automatic'}[locale]
-                    if theme=='Light':(out/'default-remote.png').write_bytes(tool('ui_screenshot',window='active'))
-                    check(locale+' automatic has a caption before opening the dropdown',default_remote_state(automatic,0)['remote']=='')
-                    pick_default_remote(0)
-                    check(locale+' the already-selected automatic option responds to a direct click',default_remote_state(automatic,0)['remote']=='')
-                    pick_default_remote(1);explicit=default_remote_state('origin',1)
-                    pick_default_remote(0)
-                    check(locale+' switching to origin and back restores automatic',explicit['remote']=='origin' and default_remote_state(automatic,0)['remote']=='')
-                closing=probe('settings_expanders',2,button=expander)['rows'][0]
-                check(theme+' '+expander+' title stays transparent through pointer expand and collapse',
-                      all(24<=r['height']<=28 and r['transparent'] and r['hoverTransparent'] for r in (initial,after,closing)) and
-                      not closing['expanded'] and clicked['pressedTransparent'] and closing['pressedTransparent'],
-                      {'before':initial,'clicked':clicked,'after':after,'closing':closing})
-            tool('ui_command',command='close_dialog');wait(lambda:len(tool('ui_state')['dialogs'])==(1 if scope=='authentication' else 0))
-        check(theme+' authentication and commit links share both background surfaces',
-              all(backgrounds['RemoteAuthentication']) and backgrounds['RemoteAuthentication']==backgrounds['TreeGitSettingsCommitLinks'],backgrounds)
+        editor=probe('settings_remote_form')
+        editor_captions={'zh_CN':['名称：','仓库路径：','SSH 私钥：'],'zh_TW':['名稱：','儲存庫路徑：','SSH 私密金鑰：'],
+                         'en_US':['Name:','Repository path:','SSH private key:']}[locale]
+        check(locale+' the remote editor puts three right-aligned captions beside their inputs',
+              editor['captions']==editor_captions and editor['rightAligned'] and editor['inline'],editor)
+        check(locale+' the SSH input and its placeholder are visible without expanding a section',
+              editor['keyVisible'] and editor['keyHint'] and not editor['hasExpander'],editor)
+        check(theme+' the SSH browse button matches the external Git detect button layout',editor['browseStyle'],editor)
+        if theme=='Light':(out/'remote-editor.png').write_bytes(tool('ui_screenshot',window='active'))
+        tool('ui_command',command='close_dialog');wait(lambda:len(tool('ui_state')['dialogs'])==1)
+        tool('ui_command',command='repository_settings_advanced')
+        before=wait(lambda:v if len(v:=probe('settings_expanders')['rows'])==4 and all(r['height']>0 for r in v) else None)
+        for i,initial in enumerate(before):
+            expander=initial['Name']
+            clicked=probe('settings_expanders',1,button=expander)['rows'][0]
+            after=wait(lambda:r if (r:=probe('settings_expanders',button=expander)['rows'][0])['expanded'] else None)
+            if theme=='Light' and i==0:(out/'advanced-expanded.png').write_bytes(tool('ui_screenshot',window='active'))
+            if expander=='TreeGitSettingsSyncMerge':
+                automatic={'zh_CN':'自动选择','zh_TW':'自動選擇','en_US':'Automatic'}[locale]
+                if theme=='Light':(out/'default-remote.png').write_bytes(tool('ui_screenshot',window='active'))
+                check(locale+' automatic has a caption before opening the dropdown',default_remote_state(automatic,0)['remote']=='')
+                pick_default_remote(0)
+                check(locale+' the already-selected automatic option responds to a direct click',default_remote_state(automatic,0)['remote']=='')
+                pick_default_remote(1);explicit=default_remote_state('origin',1)
+                pick_default_remote(0)
+                check(locale+' switching to origin and back restores automatic',explicit['remote']=='origin' and default_remote_state(automatic,0)['remote']=='')
+            closing=probe('settings_expanders',2,button=expander)['rows'][0]
+            check(theme+' '+expander+' title stays transparent through pointer expand and collapse',
+                  all(24<=r['height']<=28 and r['transparent'] and r['hoverTransparent'] for r in (initial,after,closing)) and
+                  not closing['expanded'] and clicked['pressedTransparent'] and closing['pressedTransparent'],
+                  {'before':initial,'clicked':clicked,'after':after,'closing':closing})
+        tool('ui_command',command='close_dialog');wait(lambda:not tool('ui_state')['dialogs'])
         welcome();create_form('private-style-'+theme)
         for checked in [True,False]:
             toggle('CreateRepositoryGitHub',1);toggle('CreateRepositoryPrivate',int(checked));toggle('CreateRepositoryGitHub',0)

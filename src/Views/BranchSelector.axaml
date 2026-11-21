@@ -140,6 +140,7 @@
                       <Style Selector="ListBoxItem">
                         <Setter Property="Height" Value="28"/>
                         <Setter Property="CornerRadius" Value="3"/>
+                        <Setter Property="Padding" Value="3,0,8,0"/>
                       </Style>
                     </ListBox.Styles>
 

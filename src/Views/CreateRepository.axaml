@@ -29,7 +29,7 @@
   </UserControl.Styles>
   <StackPanel Spacing="10" Margin="8,4">
     <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
-      <TextBlock Margin="0,0,10,8" VerticalAlignment="Center" Text="{DynamicResource Text.TreeGit.CreateRepository.Parent}"/>
+      <TextBlock Margin="0,0,10,8" HorizontalAlignment="Right" VerticalAlignment="Center" Text="{DynamicResource Text.TreeGit.CreateRepository.Parent}"/>
       <TextBox Grid.Column="1" x:Name="CreateRepositoryParent" MinHeight="30" Margin="0,0,0,8"
                IsEnabled="{Binding CanEditParentFolder}" Text="{Binding ParentFolder, Mode=TwoWay}">
         <TextBox.InnerRightContent>
@@ -38,7 +38,7 @@
           </Button>
         </TextBox.InnerRightContent>
       </TextBox>
-      <TextBlock Grid.Row="1" Margin="0,0,10,0" VerticalAlignment="Center" Text="{DynamicResource Text.TreeGit.CreateRepository.Name}"/>
+      <TextBlock Grid.Row="1" Margin="0,0,10,0" HorizontalAlignment="Right" VerticalAlignment="Center" Text="{DynamicResource Text.TreeGit.CreateRepository.Name}"/>
       <TextBox Grid.Row="1" Grid.Column="1" x:Name="CreateRepositoryName" MinHeight="30"
                IsEnabled="{Binding CanEditName}" Text="{Binding Name, Mode=TwoWay}"/>
     </Grid>

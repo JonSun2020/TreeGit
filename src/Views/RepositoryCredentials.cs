@@ -40,14 +40,40 @@ namespace SourceGit.Views
                 targets.Add(new Target(remote.Name, remote.URL, separatePush ? "TreeGit.Menu.Pull" : null));
                 if (separatePush) targets.Add(new Target(remote.Name, remote.PushURL, "TreeGit.Menu.Push"));
             }
-            var remotes = new ComboBox { Name = "CredentialRemote", ItemsSource = targets, DisplayMemberBinding = new Avalonia.Data.Binding("DisplayName"), HorizontalAlignment = HorizontalAlignment.Stretch };
+            var remotes = new ComboBox { Name = "CredentialRemote", Height = 32, ItemsSource = targets, DisplayMemberBinding = new Avalonia.Data.Binding("DisplayName"), HorizontalAlignment = HorizontalAlignment.Stretch };
+            var remoteLabel = RepositoryDialogLayout.FieldLabel("TreeGit.Credentials.RemoteLabel");
+            remoteLabel.Name = "CredentialRemoteLabel";
             var username = new TextBox { Name = "CredentialUsername", Height = 32, [!Avalonia.Controls.TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Credentials.UsernameHint") };
-            var password = new PasswordTextBox { Name = "CredentialPassword", Height = 32, [!Avalonia.Controls.TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Credentials.OptionalToken"), PasswordChar = '*' };
+            var password = new PasswordTextBox { Name = "CredentialPassword", Height = 32, PasswordChar = '*',
+                [!TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Credentials.OptionalToken") };
             var showPassword = new ToggleButton { Classes = { "toggle_untracked" }, Width = 26, Height = 14 };
             ToolTip.SetTip(showPassword, App.Text("TreeGit.Credentials.TogglePassword"));
             password.InnerRightContent = showPassword;
             showPassword.IsCheckedChanged += (_, _) => password.RevealPassword = showPassword.IsChecked == true;
             var useManager = new CheckBox { Name = "CredentialMode", Content = new TextBlock { [!Avalonia.Controls.TextBlock.TextProperty] = App.TextBinding("TreeGit.Credentials.SystemAuth"), TextWrapping = Avalonia.Media.TextWrapping.Wrap }, IsChecked = Native.RepositoryCredentials.UsesCredentialManager(repo.FullPath) };
+            var fields = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), RowDefinitions = new RowDefinitions("Auto,12,Auto,4,Auto,6,Auto"), ColumnSpacing = 8 };
+            var usernameLabel = RepositoryDialogLayout.FieldLabel("TreeGit.Credentials.UsernameLabel");
+            usernameLabel.Name = "CredentialUsernameLabel";
+            usernameLabel.Classes.Add("option_dependent");
+            var passwordLabel = RepositoryDialogLayout.FieldLabel("TreeGit.Credentials.PasswordLabel");
+            passwordLabel.Name = "CredentialPasswordLabel";
+            passwordLabel.Classes.Add("option_dependent");
+            Grid.SetColumn(remotes, 1);
+            Grid.SetRow(useManager, 2);
+            Grid.SetColumnSpan(useManager, 2);
+            Grid.SetRow(usernameLabel, 4);
+            Grid.SetRow(username, 4);
+            Grid.SetColumn(username, 1);
+            Grid.SetRow(passwordLabel, 6);
+            Grid.SetRow(password, 6);
+            Grid.SetColumn(password, 1);
+            fields.Children.Add(remoteLabel);
+            fields.Children.Add(remotes);
+            fields.Children.Add(useManager);
+            fields.Children.Add(usernameLabel);
+            fields.Children.Add(username);
+            fields.Children.Add(passwordLabel);
+            fields.Children.Add(password);
             var message = new TextBlock { Name = "CredentialStatus", TextWrapping = Avalonia.Media.TextWrapping.Wrap };
             void ErrorMessage(Exception error, string fallback)
             {
@@ -78,33 +104,43 @@ namespace SourceGit.Views
                 var parts = uri.UserInfo.Split(':', 2);
                 return (Uri.UnescapeDataString(parts[0]), parts.Length > 1 ? Uri.UnescapeDataString(parts[1]) : string.Empty);
             }
-            var loadingPassword = false;
+            var populatingFields = false;
+            var usernameEdited = false;
             var passwordEdited = false;
             var saving = false;
             var clearPending = false;
+            void ResetFields()
+            {
+                populatingFields = true;
+                username.Text = string.Empty;
+                password.Text = string.Empty;
+                populatingFields = false;
+                usernameEdited = passwordEdited = false;
+            }
             void UpdateEnabled()
             {
                 var isHttp = remotes.SelectedItem is Target selected && Uri.TryCreate(selected.Url, UriKind.Absolute, out var uri) && uri.Scheme is "https" or "http";
                 remotes.IsEnabled = !saving && query.Succeeded;
-                save.IsEnabled = useManager.IsEnabled = !saving && !loading && query.Succeeded && isHttp;
-                username.IsEnabled = password.IsEnabled = save.IsEnabled && useManager.IsChecked != true;
-                forget.IsEnabled = save.IsEnabled;
+                useManager.IsEnabled = !saving && query.Succeeded && isHttp;
+                save.IsEnabled = forget.IsEnabled = useManager.IsEnabled && !loading;
+                username.IsEnabled = password.IsEnabled = usernameLabel.IsEnabled = passwordLabel.IsEnabled =
+                    useManager.IsEnabled && useManager.IsChecked != true;
                 close.IsEnabled = !saving;
             }
+            username.PropertyChanged += (_, change) =>
+            {
+                if (!populatingFields && change.Property == TextBox.TextProperty) usernameEdited = true;
+            };
             password.PropertyChanged += (_, change) =>
             {
-                if (!loadingPassword && change.Property == TextBox.TextProperty) passwordEdited = true;
+                if (!populatingFields && change.Property == TextBox.TextProperty) passwordEdited = true;
             };
             async void LoadSelected()
             {
                 var version = ++selectionVersion;
                 loading = true;
                 credentialUris = [];
-                username.Text = string.Empty;
-                loadingPassword = true;
-                password.Text = string.Empty;
-                loadingPassword = false;
-                passwordEdited = false;
+                ResetFields();
                 clearPending = false;
                 message.ClearValue(TextBlock.ForegroundProperty);
                 UpdateEnabled();
@@ -122,7 +158,12 @@ namespace SourceGit.Views
                     if (version != selectionVersion || lifetime.IsCancellationRequested) return;
                     credentialUris = uris;
                     var existing = uris.Reverse().Select(candidate => Native.RepositoryCredentials.Get(repo.FullPath, candidate)).FirstOrDefault(account => account.HasValue) ?? EmbeddedAccount(uri);
-                    username.Text = existing?.Username ?? string.Empty;
+                    if (!usernameEdited)
+                    {
+                        populatingFields = true;
+                        username.Text = existing?.Username ?? string.Empty;
+                        populatingFields = false;
+                    }
                     message.Text = useManager.IsChecked == true ? App.Text("TreeGit.Credentials.SystemManaged") :
                         existing.HasValue ? App.Text("TreeGit.Credentials.Exists") : App.Text("TreeGit.Credentials.None");
                 }
@@ -130,7 +171,12 @@ namespace SourceGit.Views
                 catch (Exception ex) { if (version == selectionVersion) ErrorMessage(ex, "TreeGit.Credentials.ReadFailed"); }
                 finally { if (version == selectionVersion && !lifetime.IsCancellationRequested) { loading = false; UpdateEnabled(); } }
             }
-            useManager.IsCheckedChanged += (_, _) => { if (!saving && !changingMode) LoadSelected(); };
+            useManager.IsCheckedChanged += (_, _) =>
+            {
+                if (saving || changingMode) return;
+                if (loading) UpdateEnabled();
+                else LoadSelected();
+            };
             remotes.SelectionChanged += (_, _) => LoadSelected();
             save.Click += async (_, _) =>
             {
@@ -196,10 +242,6 @@ namespace SourceGit.Views
                     Native.RepositoryCredentials.SetCredentialManagerMode(repo.FullPath, manager);
                     if (sanitizedTarget != null) { sanitizedTargets.Add(sanitizedTarget); repo.RefreshAll(); }
                     useManager.IsChecked = manager;
-                    loadingPassword = true;
-                    password.Text = string.Empty;
-                    loadingPassword = false;
-                    passwordEdited = false;
                     message.Text = manager ? App.Text("TreeGit.Credentials.SystemModeSaved") :
                         clearing ? App.Text("TreeGit.Credentials.Cleared") : App.Text("TreeGit.Credentials.Saved");
                     clearPending = false;
@@ -219,11 +261,7 @@ namespace SourceGit.Views
                     changingMode = false;
                     clearPending = true;
                     message.ClearValue(TextBlock.ForegroundProperty);
-                    username.Text = string.Empty;
-                    loadingPassword = true;
-                    password.Text = string.Empty;
-                    loadingPassword = false;
-                    passwordEdited = false;
+                    ResetFields();
                     message.Text = App.Text("TreeGit.Credentials.ClearPending");
                     UpdateEnabled();
                 }
@@ -237,12 +275,7 @@ namespace SourceGit.Views
             confirmation.Children.Add(save);
             confirmation.Children.Add(close);
             buttons.Children.Add(confirmation);
-            panel.Children.Add(remotes);
-            panel.Children.Add(useManager);
-            panel.Children.Add(new TextBlock { [!TextBlock.TextProperty] = App.TextBinding("TreeGit.Credentials.UsernameLabel") });
-            panel.Children.Add(username);
-            panel.Children.Add(new TextBlock { [!TextBlock.TextProperty] = App.TextBinding("TreeGit.Credentials.PasswordLabel") });
-            panel.Children.Add(password);
+            panel.Children.Add(fields);
             panel.Children.Add(message);
             panel.Children.Add(new TextBlock { [!TextBlock.TextProperty] = App.TextBinding("TreeGit.Credentials.IdentityHint"), TextWrapping = Avalonia.Media.TextWrapping.Wrap, FontSize = 12 });
             RepositoryDialogLayout.Apply(this, panel, buttons, 520);
@@ -251,7 +284,7 @@ namespace SourceGit.Views
                 remotes.SelectedItem = remotes.Items.OfType<Target>().FirstOrDefault(r => r.RemoteName == remoteName) ?? remotes.Items[0];
             else LoadSelected();
             Closing += (_, e) => { if (saving && !confirmedClose) e.Cancel = true; };
-            Closed += (_, _) => { lifetime.Cancel(); password.Text = string.Empty; };
+            Closed += (_, _) => { lifetime.Cancel(); ResetFields(); };
         }
     }
 }

@@ -48,6 +48,7 @@
     <Grid Grid.Row="2" Margin="8,0,8,8" ColumnDefinitions="Auto,*,18,Auto,Auto">
       <TextBlock Grid.Column="0"
                  Classes="group_header_label"
+                 HorizontalAlignment="Right"
                  Text="{DynamicResource Text.AIAssistant.Model}"/>
 
       <ComboBox Grid.Column="1"

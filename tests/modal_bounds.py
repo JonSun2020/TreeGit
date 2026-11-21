@@ -27,6 +27,7 @@ if redirect_only:
             if '.git/info/refs' in self.path:
                 self.send_response(401);self.send_header('WWW-Authenticate','Basic realm="Owned TreeGit audit"')
             else:
+                time.sleep(.7)  # Keep the remote lookup pending through the dialog's first frame.
                 self.send_response(301);self.send_header('Location',self.path.replace('/info/refs','.git/info/refs'))
             self.send_header('Content-Length','0');self.end_headers()
         def log_message(self,*args):pass
@@ -75,10 +76,13 @@ try:
                 check(f'credentials {zoom} belongs to TreeGit without global topmost',not bounds['topmost'] and bounds['hasOwner'])
                 check(f'credentials {zoom} invalid input preserves the authentication mode',details['invalidInputPreservedConfig'])
     tool('ui_window',{'zoom':1,'locale':'zh_CN'})
-    scenarios=['redirect_unchanged','redirect_clear_button','redirect_clear_text','redirect_clear_cancel','redirect_empty_password'] if redirect_only else ['unchanged','empty_password','explicit_clear','clear_button','clear_text','clear_cancel','oversized','config_locked','commit_failure']
-    cases=[] if '--dropdown-only' in sys.argv[3:] else [('oversized',locale) for locale in ['zh_CN','zh_TW','en_US']] if input_only else [(scenario,'zh_CN') for scenario in scenarios]
+    scenarios=['redirect_unchanged','redirect_clear_button','redirect_clear_text','redirect_clear_cancel','redirect_empty_password','redirect_early_input'] if redirect_only else ['unchanged','empty_password','explicit_clear','clear_button','clear_text','clear_cancel','oversized','config_locked','commit_failure']
+    languages=['zh_CN','zh_TW','en_US']
+    cases=[] if '--dropdown-only' in sys.argv[3:] else [('oversized',locale) for locale in languages] if input_only else [(scenario,languages[i%len(languages)] if redirect_only else 'zh_CN') for i,scenario in enumerate(scenarios)]
     for scenario,locale in cases:
-        tool('ui_window',{'locale':locale})
+        window_options={'locale':locale}
+        if redirect_only:window_options['theme']={'zh_CN':'Light','zh_TW':'Dark','en_US':'Blue'}[locale]
+        tool('ui_window',window_options)
         if not redirect_only and scenario in ['clear_button','clear_text','clear_cancel']:
             git('remote','set-url','origin','https://embedded-user:embedded-secret@example.invalid/owned-audit.git')
         result_file=Path(str(fixture)+'.result');result_file.unlink(missing_ok=True)
@@ -90,7 +94,19 @@ try:
         result=json.loads(result_file.read_text(encoding='utf-8'));assert 'exception' not in result,result
         details=result['operationDetails'];records.append({'scenario':scenario,'locale':locale,'result':details})
         scenario=scenario.replace('redirect_','')
-        check(scenario+' displays the saved account',details['storedAccountShown'])
+        if redirect_only:
+            caption={'zh_CN':'密码或访问令牌：','zh_TW':'密碼或存取權杖：','en_US':'Password or access token:'}[locale]
+            hint={'zh_CN':'密码或访问令牌（可留空）','zh_TW':'密碼或存取權杖（可留空）','en_US':'Password or access token (optional)'}[locale]
+            remote_caption={'zh_CN':'远程名称：','zh_TW':'遠端名稱：','en_US':'Remote name:'}[locale]
+            check(locale+' system authentication is enabled during the first credential lookup',details['modeEnabledAtOpen'] and details['stillLoadingAtOpen'])
+            check(locale+' fields are editable immediately in manual mode and disabled in system mode',
+                  details['fieldsMatchModeWhileLoading'] and details['fieldsEnabledAtOpen']==(scenario=='early_input'))
+            check(locale+' credential labels align with inputs beneath the mode checkbox',details['inlineFields'] and 0<=details['modeToFieldsGap']<=6)
+            check(locale+' the remote selector and right-aligned labels share the credential grid',
+                  details['remoteAligned'] and details['rightAligned'] and details['remoteCaption']==remote_caption)
+            check(locale+' token field keeps its placeholder while the label omits the saved-password hint',details['passwordCaption']==caption and details['passwordWatermark']==hint)
+        if scenario=='early_input':check('a delayed credential lookup preserves the typed account and token',details['earlyInputPreserved'])
+        else:check(scenario+' displays the saved account',details['storedAccountShown'])
         check(scenario+' keeps input errors localized and visible',details['localizedInputError'])
         check(scenario+' closes only after confirm succeeds or cancel',details['automaticallyClosed']==(scenario not in ['oversized','config_locked','commit_failure']))
         if scenario=='unchanged':check('confirming an existing account preserves its unedited password',details['success'] and details['originalCredentialPreserved'] and not details['systemMode'])
@@ -98,6 +114,7 @@ try:
         elif scenario=='explicit_clear':check('typing and clearing a password saves an intentional empty password',details['success'] and details['emptyPasswordSaved'] and not details['systemMode'])
         elif scenario in ['clear_button','clear_text']:check(scenario+' can save empty credentials and disable system fallback',details['cleared'] and not details['systemMode'])
         elif scenario=='clear_cancel':check('cancelling a clear preserves the saved account and mode',details['originalCredentialPreserved'] and details['configurationUnchanged'] and details['systemMode'])
+        elif scenario=='early_input':check('confirming saves the account and token typed during lookup',details['success'] and details['earlyInputSaved'] and not details['systemMode'])
         else:check(scenario+' leaves both original credentials and authentication mode unchanged',not details['success'] and details['configurationUnchanged'] and details['originalCredentialPreserved'] and details['systemMode'])
         if not redirect_only and scenario in ['clear_button','clear_text','clear_cancel']:
             url=subprocess.run(['git','-C',str(repo),'remote','get-url','origin'],env=env,capture_output=True,text=True,check=True).stdout
@@ -116,7 +133,7 @@ try:
             result=json.loads(result_file.read_text('utf-8'));assert 'exception' not in result,result
             records.append({'locale':locale,'theme':theme,'dropdowns':result['operationDetails']})
             for dropdown in result['operationDetails']:
-                check(locale+' '+theme+' '+dropdown['dropdown']+' keeps scroll offset and popup anchor',dropdown['stable'])
+                check(locale+' '+theme+' '+dropdown['dropdown']+' keeps its right-aligned label, scroll offset and popup anchor',dropdown['stable'] and dropdown['rightAligned'])
                 if not dropdown['stable']:print(json.dumps(dropdown),flush=True)
     assert not failures,failures
 finally:

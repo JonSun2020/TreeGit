@@ -11,6 +11,14 @@ namespace SourceGit.Views
 {
     internal static class RepositoryDialogLayout
     {
+        public static TextBlock FieldLabel(string resourceKey) => new()
+        {
+            [!TextBlock.TextProperty] = App.TextBinding(resourceKey),
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+            TextAlignment = Avalonia.Media.TextAlignment.Right,
+        };
+
         public static void FitFixedWindow(ChromelessWindow window, double width, double height)
         {
             void Fit(bool center)

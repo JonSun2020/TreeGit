@@ -54,11 +54,18 @@ def open_pair(repository=repo):
  client.tool('ui_open_repository',repo=str(repository));client.tool('ui_select_commit',repo=str(repository),revision='HEAD')
  wait(lambda:any(Path(r['repo'])==repository and filename in (r['detailChanges'] or []) for r in client.tool('ui_state')['repositories']))
  select_file(repository,filename);client.tool('ui_command',command='external_diff');wait(lambda:ready('standalone'))
-def dropdown_geometry(name):
+def dropdown_geometry(name, labels=False):
  client.probe('dropdown_geometry',1,name)
- result=wait(lambda:p if (p:=client.probe('dropdown_geometry',2,name))['ready'] and p['left'] is not None else None)
+ result=wait(lambda:p if (p:=client.probe('dropdown_geometry',2,name))['ready'] and p['left'] is not None and
+             (not labels or p['labelOffsets'] and all(item['offset'] is not None for item in p['labelOffsets'])) else None)
  client.probe('dropdown_geometry',0,name)
  return result
+def check_label_alignment(name, result, details=False):
+ check(name+' options and the selected caption have the same left edge',
+       all(abs(item['offset'])<=1 for item in result['labelOffsets']),result)
+ if details:
+  check(name+' keeps both parts of the selected option in place',
+        len(result['selectedOffsets'])==2 and all(item is not None and abs(item)<=1 for item in result['selectedOffsets']),result)
 def check_edges(name, result):
  check(name+' expands with both borders aligned',
        abs(result['left'])<=1 and abs(result['right']-result['boxed'])<=1,result)
@@ -323,6 +330,11 @@ try:
   check(f'{zoom} encodings stay on the closed text center line',
         encoding['popupAligned'] and all(abs(e['centerOffset'])<=1 for e in encoding['dropdown']),encoding)
   client.probe('diff_encoding_style')
+  encoding=wait(lambda:p if (p:=client.probe('diff_encoding_style',2))['staticScrollbar'] and
+                p['dropdown'] and all(e['centerOffset'] is not None for e in p['dropdown']) else None)
+  check(f'{zoom} centered encoding options keep their center line with a permanent scrollbar',
+        all(abs(e['centerOffset'])<=1 for e in encoding['dropdown']),encoding)
+  client.probe('diff_encoding_style')
   client.probe('diff_context_menu_main',1)
   check_edges(f'{zoom} context',dropdown_geometry('DiffContextPicker'))
   full=wait(lambda:p if len((p:=client.probe('diff_context_style',1))['dropdown'])==4 else None)
@@ -333,14 +345,37 @@ try:
   for page,name in [('diff-merge','ExternalToolSelector'),('terminal','ShellSelector')]:
    client.tool('ui_command',command='preferences',page=page)
    wait(lambda:tool_state if (tool_state:=client.tool('ui_state'))['dialogs'] else None)
-   dropdown=dropdown_geometry(name)
+   dropdown=dropdown_geometry(name,labels=True)
    check_edges(f'{zoom} {page}',dropdown)
+   check_label_alignment(f'{zoom} {page}',dropdown)
    if page=='diff-merge':check(f'{zoom} external tool retains left-aligned content',dropdown['alignment']=='Left',dropdown)
    client.tool('ui_command',command='close_dialog');wait(lambda:not client.tool('ui_state')['dialogs'])
   client.tool('ui_command',repo=str(repo),command='pull_dialog')
   wait(lambda:client.tool('ui_state')['activePage']['pendingDialog']=='Pull')
-  check_edges(f'{zoom} pull branch',dropdown_geometry('PullBranch'))
+  branch_dropdown=dropdown_geometry('PullBranch',labels=True)
+  check_edges(f'{zoom} pull branch',branch_dropdown)
+  check_label_alignment(f'{zoom} pull branch',branch_dropdown)
   client.tool('ui_command',command='cancel_popup')
+  client.tool('ui_command',repo=str(repo),command='repository_settings')
+  wait(lambda:client.tool('ui_state')['dialogs'])
+  client.tool('ui_layout',window='active',action='test_click',button='RepositorySettingsCredentials')
+  wait(lambda:len(client.tool('ui_state')['dialogs'])==2)
+  remote_dropdown=dropdown_geometry('CredentialRemote',labels=True)
+  check_label_alignment(f'{zoom} credential remote name',remote_dropdown)
+  client.tool('ui_command',command='close_dialog');client.tool('ui_command',command='close_dialog')
+  wait(lambda:not client.tool('ui_state')['dialogs'])
+ for locale,theme in [('zh_CN','Light'),('zh_TW','Dark'),('en_US','Blue')]:
+  client.tool('ui_window',zoom=1,locale=locale,theme=theme)
+  for page,names in [('general',('DateFormatPicker',)),('appearance',('ThemePicker','InterfaceFontPicker','CodeFontPicker')),
+                     ('signing',('SigningFormatBox',)),('git',('LineEndingPicker',))]:
+   client.tool('ui_command',command='preferences',page=page)
+   wait(lambda:client.tool('ui_state')['dialogs'])
+   for name in names:
+    dropdown=dropdown_geometry(name,labels=True)
+    check_edges(f'{locale} {name}',dropdown)
+    check_label_alignment(f'{locale} {name}',dropdown,details=name in ('DateFormatPicker','SigningFormatBox','LineEndingPicker'))
+   client.tool('ui_command',command='close_dialog')
+   wait(lambda:not client.tool('ui_state')['dialogs'])
  client.tool('ui_window',zoom=1,locale='en_US')
  if '--encodings' in sys.argv[3:]:
   import codecs

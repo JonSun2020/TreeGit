@@ -1540,11 +1540,11 @@ SSH 密钥仍在原有远程配置中设置。</x:String>
   <x:String x:Key="Text.TreeGit.Remote.UrlHint" xml:space="preserve">HTTPS / SSH 地址或本地仓库路径</x:String>
   <x:String x:Key="Text.TreeGit.Remote.KeyHint" xml:space="preserve">留空使用 OpenSSH 默认密钥或代理</x:String>
   <x:String x:Key="Text.TreeGit.Settings.Name" xml:space="preserve">名称</x:String>
-  <x:String x:Key="Text.TreeGit.Remote.Url" xml:space="preserve">远程仓库路径</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.EditorName" xml:space="preserve">名称：</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.Url" xml:space="preserve">仓库路径：</x:String>
   <x:String x:Key="Text.TreeGit.BrowseEllipsis" xml:space="preserve">浏览…</x:String>
   <x:String x:Key="Text.TreeGit.Remote.SelectKey" xml:space="preserve">选择 SSH 私钥</x:String>
-  <x:String x:Key="Text.TreeGit.Remote.OptionalKey" xml:space="preserve">SSH 私钥（可选）</x:String>
-  <x:String x:Key="Text.TreeGit.Remote.Authentication" xml:space="preserve">认证选项</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.OptionalKey" xml:space="preserve">SSH 私钥：</x:String>
   <x:String x:Key="Text.TreeGit.Ok" xml:space="preserve">确定</x:String>
   <x:String x:Key="Text.TreeGit.Remote.InvalidName" xml:space="preserve">请输入有效的远程名称（字母、数字、下划线、点或连字符）。</x:String>
   <x:String x:Key="Text.TreeGit.Remote.NameExists" xml:space="preserve">同名远程仓库已存在。</x:String>
@@ -1830,8 +1830,9 @@ SSH 密钥仍在原有远程配置中设置。</x:String>
   <x:String x:Key="Text.TreeGit.CreateRepository.FolderPickerFailed">暂时无法选择目录，请直接输入父级目录。</x:String>
   <x:String x:Key="Text.TreeGit.CreateRepository.SameAccountRequired">请验证上次发送创建请求时使用的 GitHub 账号，以核对结果。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Action">账号与密码</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.RemoteLabel">远程名称：</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.UsernameLabel">已保存的账号：</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.PasswordLabel">密码或访问令牌（留空保留原密码）：</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.PasswordLabel">密码或访问令牌：</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.SystemManaged">此仓库使用系统认证。账号由系统认证窗口管理；若要按仓库保存并切换账号，请取消勾选系统认证。</x:String>
   <x:String x:Key="Text.TreeGit.CreateRepository.RemoteReady">GitHub 仓库已就绪，本地设置尚未完成。</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Connecting">连接中…</x:String>

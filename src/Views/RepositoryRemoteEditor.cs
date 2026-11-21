@@ -5,7 +5,6 @@ using System.Text.RegularExpressions;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
-using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 
@@ -19,31 +18,39 @@ namespace SourceGit.Views
             Width = 550; SizeToContent = SizeToContent.Height; WindowStartupLocation = WindowStartupLocation.CenterOwner; CanResize = false; CloseOnESC = true;
             var panel = new StackPanel { Margin = new Thickness(20), Spacing = 9 };
             panel.Children.Add(new TextBlock { [!TextBlock.TextProperty] = new Avalonia.Data.Binding("Title") { Source = this }, FontSize = 18, FontWeight = FontWeight.Bold });
-            var name = new TextBox { Text = remote?.Name ?? "origin", Height = 28 };
-            var url = new TextBox { Text = remote?.URL ?? "", Height = 28, [!Avalonia.Controls.TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Remote.UrlHint") };
-            var key = new TextBox { Text = remote?.PrivateSSHKey ?? "", Height = 28, [!Avalonia.Controls.TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Remote.KeyHint") };
-            panel.Children.Add(new TextBlock { [!Avalonia.Controls.TextBlock.TextProperty] = App.TextBinding("TreeGit.Settings.Name") }); panel.Children.Add(name);
-            panel.Children.Add(new TextBlock { [!Avalonia.Controls.TextBlock.TextProperty] = App.TextBinding("TreeGit.Remote.Url") }); panel.Children.Add(url);
+            var name = new TextBox { Name = "RemoteEditorName", Text = remote?.Name ?? "origin", Height = 28 };
+            var url = new TextBox { Name = "RemoteEditorPath", Text = remote?.URL ?? "", Height = 28, [!TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Remote.UrlHint") };
+            var key = new TextBox { Name = "RemoteEditorSshKey", Text = remote?.PrivateSSHKey ?? "", Height = 28,
+                CornerRadius = new CornerRadius(3), [!TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Remote.KeyHint") };
             var keyRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
             keyRow.Children.Add(key);
-            var browse = RepositorySettings.Action("TreeGit.BrowseEllipsis", async () =>
+            var browse = new Button
+            {
+                Name = "RemoteEditorBrowseSshKey", Classes = { "flat" }, Margin = new Thickness(6, 0, 0, 0),
+                Padding = new Thickness(10, 0), Height = 28, VerticalAlignment = VerticalAlignment.Center,
+                [!ContentControl.ContentProperty] = App.TextBinding("TreeGit.BrowseEllipsis"),
+            };
+            browse.Click += async (_, _) =>
             {
                 var files = await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { Title = App.Text("TreeGit.Remote.SelectKey"), AllowMultiple = false });
                 if (files.Count > 0) key.Text = files[0].Path.LocalPath;
-            }); Grid.SetColumn(browse, 1); keyRow.Children.Add(browse);
-            var advanced = new StackPanel { Spacing = 6 };
-            advanced.Children.Add(new TextBlock { [!Avalonia.Controls.TextBlock.TextProperty] = App.TextBinding("TreeGit.Remote.OptionalKey") }); advanced.Children.Add(keyRow);
-            panel.Children.Add(new Border
+            };
+            Grid.SetColumn(browse, 1);
+            keyRow.Children.Add(browse);
+            var fields = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), RowDefinitions = new RowDefinitions("Auto,Auto,Auto"), ColumnSpacing = 16, RowSpacing = 8 };
+            void AddField(int row, string caption, Control editor)
             {
-                [!Border.BackgroundProperty] = new DynamicResourceExtension("Brush.Contents"),
-                Child = new Expander
-                {
-                    Name = "RemoteAuthentication", Classes = { "settings_expander" },
-                    [!Expander.HeaderProperty] = App.TextBinding("TreeGit.Remote.Authentication"),
-                    Content = advanced, HorizontalAlignment = HorizontalAlignment.Stretch,
-                    IsExpanded = !string.IsNullOrEmpty(remote?.PrivateSSHKey),
-                },
-            });
+                var label = RepositoryDialogLayout.FieldLabel(caption);
+                Grid.SetRow(label, row);
+                Grid.SetRow(editor, row);
+                Grid.SetColumn(editor, 1);
+                fields.Children.Add(label);
+                fields.Children.Add(editor);
+            }
+            AddField(0, "TreeGit.Remote.EditorName", name);
+            AddField(1, "TreeGit.Remote.Url", url);
+            AddField(2, "TreeGit.Remote.OptionalKey", keyRow);
+            panel.Children.Add(fields);
             var error = new TextBlock { Foreground = Brushes.IndianRed, TextWrapping = TextWrapping.Wrap, IsVisible = false }; panel.Children.Add(error);
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8 };
             buttons.Children.Add(RepositorySettings.Action("TreeGit.Ok", async () =>

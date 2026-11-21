@@ -1536,11 +1536,11 @@ Configure SSH keys in the remote settings.</x:String>
   <x:String x:Key="Text.TreeGit.Remote.UrlHint" xml:space="preserve">HTTPS / SSH URL or local repository path</x:String>
   <x:String x:Key="Text.TreeGit.Remote.KeyHint" xml:space="preserve">Leave empty to use the default OpenSSH key or agent</x:String>
   <x:String x:Key="Text.TreeGit.Settings.Name" xml:space="preserve">Name</x:String>
-  <x:String x:Key="Text.TreeGit.Remote.Url" xml:space="preserve">Remote repository URL</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.EditorName" xml:space="preserve">Name:</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.Url" xml:space="preserve">Repository path:</x:String>
   <x:String x:Key="Text.TreeGit.BrowseEllipsis" xml:space="preserve">Browse…</x:String>
   <x:String x:Key="Text.TreeGit.Remote.SelectKey" xml:space="preserve">Select SSH private key</x:String>
-  <x:String x:Key="Text.TreeGit.Remote.OptionalKey" xml:space="preserve">SSH private key (optional)</x:String>
-  <x:String x:Key="Text.TreeGit.Remote.Authentication" xml:space="preserve">Authentication options</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.OptionalKey" xml:space="preserve">SSH private key:</x:String>
   <x:String x:Key="Text.TreeGit.Ok" xml:space="preserve">OK</x:String>
   <x:String x:Key="Text.TreeGit.Remote.InvalidName" xml:space="preserve">Enter a valid remote name using letters, numbers, underscores, dots or hyphens.</x:String>
   <x:String x:Key="Text.TreeGit.Remote.NameExists" xml:space="preserve">A remote with this name already exists.</x:String>
@@ -1826,8 +1826,9 @@ Configure SSH keys in the remote settings.</x:String>
   <x:String x:Key="Text.TreeGit.CreateRepository.FolderPickerFailed">The folder picker could not be opened. Enter the parent folder directly.</x:String>
   <x:String x:Key="Text.TreeGit.CreateRepository.SameAccountRequired">Verify the same GitHub account used for the previous creation request to check its result.</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Action">Account and password</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.RemoteLabel">Remote name:</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.UsernameLabel">Saved account:</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.PasswordLabel">Password or token (leave unchanged to keep the saved value):</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.PasswordLabel">Password or access token:</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.SystemManaged">This repository uses system authentication. Manage its account in the system sign-in window, or turn this off to save and switch an account for this repository.</x:String>
   <x:String x:Key="Text.TreeGit.CreateRepository.RemoteReady">The GitHub repository is ready. Local setup is not yet complete.</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Connecting">Connecting…</x:String>

@@ -142,7 +142,7 @@ namespace SourceGit.Views
             _defaultRemote = new ComboBox
             {
                 Name = "DefaultRemote", HorizontalAlignment = HorizontalAlignment.Stretch,
-                ItemTemplate = new FuncDataTemplate<string>((remote, _) => remote.Length == 0
+                ItemTemplate = new FuncDataTemplate<string>((remote, _) => remote == string.Empty
                     ? new TextBlock { [!TextBlock.TextProperty] = App.TextBinding("TreeGit.Settings.Automatic") }
                     : new TextBlock { Text = remote }),
             };
@@ -282,7 +282,8 @@ namespace SourceGit.Views
             _updatingRemoteChoices = true;
             try
             {
-                _defaultRemote.ItemsSource = names;
+                if (!_defaultRemote.Items.SequenceEqual(names))
+                    _defaultRemote.ItemsSource = names;
                 _defaultRemote.SelectedItem = selected;
             }
             finally { _updatingRemoteChoices = false; }
@@ -380,8 +381,10 @@ namespace SourceGit.Views
 
         private static Control Field(string label, Control editor)
         {
-            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("100,*") };
-            row.Children.Add(new TextBlock { [!TextBlock.TextProperty] = App.TextBinding(label), TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 6, 0), VerticalAlignment = VerticalAlignment.Center });
+            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("100,*"), ColumnSpacing = 6 };
+            var caption = RepositoryDialogLayout.FieldLabel(label);
+            caption.TextWrapping = TextWrapping.Wrap;
+            row.Children.Add(caption);
             Grid.SetColumn(editor, 1); row.Children.Add(editor); return row;
         }
     }

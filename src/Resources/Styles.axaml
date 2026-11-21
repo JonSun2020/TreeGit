@@ -1066,8 +1066,6 @@
 
   <Style Selector="ComboBox">
     <Style.Resources>
-      <Thickness x:Key="ComboBoxDropdownBorderPadding">4,0</Thickness>
-      <Thickness x:Key="ComboBoxItemThemePadding">6,4</Thickness>
       <SolidColorBrush x:Key="ComboBoxDropDownBackground" Color="{DynamicResource Color.Contents}"/>
       <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="{DynamicResource SystemAccentColor}"/>
     </Style.Resources>
@@ -1083,6 +1081,10 @@
       <Setter Property="CustomPopupPlacementCallback" Value="{x:Static v:DropdownPlacement.Align}"/>
       <Setter Property="Width" Value="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}"/>
       <Setter Property="VerticalOffset" Value="2"/>
+    </Style>
+    <Style Selector="^ /template/ Border#PopupBorder">
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="0"/>
     </Style>
     <Style Selector="^:pointerover /template/ Border#Background">
       <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}" />
@@ -1111,13 +1113,18 @@
   <Style Selector="ComboBoxItem">
     <Setter Property="CornerRadius" Value="3"/>
   </Style>
+  <Style Selector="ComboBox ComboBoxItem">
+    <Setter Property="HorizontalContentAlignment" Value="{Binding $parent[ComboBox].HorizontalContentAlignment}"/>
+    <Setter Property="Padding">
+      <MultiBinding Converter="{x:Static v:DropdownPlacement.OptionPadding}">
+        <Binding Path="$parent[ComboBox].Padding"/>
+        <Binding Path="$parent[ComboBox].Bounds.Width"/>
+        <Binding Path="Bounds.Width" RelativeSource="{RelativeSource Self}"/>
+      </MultiBinding>
+    </Setter>
+  </Style>
 
   <Style Selector="ComboBox.center_dropdown_labels">
-    <Style.Resources>
-      <Thickness x:Key="ComboBoxDropdownBorderPadding">0</Thickness>
-      <!-- Match the closed text area's 3 px inset and 32 px arrow column. -->
-      <Thickness x:Key="ComboBoxItemThemePadding">2,4,34,4</Thickness>
-    </Style.Resources>
     <Setter Property="Padding" Value="3,0"/>
   </Style>
 
