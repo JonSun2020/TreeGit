@@ -79,17 +79,26 @@ namespace SourceGit.ViewModels
                 CheckSettings();
         }
 
-        public int UnifiedLines
+        public Models.DiffContextOption ContextOption
         {
-            get => _unifiedLines;
-            private set => SetProperty(ref _unifiedLines, value);
+            get => _contextOption;
+            set
+            {
+                if (value == null) return;
+                Preferences.Instance.SetDiffContextOption(_repo, _standalone, value);
+                RefreshContextOption();
+            }
         }
+
+        private int ContextLines => ContextOption.Lines == 0 ? EntireFileLines : ContextOption.Lines;
 
         public DiffContext(string repo, Models.DiffOption option, DiffContext previous = null, bool standalone = false)
         {
             Settings = standalone ? Preferences.Instance.StandaloneDiffSettings ??= new() : Preferences.Instance;
             _repo = repo;
             _option = option;
+            _standalone = standalone;
+            _contextOption = Preferences.Instance.GetDiffContextOption(repo, standalone);
             _displayEncodingIndex = Preferences.Instance.GetFileEncodingIndex(_repo, _option.Path);
 
             if (previous != null && string.Equals(previous._repo, repo, StringComparison.Ordinal) &&
@@ -100,7 +109,6 @@ namespace SourceGit.ViewModels
                 _content = previous._content;
                 _oldMode = previous._oldMode;
                 _newMode = previous._newMode;
-                _unifiedLines = previous._unifiedLines;
                 _info = previous._info;
             }
 
@@ -112,16 +120,14 @@ namespace SourceGit.ViewModels
             LoadContent();
         }
 
-        public void IncrUnified()
+        internal bool RefreshContextOption()
         {
-            UnifiedLines = _unifiedLines + 1;
-            LoadContent();
-        }
+            var option = Preferences.Instance.GetDiffContextOption(_repo, _standalone);
+            if (!SetProperty(ref _contextOption, option, nameof(ContextOption))) return false;
+            if (_info != null && !IsTextDiff && Content is not Models.NoOrEOLChange) return false;
 
-        public void DecrUnified()
-        {
-            UnifiedLines = Math.Max(4, _unifiedLines - 1);
             LoadContent();
+            return true;
         }
 
         public void OpenExternalMergeTool()
@@ -140,6 +146,7 @@ namespace SourceGit.ViewModels
 
         public void CheckSettings()
         {
+            if (RefreshContextOption()) return;
             var pref = Settings;
             if (_info == null || _info.CodePage != Models.DisplayEncoding.CodePage(DisplayEncodingIndex))
             {
@@ -149,8 +156,7 @@ namespace SourceGit.ViewModels
 
             if (Content is TextDiffContext ctx)
             {
-                if ((pref.UseFullTextDiff && _info.UnifiedLines != _entireFileLines) ||
-                    (!pref.UseFullTextDiff && _info.UnifiedLines == _entireFileLines) ||
+                if (_info.UnifiedLines != ContextLines ||
                     (pref.IgnoreWhitespaceChangesInDiff != _info.IgnoreWhitespace))
                 {
                     LoadContent();
@@ -186,10 +192,11 @@ namespace SourceGit.ViewModels
             var load = new CancellationTokenSource();
             var token = load.Token;
             var encoding = Models.DisplayEncoding.CodePage(DisplayEncodingIndex);
+            var numLines = ContextLines;
             _loadCancellation = load;
             LoadCompletion = Task.Run(async () =>
             {
-                try { await ReadContentAsync(loadVersion, encoding, token).ConfigureAwait(false); }
+                try { await ReadContentAsync(loadVersion, encoding, numLines, token).ConfigureAwait(false); }
                 catch (OperationCanceledException) when (token.IsCancellationRequested) { }
                 catch (Exception error) { Native.OS.LogException(error); }
                 finally
@@ -214,11 +221,10 @@ namespace SourceGit.ViewModels
             finally { source.Dispose(); }
         }
 
-        private async Task ReadContentAsync(int loadVersion, int codePage, CancellationToken token)
+        private async Task ReadContentAsync(int loadVersion, int codePage, int numLines, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
             var pref = Settings;
-            var numLines = pref.UseFullTextDiff ? _entireFileLines : _unifiedLines;
             var ignoreWhitespace = pref.IgnoreWhitespaceChangesInDiff;
             var ignoreCRAtEOL = pref.IgnoreCRAtEOLInDiff;
 
@@ -477,12 +483,13 @@ namespace SourceGit.ViewModels
             }
         }
 
-        private readonly int _entireFileLines = 999999999;
+        private const int EntireFileLines = 999999999;
         private readonly string _repo;
         private readonly Models.DiffOption _option = null;
+        private readonly bool _standalone;
         private int _oldMode = 0;
         private int _newMode = 0;
-        private int _unifiedLines = 4;
+        private Models.DiffContextOption _contextOption;
         private bool _isTextDiff = false;
         private bool _isIgnoreWhitespaceVisible = true;
         private object _content = null;

@@ -11,9 +11,6 @@ namespace SourceGit.Converters
         public static readonly FuncValueConverter<int, bool> IsGreaterThanZero =
             new(v => v > 0);
 
-        public static readonly FuncValueConverter<int, bool> IsGreaterThanFour =
-            new(v => v > 4);
-
         public static readonly FuncValueConverter<int, bool> IsZero =
             new(v => v == 0);
 

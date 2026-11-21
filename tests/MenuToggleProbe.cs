@@ -101,6 +101,33 @@ namespace SourceGit.Automation
                     left = picker.TranslatePoint(default, preferenceWindow)?.X, pathVisible = path.IsEffectivelyVisible,
                     gitIndex = Models.ExternalMerger.Supported.FindIndex(tool => tool.IsGitConfiguration) };
             }
+            if (action == "dropdown_geometry")
+            {
+                var name = args.GetProperty("button").GetString();
+                var desktop = (Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime;
+                var dropdown = desktop.Windows.SelectMany(w => w.GetVisualDescendants()).OfType<Control>()
+                    .First(c => c.IsEffectivelyVisible && (c.Name == name || name == "PullBranch" && c is Views.BranchSelector && c.FindAncestorOfType<Views.Pull>() != null));
+                if (dropdown is ComboBox combo)
+                {
+                    if (index != 2) combo.IsDropDownOpen = index == 1;
+                }
+                else if (dropdown is Views.BranchSelector branch)
+                {
+                    if (index != 2) branch.IsDropDownOpened = index == 1;
+                }
+                var popup = dropdown.GetVisualDescendants().OfType<Popup>().FirstOrDefault(p => p.Name == "PART_Popup");
+                var anchor = popup?.PlacementTarget;
+                var frame = popup?.Child;
+                var left = frame?.TranslatePoint(default, dropdown)?.X;
+                var right = frame?.TranslatePoint(new Point(frame.Bounds.Width, 0), dropdown)?.X;
+                var layer = OverlayLayer.GetOverlayLayer(dropdown);
+                var root = TopLevel.GetTopLevel(dropdown);
+                return new { boxed = dropdown.Bounds.Width, left, right, popupOpen = popup?.IsOpen,
+                    ready = frame?.IsArrangeValid == true && frame.Bounds.Width > 0 && frame.Bounds.Height > 0,
+                    anchorX = anchor?.TranslatePoint(default, dropdown)?.X,
+                    layerX = layer?.TranslatePoint(default, root)?.X,
+                    alignment = (dropdown as ComboBox)?.HorizontalContentAlignment.ToString() };
+            }
             if (action.StartsWith("diff_", StringComparison.Ordinal))
             {
                 var profileLifetime = (Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime;
@@ -121,7 +148,7 @@ namespace SourceGit.Automation
                     if (action == "diff_encoding") picker.SetCurrentValue(SelectingItemsControl.SelectedIndexProperty, index);
                     var labels = picker.Items.OfType<Models.DisplayEncodingOption>().Select(item => item.Name).ToArray();
                     var selectedText = picker.GetVisualDescendants().OfType<TextBlock>()
-                        .FirstOrDefault(block => block.IsEffectivelyVisible && ReferenceEquals(block.DataContext, picker.SelectedItem));
+                        .FirstOrDefault(block => block.IsEffectivelyVisible && block.Opacity > 0 && ReferenceEquals(block.DataContext, picker.SelectedItem));
                     return new { labels, selected = picker.SelectedIndex, selectedCaption = selectedText?.Text,
                         sameFontSize = selectedText?.FontSize == label.FontSize,
                         beforeFirst, caption = label.Text, labelBeforePicker, labelVisible = label.IsEffectivelyVisible };
@@ -140,8 +167,79 @@ namespace SourceGit.Automation
                 {
                     var profileExternal = action == "diff_toggle_standalone";
                     var profileView = profileViews.First(v => (v.Settings is not ViewModels.Preferences) == profileExternal);
-                    var profileNames = new[] { "ToggleBtnUseSideBySide", "ToggleDiffSyntax", "ToggleDiffWrap", "ToggleDiffFullFile", "ToggleDiffWhitespace", "ToggleDiffSymbols" };
+                    var profileNames = new[] { "ToggleBtnUseSideBySide", "ToggleDiffSyntax", "ToggleDiffWrap", "ToggleDiffWhitespace", "ToggleDiffSymbols" };
                     profileView.FindControl<ToggleButton>(profileNames[index]).SetCurrentValue(ToggleButton.IsCheckedProperty, bool.Parse(args.GetProperty("button").GetString()));
+                }
+                else if (action is "diff_context_main" or "diff_context_standalone" or "diff_context_menu_main" or "diff_context_menu_standalone")
+                {
+                    var standalone = action.EndsWith("standalone", StringComparison.Ordinal);
+                    var profileView = profileViews.First(v => (v.Settings is not ViewModels.Preferences) == standalone);
+                    var displayOptions = profileView.FindControl<Button>("DiffDisplayOptions");
+                    if (action.Contains("_menu_", StringComparison.Ordinal))
+                    {
+                        if (index == 1) displayOptions.Flyout.ShowAt(displayOptions);
+                        else displayOptions.Flyout.Hide();
+                    }
+                    else
+                    {
+                        var picker = profileView.FindControl<ComboBox>("DiffContextPicker");
+                        displayOptions.Flyout.ShowAt(displayOptions);
+                        picker.SetCurrentValue(SelectingItemsControl.SelectedItemProperty, picker.Items[index]);
+                        displayOptions.Flyout.Hide();
+                    }
+                }
+                else if (action is "diff_context_style" or "diff_encoding_style")
+                {
+                    var isContext = action == "diff_context_style";
+                    var profileView = profileViews.First(v => v.Settings is ViewModels.Preferences);
+                    var picker = profileView.FindControl<ComboBox>(isContext ? "DiffContextPicker" : "DiffEncodingPicker");
+                    picker.IsDropDownOpen = index == 1;
+                    var parts = picker.GetVisualDescendants().ToArray();
+                    var background = parts.OfType<Border>().FirstOrDefault(b => b.Name == "Background");
+                    var selectionArea = parts.OfType<ContentControl>().FirstOrDefault(c => c.Name == "ContentPresenter");
+                    var caption = parts.OfType<TextBlock>().FirstOrDefault(t => t.Name == (isContext ? "SelectedContextText" : "SelectedEncodingText"));
+                    var guide = parts.OfType<Panel>().FirstOrDefault(p => p.Name == "ContextWidthGuide");
+                    var popup = parts.OfType<Popup>().FirstOrDefault(p => p.Name == "PART_Popup");
+                    var items = (popup?.Child?.GetVisualDescendants().OfType<ComboBoxItem>() ?? [])
+                        .Select(i => (item: i, caption: i.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault()))
+                        .Where(entry => entry.caption != null).ToArray();
+                    var syntax = profileView.FindControl<ToggleButton>("ToggleDiffSyntax");
+                    var syntaxSurface = syntax.GetVisualDescendants().OfType<ContentPresenter>()
+                        .FirstOrDefault(c => c.Name == "PART_ContentPresenter");
+                    var contextLabel = profileView.FindControl<Border>("DiffContextLabelBackground");
+                    var encodingBackground = profileView.FindControl<ComboBox>("DiffEncodingPicker")
+                        .GetVisualDescendants().OfType<Border>().FirstOrDefault(b => b.Name == "Background")?.Background;
+                    static double? TextCenter(TextBlock text, Visual reference)
+                    {
+                        if (text == null || reference == null || !text.IsArrangeValid ||
+                            text.TextLayout.TextLines.FirstOrDefault() is not { } line)
+                            return null;
+                        return text.TranslatePoint(new Point(text.Padding.Left + line.Start + line.Width / 2, 0), reference)?.X;
+                    }
+                    static bool CaptionFits(TextBlock text, Control area, Thickness inset)
+                    {
+                        if (area == null || text == null || !text.IsArrangeValid ||
+                            text.TextLayout.TextLines.FirstOrDefault() is not { HasCollapsed: false } line)
+                            return false;
+
+                        var x = text.TranslatePoint(new Point(text.Padding.Left + line.Start, 0), area)?.X;
+                        return x.HasValue && x.Value + Math.Min(0, line.OverhangLeading) >= inset.Left + 1 &&
+                            x.Value + line.Width - Math.Min(0, line.OverhangTrailing) <= area.Bounds.Width - inset.Right - 1;
+                    }
+                    var areaCenter = selectionArea?.TranslatePoint(new Point(selectionArea.Bounds.Width / 2, 0), picker)?.X;
+                    return new { width = picker.Bounds.Width, longest = guide?.DesiredSize.Width,
+                        text = caption?.Text, centerOffset = TextCenter(caption, picker) - areaCenter,
+                        fits = CaptionFits(caption, selectionArea, default),
+                        background = background?.Background?.ToString(), syntaxBackground = syntaxSurface?.Background?.ToString(),
+                        contextLabelBackground = contextLabel.Background?.ToString(),
+                        contextLabelHeight = contextLabel.Bounds.Height, syntaxSurfaceHeight = syntaxSurface?.Bounds.Height,
+                        verticalOffset = isContext ? picker.TranslatePoint(new Point(0, picker.Bounds.Height / 2), contextLabel)?.Y - contextLabel.Bounds.Height / 2 : null,
+                        encodingBackground = encodingBackground?.ToString(),
+                        popupAligned = popup?.CustomPopupPlacementCallback == Views.DropdownPlacement.Align &&
+                            popup.HorizontalOffset == 0 && ReferenceEquals(popup.PlacementTarget, background),
+                        dropdown = items.Select(entry => new { entry.caption.Text,
+                            centerOffset = TextCenter(entry.caption, popup.Child) - areaCenter,
+                            fits = CaptionFits(entry.caption, entry.item, entry.item.Padding) }).ToArray() };
                 }
                 else if (action is "diff_scroll_standalone" or "diff_select_standalone")
                 {
@@ -154,7 +252,11 @@ namespace SourceGit.Automation
                 }
                 return new { views = profileViews.Select(v => new { scope = v.Settings is ViewModels.Preferences ? "main" : "standalone",
                     columns = v.Settings.UseSideBySideDiff, syntax = v.Settings.UseSyntaxHighlighting, wrap = v.Settings.EnableDiffViewWordWrap,
-                    full = v.Settings.UseFullTextDiff, presenters = v.GetVisualDescendants().OfType<Views.ThemedTextDiffPresenter>().Where(p => p.IsEffectivelyVisible)
+                    file = ((ViewModels.DiffContext)v.DataContext).Title, context = ((ViewModels.DiffContext)v.DataContext).ContextOption.Lines,
+                    contextLabel = v.FindControl<TextBlock>("DiffContextLabel").Text,
+                    selectedContext = (v.FindControl<ComboBox>("DiffContextPicker").SelectedItem as Models.DiffContextOption)?.Lines,
+                    contextChoices = v.FindControl<ComboBox>("DiffContextPicker").Items.OfType<Models.DiffContextOption>().Select(option => option.Name).ToArray(),
+                    presenters = v.GetVisualDescendants().OfType<Views.ThemedTextDiffPresenter>().Where(p => p.IsEffectivelyVisible)
                         .Select(p => new { wrap = p.WordWrap, syntax = p.UseSyntaxHighlighting, lines = p.Document?.LineCount, offset = p.TextArea.TextView.VerticalOffset,
                             rows = p.TextArea.TextView.VisualLinesValid ? p.TextArea.TextView.VisualLines.Take(18).Select(line => (object)new { index = line.FirstDocumentLine.LineNumber, top = line.VisualTop, height = line.Height, segments = line.TextLines.Count }).ToArray() : Array.Empty<object>() }).ToArray() }).ToArray() };
             }

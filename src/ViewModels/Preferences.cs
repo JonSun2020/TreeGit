@@ -253,10 +253,35 @@ namespace SourceGit.ViewModels
         public DiffViewSettings StandaloneDiffSettings { get; set; } = new();
         public int DisplayEncodingIndex { get => _displayEncodingIndex; set => SetProperty(ref _displayEncodingIndex, Math.Max(0, value)); }
         public Dictionary<string, Dictionary<string, int>> RepositoryDisplayEncodings { get; set; } = [];
+        public Dictionary<string, Models.RepositoryDiffContextOptions> RepositoryDiffContexts { get; set; } = [];
+
+        internal Models.DiffContextOption GetDiffContextOption(string repository, bool standalone)
+        {
+            var options = GetRepositoryDiffContexts(RepositorySettingsKey(repository));
+            return Models.DiffContextOption.Resolve(standalone ? options.Standalone : options.Main, standalone);
+        }
+
+        internal void SetDiffContextOption(string repository, bool standalone, Models.DiffContextOption option)
+        {
+            var key = RepositorySettingsKey(repository);
+            var current = GetRepositoryDiffContexts(key);
+            var updated = standalone ? current with { Standalone = option.Lines } : current with { Main = option.Lines };
+            if (current == updated) return;
+
+            var snapshot = new Dictionary<string, Models.RepositoryDiffContextOptions>(RepositoryDiffContexts ?? []);
+            if (updated is { Main: 5, Standalone: 0 }) snapshot.Remove(key);
+            else snapshot[key] = updated;
+            RepositoryDiffContexts = snapshot;
+            OnPropertyChanged(nameof(RepositoryDiffContexts));
+            Save();
+        }
+
+        private Models.RepositoryDiffContextOptions GetRepositoryDiffContexts(string key) =>
+            RepositoryDiffContexts?.GetValueOrDefault(key) ?? new();
 
         internal int GetFileEncodingIndex(string repository, string file)
         {
-            var repo = EncodingRepositoryKey(repository);
+            var repo = RepositorySettingsKey(repository);
             var snapshot = RepositoryDisplayEncodings;
             return snapshot != null && snapshot.TryGetValue(repo, out var encodings) && encodings != null &&
                 encodings.TryGetValue(EncodingFileKey(file), out var index) && Models.DisplayEncoding.CodePage(index) != 0 ? index : 0;
@@ -266,7 +291,7 @@ namespace SourceGit.ViewModels
         {
             if (index < 0 || index != 0 && Models.DisplayEncoding.CodePage(index) == 0 ||
                 GetFileEncodingIndex(repository, file) == index) return;
-            var repo = EncodingRepositoryKey(repository);
+            var repo = RepositorySettingsKey(repository);
             var kind = EncodingFileKey(file);
             var repositories = new Dictionary<string, Dictionary<string, int>>(RepositoryDisplayEncodings ?? []);
             repositories.TryGetValue(repo, out var current);
@@ -280,7 +305,7 @@ namespace SourceGit.ViewModels
             Save();
         }
 
-        private static string EncodingRepositoryKey(string repository)
+        private static string RepositorySettingsKey(string repository)
         {
             var key = Path.TrimEndingDirectorySeparator(Path.GetFullPath(repository));
             return OperatingSystem.IsWindows() ? key.ToUpperInvariant() : key;
@@ -344,12 +369,6 @@ namespace SourceGit.ViewModels
         {
             get => _showHiddenSymbolsInDiffView;
             set => SetProperty(ref _showHiddenSymbolsInDiffView, value);
-        }
-
-        public bool UseFullTextDiff
-        {
-            get => _useFullTextDiff;
-            set => SetProperty(ref _useFullTextDiff, value);
         }
 
         public int LFSImageActiveIdx
@@ -986,7 +1005,6 @@ namespace SourceGit.ViewModels
         private bool _useSyntaxHighlighting = true;
         private bool _enableDiffViewWordWrap = true;
         private bool _showHiddenSymbolsInDiffView = false;
-        private bool _useFullTextDiff = false;
         private int _lfsImageActiveIdx = 0;
         private int _imageDiffActiveIdx = 0;
         private bool _enableCompactFoldersInChangesTree = false;

@@ -31,8 +31,8 @@
             <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,4,0" IsVisible="{Binding CanChooseEncoding}">
               <TextBlock x:Name="DiffEncodingLabel" Text="{DynamicResource Text.UI.DisplayEncoding}"
                          VerticalAlignment="Center"/>
-              <v:DisplayEncodingPicker x:Name="DiffEncodingPicker" Classes="dialog_selections" Height="24" MinHeight="24" MinWidth="98"
-                                       Padding="6,0" VerticalAlignment="Center"
+              <v:DisplayEncodingPicker x:Name="DiffEncodingPicker" Classes="dialog_selections center_dropdown_labels" Height="24" MinHeight="24"
+                                       VerticalAlignment="Center"
                                        SelectedIndex="{Binding DisplayEncodingIndex, Mode=TwoWay}"/>
             </StackPanel>
             <Button x:Name="BtnGotoFirstChange" Classes="icon_button" Width="28" Click="OnGotoFirstChange" IsVisible="{Binding IsTextDiff}">
@@ -90,9 +90,46 @@
             <Button Name="DiffDisplayOptions" Classes="flat" Margin="4,0" Content="{DynamicResource Text.UI.DisplayOptions}" IsVisible="{Binding IsTextDiff}">
               <Button.Flyout><Flyout><StackPanel Classes="dialog_selections" Spacing="8" MinWidth="190">
                 <StackPanel Spacing="8" IsVisible="{Binding IsTextDiff}">
-                <StackPanel Orientation="Horizontal" Spacing="6"><Button Classes="flat" Command="{Binding IncrUnified}" IsEnabled="{Binding #DiffViewRoot.Settings.UseFullTextDiff, Converter={x:Static BoolConverters.Not}}" Content="{DynamicResource Text.UI.MoreContext}"/><Button Classes="flat" Command="{Binding DecrUnified}" Content="{DynamicResource Text.UI.LessContext}"><Button.IsEnabled><MultiBinding Converter="{x:Static BoolConverters.And}"><Binding Path="UnifiedLines" Converter="{x:Static c:IntConverters.IsGreaterThanFour}"/><Binding Path="#DiffViewRoot.Settings.UseFullTextDiff" Converter="{x:Static BoolConverters.Not}"/></MultiBinding></Button.IsEnabled></Button></StackPanel>
-                <ToggleButton x:Name="ToggleDiffFullFile" IsChecked="{Binding #DiffViewRoot.Settings.UseFullTextDiff, Mode=TwoWay}" Content="{DynamicResource Text.Diff.VisualLines.All}"/>
-                <ToggleButton x:Name="ToggleDiffSyntax" IsChecked="{Binding #DiffViewRoot.Settings.UseSyntaxHighlighting, Mode=TwoWay}" Content="{DynamicResource Text.Diff.SyntaxHighlight}"/>
+                <Grid ColumnDefinitions="Auto,4,Auto,*" RowSpacing="8" Grid.IsSharedSizeScope="True">
+                  <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" SharedSizeGroup="HighlightHeight"/>
+                    <RowDefinition Height="Auto" SharedSizeGroup="HighlightHeight"/>
+                  </Grid.RowDefinitions>
+                  <Border x:Name="DiffContextLabelBackground" Padding="4,0" CornerRadius="3"
+                          Background="{DynamicResource Brush.TreeGit.Selection}">
+                    <TextBlock x:Name="DiffContextLabel" VerticalAlignment="Center" Text="{DynamicResource Text.Diff.Context}"
+                               Foreground="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
+                  </Border>
+                  <ComboBox x:Name="DiffContextPicker" Grid.Column="2" Classes="dialog_selections center_dropdown_labels" Height="24" MinHeight="24"
+                            VerticalAlignment="Center"
+                            AutomationProperties.Name="{DynamicResource Text.Diff.Context}"
+                            ItemsSource="{x:Static m:DiffContextOption.Supported}"
+                            SelectedItem="{Binding #DiffViewRoot.((vm:DiffContext)DataContext).ContextOption, Mode=TwoWay}">
+                    <ComboBox.Resources>
+                      <x:Double x:Key="ComboBoxThemeMinWidth">0</x:Double>
+                    </ComboBox.Resources>
+                    <ComboBox.ItemTemplate>
+                      <DataTemplate x:DataType="m:DiffContextOption">
+                        <TextBlock Text="{Binding Name}" HorizontalAlignment="Center" TextAlignment="Center"/>
+                      </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                    <ComboBox.SelectionBoxItemTemplate>
+                      <DataTemplate x:DataType="m:DiffContextOption">
+                        <Panel>
+                          <!-- Leave space around the longest caption for DPI rounding and glyph overhang. -->
+                          <Panel x:Name="ContextWidthGuide" Margin="3,0" Opacity="0" IsHitTestVisible="False">
+                            <TextBlock Text="{DynamicResource Text.Diff.VisualLines.All}"/>
+                            <TextBlock Text="{Binding Name, Source={x:Static m:DiffContextOption.LongestNumeric}}"/>
+                          </Panel>
+                          <TextBlock x:Name="SelectedContextText" Text="{Binding Name}" HorizontalAlignment="Center" TextAlignment="Center"/>
+                        </Panel>
+                      </DataTemplate>
+                    </ComboBox.SelectionBoxItemTemplate>
+                  </ComboBox>
+                  <ToggleButton x:Name="ToggleDiffSyntax" Grid.Row="1" Grid.ColumnSpan="4"
+                                IsChecked="{Binding #DiffViewRoot.Settings.UseSyntaxHighlighting, Mode=TwoWay}"
+                                Content="{DynamicResource Text.Diff.SyntaxHighlight}"/>
+                </Grid>
                 <ToggleButton x:Name="ToggleDiffWrap" IsChecked="{Binding #DiffViewRoot.Settings.EnableDiffViewWordWrap, Mode=TwoWay}" Content="{DynamicResource Text.Diff.ToggleWordWrap}"/>
                 <ToggleButton x:Name="ToggleDiffSymbols" IsChecked="{Binding #DiffViewRoot.Settings.ShowHiddenSymbolsInDiffView, Mode=TwoWay}" Content="{DynamicResource Text.Diff.ShowHiddenSymbols}"/>
                 </StackPanel>

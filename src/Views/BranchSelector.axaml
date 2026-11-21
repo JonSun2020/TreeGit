@@ -74,7 +74,9 @@
                    Width="{Binding Bounds.Width, ElementName=PART_Background}"
                    MaxHeight="600"
                    PlacementTarget="PART_Background"
-                   Placement="BottomEdgeAlignedLeft"
+                   ShouldUseOverlayLayer="True"
+                   Placement="Custom"
+                   CustomPopupPlacementCallback="{x:Static v:DropdownPlacement.Align}"
                    VerticalOffset="2"
                    IsLightDismissEnabled="True"
                    InheritsTransform="True">

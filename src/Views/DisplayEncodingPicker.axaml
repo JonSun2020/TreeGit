@@ -1,6 +1,19 @@
 <ComboBox xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
           xmlns:m="using:SourceGit.Models"
-          x:Class="SourceGit.Views.DisplayEncodingPicker" MinWidth="128"
+          x:Class="SourceGit.Views.DisplayEncodingPicker" Classes="center_dropdown_labels"
           ItemsSource="{x:Static m:DisplayEncodingOption.Supported}"
-          DisplayMemberBinding="{Binding Name, x:DataType=m:DisplayEncodingOption}"
-          AutomationProperties.Name="{DynamicResource Text.UI.DisplayEncoding}"/>
+          AutomationProperties.Name="{DynamicResource Text.UI.DisplayEncoding}">
+  <ComboBox.ItemTemplate>
+    <DataTemplate x:DataType="m:DisplayEncodingOption">
+      <TextBlock Text="{Binding Name}" HorizontalAlignment="Center" TextAlignment="Center"/>
+    </DataTemplate>
+  </ComboBox.ItemTemplate>
+  <ComboBox.SelectionBoxItemTemplate>
+    <DataTemplate x:DataType="m:DisplayEncodingOption">
+      <Panel>
+        <TextBlock Text="{Binding Name, Source={x:Static m:DisplayEncodingOption.WidthGuide}}" Opacity="0" IsHitTestVisible="False"/>
+        <TextBlock x:Name="SelectedEncodingText" Text="{Binding Name}" HorizontalAlignment="Center" TextAlignment="Center"/>
+      </Panel>
+    </DataTemplate>
+  </ComboBox.SelectionBoxItemTemplate>
+</ComboBox>

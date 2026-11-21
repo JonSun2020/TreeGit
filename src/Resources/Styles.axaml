@@ -1078,7 +1078,10 @@
     <Setter Property="Background" Value="{DynamicResource Brush.Contents}"/>
 
     <Style Selector="^ /template/ Popup#PART_Popup">
-      <Setter Property="Placement" Value="BottomEdgeAlignedLeft"/>
+      <Setter Property="ShouldUseOverlayLayer" Value="True"/>
+      <Setter Property="Placement" Value="Custom"/>
+      <Setter Property="CustomPopupPlacementCallback" Value="{x:Static v:DropdownPlacement.Align}"/>
+      <Setter Property="Width" Value="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}"/>
       <Setter Property="VerticalOffset" Value="2"/>
     </Style>
     <Style Selector="^:pointerover /template/ Border#Background">
@@ -1107,6 +1110,15 @@
   </Style>
   <Style Selector="ComboBoxItem">
     <Setter Property="CornerRadius" Value="3"/>
+  </Style>
+
+  <Style Selector="ComboBox.center_dropdown_labels">
+    <Style.Resources>
+      <Thickness x:Key="ComboBoxDropdownBorderPadding">0</Thickness>
+      <!-- Match the closed text area's 3 px inset and 32 px arrow column. -->
+      <Thickness x:Key="ComboBoxItemThemePadding">2,4,34,4</Thickness>
+    </Style.Resources>
+    <Setter Property="Padding" Value="3,0"/>
   </Style>
 
   <Style Selector=":is(Control).dialog_selections">

@@ -402,7 +402,9 @@
   <x:String x:Key="Text.Diff.SyntaxHighlight" xml:space="preserve">語法上色</x:String>
   <x:String x:Key="Text.Diff.ToggleWordWrap" xml:space="preserve">自動換行</x:String>
   <x:String x:Key="Text.Diff.UseMerger" xml:space="preserve">使用外部合併工具檢視</x:String>
-  <x:String x:Key="Text.Diff.VisualLines.All" xml:space="preserve">顯示檔案的全部內容</x:String>
+  <x:String x:Key="Text.Diff.Context" xml:space="preserve">上下文</x:String>
+  <x:String x:Key="Text.Diff.Context.Lines" xml:space="preserve">{0} 行</x:String>
+  <x:String x:Key="Text.Diff.VisualLines.All" xml:space="preserve">完整檔案</x:String>
   <x:String x:Key="Text.Diff.VisualLines.Decr" xml:space="preserve">減少可見的行數</x:String>
   <x:String x:Key="Text.Diff.VisualLines.Incr" xml:space="preserve">增加可見的行數</x:String>
   <x:String x:Key="Text.Diff.Welcome" xml:space="preserve">請選擇需要對比的檔案</x:String>
@@ -1357,8 +1359,6 @@
   <x:String x:Key="Text.UI.DisplayOptions" xml:space="preserve">顯示選項</x:String>
   <x:String x:Key="Text.UI.DisplayEncoding">檔案編碼</x:String>
   <x:String x:Key="Text.UI.AutoEncoding">自動適配</x:String>
-  <x:String x:Key="Text.UI.MoreContext" xml:space="preserve">增加上下文</x:String>
-  <x:String x:Key="Text.UI.LessContext" xml:space="preserve">減少上下文</x:String>
   <x:String x:Key="Text.Diff.Source.Old" xml:space="preserve">舊版本：{0}</x:String>
   <x:String x:Key="Text.Diff.Source.New" xml:space="preserve">新版本：{0}</x:String>
   <x:String x:Key="Text.Diff.Source.WorkingTree" xml:space="preserve">工作區</x:String>

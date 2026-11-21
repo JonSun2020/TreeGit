@@ -404,7 +404,9 @@
   <x:String x:Key="Text.Diff.SyntaxHighlight" xml:space="preserve">Syntax Highlighting</x:String>
   <x:String x:Key="Text.Diff.ToggleWordWrap" xml:space="preserve">Line Word Wrap</x:String>
   <x:String x:Key="Text.Diff.UseMerger" xml:space="preserve">Open in Merge Tool</x:String>
-  <x:String x:Key="Text.Diff.VisualLines.All" xml:space="preserve">Show All Lines</x:String>
+  <x:String x:Key="Text.Diff.Context" xml:space="preserve">Context</x:String>
+  <x:String x:Key="Text.Diff.Context.Lines" xml:space="preserve">{0} lines</x:String>
+  <x:String x:Key="Text.Diff.VisualLines.All" xml:space="preserve">Full file</x:String>
   <x:String x:Key="Text.Diff.VisualLines.Decr" xml:space="preserve">Decrease Number of Visible Lines</x:String>
   <x:String x:Key="Text.Diff.VisualLines.Incr" xml:space="preserve">Increase Number of Visible Lines</x:String>
   <x:String x:Key="Text.Diff.Welcome" xml:space="preserve">SELECT FILE TO VIEW CHANGES</x:String>
@@ -1372,8 +1374,6 @@ Manually add a branch/tag history filter will disable this feature automatically
   <x:String x:Key="Text.UI.DisplayOptions" xml:space="preserve">Display options</x:String>
   <x:String x:Key="Text.UI.DisplayEncoding">File encoding</x:String>
   <x:String x:Key="Text.UI.AutoEncoding">Automatic</x:String>
-  <x:String x:Key="Text.UI.MoreContext" xml:space="preserve">More context</x:String>
-  <x:String x:Key="Text.UI.LessContext" xml:space="preserve">Less context</x:String>
   <x:String x:Key="Text.Diff.Source.Old" xml:space="preserve">Old: {0}</x:String>
   <x:String x:Key="Text.Diff.Source.New" xml:space="preserve">New: {0}</x:String>
   <x:String x:Key="Text.Diff.Source.WorkingTree" xml:space="preserve">Working tree</x:String>
