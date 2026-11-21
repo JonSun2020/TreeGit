@@ -8,6 +8,7 @@
     <Style Selector="CheckBox#CreateRepositoryPrivate:disabled /template/ Border#Border">
       <Setter Property="Background" Value="Transparent"/>
       <Setter Property="BorderBrush" Value="{DynamicResource Brush.FG2}"/>
+      <Setter Property="Opacity" Value="0.68"/>
     </Style>
     <Style Selector="CheckBox#CreateRepositoryPrivate:disabled /template/ Path#Icon">
       <Setter Property="Fill" Value="{DynamicResource Brush.FG2}"/>
@@ -46,7 +47,7 @@
     </CheckBox>
     <StackPanel IsEnabled="{Binding CreateOnGitHub}" Spacing="8">
       <CheckBox x:Name="CreateRepositoryPrivate" IsEnabled="{Binding CanChangeRemoteChoice}" IsChecked="{Binding IsPrivate, Mode=TwoWay}">
-        <TextBlock Classes="option_dependent" Text="{DynamicResource Text.TreeGit.CreateRepository.Private}" TextWrapping="Wrap"/>
+        <TextBlock Text="{DynamicResource Text.TreeGit.CreateRepository.Private}" TextWrapping="Wrap"/>
       </CheckBox>
       <TextBlock Classes="option_dependent" Text="{DynamicResource Text.TreeGit.CreateRepository.TokenHint}" Foreground="{DynamicResource Brush.FG2}" TextWrapping="Wrap"/>
       <Grid ColumnDefinitions="*,Auto">

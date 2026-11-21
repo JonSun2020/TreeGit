@@ -1573,6 +1573,46 @@
     <Setter Property="Opacity" Value="0.68"/>
   </Style>
 
+  <Style Selector="Expander.settings_expander">
+    <Style.Resources>
+      <Thickness x:Key="ExpanderHeaderPadding">8,0,0,0</Thickness>
+      <Thickness x:Key="ExpanderChevronMargin">6,0,6,0</Thickness>
+      <x:Double x:Key="ExpanderChevronButtonSize">20</x:Double>
+      <SolidColorBrush x:Key="ExpanderChevronBackgroundPointerOver" Color="Transparent"/>
+    </Style.Resources>
+    <Setter Property="MinHeight" Value="26"/>
+    <Setter Property="CornerRadius" Value="0"/>
+    <Style Selector="^ /template/ ToggleButton#ExpanderHeader /template/ Border#ToggleButtonBackground">
+      <Setter Property="Background" Value="Transparent"/>
+    </Style>
+    <Style Selector="^ /template/ ToggleButton#ExpanderHeader:checked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/>
+    </Style>
+  </Style>
+
+  <Style Selector="DataGrid.repository_remotes">
+    <Setter Property="GridLinesVisibility" Value="All"/>
+    <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource Brush.Border0}"/>
+    <Setter Property="VerticalGridLinesBrush" Value="{DynamicResource Brush.Border0}"/>
+    <Style Selector="^ DataGridRow:selected /template/ Rectangle#BackgroundRectangle">
+      <Setter Property="Fill" Value="{DynamicResource Brush.TreeGit.Selection}"/>
+      <Setter Property="Opacity" Value="1"/>
+    </Style>
+    <Style Selector="^ DataGridRow:selected TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
+    </Style>
+    <Style Selector="^ DataGridColumnHeader">
+      <Setter Property="Theme" Value="{StaticResource TreeGit.CommitTableHeader}"/>
+    </Style>
+    <Style Selector="^ DataGridCell.remote_name TextBlock">
+      <Setter Property="HorizontalAlignment" Value="Center"/>
+    </Style>
+    <Style Selector="^ DataGridCell:focus /template/ Grid#FocusVisual">
+      <Setter Property="IsVisible" Value="False"/>
+    </Style>
+  </Style>
+
   <Style Selector="NumericUpDown">
     <Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/>
     <Setter Property="Background" Value="{DynamicResource Brush.Contents}"/>

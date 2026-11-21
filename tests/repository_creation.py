@@ -46,7 +46,7 @@ def tool(name, **args):
     d=rpc('tools/call',{'name':name,'arguments':args});assert not d.get('isError'),d
     return base64.b64decode(d['content'][0]['data']) if name=='ui_screenshot' else json.loads(d['content'][0]['text'])
 
-def probe(action='inspect', value=0):return tool('ui_layout',action='test_menu',text=action,value=value)
+def probe(action='inspect', value=0, **args):return tool('ui_layout',action='test_menu',text=action,value=value,**args)
 def click(name, window='main'):return tool('ui_layout',window=window,action='test_click',button=name)
 def settext(name,text):return tool('ui_layout',action='test_set',button=name,text=text)
 def toggle(name,value):return tool('ui_layout',action='test_set',button=name,value=value)
@@ -119,6 +119,90 @@ try:
     check('GitHub repositories default to private',state['isPrivate'])
     check('GitHub remote is connected automatically',git(repo,'remote','get-url','origin')=='https://github.com/treegit-demo/created-on-github.git')
     check('access token is absent from Git configuration','fixture-token' not in (repo/'.git/config').read_text())
+    def default_remote_state(caption, index):
+        try:return wait(lambda:s if not (s:=probe('settings_default_remote'))['open'] and s['selected']==index and s['caption']==caption else None)
+        except AssertionError as ex:raise AssertionError((caption,index,probe('settings_default_remote'))) from ex
+    def pick_default_remote(index):
+        probe('settings_default_remote',1)
+        wait(lambda:s if (s:=probe('settings_default_remote'))['open'] and all(s['optionLabels']) else None)
+        return probe('settings_default_remote',index+2)
+    def open_sync_settings():
+        tool('ui_command',repo=str(repo),command='repository_settings');wait(lambda:tool('ui_state')['dialogs'])
+        tool('ui_command',command='repository_settings_advanced')
+        name='TreeGitSettingsSyncMerge'
+        wait(lambda:v if (v:=probe('settings_expanders',button=name)['rows']) and v[0]['height']>0 else None)
+        probe('settings_expanders',1,button=name)
+        wait(lambda:probe('settings_expanders',button=name)['rows'][0]['expanded'])
+    for theme,locale in [('Light','zh_CN'),('Dark','zh_TW'),('Blue','en_US')]:
+        tool('ui_window',theme=theme,locale=locale)
+        tool('ui_command',repo=str(repo),command='repository_settings');wait(lambda:tool('ui_state')['dialogs'])
+        selection=wait(lambda:s if (s:=probe('settings_remote_selection'))['foregrounds'] else None)
+        check(theme+' remote name and URL keep the branch selection palette',selection['fill']==selection['expectedFill'] and
+              selection['opacity']==1 and selection['foregrounds']==[selection['expectedForeground']]*2,selection)
+        captions={'zh_CN':['远程名称','仓库地址'],'zh_TW':['遠端名稱','儲存庫位址'],'en_US':['Remote name','Repository address']}[locale]
+        check(locale+' both remote column headers are visible and centered',
+              [h['text'] for h in selection['headings']]==captions and all(abs(h['centerOffset'])<=1 for h in selection['headings']),selection)
+        address_label={'zh_CN':'远程仓库路径','zh_TW':'遠端儲存庫路徑','en_US':'Remote repository URL'}[locale]
+        check(locale+' the remote table has no duplicate address heading',
+              address_label not in [label['text'] for label in tool('ui_layout',window='active')['labels']])
+        placements=selection['textPlacement']
+        check(theme+' the grid has dividers with centered names and left-aligned repository addresses',
+              selection['gridLines'] and len(placements)==2 and placements[0]['centerOffset'] is not None and abs(placements[0]['centerOffset'])<=1 and
+              placements[1]['alignment'] in ('Left','Start') and abs(placements[1]['start']-12)<=1,selection)
+        for column in range(2):
+            selection=probe('settings_remote_selection',column+1)
+            check(theme+' clicking remote column '+str(column)+' focuses it without drawing a cell frame',
+                  selection['column']==column and selection['focusedFrameVisible'] is False and
+                  selection['fill']==selection['expectedFill'],selection)
+        click('EditRepositoryRemote','active');wait(lambda:len(tool('ui_state')['dialogs'])==2)
+        check(locale+' the editor retains its address field label',
+              address_label in [label['text'] for label in tool('ui_layout',window='active')['labels']])
+        backgrounds={}
+        for scope,count in [('authentication',1),('advanced',4)]:
+            if scope=='advanced':tool('ui_command',command='repository_settings_advanced')
+            before=wait(lambda:v if len(v:=probe('settings_expanders')['rows'])==count and all(r['height']>0 for r in v) else None)
+            for i,initial in enumerate(before):
+                expander=initial['Name']
+                clicked=probe('settings_expanders',1,button=expander)['rows'][0]
+                after=wait(lambda:r if (r:=probe('settings_expanders',button=expander)['rows'][0])['expanded'] else None)
+                backgrounds[expander]=(initial['surface'],after['surface'],after['body'])
+                if theme=='Light' and i==0:(out/(scope+'-expanded.png')).write_bytes(tool('ui_screenshot',window='active'))
+                if expander=='TreeGitSettingsSyncMerge':
+                    automatic={'zh_CN':'自动选择','zh_TW':'自動選擇','en_US':'Automatic'}[locale]
+                    if theme=='Light':(out/'default-remote.png').write_bytes(tool('ui_screenshot',window='active'))
+                    check(locale+' automatic has a caption before opening the dropdown',default_remote_state(automatic,0)['remote']=='')
+                    pick_default_remote(0)
+                    check(locale+' the already-selected automatic option responds to a direct click',default_remote_state(automatic,0)['remote']=='')
+                    pick_default_remote(1);explicit=default_remote_state('origin',1)
+                    pick_default_remote(0)
+                    check(locale+' switching to origin and back restores automatic',explicit['remote']=='origin' and default_remote_state(automatic,0)['remote']=='')
+                closing=probe('settings_expanders',2,button=expander)['rows'][0]
+                check(theme+' '+expander+' title stays transparent through pointer expand and collapse',
+                      all(24<=r['height']<=28 and r['transparent'] and r['hoverTransparent'] for r in (initial,after,closing)) and
+                      not closing['expanded'] and clicked['pressedTransparent'] and closing['pressedTransparent'],
+                      {'before':initial,'clicked':clicked,'after':after,'closing':closing})
+            tool('ui_command',command='close_dialog');wait(lambda:len(tool('ui_state')['dialogs'])==(1 if scope=='authentication' else 0))
+        check(theme+' authentication and commit links share both background surfaces',
+              all(backgrounds['RemoteAuthentication']) and backgrounds['RemoteAuthentication']==backgrounds['TreeGitSettingsCommitLinks'],backgrounds)
+        welcome();create_form('private-style-'+theme)
+        for checked in [True,False]:
+            toggle('CreateRepositoryGitHub',1);toggle('CreateRepositoryPrivate',int(checked));toggle('CreateRepositoryGitHub',0)
+            style=wait(lambda:r if not (r:=probe('create_private_style'))['enabled'] and r['checked']==checked else None)
+            check(theme+' disabled private checkbox matches its caption with checked='+str(checked),
+                  style['outline']==style['icon']==style['label'] and style['visible']==checked and
+                  style['background'] in ('Transparent','#00ffffff','#00000000') and
+                  abs(style['borderOpacity']-style['textOpacity'])<.001 and abs(style['iconOpacity']-style['textOpacity'])<.001,style)
+        click('CancelPopup');tool('ui_open_repository',repo=str(repo))
+    tool('ui_window',theme='Light',locale='en_US')
+    open_sync_settings();pick_default_remote(1);default_remote_state('origin',1)
+    click('ConfirmRepositorySettings','active');wait(lambda:not tool('ui_state')['dialogs'])
+    open_sync_settings()
+    check('an explicit remote is retained when repository settings are reopened',default_remote_state('origin',1)['remote']=='origin')
+    pick_default_remote(0);default_remote_state('Automatic',0)
+    click('ConfirmRepositorySettings','active');wait(lambda:not tool('ui_state')['dialogs'])
+    open_sync_settings()
+    check('automatic is retained and visible when repository settings are reopened',default_remote_state('Automatic',0)['remote']=='')
+    tool('ui_command',command='close_dialog');wait(lambda:not tool('ui_state')['dialogs'])
     # The new account management entry is in repository settings, not global tools.
     probe('reset')
     tools_index=next(h['index'] for h in probe()['headers']

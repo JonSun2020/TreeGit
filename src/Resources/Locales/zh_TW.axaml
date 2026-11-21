@@ -1535,7 +1535,8 @@ SSH 金鑰仍在遠端設定中設定。</x:String>
   <x:String x:Key="Text.TreeGit.Cancel" xml:space="preserve">取消</x:String>
   <x:String x:Key="Text.TreeGit.Settings.Remotes" xml:space="preserve">遠端儲存庫</x:String>
   <x:String x:Key="Text.TreeGit.Settings.Advanced" xml:space="preserve">進階</x:String>
-  <x:String x:Key="Text.TreeGit.Settings.Path" xml:space="preserve">路徑</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.Column.Name" xml:space="preserve">遠端名稱</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.Column.Address" xml:space="preserve">儲存庫位址</x:String>
   <x:String x:Key="Text.TreeGit.Add" xml:space="preserve">新增</x:String>
   <x:String x:Key="Text.TreeGit.Edit" xml:space="preserve">編輯</x:String>
   <x:String x:Key="Text.TreeGit.Remove" xml:space="preserve">移除</x:String>

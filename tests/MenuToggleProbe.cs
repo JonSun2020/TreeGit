@@ -96,6 +96,134 @@ namespace SourceGit.Automation
                     x.Value + line.Width - Math.Min(0, line.OverhangTrailing) <= area.Bounds.Width - inset.Right - 1;
             }
             object searchClick = null;
+            if (action is "settings_expanders" or "settings_remote_selection" or "settings_default_remote")
+            {
+                var desktop = (Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime;
+                var dialog = desktop.Windows.Last(w => w.IsVisible && w is Views.RepositorySettings or Views.RepositoryRemoteEditor);
+                if (action == "settings_default_remote")
+                {
+                    var picker = dialog.GetVisualDescendants().OfType<ComboBox>().Single(c => c.Name == "DefaultRemote");
+                    if (index == 1)
+                        picker.IsDropDownOpen = true;
+                    else if (index > 1 && picker.IsDropDownOpen)
+                    {
+                        var item = (ComboBoxItem)picker.ContainerFromIndex(index - 2);
+                        var host = TopLevel.GetTopLevel(item);
+                        var xy = item.TranslatePoint(new Point(item.Bounds.Width / 2, item.Bounds.Height / 2), host).Value;
+                        item.RaiseEvent(new PointerPressedEventArgs(item, Pointer, host, xy, (ulong)Environment.TickCount64,
+                            new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None, 1));
+                        item.RaiseEvent(new PointerReleasedEventArgs(item, Pointer, host, xy, (ulong)Environment.TickCount64,
+                            new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.LeftButtonReleased), KeyModifiers.None, MouseButton.Left));
+                        Pointer.Capture(null);
+                    }
+                    var caption = picker.GetVisualDescendants().OfType<TextBlock>()
+                        .FirstOrDefault(t => t.IsEffectivelyVisible && t.FindAncestorOfType<ComboBoxItem>() == null);
+                    var optionLabels = Enumerable.Range(0, picker.ItemCount).Select(i => picker.ContainerFromIndex(i)?
+                        .GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.IsEffectivelyVisible)?.Text).ToArray();
+                    return new { open = picker.IsDropDownOpen, selected = picker.SelectedIndex, remote = picker.SelectedItem as string,
+                        caption = caption?.Text,
+                        optionLabels };
+                }
+                if (action == "settings_remote_selection")
+                {
+                    var grid = dialog.GetVisualDescendants().OfType<DataGrid>().Single(g => g.Name == "RepositoryRemotes");
+                    static DataGridCell[] RemoteCells(DataGridRow row) => row?.GetVisualDescendants().OfType<DataGridCell>()
+                        .Where(c => c.IsEffectivelyVisible && c.Bounds.Width > 1 && c.Content is TextBlock)
+                        .OrderBy(c => c.TranslatePoint(default, row)?.X).ToArray();
+                    bool? focusedFrameVisible = null;
+                    if (index == 0)
+                        grid.SelectedIndex = 0;
+                    else
+                    {
+                        var firstRow = grid.GetVisualDescendants().OfType<DataGridRow>().First(r => r.IsEffectivelyVisible && r.DataContext is Models.Remote);
+                        var cell = RemoteCells(firstRow)[index - 1];
+                        var xy = cell.TranslatePoint(new Point(cell.Bounds.Width / 2, cell.Bounds.Height / 2), dialog).Value;
+                        cell.RaiseEvent(new PointerPressedEventArgs(cell, Pointer, dialog, xy, (ulong)Environment.TickCount64,
+                            new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None, 1));
+                        cell.RaiseEvent(new PointerReleasedEventArgs(cell, Pointer, dialog, xy, (ulong)Environment.TickCount64,
+                            new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.LeftButtonReleased), KeyModifiers.None, MouseButton.Left));
+                        Pointer.Capture(null);
+                        // A hidden QA window cannot always take desktop focus.
+                        var pseudoClasses = (IPseudoClasses)cell.Classes;
+                        var wasFocused = pseudoClasses.Contains(":focus");
+                        pseudoClasses.Set(":focus", true);
+                        focusedFrameVisible = cell.GetVisualDescendants().OfType<Grid>().Single(g => g.Name == "FocusVisual").IsEffectivelyVisible;
+                        pseudoClasses.Set(":focus", wasFocused);
+                    }
+                    grid.UpdateLayout();
+                    var row = grid.GetVisualDescendants().OfType<DataGridRow>().FirstOrDefault(r => r.IsSelected);
+                    var fill = row?.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Rectangle>().Single(r => r.Name == "BackgroundRectangle");
+                    var headings = grid.GetVisualDescendants().OfType<DataGridColumnHeader>()
+                        .Where(h => h.IsEffectivelyVisible && h.Bounds.Width > 0 && h.Content is TextBlock).OrderBy(h => h.TranslatePoint(default, grid)?.X)
+                        .Select(h => new { text = ((TextBlock)h.Content).Text, centerOffset = TextCenter((TextBlock)h.Content, h) - h.Bounds.Width / 2 }).ToArray();
+                    var cells = RemoteCells(row);
+                    var textPlacement = cells?.Select(c =>
+                    {
+                        var caption = (TextBlock)c.Content;
+                        return new { centerOffset = TextCenter(caption, c) - c.Bounds.Width / 2,
+                            start = caption?.TranslatePoint(default, c)?.X, alignment = caption?.TextAlignment.ToString() };
+                    }).ToArray();
+                    var separators = row?.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Rectangle>()
+                        .Where(r => r.IsEffectivelyVisible && r.Fill != null).Select(r => r.Name).ToArray();
+                    return new { fill = fill?.Fill?.ToString(), opacity = fill?.Opacity, headings, textPlacement,
+                        gridLines = separators?.Contains("PART_BottomGridLine") == true && separators.Contains("PART_RightGridLine"),
+                        column = grid.Columns.IndexOf(grid.CurrentColumn), focusedFrameVisible,
+                        foregrounds = row?.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && !string.IsNullOrEmpty(t.Text)).Select(t => t.Foreground?.ToString()).ToArray(),
+                        expectedFill = dialog.FindResource("Brush.TreeGit.Selection")?.ToString(),
+                        expectedForeground = dialog.FindResource("Brush.TreeGit.SelectionForeground")?.ToString() };
+                }
+
+                var requestedExpander = args.TryGetProperty("button", out var expanderName) ? expanderName.GetString() : null;
+                var expanders = dialog.GetVisualDescendants().OfType<Expander>()
+                    .Where(e => e.Classes.Contains("settings_expander") && (requestedExpander == null || e.Name == requestedExpander)).ToArray();
+                var rows = expanders.Select(e =>
+                {
+                    var header = e.GetVisualDescendants().OfType<ToggleButton>().Single(h => h.Name == "ExpanderHeader");
+                    var background = header.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "ToggleButtonBackground");
+                    var chevron = header.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "ExpandCollapseChevronBorder");
+                    var caption = header.GetVisualDescendants().OfType<ContentPresenter>().Single(p => p.Name == "PART_ContentPresenter");
+                    static bool Transparent(Avalonia.Media.IBrush brush) => brush is Avalonia.Media.ISolidColorBrush { Color.A: 0 } or null;
+                    bool HeaderIsTransparent() => Transparent(background.Background) && Transparent(chevron.Background) && Transparent(caption.Background);
+                    bool? pressedTransparent = null;
+                    if (index > 0 && e.IsExpanded != (index == 1))
+                    {
+                        header.BringIntoView();
+                        dialog.UpdateLayout();
+                        var xy = header.TranslatePoint(new Point(header.Bounds.Width / 2, header.Bounds.Height / 2), dialog).Value;
+                        header.RaiseEvent(new PointerPressedEventArgs(header, Pointer, dialog, xy, (ulong)Environment.TickCount64,
+                            new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None, 1));
+                        pressedTransparent = header.IsPressed && HeaderIsTransparent();
+                        header.RaiseEvent(new PointerReleasedEventArgs(header, Pointer, dialog, xy, (ulong)Environment.TickCount64,
+                            new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.LeftButtonReleased), KeyModifiers.None, MouseButton.Left));
+                        Pointer.Capture(null);
+                        // Hidden, scrolled dialogs can lag behind the routed release's hit test.
+                        if (e.IsExpanded != (index == 1))
+                            header.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Enter });
+                    }
+                    var pseudoClasses = (IPseudoClasses)header.Classes;
+                    var wasHovered = pseudoClasses.Contains(":pointerover");
+                    pseudoClasses.Set(":pointerover", true);
+                    var hoverTransparent = HeaderIsTransparent();
+                    pseudoClasses.Set(":pointerover", wasHovered);
+                    var surface = e.GetVisualAncestors().OfType<Border>().FirstOrDefault(b => !Transparent(b.Background))?.Background;
+                    var body = e.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "ExpanderContent").Background;
+                    return new { e.Name, expanded = e.IsExpanded, height = header.Bounds.Height,
+                        transparent = HeaderIsTransparent(), hoverTransparent, pressedTransparent,
+                        surface = surface?.ToString(), body = body?.ToString() };
+                }).ToArray();
+                return new { rows };
+            }
+            if (action == "create_private_style")
+            {
+                var box = window.GetVisualDescendants().OfType<CheckBox>().Single(c => c.Name == "CreateRepositoryPrivate" && c.IsEffectivelyVisible);
+                var border = box.GetVisualDescendants().OfType<Border>().Single(b => b.Name == "Border");
+                var icon = border.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().Single(p => p.Name == "Icon");
+                var presenter = box.GetVisualDescendants().OfType<ContentPresenter>().Single(p => p.Name == "ContentPresenter");
+                var label = presenter.GetVisualDescendants().OfType<TextBlock>().Single();
+                return new { enabled = box.IsEffectivelyEnabled, @checked = box.IsChecked, visible = icon.IsVisible,
+                    outline = border.BorderBrush?.ToString(), background = border.Background?.ToString(), icon = icon.Fill?.ToString(), label = label.Foreground?.ToString(),
+                    borderOpacity = border.Opacity, iconOpacity = border.Opacity * icon.Opacity, textOpacity = presenter.Opacity * label.Opacity };
+            }
             if (action == "preferences_open_from_tools")
             {
                 var integrationMenu = window.FindControl<MenuItem>("ThirdPartyIntegrationMenu");

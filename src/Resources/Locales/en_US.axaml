@@ -1550,7 +1550,8 @@ Configure SSH keys in the remote settings.</x:String>
   <x:String x:Key="Text.TreeGit.Cancel" xml:space="preserve">Cancel</x:String>
   <x:String x:Key="Text.TreeGit.Settings.Remotes" xml:space="preserve">Remote repositories</x:String>
   <x:String x:Key="Text.TreeGit.Settings.Advanced" xml:space="preserve">Advanced</x:String>
-  <x:String x:Key="Text.TreeGit.Settings.Path" xml:space="preserve">Path</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.Column.Name" xml:space="preserve">Remote name</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.Column.Address" xml:space="preserve">Repository address</x:String>
   <x:String x:Key="Text.TreeGit.Add" xml:space="preserve">Add</x:String>
   <x:String x:Key="Text.TreeGit.Edit" xml:space="preserve">Edit</x:String>
   <x:String x:Key="Text.TreeGit.Remove" xml:space="preserve">Remove</x:String>

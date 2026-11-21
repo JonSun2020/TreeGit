@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 
@@ -32,7 +33,17 @@ namespace SourceGit.Views
             }); Grid.SetColumn(browse, 1); keyRow.Children.Add(browse);
             var advanced = new StackPanel { Spacing = 6 };
             advanced.Children.Add(new TextBlock { [!Avalonia.Controls.TextBlock.TextProperty] = App.TextBinding("TreeGit.Remote.OptionalKey") }); advanced.Children.Add(keyRow);
-            panel.Children.Add(new Expander { [!Avalonia.Controls.Expander.HeaderProperty] = App.TextBinding("TreeGit.Remote.Authentication"), Content = advanced, HorizontalAlignment = HorizontalAlignment.Stretch, IsExpanded = !string.IsNullOrEmpty(remote?.PrivateSSHKey) });
+            panel.Children.Add(new Border
+            {
+                [!Border.BackgroundProperty] = new DynamicResourceExtension("Brush.Contents"),
+                Child = new Expander
+                {
+                    Name = "RemoteAuthentication", Classes = { "settings_expander" },
+                    [!Expander.HeaderProperty] = App.TextBinding("TreeGit.Remote.Authentication"),
+                    Content = advanced, HorizontalAlignment = HorizontalAlignment.Stretch,
+                    IsExpanded = !string.IsNullOrEmpty(remote?.PrivateSSHKey),
+                },
+            });
             var error = new TextBlock { Foreground = Brushes.IndianRed, TextWrapping = TextWrapping.Wrap, IsVisible = false }; panel.Children.Add(error);
             var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Spacing = 8 };
             buttons.Children.Add(RepositorySettings.Action("TreeGit.Ok", async () =>

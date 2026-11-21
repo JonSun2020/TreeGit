@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -80,15 +81,30 @@ namespace SourceGit.Views
             tabs.Children.Add(remoteTab); tabs.Children.Add(advancedTab); Grid.SetRow(tabs, 1); root.Children.Add(tabs);
             var border = new Border { BorderBrush = Brushes.Gray, BorderThickness = new Thickness(1), Background = this.FindResource("Brush.Contents") as IBrush, Padding = new Thickness(8) };
             var remotePage = new StackPanel { Spacing = 8 };
-            remotePage.Children.Add(new TextBlock { [!Avalonia.Controls.TextBlock.TextProperty] = App.TextBinding("TreeGit.Remote.Url") });
-            _remotes = new DataGrid { Height = 200, AutoGenerateColumns = false, IsReadOnly = true, CanUserResizeColumns = true, CanUserSortColumns = false, HeadersVisibility = DataGridHeadersVisibility.Column, RowHeight = 26, BorderThickness = new Thickness(1), BorderBrush = new SolidColorBrush(Color.Parse("#AEC8DF")), SelectionMode = DataGridSelectionMode.Single };
-            _remotes.Columns.Add(new DataGridTextColumn { [!Avalonia.Controls.DataGridColumn.HeaderProperty] = App.TextBinding("TreeGit.Settings.Name"), Binding = new Binding("Name"), Width = new DataGridLength(150) });
+            _remotes = new DataGrid
+            {
+                Name = "RepositoryRemotes", Classes = { "repository_remotes" }, Height = 200, AutoGenerateColumns = false,
+                IsReadOnly = true, CanUserResizeColumns = true, CanUserSortColumns = false, HeadersVisibility = DataGridHeadersVisibility.Column,
+                RowHeight = 26, BorderThickness = new Thickness(1), BorderBrush = new SolidColorBrush(Color.Parse("#AEC8DF")),
+                SelectionMode = DataGridSelectionMode.Single,
+            };
+            _remotes.Columns.Add(new DataGridTextColumn
+            {
+                Header = new TextBlock { [!TextBlock.TextProperty] = App.TextBinding("TreeGit.Remote.Column.Name") },
+                CellStyleClasses = { "remote_name" },
+                Binding = new Binding(nameof(Models.Remote.Name)), Width = new DataGridLength(150),
+            });
             _remotes.ItemsSource = new AvaloniaList<Models.Remote>(repo.Remotes);
-            _remotes.Columns.Add(new DataGridTextColumn { [!Avalonia.Controls.DataGridColumn.HeaderProperty] = App.TextBinding("TreeGit.Settings.Path"), Binding = new Binding("URL"), Width = new DataGridLength(1, DataGridLengthUnitType.Star) });
+            _remotes.Columns.Add(new DataGridTextColumn
+            {
+                Header = new TextBlock { [!TextBlock.TextProperty] = App.TextBinding("TreeGit.Remote.Column.Address") },
+                Binding = new Binding(nameof(Models.Remote.URL)), Width = new DataGridLength(1, DataGridLengthUnitType.Star),
+            });
             remotePage.Children.Add(_remotes);
             var remoteActions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
             var add = Action("TreeGit.Add", async () => await EditRemoteAsync(null));
             var edit = Action("TreeGit.Edit", async () => { if (_remotes.SelectedItem is Models.Remote r) await EditRemoteAsync(r); });
+            edit.Name = "EditRepositoryRemote";
             var remove = Action("TreeGit.Remove", RemoveRemoteAsync);
             edit.IsEnabled = remove.IsEnabled = false;
             _remotes.SelectionChanged += (_, _) => edit.IsEnabled = remove.IsEnabled = _remotes.SelectedItem != null;
@@ -123,13 +139,18 @@ namespace SourceGit.Views
             linkActions.Children.Add(Action("TreeGit.Delete", () => { if (_links.SelectedItem is Models.IssueTracker tracker) _configuration.IssueTrackers.Remove(tracker); return Task.CompletedTask; }));
             links.Children.Add(linkActions); advancedPage.Children.Add(Optional("TreeGit.Settings.CommitLinks", links));
             var sync = new StackPanel { Spacing = 4 };
-            var remoteNames = _configuration.Remotes.ToList();
-            if (!string.IsNullOrEmpty(_configuration.DefaultRemote) && !remoteNames.Contains(_configuration.DefaultRemote)) remoteNames.Add(_configuration.DefaultRemote);
-            _defaultRemote = new ComboBox { Name = "DefaultRemote", ItemsSource = new object[] { new ComboBoxItem { [!ContentControl.ContentProperty] = App.TextBinding("TreeGit.Settings.Automatic") } }.Concat(remoteNames.Cast<object>()).ToArray(), HorizontalAlignment = HorizontalAlignment.Stretch, SelectedIndex = Math.Max(0, remoteNames.IndexOf(_configuration.DefaultRemote) + 1) };
+            _defaultRemote = new ComboBox
+            {
+                Name = "DefaultRemote", HorizontalAlignment = HorizontalAlignment.Stretch,
+                ItemTemplate = new FuncDataTemplate<string>((remote, _) => remote.Length == 0
+                    ? new TextBlock { [!TextBlock.TextProperty] = App.TextBinding("TreeGit.Settings.Automatic") }
+                    : new TextBlock { Text = remote }),
+            };
+            UpdateDefaultRemoteChoices();
             _defaultRemote.SelectionChanged += (_, _) =>
             {
-                if (!_updatingRemoteChoices && _defaultRemote.SelectedIndex >= 0)
-                    _configuration.DefaultRemote = _defaultRemote.SelectedIndex > 0 ? _defaultRemote.SelectedItem as string : string.Empty;
+                if (!_updatingRemoteChoices && _defaultRemote.SelectedItem is string name)
+                    _configuration.DefaultRemote = name;
             };
             sync.Children.Add(Field("TreeGit.Settings.DefaultRemote", _defaultRemote));
             var merge = new ComboBox { Name = "MergeMode", ItemsSource = Models.MergeMode.Supported,
@@ -243,17 +264,26 @@ namespace SourceGit.Views
             if (_remotes.Parent is Control remoteContainer) remoteContainer.IsEnabled = _configuration.ReadSucceeded;
             if (_remoteReadFailed && _configuration.ReadSucceeded) _error.IsVisible = false;
             _remoteReadFailed = false;
+            var selectedRemoteName = (_remotes.SelectedItem as Models.Remote)?.Name;
             _remotes.ItemsSource = new AvaloniaList<Models.Remote>(remotes);
+            if (selectedRemoteName != null)
+                _remotes.SelectedItem = remotes.FirstOrDefault(r => r.Name == selectedRemoteName);
             _configuration.Remotes.Clear();
             _configuration.Remotes.AddRange(remotes.Select(r => r.Name));
-            var names = _configuration.Remotes.ToList();
-            var selected = _configuration.DefaultRemote;
-            if (!string.IsNullOrEmpty(selected) && !names.Contains(selected)) names.Add(selected);
+            UpdateDefaultRemoteChoices();
+        }
+
+        private void UpdateDefaultRemoteChoices()
+        {
+            var selected = _configuration.DefaultRemote ?? string.Empty;
+            var names = new List<string> { string.Empty };
+            names.AddRange(_configuration.Remotes);
+            if (!names.Contains(selected)) names.Add(selected);
             _updatingRemoteChoices = true;
             try
             {
-                _defaultRemote.ItemsSource = new object[] { new ComboBoxItem { [!ContentControl.ContentProperty] = App.TextBinding("TreeGit.Settings.Automatic") } }.Concat(names.Cast<object>()).ToArray();
-                _defaultRemote.SelectedIndex = Math.Max(0, names.IndexOf(selected) + 1);
+                _defaultRemote.ItemsSource = names;
+                _defaultRemote.SelectedItem = selected;
             }
             finally { _updatingRemoteChoices = false; }
         }
@@ -341,7 +371,7 @@ namespace SourceGit.Views
 
         private static Control Optional(string title, Control content) => new Expander
         {
-            Name = title.Replace(".", string.Empty), [!Expander.HeaderProperty] = App.TextBinding(title), IsExpanded = false, HorizontalAlignment = HorizontalAlignment.Stretch,
+            Name = title.Replace(".", string.Empty), Classes = { "settings_expander" }, [!Expander.HeaderProperty] = App.TextBinding(title), IsExpanded = false, HorizontalAlignment = HorizontalAlignment.Stretch,
             Content = new Border { Padding = new Thickness(6), Child = content },
         };
 

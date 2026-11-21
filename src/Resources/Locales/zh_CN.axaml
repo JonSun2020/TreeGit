@@ -1554,7 +1554,8 @@ SSH 密钥仍在原有远程配置中设置。</x:String>
   <x:String x:Key="Text.TreeGit.Cancel" xml:space="preserve">取消</x:String>
   <x:String x:Key="Text.TreeGit.Settings.Remotes" xml:space="preserve">远程仓库</x:String>
   <x:String x:Key="Text.TreeGit.Settings.Advanced" xml:space="preserve">高级</x:String>
-  <x:String x:Key="Text.TreeGit.Settings.Path" xml:space="preserve">路径</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.Column.Name" xml:space="preserve">远程名称</x:String>
+  <x:String x:Key="Text.TreeGit.Remote.Column.Address" xml:space="preserve">仓库地址</x:String>
   <x:String x:Key="Text.TreeGit.Add" xml:space="preserve">添加</x:String>
   <x:String x:Key="Text.TreeGit.Edit" xml:space="preserve">编辑</x:String>
   <x:String x:Key="Text.TreeGit.Remove" xml:space="preserve">移除</x:String>
