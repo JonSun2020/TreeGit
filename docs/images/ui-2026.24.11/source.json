@@ -1,0 +1,16 @@
+{
+  "version": "2026.24.11",
+  "source": "3edfc99408626f831583f25bc604fb89cdacdc00",
+  "galleryRun": 44861743122,
+  "galleryRunAttempt": 1,
+  "integrationTests": false,
+  "fictionalDataOnly": true,
+  "privacyReviewed": true,
+  "files": {
+    "binary-diff.png": "26627f8fecaec0ceda5412bbc0e869fb1edf3f48284e80b8ffb88e39162f3ce5",
+    "branch-highlights.png": "b40da7134e777d1f013d00fe9a90b41d9e3050b21f14ad19e7e74ce8163faf16",
+    "branch-search.png": "70a1f34538fe7a6eb097cfa302dbbce7276db2fd8d66d56ff22f3bc17ee85453",
+    "merge-editor.png": "053915219ec330f5e535587db9fca4c65b880af83fc3e16353a9e97a547f0f55",
+    "text-comparison.png": "5d6d269a168dbd3be979aa211e834ab3499723128013cef95361671746012637"
+  }
+}
