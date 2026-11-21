@@ -24,23 +24,30 @@ namespace SourceGit
                 editor.FilePath.Replace('\\', '/') == file.Replace('\\', '/'));
         }
 
-        public static void OpenInternalComparison(string repository, Models.DiffOption option)
+        public static void OpenInternalComparison(string repository, Models.DiffOption option, bool allowChanges = true)
         {
             Dispatcher.UIThread.Post(() =>
             {
                 if (ComparisonOwner() is not { IsVisible: true } owner) return;
-                var context = new ViewModels.DiffContext(repository, option, standalone: true);
-                new Views.InternalDiffWindow(context, owner).Show(owner);
+                var page = allowChanges && option.IsLocalChange ? FindComparisonRepositoryPage(repository) : null;
+                var context = new ViewModels.DiffContext(repository, page == null ? option.AsDisplayOnly() : option, standalone: true);
+                new Views.InternalDiffWindow(context, owner, page).Show(owner);
             });
+        }
+
+        private static ViewModels.LauncherPage FindComparisonRepositoryPage(string repository)
+        {
+            var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
+            var path = repository.Replace('\\', '/').TrimEnd('/');
+            return GetLauncher()?.Pages.FirstOrDefault(p => p.LoadedRepository is { WorkingCopy: not null } repo &&
+                repo.FullPath.Replace('\\', '/').TrimEnd('/').Equals(path, comparison));
         }
 
         public static async Task<bool> OpenInternalMergeAsync(string repository, string file)
         {
             if (!Dispatcher.UIThread.CheckAccess())
                 return await Dispatcher.UIThread.InvokeAsync(() => OpenInternalMergeAsync(repository, file));
-            var comparison = OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-            var repo = GetLauncher()?.Pages.Select(p => p.LoadedRepository).FirstOrDefault(r => r != null &&
-                r.FullPath.Replace('\\', '/').Equals(repository.Replace('\\', '/'), comparison));
+            var repo = FindComparisonRepositoryPage(repository)?.LoadedRepository;
             if (repo?.WorkingCopy == null || ComparisonOwner() is not { IsVisible: true } owner) return false;
             var targets = string.IsNullOrEmpty(file)
                 ? repo.WorkingCopy.Unstaged.Where(c => c.IsConflicted).Select(c => c.Path).Distinct().ToArray()

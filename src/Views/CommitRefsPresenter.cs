@@ -158,15 +158,6 @@ namespace SourceGit.Views
             set => SetValue(WrapSingleLabelProperty, value);
         }
 
-        public static readonly StyledProperty<bool> ShowTagsProperty =
-            AvaloniaProperty.Register<CommitRefsPresenter, bool>(nameof(ShowTags), true);
-
-        public bool ShowTags
-        {
-            get => GetValue(ShowTagsProperty);
-            set => SetValue(ShowTagsProperty, value);
-        }
-
         public Models.Decorator DecoratorAt(Point point)
         {
             var x = 1.5;
@@ -312,8 +303,7 @@ namespace SourceGit.Views
                 change.Property == UseGraphColorProperty ||
                 change.Property == UseCompactBranchNamesProperty ||
                 change.Property == HasSingleRemoteProperty ||
-                change.Property == BackgroundProperty ||
-                change.Property == ShowTagsProperty)
+                change.Property == BackgroundProperty)
                 InvalidateMeasure();
             if (change.Property == WrapSingleLabelProperty)
                 InvalidateMeasure();
@@ -351,7 +341,6 @@ namespace SourceGit.Views
             var requiredHeight = 16.0;
             var x = 0.0;
             var allowWrap = AllowWrap;
-            var showTags = ShowTags;
             var skippedIdx = new HashSet<int>();
 
             for (var i = 0; i < count; i++)
@@ -360,9 +349,6 @@ namespace SourceGit.Views
                     continue;
 
                 var decorator = refs[i];
-                if (!showTags && decorator.Type == Models.DecoratorType.Tag)
-                    continue;
-
                 var item = new RenderItem()
                 {
                     Decorator = decorator,

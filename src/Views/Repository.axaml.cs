@@ -153,11 +153,15 @@ namespace SourceGit.Views
                 if (_historySelectionSource.Histories?.DetailContext is ViewModels.CommitDetail { BranchDetails: { } details } detail)
                     _historySelectionSource.SynchronizeCommitBranchSelection(detail.Commit, details);
                 OnCommitBranchHighlights(_historySelectionSource.SidebarCommitBranches);
+                TagsList.RevealCommitTag();
             }
         }
 
         private void OnNavigationPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
+            if (e.PropertyName == nameof(ViewModels.Repository.SelectedCommitHasTags))
+                TagsList.RevealCommitTag();
+
             if (e.PropertyName is nameof(ViewModels.Repository.SelectedViewIndex) or nameof(ViewModels.Repository.IsFileStatusTabSelected)
                 or nameof(ViewModels.Repository.IsHistoryTabSelected) or nameof(ViewModels.Repository.IsSearchTabSelected))
             {
@@ -188,19 +192,20 @@ namespace SourceGit.Views
 
         private void OnHistoryBranchSelection(Models.Branch branch)
         {
-            if (DataContext is ViewModels.Repository owner) owner.RememberSidebarBranch(branch);
+            if (DataContext is not ViewModels.Repository repo) return;
+            repo.RememberSidebarBranch(branch);
             LocalBranchTree.UnselectAll();
             RemoteBranchTree.UnselectAll();
-            TagsList.UnselectAll();
-            if (branch == null || DataContext is not ViewModels.Repository repo) return;
-            if (branch.IsLocal)
+            _preserveTagSelection = TagsList.HasSingleSelectionFor(repo.GetSelectedCommitInHistory()?.SHA);
+            try
             {
-                if (repo.IsLocalBranchGroupExpanded) LocalBranchTree.Select(branch, false, false);
+                if (!_preserveTagSelection) TagsList.UnselectAll();
+                if (branch is { IsLocal: true } && repo.IsLocalBranchGroupExpanded)
+                    LocalBranchTree.Select(branch, false, false);
+                else if (branch is { IsLocal: false } && repo.IsRemoteGroupExpanded)
+                    RemoteBranchTree.Select(branch, false, false);
             }
-            else
-            {
-                if (repo.IsRemoteGroupExpanded) RemoteBranchTree.Select(branch, false, false);
-            }
+            finally { _preserveTagSelection = false; }
         }
 
         private void OnCommitBranchHighlights(Models.CommitBranchDetails details)
@@ -209,9 +214,16 @@ namespace SourceGit.Views
             RemoteBranchGroup.Classes.Set("commit_covered", details?.Coverage.Branches.Exists(b => !b.IsLocal) == true);
             LocalBranchTree.SetCommitHighlights(details);
             RemoteBranchTree.SetCommitHighlights(details);
+            if (details != null)
+            {
+                LocalBranchTree.RevealPrimaryBranch(details.Primary?.FullName);
+                RemoteBranchTree.RevealPrimaryBranch(details.Primary?.FullName);
+                TagsList.RevealCommitTag();
+            }
         }
 
         private ViewModels.Repository _historySelectionSource;
+        private bool _preserveTagSelection;
 
         private void OnShowCommit(object sender, RoutedEventArgs e)
         {
@@ -327,19 +339,23 @@ namespace SourceGit.Views
         {
             if (LocalBranchTree.SelectedBranch is { } branch && DataContext is ViewModels.Repository repo) repo.RememberSidebarBranch(branch);
             RemoteBranchTree.UnselectAll();
-            TagsList.UnselectAll();
+            if (!_preserveTagSelection) TagsList.UnselectAll();
         }
 
         private void OnRemoteBranchTreeSelectionChanged(object _1, RoutedEventArgs _2)
         {
             if (RemoteBranchTree.SelectedBranch is { } branch && DataContext is ViewModels.Repository repo) repo.RememberSidebarBranch(branch);
             LocalBranchTree.UnselectAll();
-            TagsList.UnselectAll();
+            if (!_preserveTagSelection) TagsList.UnselectAll();
         }
 
         private void OnTagsSelectionChanged(object _1, RoutedEventArgs _2)
         {
-            if (DataContext is ViewModels.Repository repo) repo.RememberSidebarBranch(null);
+            if (DataContext is ViewModels.Repository repo)
+            {
+                if (TagsList.HasSingleSelectionFor(repo.SidebarCommitBranches?.Commit.SHA)) return;
+                repo.RememberSidebarBranch(null);
+            }
             LocalBranchTree.UnselectAll();
             RemoteBranchTree.UnselectAll();
         }

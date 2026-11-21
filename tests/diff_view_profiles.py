@@ -9,13 +9,15 @@ exe,out=(Path(value).resolve() for value in sys.argv[1:3]);out.mkdir(parents=Tru
 root=new_fixture(out,'TreeGit comparison profiles ');repo=root/'Demo';repo.mkdir()
 isolated=IsolatedProfile(exe,out)
 profile=isolated.data/'preference.json'
-profile.write_text(json.dumps({'Locale':'en_US','Theme':'Light','Check4UpdatesOnStartup':False,'EnableAutoFetch':False,'ExternalMergeToolType':0}),'utf-8')
+profile.write_text(json.dumps({'Locale':'en_US','Theme':'Light','Check4UpdatesOnStartup':False,'EnableAutoFetch':False,'ExternalMergeToolType':0,
+ 'ShowTagsInGraph':False,'DisplayTimeAsPeriodInHistories':True}),'utf-8')
 env={**os.environ,'TREEGIT_TEST_MENU_PROBE':'1','GIT_CONFIG_GLOBAL':str(root/'gitconfig'),'GIT_CONFIG_NOSYSTEM':'1'}
 checks=[];failure=None;client=None;filename='example.c'
 def git(*args):return subprocess.check_output(['git','-C',str(repo),*args],env=env,stderr=subprocess.DEVNULL).decode('utf-8').strip()
 class Client:
- def __init__(self):
-  self.p=subprocess.Popen([str(exe),'--mcp'],env=env,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',creationflags=subprocess.CREATE_NO_WINDOW)
+ def __init__(self,read_only=False):
+  args=[str(exe),'--mcp']+(['--read-only'] if read_only else [])
+  self.p=subprocess.Popen(args,env=env,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',creationflags=subprocess.CREATE_NO_WINDOW)
   self.q=queue.Queue();self.seq=0;self.pid=None
   threading.Thread(target=lambda:[self.q.put(line) for line in self.p.stdout],daemon=True).start();self.rpc('initialize',{'protocolVersion':'2025-11-25'})
   self.pid=self.tool('ui_state')['processId'];verify_process(self.pid,exe)
@@ -67,14 +69,130 @@ try:
  other_file='second.c'
  for name in (filename,other_file):(repo/name).write_text(''.join(lines),'utf-8')
  git('add','.');git('commit','-m','Initial example')
+ tagged_commit=git('rev-parse','HEAD')
+ git('tag','sidebar-demo')
+ git('tag','-a','releases/sidebar-demo','-m','Anonymous annotated tag')
  lines[5]='// Short replacement\n';lines[60]='int value_60 = 999;\n';lines[90]='/* '+('long replacement on the other side '*22)+'*/\n'
  for name in (filename,other_file):(repo/name).write_text(''.join(lines),'utf-8')
  git('add','.');git('commit','-m','Change example values')
+ side_commit=git('commit-tree',git('rev-parse','HEAD^{tree}'),'-p',tagged_commit,'-m','Tagged side revision')
+ git('branch','tagged-side',side_commit);git('tag','side-only',side_commit)
  git('remote','add','origin','https://example.invalid/demo.git')
  git('update-ref','refs/remotes/origin/main','HEAD')
  git('config','branch.main.remote','origin');git('config','branch.main.merge','refs/heads/main')
  before=(git('rev-parse','HEAD'),git('ls-files','--stage'),git('status','--porcelain'))
- client=Client();open_pair();main=ready('main');external=ready('standalone')
+ client=Client()
+ client.tool('ui_open_repository',repo=str(repo))
+ def tag_sidebar(action=0,name='sidebar-demo'):
+  return client.probe('tag_sidebar',action,name)
+ def tag_row(state,name):
+  return next((row for row in state['rows'] if row['name']==name),None)
+ def tag_painted(state,name,shade):
+  row=tag_row(state,name)
+  return row and row['color']==state[shade] and row['opacity']==1
+ wait(lambda:any(r['graphTotal']>=2 and not r['graphLoading'] for r in client.tool('ui_state')['repositories']))
+ if tag_sidebar()['expanded']:tag_sidebar(1)
+ for theme in ('Light','Dark','Blue','Default'):
+  client.tool('ui_window',theme=theme)
+  client.tool('ui_select_commit',repo=str(repo),revision=tagged_commit)
+  wait(lambda:(s:=tag_sidebar()) and s['groupColor']==s['secondary'])
+  check(theme+' collapsed Tags header matches the secondary branch color for a tagged commit',not tag_sidebar()['expanded'])
+  tag_sidebar(1)
+  wait(lambda:(s:=tag_sidebar()) and s['groupColor']=='Transparent' and any(r['name']=='sidebar-demo' for r in s['rows']))
+  for tree in (False,True):
+   if tag_sidebar()['tree']!=tree:tag_sidebar(2)
+   wait(lambda:(s:=tag_sidebar()) and s['tree']==tree and tag_row(s,'sidebar-demo'))
+   client.tool('ui_select_commit',repo=str(repo),revision='HEAD')
+   wait(lambda:(row:=tag_row(tag_sidebar(),'sidebar-demo')) and row['opacity']==0)
+   tag_sidebar(3)
+   s=tag_sidebar()
+   check(theme+(' tree' if tree else ' flat')+' manual tag selection matches the branch color and text',
+         tag_painted(s,'sidebar-demo','primary') and tag_row(s,'sidebar-demo')['selected'] and tag_row(s,'sidebar-demo')['text']==s['selectionText'],s)
+   tag_sidebar(5)
+   client.tool('ui_select_commit',repo=str(repo),revision=tagged_commit)
+   s=wait(lambda:s if tag_painted(s:=tag_sidebar(),'sidebar-demo','primary') else None)
+   check(theme+(' tree' if tree else ' flat')+' selecting a tagged commit paints the tag without selecting a tag action',
+         s['groupColor']=='Transparent' and not tag_row(s,'sidebar-demo')['selected'] and tag_row(s,'sidebar-demo')['text']==s['selectionText'],s)
+   if tree:
+    if tag_row(s,'releases/sidebar-demo'):tag_sidebar(4,'releases')
+    check(theme+' collapsed tag folder uses the secondary branch color',wait(lambda:tag_painted(tag_sidebar(),'releases','secondary')))
+    tag_sidebar(4,'releases')
+    check(theme+' expanding the tag folder moves the highlight to its matching tag',
+          wait(lambda:tag_painted(s:=tag_sidebar(),'releases/sidebar-demo','primary') and not tag_painted(s,'releases','secondary')))
+    tag_sidebar(4,'releases')
+   else:
+    check(theme+' both lightweight and annotated tags on the commit are highlighted',tag_painted(s,'releases/sidebar-demo','primary'),s)
+  tag_sidebar(1)
+  check(theme+' closing Tags moves the highlight back to the group header',
+        wait(lambda:(s:=tag_sidebar()) and not s['expanded'] and s['groupColor']==s['secondary'] and not s['rows']))
+  client.tool('ui_select_commit',repo=str(repo),revision='HEAD')
+  check(theme+' collapsed header clears for an untagged commit',wait(lambda:tag_sidebar()['groupColor']=='Transparent'))
+ client.tool('ui_search',repo=str(repo),method='sha',query=tagged_commit)
+ wait(lambda: (s:=client.tool('ui_search',repo=str(repo))) and not s['querying'])
+ client.tool('ui_search',repo=str(repo),select=tagged_commit)
+ check('collapsed Tags header follows a tagged search selection',wait(lambda:(s:=tag_sidebar()) and s['groupColor']==s['secondary']))
+ tag_sidebar(1)
+ check('expanded Tags rows follow a tagged search selection',wait(lambda:tag_painted(tag_sidebar(),'sidebar-demo','primary')))
+ client.tool('ui_select_view',repo=str(repo),view='history')
+ check('leaving search clears the tag highlight for the restored untagged commit',
+       wait(lambda:(s:=tag_sidebar()) and s['groupColor']=='Transparent' and not tag_painted(s,'sidebar-demo','primary')))
+ tag_sidebar(1)
+ client.tool('ui_window',theme='Light')
+ if tag_sidebar()['tree']:tag_sidebar(2)
+ def repository_state():
+  return next(r for r in client.tool('ui_state')['repositories'] if Path(r['repo'])==repo)
+ def highlighted_commit(sha):
+  state=repository_state()
+  scope=state['commitBranchHighlights']
+  return state if scope and scope['sha']==sha and state['detailCommit']==sha and not state['detailBranchesLoading'] else None
+ client.tool('ui_select_commit',repo=str(repo),revision=tagged_commit)
+ baseline=wait(lambda:highlighted_commit(tagged_commit))
+ client.tool('ui_select_commit',repo=str(repo),revision='HEAD')
+ tag_sidebar(1)
+ wait(lambda:tag_row(tag_sidebar(),'sidebar-demo'))
+ check('the tag list has no eye-filter buttons',tag_sidebar()['filterButtons']==0)
+ for tree in (False,True):
+  if tag_sidebar()['tree']!=tree:tag_sidebar(2)
+  wait(lambda:(s:=tag_sidebar()) and s['tree']==tree and tag_row(s,'sidebar-demo'))
+  if tree:
+   check('the tag tree has no eye-filter buttons',tag_sidebar()['filterButtons']==0)
+   client.tool('ui_search',repo=str(repo),method='sha',query=tagged_commit)
+   wait(lambda:not client.tool('ui_search',repo=str(repo))['querying'])
+  tag_sidebar(6)
+  actual=wait(lambda:highlighted_commit(tagged_commit))
+  keys=('commitBranchHighlights','sidebarSelectedBranch','localBranchSelection','remoteBranchSelection')
+  check(('tree' if tree else 'flat')+' tag click matches direct history selection and returns from search',
+        not actual['searchActive'] and all(actual[k]==baseline[k] for k in keys),(baseline,actual))
+  check(('tree' if tree else 'flat')+' click retains the tag action selection',tag_row(tag_sidebar(),'sidebar-demo')['selected'])
+  client.tool('ui_select_commit',repo=str(repo),revision='HEAD')
+  wait(lambda:repository_state()['detailCommit']==before[0])
+ client.tool('ui_graph',repo=str(repo),mode='current',showRemotes=False)
+ wait(lambda:(s:=repository_state()) and not s['graphLoading'] and all(c['sha']!=side_commit for c in s['graphCommits']))
+ wait(lambda:tag_row(tag_sidebar(),'side-only'))
+ tag_sidebar(6,'side-only')
+ outside=wait(lambda:highlighted_commit(side_commit))
+ check('tag outside the graph still highlights its branch without changing the graph filter',
+       outside['graphMode']==1 and not outside['graphShowRemotes'] and outside['sidebarSelectedBranch']=='refs/heads/tagged-side',outside)
+ client.tool('ui_graph',repo=str(repo),mode='all',showRemotes=True)
+ wait(lambda:not repository_state()['graphLoading'])
+ client.tool('ui_select_commit',repo=str(repo),revision=tagged_commit)
+ probe=wait(lambda:p if (p:=client.tool('ui_state')['layoutProbe'])['taggedRefs'] and p['historyDates'] else None)
+ check('legacy hidden-tag preference does not hide rendered commit tags',any('sidebar-demo' in r['refs'] for r in probe['taggedRefs']),probe['taggedRefs'])
+ check('legacy relative-time preference still renders actual history dates',all(t['actual']==t['formatted'] for t in probe['historyDates']),probe['historyDates'])
+ for locale,removed in (
+     ('en_US',('Show tags in commit graph','Show relative time in commit graph')),
+     ('zh_CN',('在提交图谱中显示标签','在提交图谱中显示相对时间')),
+     ('zh_TW',('在圖譜中顯示標籤','在提交圖譜中顯示相對時間'))):
+  client.tool('ui_window',locale=locale)
+  client.tool('ui_command',command='preferences',page='general')
+  dialog=wait(lambda:next((d for d in client.tool('ui_state')['layoutProbe']['dialogs'] if d['type']=='Preferences' and d['checkboxes']),None))
+  check(locale+' general preferences omit both graph display switches',not set(removed)&set(dialog['checkboxes']),dialog)
+  client.tool('ui_command',command='close_dialog')
+  wait(lambda:not client.tool('ui_state')['dialogs'])
+ client.tool('ui_window',locale='en_US')
+ tag_sidebar(1)
+ if tag_sidebar()['tree']:tag_sidebar(2)
+ open_pair();main=ready('main');external=ready('standalone')
  check('main defaults to five lines of context',not main['columns'] and main['syntax'] and main['wrap'] and main['context']==5,main)
  check('standalone defaults to columns syntax highlighting wrapping and full file',all(external[k] for k in ['columns','syntax','wrap']) and external['context']==0,external)
  check('the context picker offers exactly four choices in both views',
@@ -171,6 +289,30 @@ try:
  check('actual presenters restore their own profile flags',not main['presenters'][0]['wrap'] and external['presenters'][0]['wrap'] and not external['presenters'][0]['syntax'])
  check('comparison and configuration changes do not modify Git data',before==(git('rev-parse','HEAD'),git('ls-files','--stage'),git('status','--porcelain')))
  client.tool('ui_command',command='close_dialog');wait(lambda:not views().get('standalone'))
+ for locale,zoom,branches,orders in (
+      ('zh_CN',1,('所有分支','当前分支'),('按日期排序','按拓扑排序')),
+      ('zh_TW',1.25,('全部分支','目前分支'),('依日期排序','依拓撲排序')),
+      ('en_US',1.5,('All branches','Current branch'),('Sort by date','Sort topologically'))):
+  client.tool('ui_window',locale=locale,zoom=zoom,width=1180,height=760)
+  for picker,choices in [('HistoryBranchPicker',branches),('HistoryOrderPicker',orders)]:
+   def geometry(action=2):return client.probe('dropdown_geometry',action,picker)
+   width=None
+   for index,caption in enumerate(choices):
+    geometry(3+index)
+    closed=wait(lambda:p if (p:=geometry())['text']==caption and p['centerOffset'] is not None else None)
+    check(f'{locale} {zoom} {caption} fits and centers in a compact selector',
+          34<=closed['boxed']-closed['longest']<=42 and closed['fits'] and abs(closed['centerOffset'])<=1,closed)
+    if width is None:width=closed['boxed']
+    else:check(f'{locale} {picker} keeps its width when switching options',abs(width-closed['boxed'])<=.5,closed)
+   geometry(1)
+   opened=wait(lambda:p if len((p:=geometry())['items'])==2 and p['left'] is not None and
+                  all(item['centerOffset'] is not None for item in p['items']) else None)
+   check_edges(f'{locale} {picker}',opened)
+   check(f'{locale} {picker} options use the same text center as the closed box',
+         [item['text'] for item in opened['items']]==list(choices) and
+         all(item['fits'] and abs(item['centerOffset'])<=1 for item in opened['items']),opened)
+   geometry(0)
+   geometry(3)
  for zoom in [1,1.25,1.5]:
   client.tool('ui_window',zoom=zoom,locale='zh_CN',width=1180,height=760)
   check_edges(f'{zoom} file encoding',dropdown_geometry('DiffEncodingPicker'))
@@ -274,6 +416,191 @@ try:
   client.tool('ui_diff',repo=str(repo),action='select',file='sample.bin',source='unstaged')
   binary=wait(lambda: s if (s:=client.probe('diff_decoded_text'))['kind']=='BinaryDiff' else None)
   check('binary comparisons hide both the file encoding label and its selector',not binary['encodingVisible'] and not binary['labelVisible'],binary)
+ # Exercise adjacent changes separated by one unchanged row, including unequal
+ # side-by-side lengths and the real Stage action. All writes use this fixture.
+ hover_repo=root/'Hover and MCP Demo'
+ hover_repo.mkdir()
+ def hover_git(*args):
+  return subprocess.check_output(['git','-C',str(hover_repo),*args],env=env,stderr=subprocess.PIPE).decode('utf-8').strip()
+ hover_git('init','-b','main');hover_git('config','user.name','TreeGit Hover Demo')
+ hover_git('config','user.email','treegit-hover@example.invalid')
+ file_name='hover.c'
+ first_old='int first = 1;'
+ first_new='int first = 100; // '+('wrapped sample '*24).rstrip()
+ extra='int extra = 8;'
+ middle='// unchanged between blocks'
+ last_old='int second = 2;'
+ last_new='int second = 200;'
+ (hover_repo/file_name).write_text('\n'.join(['// preceding context',first_old,middle,last_old,'// trailing context'])+'\n','utf-8',newline='\n')
+ standalone_file='standalone.c'
+ (hover_repo/standalone_file).write_bytes((hover_repo/file_name).read_bytes())
+ (hover_repo/'mcp.txt').write_text('before\n','utf-8');hover_git('add','.');hover_git('commit','-m','Hover fixture')
+ parent_commit=hover_git('rev-parse','HEAD')
+ (hover_repo/file_name).write_text('\n'.join(['// preceding context',first_new,extra,middle,last_new,'// trailing context'])+'\n','utf-8',newline='\n')
+ (hover_repo/'mcp.txt').write_text('after\n','utf-8')
+ (hover_repo/'untracked.txt').write_text('keep me\n','utf-8')
+ client.tool('ui_open_repository',repo=str(hover_repo))
+ wait(lambda:any(Path(s['repo'])==hover_repo and file_name in (s.get('workingCopyState') or {}).get('unstaged',[]) for s in client.tool('ui_state')['repositories']))
+ client.tool('ui_diff',repo=str(hover_repo),action='select',file=file_name,source='unstaged')
+ wait(lambda:views().get('main') and client.probe('diff_decoded_text')['file']==file_name)
+ def hover(text,side=0):
+  return wait(lambda:s if (s:=client.probe('diff_working_hover',side,text))['ready'] else None)
+ first_block=[first_old,first_new.rstrip(),extra]
+ for columns,wrap in ((False,False),(False,True),(True,True),(True,False)):
+  client.probe('diff_toggle_main',0,str(columns).lower())
+  client.probe('diff_toggle_main',2,str(wrap).lower())
+  wait(lambda:(v:=ready('main')) and v['columns']==columns and v['wrap']==wrap)
+  state=hover(first_old)
+  check(f'working copy hover selects only the first changed block with columns={columns} wrap={wrap}',
+        state['wrap']==wrap and [r['Content'] for r in state['changed']]==first_block and
+        set(state['visualRows'])<= {'Added','Deleted','None'},state)
+  if columns:
+   aligned=hover('$alignment')
+   check(f'hovering alignment padding selects the same changed block with wrap={wrap}',
+         aligned['changed']==state['changed'] and 'None' in aligned['visualRows'],aligned)
+  check(f'an unchanged row has no hover action with columns={columns} wrap={wrap}',not hover(middle)['selected'])
+  check(f'hover selects the independent neighboring change with columns={columns} wrap={wrap}',
+        [r['Content'] for r in hover(last_old)['changed']]==[last_old,last_new])
+  check(f'the hunk heading has no hover action with columns={columns} wrap={wrap}',not hover('$hunk')['selected'])
+ hover(first_old)
+ client.probe('diff_working_hover_stage')
+ cached=wait(lambda:patch if (patch:=hover_git('diff','--cached','--',file_name)) else None)
+ check('the Stage button applies just the visibly hovered change',first_new.rstrip() in cached and last_new not in cached,cached)
+ staged=client.tool('git_action',repo=str(hover_repo),action='stage',paths=['mcp.txt'])
+ check('TreeGit MCP stages only the requested path',staged['exitCode']==0 and set(hover_git('diff','--cached','--name-only').splitlines())=={file_name,'mcp.txt'})
+ no_write=client.tool('git_status',repo=str(hover_repo))
+ check('TreeGit MCP sees both staged and remaining unstaged changes',
+       no_write['isSuccess'] and '1 MM ' in no_write['stdout'] and '? untracked.txt' in no_write['stdout'],no_write)
+ message='TreeGit MCP fixture commit'
+ committed=client.tool('git_action',repo=str(hover_repo),action='commit',message=message)
+ head=hover_git('rev-parse','HEAD')
+ result=client.tool('git_show',repo=str(hover_repo),revision=head)
+ check('TreeGit MCP creates one commit with the supplied message and configured identity',
+       committed['exitCode']==0 and hover_git('rev-parse','HEAD^')==parent_commit and hover_git('log','-1','--format=%s')==message
+       and hover_git('log','-1','--format=%an <%ae>%n%cn <%ce>')==('TreeGit Hover Demo <treegit-hover@example.invalid>\n'*2).strip()
+       and result['isSuccess'] and head in result['stdout'],(committed,result))
+ check('MCP commits staged bytes and preserves unstaged and untracked files',
+       first_new.rstrip() in hover_git('show','HEAD:'+file_name) and last_old in hover_git('show','HEAD:'+file_name) and
+       last_new in hover_git('diff','--',file_name) and hover_git('show','HEAD:mcp.txt')=='after' and
+       not hover_git('diff','--cached','--name-only') and (hover_repo/'untracked.txt').read_text('utf-8')=='keep me\n')
+ # Use the actual external-compare entry and the original inline buttons in
+ # the separate window. Keep this separate from the preceding commit fixture.
+ (hover_repo/standalone_file).write_bytes((hover_repo/file_name).read_bytes())
+ def history_working_state():
+  return next(s['workingCopyState'] for s in client.tool('ui_state')['repositories'] if Path(s['repo'])==hover_repo)
+ def select_standalone_change(source):
+  client.tool('ui_diff',repo=str(hover_repo),action='select',file=standalone_file,source=source)
+  wait(lambda:views().get('main') and client.probe('diff_decoded_text')['file']==standalone_file)
+  client.tool('ui_command',command='external_diff')
+  return wait(lambda:s if (v:=views().get('standalone')) and v['file']==standalone_file and
+              (s:=client.probe('diff_standalone_state'))['ready'] and s['IsTextDiff'] else None)
+ def standalone_hover(text,side=0):
+  return wait(lambda:s if (s:=client.probe('diff_standalone_hover',side,text))['ready'] and s['selected'] else None)
+ def standalone_patch(button):
+  return client.probe('diff_standalone_chunk',0,button)
+ wait(lambda:standalone_file in history_working_state()['unstaged'])
+ window=select_standalone_change('unstaged')
+ check('TreeGit external comparison opens an editable worktree diff',window['canEdit'])
+ check('the standalone Stage action targets the hovered lines',standalone_hover(first_old)['changed']==state['changed'])
+ standalone_patch('BtnStageChunk')
+ staged_patch=wait(lambda:patch if (patch:=hover_git('diff','--cached','--',standalone_file)) else None)
+ check('standalone Stage updates the index and the main staged-file list',
+       first_new in staged_patch and last_new not in staged_patch and wait(lambda:standalone_file in history_working_state()['staged']))
+ check('standalone reloads the unstaged diff after Stage',wait(lambda:(s:=client.probe('diff_standalone_state'))['ready'] and
+       s['lines'] and not any(l['Content']==first_old and l['type']=='Deleted' for l in s['lines']) and
+       any(l['Content']==last_new and l['type']=='Added' for l in s['lines'])))
+ standalone_hover(last_old)
+ standalone_patch('BtnDiscardChunk')
+ wait(lambda:last_old in (hover_repo/standalone_file).read_text('utf-8'))
+ check('standalone Discard updates the worktree without changing the staged block',
+       first_new in (hover_repo/standalone_file).read_text('utf-8') and last_new not in (hover_repo/standalone_file).read_text('utf-8') and
+       staged_patch==hover_git('diff','--cached','--',standalone_file))
+ check('both windows show the effect of discarding the last unstaged block',
+       wait(lambda:(s:=client.probe('diff_standalone_state'))['ready'] and not s['IsTextDiff'] and
+            standalone_file not in history_working_state()['unstaged']))
+ client.tool('ui_command',command='close_dialog');wait(lambda:not views().get('standalone'))
+ select_standalone_change('staged')
+ standalone_hover(first_old)
+ standalone_patch('BtnUnstageChunk')
+ check('standalone Unstage clears the index and preserves the worktree edit',
+       wait(lambda: not hover_git('diff','--cached','--',standalone_file) and
+            standalone_file in history_working_state()['unstaged']) and first_new in hover_git('diff','--',standalone_file))
+ client.tool('ui_command',command='close_dialog');wait(lambda:not views().get('standalone'))
+ client.close();client=Client(read_only=True)
+ client.tool('ui_open_repository',repo=str(hover_repo))
+ wait(lambda:standalone_file in (history_working_state() or {}).get('unstaged',[]))
+ check('read-only MCP still opens an inspector without patch actions',
+       not select_standalone_change('unstaged')['canEdit'])
+ # Thousands of refs are unnecessary to exercise virtualization: these
+ # lists are several viewports tall even with the largest default window.
+ client.tool('ui_command',command='close_dialog');wait(lambda:not views().get('standalone'))
+ scroll_repo=root/'Sidebar Scroll Demo'
+ scroll_repo.mkdir()
+ def scroll_git(*args,input_text=None):
+  result=subprocess.run(['git','-C',str(scroll_repo),*args],env=env,input=input_text.encode('utf-8') if input_text else None,capture_output=True)
+  if result.returncode:raise RuntimeError(result.stderr.decode('utf-8',errors='replace').strip())
+  return result.stdout.decode('utf-8').strip()
+ scroll_git('init','-b','main');scroll_git('config','user.name','TreeGit Sidebar Demo')
+ scroll_git('config','user.email','sidebar@example.invalid')
+ scroll_git('remote','add','origin','https://example.invalid/sidebar.git')
+ scroll_git('commit','--allow-empty','-m','Before sidebar anchor')
+ base=scroll_git('rev-parse','HEAD')
+ target=scroll_git('commit-tree',scroll_git('rev-parse','HEAD^{tree}'),'-p',base,'-m','Sidebar anchor')
+ local='refs/heads/group/z-primary'
+ remote='refs/remotes/origin/group/z-primary'
+ tag='group/z-position'
+ refs=[(f'{prefix}/a{i:02}',base) for prefix in ('refs/heads/group','refs/remotes/origin/group','refs/tags/group') for i in range(44)]
+ refs.extend(((local,target),(remote,target),('refs/tags/'+tag,target)))
+ scroll_git('update-ref','--stdin',input_text=''.join(f'update {ref} {sha}\n' for ref,sha in refs))
+ scroll_git('config','branch.group/z-primary.remote','origin')
+ scroll_git('config','branch.group/z-primary.merge','refs/heads/group/z-primary')
+ def scroll_state():
+  return next(s for s in client.tool('ui_state')['repositories'] if Path(s['repo'])==scroll_repo)
+ def sidebar(group,action=0,folder=None):
+  return client.probe('sidebar_reveal',action,group+('|' + folder if folder else ''))
+ def visible_in(group,item):
+  return wait(lambda:s if (s:=sidebar(group))['open'] and item in s['visible'] else None)
+ def select_sidebar_commit(sha):
+  client.tool('ui_select_commit',repo=str(scroll_repo),revision=sha)
+  return wait(lambda:s if (s:=scroll_state())['detailCommit']==sha and
+              (s['commitBranchHighlights'] or {}).get('sha')==sha and not s['detailBranchesLoading'] else None)
+ client.tool('ui_window',zoom=1,width=1180,height=720)
+ client.tool('ui_open_repository',repo=str(scroll_repo))
+ wait(lambda:not scroll_state()['graphLoading'] and len(scroll_state()['loadedBranches'])>=90)
+ if tag_sidebar()['tree']:tag_sidebar(2)
+ groups=('local','remote','tags')
+ for section in groups: sidebar(section,1)
+ selection=select_sidebar_commit(target)
+ check('the target uses the tracked local primary branch in the large-sidebars fixture',
+       selection['commitBranchHighlights']['primary']==local,selection)
+ check('selecting the commit keeps all intentionally collapsed sections closed',
+       all(not sidebar(section)['open'] for section in groups))
+ sidebar('local',2)
+ wait(lambda:'refs/heads/group' in sidebar('local')['rows'])
+ check('opening the branch section leaves its nested folder closed',local not in sidebar('local')['rows'])
+ sidebar('local',3,'refs/heads/group')
+ check('expanding the local branch folder scrolls to its highlighted leaf',visible_in('local',local)['offset']>0)
+ sidebar('remote',2)
+ wait(lambda:'refs/remotes/origin' in sidebar('remote')['rows'])
+ if 'refs/remotes/origin/group' not in sidebar('remote')['rows']:sidebar('remote',3,'refs/remotes/origin')
+ sidebar('remote',3,'refs/remotes/origin/group')
+ check('expanding the remote-tracking folder scrolls to its highlighted leaf',visible_in('remote',remote)['offset']>0)
+ sidebar('tags',2)
+ check('opening the flat Tags section scrolls to the matching tag',visible_in('tags',tag)['offset']>0)
+ tag_sidebar(2)
+ wait(lambda:'group' in sidebar('tags')['rows'] and tag not in sidebar('tags')['rows'])
+ sidebar('tags',3,'group')
+ check('expanding the tag folder scrolls to its matching leaf',visible_in('tags',tag)['offset']>0)
+ for section,item in zip(groups,(local,remote,tag)):
+  sidebar(section,1);sidebar(section,2)
+  check(section+' section restores its highlighted row when reopened',visible_in(section,item)['offset']>0)
+ select_sidebar_commit(base)
+ for section in groups:sidebar(section,4)
+ check('the primary branch and tag start off-screen before selecting the second commit',
+       all(item not in sidebar(section)['visible'] for section,item in zip(groups,(local,remote,tag))))
+ select_sidebar_commit(target)
+ for section,item in zip(groups,(local,remote,tag)):
+  check('selecting a commit scrolls its '+section+' list to the matching row',visible_in(section,item)['offset']>0)
 except BaseException:
  failure=traceback.format_exc();traceback.print_exc()
  if client:

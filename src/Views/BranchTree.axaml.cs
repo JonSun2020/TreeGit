@@ -14,6 +14,7 @@ using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Markup.Xaml.MarkupExtensions;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 namespace SourceGit.Views
@@ -385,6 +386,26 @@ namespace SourceGit.Views
 
         public Models.Branch SelectedBranch => (BranchesPresenter.SelectedItem as ViewModels.BranchTreeNode)?.Backend as Models.Branch;
 
+        internal void RevealPrimaryBranch(string primaryReference, string folder = null)
+        {
+            if (primaryReference == null) return;
+            var prefix = folder == null ? null : folder + "/";
+            // Wait for the list's new viewport after an expansion or a graph selection.
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (!IsLoaded || !IsEffectivelyVisible ||
+                    DataContext is not ViewModels.Repository repo || repo.SidebarCommitBranches?.Primary?.FullName != primaryReference)
+                    return;
+
+                bool IsPrimaryInFolder(ViewModels.BranchTreeNode node) => node.CommitHighlightLevel == 2 &&
+                    (prefix == null || node.Path.StartsWith(prefix, StringComparison.Ordinal));
+                var target = Rows.FirstOrDefault(node => node.Path == primaryReference && IsPrimaryInFolder(node)) ??
+                    Rows.FirstOrDefault(IsPrimaryInFolder);
+                if (target != null)
+                    BranchesPresenter.ScrollIntoView(target);
+            }, DispatcherPriority.Loaded);
+        }
+
         public void SetCommitHighlights(Models.CommitBranchDetails details)
         {
             if (_nodes == null) return;
@@ -442,6 +463,7 @@ namespace SourceGit.Views
 
             RaiseEvent(new RoutedEventArgs(RowsChangedEvent));
             _disableSelectionChangingEvent = false;
+            if (node.IsExpanded) RevealPrimaryBranch(repo?.SidebarCommitBranches?.Primary?.FullName, node.Path);
         }
 
         protected override void OnSizeChanged(SizeChangedEventArgs e)
@@ -486,6 +508,8 @@ namespace SourceGit.Views
             else if (change.Property == IsVisibleProperty)
             {
                 RaiseEvent(new RoutedEventArgs(RowsChangedEvent));
+                if (IsVisible && DataContext is ViewModels.Repository repo)
+                    RevealPrimaryBranch(repo.SidebarCommitBranches?.Primary?.FullName);
             }
         }
 

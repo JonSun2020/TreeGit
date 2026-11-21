@@ -114,6 +114,7 @@ namespace SourceGit.ViewModels
                     OnPropertyChanged(nameof(IsWorkingCopyVisible));
                     OnPropertyChanged(nameof(IsStashesVisible));
                     NotifyNavigationTabsChanged();
+                    NotifySelectedCommitTagsChanged();
                     if (value == 2)
                     {
                         IsStashGroupExpanded = true;
@@ -269,7 +270,30 @@ namespace SourceGit.ViewModels
         public List<Models.Tag> Tags
         {
             get => _tags;
-            private set => SetProperty(ref _tags, value);
+            private set
+            {
+                if (SetProperty(ref _tags, value)) NotifySelectedCommitTagsChanged();
+            }
+        }
+
+        public bool SelectedCommitHasTags => _highlightedTagCommit != null;
+
+        internal void NotifySelectedCommitTagsChanged()
+        {
+            var sha = IsDashboardVisible ? GetSelectedCommitInHistory()?.SHA : null;
+            var previous = _highlightedTagCommit;
+            _highlightedTagCommit = !string.IsNullOrEmpty(sha) && _tags.Exists(tag => tag.SHA == sha) ? sha : null;
+            if (previous == _highlightedTagCommit) return;
+            UpdateVisibleTagHighlights(_visibleTags);
+            OnPropertyChanged(nameof(SelectedCommitHasTags));
+        }
+
+        private void UpdateVisibleTagHighlights(object visibleTags)
+        {
+            if (visibleTags is TagCollectionAsTree tree)
+                tree.SetCommitHighlight(_highlightedTagCommit);
+            else if (visibleTags is TagCollectionAsList list)
+                list.SetCommitHighlight(_highlightedTagCommit);
         }
 
         public bool ShowTagsAsTree
@@ -289,7 +313,11 @@ namespace SourceGit.ViewModels
         public object VisibleTags
         {
             get => _visibleTags;
-            private set => SetProperty(ref _visibleTags, value);
+            private set
+            {
+                if (_highlightedTagCommit != null) UpdateVisibleTagHighlights(value);
+                SetProperty(ref _visibleTags, value);
+            }
         }
 
         public List<Models.Submodule> Submodules
@@ -340,6 +368,8 @@ namespace SourceGit.ViewModels
 
         public bool WorkingCopyStatusKnown => _workingCopyStatusKnown && !_workingCopyStatusError;
         public long WorkingCopyRefreshVersion { get; private set; }
+
+        internal event Action WorkingCopyRefreshed;
 
         public void NotifyWorkingCopyStatusFailure()
         {
@@ -1125,6 +1155,13 @@ namespace SourceGit.ViewModels
             }
         }
 
+        internal void NavigateToTag(Models.Tag tag)
+        {
+            ShowHistoryPage();
+            RequestCommitBranchSelection(tag.SHA);
+            NavigateToCommit(tag.SHA, _histories.IsLoading);
+        }
+
         public void CancelHistoryNavigation()
         {
             _historySidebarPreferredBranch = string.Empty;
@@ -1162,13 +1199,15 @@ namespace SourceGit.ViewModels
             CommitBranchHighlightsRequested?.Invoke(null);
         }
 
-        public void RequestCommitBranchSelection(Models.Commit commit)
+        public void RequestCommitBranchSelection(Models.Commit commit) => RequestCommitBranchSelection(commit?.SHA);
+
+        private void RequestCommitBranchSelection(string sha)
         {
             CancelHistoryNavigation();
-            ClearCommitBranchHighlights(commit?.SHA);
-            _historySidebarSelectionCommit = commit?.SHA ?? string.Empty;
-            if (commit != null && _histories?.DetailContext is CommitDetail { BranchDetails: { } details } detail && detail.Commit?.SHA == commit.SHA)
-                SynchronizeCommitBranchSelection(commit, details);
+            ClearCommitBranchHighlights(sha);
+            _historySidebarSelectionCommit = sha ?? string.Empty;
+            if (!string.IsNullOrEmpty(sha) && _histories?.DetailContext is CommitDetail { BranchDetails: { } details } detail && detail.Commit?.SHA == sha)
+                SynchronizeCommitBranchSelection(detail.Commit, details);
         }
 
         public void SynchronizeCommitBranchSelection(Models.Commit commit, Models.CommitBranchDetails details)
@@ -1180,7 +1219,7 @@ namespace SourceGit.ViewModels
 
             var selected = _histories.IsSearchingCommits
                 ? _histories.SearchCommitContext.Selected?.SHA
-                : _histories.SelectedCommits is { Count: 1 } commits ? commits[0].SHA : null;
+                : _histories.SelectedCommits is { Count: 1 } commits ? commits[0].SHA : GetSelectedCommitInHistory()?.SHA;
             if (selected != commit.SHA) return;
 
             var containing = new HashSet<string>(StringComparer.Ordinal);
@@ -1253,7 +1292,6 @@ namespace SourceGit.ViewModels
 
             ResetBranchTreeFilterMode(LocalBranchTrees);
             ResetBranchTreeFilterMode(RemoteBranchTrees);
-            ResetTagFilterMode();
             RefreshCommits();
         }
 
@@ -1764,6 +1802,7 @@ namespace SourceGit.ViewModels
                     WorkingCopyRefreshVersion++;
                     OnPropertyChanged(nameof(WorkingCopyStatusKnown));
                     _workingCopy.SetData(changes);
+                    WorkingCopyRefreshed?.Invoke();
                     var countChanged = LocalChangesCount != changes.Count;
                     LocalChangesCount = changes.Count;
                     if (!countChanged) _histories?.NotifyWorkingCopyChanged();
@@ -2139,23 +2178,9 @@ namespace SourceGit.ViewModels
                 }
             }
 
-            var filterMap = _uiStates.GetHistoryFiltersMap();
-            UpdateTagFilterMode(filterMap);
-
-            if (_uiStates.ShowTagsAsTree)
-            {
-                var tree = TagCollectionAsTree.Build(visible, _visibleTags as TagCollectionAsTree);
-                foreach (var node in tree.Tree)
-                    node.UpdateFilterMode(filterMap);
-                return tree;
-            }
-            else
-            {
-                var list = new TagCollectionAsList(visible);
-                foreach (var item in list.TagItems)
-                    item.FilterMode = filterMap.GetValueOrDefault(item.Tag.Name, Models.FilterMode.None);
-                return list;
-            }
+            return _uiStates.ShowTagsAsTree
+                ? TagCollectionAsTree.Build(visible, _visibleTags as TagCollectionAsTree)
+                : new TagCollectionAsList(visible);
         }
 
         private object BuildVisibleSubmodules()
@@ -2189,7 +2214,6 @@ namespace SourceGit.ViewModels
             var map = _uiStates.GetHistoryFiltersMap();
             UpdateBranchTreeFilterMode(LocalBranchTrees, map);
             UpdateBranchTreeFilterMode(RemoteBranchTrees, map);
-            UpdateTagFilterMode(map);
             RefreshCommits();
         }
 
@@ -2204,20 +2228,6 @@ namespace SourceGit.ViewModels
             }
         }
 
-        private void UpdateTagFilterMode(Dictionary<string, Models.FilterMode> map)
-        {
-            if (VisibleTags is TagCollectionAsTree tree)
-            {
-                foreach (var node in tree.Tree)
-                    node.UpdateFilterMode(map);
-            }
-            else if (VisibleTags is TagCollectionAsList list)
-            {
-                foreach (var item in list.TagItems)
-                    item.FilterMode = map.GetValueOrDefault(item.Tag.Name, Models.FilterMode.None);
-            }
-        }
-
         private void ResetBranchTreeFilterMode(List<BranchTreeNode> nodes)
         {
             foreach (var node in nodes)
@@ -2225,21 +2235,6 @@ namespace SourceGit.ViewModels
                 node.FilterMode = Models.FilterMode.None;
                 if (!node.IsBranch)
                     ResetBranchTreeFilterMode(node.Children);
-            }
-        }
-
-        private void ResetTagFilterMode()
-        {
-            if (VisibleTags is TagCollectionAsTree tree)
-            {
-                var filters = new Dictionary<string, Models.FilterMode>();
-                foreach (var node in tree.Tree)
-                    node.UpdateFilterMode(filters);
-            }
-            else if (VisibleTags is TagCollectionAsList list)
-            {
-                foreach (var item in list.TagItems)
-                    item.FilterMode = Models.FilterMode.None;
             }
         }
 
@@ -2388,6 +2383,7 @@ namespace SourceGit.ViewModels
         private List<BranchTreeNode> _remoteBranchTrees = [];
         private List<Worktree> _worktrees = [];
         private List<Models.Tag> _tags = [];
+        private string _highlightedTagCommit;
         private object _visibleTags = null;
         private List<Models.Submodule> _submodules = [];
         private object _visibleSubmodules = null;

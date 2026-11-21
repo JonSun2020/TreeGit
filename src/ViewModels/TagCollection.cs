@@ -46,12 +46,6 @@ namespace SourceGit.ViewModels
             set;
         }
 
-        public Models.FilterMode FilterMode
-        {
-            get => _filterMode;
-            set => SetProperty(ref _filterMode, value);
-        }
-
         public CornerRadius CornerRadius
         {
             get => _cornerRadius;
@@ -61,7 +55,23 @@ namespace SourceGit.ViewModels
         public bool IsExpanded
         {
             get => _isExpanded;
-            set => SetProperty(ref _isExpanded, value);
+            set
+            {
+                if (SetProperty(ref _isExpanded, value))
+                    OnPropertyChanged(nameof(IsCommitTagFolder));
+            }
+        }
+
+        public bool IsCommitTag => !IsFolder && _matchesCommit;
+        public bool IsCommitTagFolder => IsFolder && !IsExpanded && _matchesCommit;
+
+        internal bool SetCommitHighlight(string sha)
+        {
+            var matches = sha != null && Tag?.SHA == sha;
+            foreach (var child in Children)
+                matches |= child.SetCommitHighlight(sha);
+            SetProperty(ref _matchesCommit, matches, IsFolder ? nameof(IsCommitTagFolder) : nameof(IsCommitTag));
+            return matches;
         }
 
         public string TagsCount
@@ -84,19 +94,6 @@ namespace SourceGit.ViewModels
             Depth = depth;
             IsExpanded = isExpanded;
             Counter = 1;
-        }
-
-        public void UpdateFilterMode(Dictionary<string, Models.FilterMode> filters)
-        {
-            if (Tag == null)
-            {
-                foreach (var child in Children)
-                    child.UpdateFilterMode(filters);
-            }
-            else
-            {
-                FilterMode = filters.GetValueOrDefault(FullPath, Models.FilterMode.None);
-            }
         }
 
         public static List<TagTreeNode> Build(List<Models.Tag> tags, HashSet<string> expanded)
@@ -164,13 +161,21 @@ namespace SourceGit.ViewModels
             collection.Add(subFolder);
         }
 
-        private Models.FilterMode _filterMode = Models.FilterMode.None;
         private CornerRadius _cornerRadius = new CornerRadius(4);
         private bool _isExpanded = true;
+        private bool _matchesCommit;
     }
 
     public class TagListItem : ObservableObject
     {
+        public bool IsCommitTag
+        {
+            get => _isCommitTag;
+            set => SetProperty(ref _isCommitTag, value);
+        }
+
+        private bool _isCommitTag;
+
         public Models.Tag Tag
         {
             get;
@@ -181,12 +186,6 @@ namespace SourceGit.ViewModels
         {
             get;
             set;
-        }
-
-        public Models.FilterMode FilterMode
-        {
-            get => _filterMode;
-            set => SetProperty(ref _filterMode, value);
         }
 
         public TagToolTip ToolTip
@@ -201,7 +200,6 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _cornerRadius, value);
         }
 
-        private Models.FilterMode _filterMode = Models.FilterMode.None;
         private CornerRadius _cornerRadius = new CornerRadius(4);
     }
 
@@ -217,6 +215,12 @@ namespace SourceGit.ViewModels
         {
             foreach (var tag in tags)
                 TagItems.Add(new TagListItem() { Tag = tag, ToolTip = new TagToolTip(tag) });
+        }
+
+        internal void SetCommitHighlight(string sha)
+        {
+            foreach (var item in TagItems)
+                item.IsCommitTag = sha != null && item.Tag.SHA == sha;
         }
 
         public void ClearSelection()
@@ -328,6 +332,12 @@ namespace SourceGit.ViewModels
                 }
                 rows.RemoveRange(idx + 1, removeCount);
             }
+        }
+
+        internal void SetCommitHighlight(string sha)
+        {
+            foreach (var node in Tree)
+                node.SetCommitHighlight(sha);
         }
 
         public void ClearSelection()

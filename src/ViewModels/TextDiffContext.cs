@@ -53,69 +53,23 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _selectedChunk, value);
         }
 
-        public (int, int) FindRangeByIndex(List<Models.TextDiffLine> lines, int lineIdx)
+        internal static (int Start, int End) FindChangeRange(List<Models.TextDiffLine> lines, int index)
         {
-            var startIdx = -1;
-            var endIdx = -1;
+            static bool IsChangeOrAlignmentRow(Models.TextDiffLine line) =>
+                line.Type is Models.TextDiffLineType.Added or Models.TextDiffLineType.Deleted or Models.TextDiffLineType.None;
 
-            var normalLineCount = 0;
-            var modifiedLineCount = 0;
+            if ((uint)index >= lines.Count || !IsChangeOrAlignmentRow(lines[index]))
+                return (-1, -1);
 
-            for (int i = lineIdx; i >= 0; i--)
-            {
-                var line = lines[i];
-                if (line.Type == Models.TextDiffLineType.Indicator)
-                {
-                    startIdx = i;
-                    break;
-                }
+            var start = index;
+            while (start > 0 && IsChangeOrAlignmentRow(lines[start - 1]))
+                start--;
 
-                if (line.Type == Models.TextDiffLineType.Normal)
-                {
-                    normalLineCount++;
-                    if (normalLineCount >= 2)
-                    {
-                        startIdx = i;
-                        break;
-                    }
-                }
-                else
-                {
-                    normalLineCount = 0;
-                    modifiedLineCount++;
-                }
-            }
+            var end = index;
+            while (end + 1 < lines.Count && IsChangeOrAlignmentRow(lines[end + 1]))
+                end++;
 
-            normalLineCount = lines[lineIdx].Type == Models.TextDiffLineType.Normal ? 1 : 0;
-            for (int i = lineIdx + 1; i < lines.Count; i++)
-            {
-                var line = lines[i];
-                if (line.Type == Models.TextDiffLineType.Indicator)
-                {
-                    endIdx = i;
-                    break;
-                }
-
-                if (line.Type == Models.TextDiffLineType.Normal)
-                {
-                    normalLineCount++;
-                    if (normalLineCount >= 2)
-                    {
-                        endIdx = i;
-                        break;
-                    }
-                }
-                else
-                {
-                    normalLineCount = 0;
-                    modifiedLineCount++;
-                }
-            }
-
-            if (endIdx == -1)
-                endIdx = lines.Count - 1;
-
-            return modifiedLineCount > 0 ? (startIdx, endIdx) : (-1, -1);
+            return (start, end);
         }
 
         public virtual bool IsSideBySide()
@@ -260,30 +214,13 @@ namespace SourceGit.ViewModels
             endLine = _data.Lines.IndexOf(endContent);
         }
 
-        public void GetCombinedRangeForBothSides(ref int startLine, ref int endLine, bool isOldSide)
+        internal (int Start, int End) GetCombinedChangeRange(int index, bool isOldSide)
         {
-            var fromSide = isOldSide ? Old : New;
-            endLine = Math.Min(endLine, fromSide.Count - 1);
+            var line = (isOldSide ? Old : New)[index];
+            if (line.Type == Models.TextDiffLineType.None)
+                line = (isOldSide ? New : Old)[index];
 
-            // Since this function is only used for auto-detected hunk, we just need to find out the a first changed line
-            // and then use `FindRangeByIndex` to get the range of hunk.
-            for (int i = startLine; i <= endLine; i++)
-            {
-                var line = fromSide[i];
-                if (line.Type == Models.TextDiffLineType.Added || line.Type == Models.TextDiffLineType.Deleted)
-                {
-                    (startLine, endLine) = FindRangeByIndex(_data.Lines, _data.Lines.IndexOf(line));
-                    return;
-                }
-
-                if (line.Type == Models.TextDiffLineType.None)
-                {
-                    var otherSide = isOldSide ? New : Old;
-                    var changedLine = otherSide[i]; // Find the changed line on the other side in the same position
-                    (startLine, endLine) = FindRangeByIndex(_data.Lines, _data.Lines.IndexOf(changedLine));
-                    return;
-                }
-            }
+            return FindChangeRange(_data.Lines, _data.Lines.IndexOf(line));
         }
 
         private void FillEmptyLines()

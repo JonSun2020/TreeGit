@@ -9,8 +9,21 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="SourceGit.Views.TagsView">
   <UserControl.Styles>
-    <Style Selector="ListBoxItem:pointerover v|FilterModeSwitchButton">
-      <Setter Property="IsHoverParent" Value="True"/>
+    <Style Selector="ListBox.repo_left_content_list ListBoxItem:selected /template/ Border#PART_Background,
+                     ListBox.repo_left_content_list ListBoxItem.commit_tag /template/ Border#PART_Background">
+      <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.Selection}"/>
+      <Setter Property="Opacity" Value="1"/>
+    </Style>
+    <Style Selector="ListBox.repo_left_content_list ListBoxItem:selected /template/ ContentPresenter,
+                     ListBox.repo_left_content_list ListBoxItem.commit_tag /template/ ContentPresenter">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
+    </Style>
+    <Style Selector="ListBox.repo_left_content_list ListBoxItem.commit_tag_folder:not(:selected) /template/ Border#PART_Background">
+      <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.SelectionSecondary}"/>
+      <Setter Property="Opacity" Value="1"/>
+    </Style>
+    <Style Selector="ListBox.repo_left_content_list ListBoxItem.commit_tag_folder:not(:selected) /template/ ContentPresenter">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionSecondaryForeground}"/>
     </Style>
   </UserControl.Styles>
 
@@ -25,6 +38,8 @@
                ContextRequested="OnTagsContextMenuRequested">
         <ListBox.Styles>
           <Style Selector="ListBoxItem" x:DataType="vm:TagTreeNode">
+            <Setter Property="Classes.commit_tag" Value="{Binding IsCommitTag}"/>
+            <Setter Property="Classes.commit_tag_folder" Value="{Binding IsCommitTagFolder}"/>
             <Setter Property="CornerRadius" Value="{Binding CornerRadius}"/>
           </Style>
         </ListBox.Styles>
@@ -36,7 +51,7 @@
                     DoubleTapped="OnItemDoubleTapped"
                     ToolTip.Tip="{Binding ToolTip}"
                     ToolTip.Placement="Right">
-              <Grid ColumnDefinitions="16,18,*,Auto" Margin="{Binding Depth, Converter={x:Static c:IntConverters.ToTreeMargin}}">
+              <Grid ColumnDefinitions="16,18,*" Margin="{Binding Depth, Converter={x:Static c:IntConverters.ToTreeMargin}}">
                 <v:TagTreeNodeToggleButton Grid.Column="0"
                                            Classes="tree_expander"
                                            Focusable="False"
@@ -50,10 +65,6 @@
                   <Run Text="{Binding FullPath, Converter={x:Static c:PathConverters.PureFileName}, Mode=OneWay}"/>
                   <Run Text="{Binding TagsCount}" Foreground="{DynamicResource Brush.FG2}"/>
                 </TextBlock>
-
-                <Border Grid.Column="3" Margin="4,0,8,0" IsVisible="{Binding !IsFolder}">
-                  <v:FilterModeSwitchButton Mode="{Binding FilterMode}"/>
-                </Border>
               </Grid>
             </Border>
           </DataTemplate>
@@ -71,6 +82,7 @@
                ContextRequested="OnTagsContextMenuRequested">
         <ListBox.Styles>
           <Style Selector="ListBoxItem" x:DataType="vm:TagListItem">
+            <Setter Property="Classes.commit_tag" Value="{Binding IsCommitTag}"/>
             <Setter Property="CornerRadius" Value="{Binding CornerRadius}"/>
           </Style>
         </ListBox.Styles>
@@ -82,7 +94,7 @@
                     DoubleTapped="OnItemDoubleTapped"
                     ToolTip.Tip="{Binding ToolTip}"
                     ToolTip.Placement="Right">
-              <Grid ColumnDefinitions="16,18,*,Auto">
+              <Grid ColumnDefinitions="16,18,*">
                 <Path Grid.Column="1"
                       Width="12" Height="12"
                       HorizontalAlignment="Left"
@@ -98,8 +110,6 @@
                 <TextBlock Grid.Column="2"
                            Text="{Binding Tag.Name}"
                            TextTrimming="CharacterEllipsis"/>
-
-                <v:FilterModeSwitchButton Grid.Column="3" Margin="4,0,8,0" Mode="{Binding FilterMode}"/>
               </Grid>
             </Border>
           </DataTemplate>

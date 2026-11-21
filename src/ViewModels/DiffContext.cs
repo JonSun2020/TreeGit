@@ -11,6 +11,7 @@ namespace SourceGit.ViewModels
     public class DiffContext : ObservableObject
     {
         public IDiffViewSettings Settings { get; }
+        internal Models.DiffOption Option => _option;
         public string Title
         {
             get;
@@ -135,7 +136,9 @@ namespace SourceGit.ViewModels
             new Commands.DiffTool(_repo, _option).Open();
         }
 
-        public void OpenReadOnlyComparison() => App.OpenInternalComparison(_repo, _option);
+        public void OpenReadOnlyComparison() => App.OpenInternalComparison(_repo, _option, allowChanges: false);
+
+        internal void Reload() => LoadContent();
 
         public void RefreshLocalizedText()
         {

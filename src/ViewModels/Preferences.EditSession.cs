@@ -48,8 +48,6 @@ namespace SourceGit.ViewModels
                 Track(nameof(ShowChangesInCommitDetailByDefault), () => owner.ShowChangesInCommitDetailByDefault, v => owner.ShowChangesInCommitDetailByDefault = v);
                 Track(nameof(MaxHistoryCommits), () => owner.MaxHistoryCommits, v => owner.MaxHistoryCommits = v);
                 Track(nameof(SubjectGuideLength), () => owner.SubjectGuideLength, v => owner.SubjectGuideLength = v);
-                Track(nameof(DisplayTimeAsPeriodInHistories), () => owner.DisplayTimeAsPeriodInHistories, v => owner.DisplayTimeAsPeriodInHistories = v);
-                Track(nameof(ShowTagsInGraph), () => owner.ShowTagsInGraph, v => owner.ShowTagsInGraph = v);
                 Track(nameof(UseCompactBranchNamesInGraph), () => owner.UseCompactBranchNamesInGraph, v => owner.UseCompactBranchNamesInGraph = v);
                 Track(nameof(EnableCompactFoldersInChangesTree), () => owner.EnableCompactFoldersInChangesTree, v => owner.EnableCompactFoldersInChangesTree = v);
                 Track(nameof(GitDefaultCloneDir), () => owner.GitDefaultCloneDir, v => owner.GitDefaultCloneDir = v);

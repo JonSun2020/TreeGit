@@ -69,58 +69,16 @@ namespace SourceGit.Views
                 return;
 
             var menu = new ContextMenu();
-            if (DataContext is ViewModels.TagListItem tagItem)
-                FillContextMenuForTag(menu, repo, tagItem.Tag, tagItem.FilterMode);
-            else if (DataContext is ViewModels.TagTreeNode tagNode)
-                FillContextMenuForTag(menu, repo, tagNode.Tag, tagNode.FilterMode);
-            else if (DataContext is ViewModels.BranchTreeNode branchNode)
-                FillContextMenuForBranch(menu, repo, branchNode, branchNode.FilterMode);
+            if (DataContext is not ViewModels.BranchTreeNode branchNode)
+                return;
+
+            FillContextMenuForBranch(menu, repo, branchNode, branchNode.FilterMode);
 
             menu.Closed += (_, _) => IsContextMenuOpening = false;
             menu.Open(button);
 
             IsContextMenuOpening = true;
             e.Handled = true;
-        }
-
-        private void FillContextMenuForTag(ContextMenu menu, ViewModels.Repository repo, Models.Tag tag, Models.FilterMode current)
-        {
-            if (current != Models.FilterMode.None)
-            {
-                var unset = new MenuItem();
-                unset.Header = App.Text("Repository.FilterCommits.Default");
-                unset.Click += (_, ev) =>
-                {
-                    repo.SetTagFilterMode(tag, Models.FilterMode.None);
-                    ev.Handled = true;
-                };
-
-                menu.Items.Add(unset);
-                menu.Items.Add(new MenuItem() { Header = "-" });
-            }
-
-            var include = new MenuItem();
-            include.Icon = this.CreateMenuIcon("Icons.Filter");
-            include.Header = App.Text("Repository.FilterCommits.Include");
-            include.IsEnabled = current != Models.FilterMode.Included;
-            include.Click += (_, ev) =>
-            {
-                repo.SetTagFilterMode(tag, Models.FilterMode.Included);
-                ev.Handled = true;
-            };
-
-            var exclude = new MenuItem();
-            exclude.Icon = this.CreateMenuIcon("Icons.EyeClose");
-            exclude.Header = App.Text("Repository.FilterCommits.Exclude");
-            exclude.IsEnabled = current != Models.FilterMode.Excluded;
-            exclude.Click += (_, ev) =>
-            {
-                repo.SetTagFilterMode(tag, Models.FilterMode.Excluded);
-                ev.Handled = true;
-            };
-
-            menu.Items.Add(include);
-            menu.Items.Add(exclude);
         }
 
         private void FillContextMenuForBranch(ContextMenu menu, ViewModels.Repository repo, ViewModels.BranchTreeNode node, Models.FilterMode current)

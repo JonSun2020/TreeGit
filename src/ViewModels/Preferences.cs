@@ -220,12 +220,6 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _ignoreUpdateTag, value);
         }
 
-        public bool ShowTagsInGraph
-        {
-            get => _showTagsInGraph;
-            set => SetProperty(ref _showTagsInGraph, value);
-        }
-
         public bool UseCompactBranchNamesInGraph
         {
             get => _useCompactBranchNamesInGraph;
@@ -236,12 +230,6 @@ namespace SourceGit.ViewModels
         {
             get => _useTwoColumnsLayoutInHistories;
             set => SetProperty(ref _useTwoColumnsLayoutInHistories, value);
-        }
-
-        public bool DisplayTimeAsPeriodInHistories
-        {
-            get => _displayTimeAsPeriodInHistories;
-            set => SetProperty(ref _displayTimeAsPeriodInHistories, value);
         }
 
         public bool UseSideBySideDiff
@@ -996,9 +984,7 @@ namespace SourceGit.ViewModels
         private double _lastCheckUpdateTime = 0;
         private string _ignoreUpdateTag = string.Empty;
 
-        private bool _showTagsInGraph = true;
         private bool _useTwoColumnsLayoutInHistories = false;
-        private bool _displayTimeAsPeriodInHistories = false;
         private bool _useSideBySideDiff = false;
         private bool _ignoreWhitespaceChangesInDiff = false;
         private bool _ignoreCRAtEOLInDiff = true;

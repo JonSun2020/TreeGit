@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using Avalonia;
 using Avalonia.Controls;
@@ -8,6 +9,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 namespace SourceGit.Views
@@ -139,6 +141,47 @@ namespace SourceGit.Views
                 list.SelectedItem = null;
         }
 
+        public bool HasSingleSelectionFor(string commit)
+        {
+            if (string.IsNullOrEmpty(commit) || this.FindDescendantOfType<ListBox>()?.SelectedItems is not { Count: 1 } selected)
+                return false;
+            return GetTag(selected[0])?.SHA == commit;
+        }
+
+        private static Models.Tag GetTag(object item) => item switch
+        {
+            ViewModels.TagListItem list => list.Tag,
+            ViewModels.TagTreeNode node => node.Tag,
+            _ => null,
+        };
+
+        internal void RevealCommitTag(string folder = null)
+        {
+            if (DataContext is not ViewModels.Repository { SelectedCommitHasTags: true } repo)
+                return;
+            var prefix = folder == null ? null : folder + "/";
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (!IsLoaded || !IsEffectivelyVisible || DataContext != repo || !repo.SelectedCommitHasTags ||
+                    this.FindDescendantOfType<ListBox>() is not { } list)
+                    return;
+
+                bool Matches(object row) => row switch
+                {
+                    ViewModels.TagListItem item => item.IsCommitTag && prefix == null,
+                    ViewModels.TagTreeNode item => item.IsCommitTag &&
+                        (prefix == null || item.FullPath.StartsWith(prefix, StringComparison.Ordinal)),
+                    _ => false,
+                };
+
+                // Multiple tags may be farther apart than the viewport can hold.
+                // Prefer the selected tag, then the first matching item in the visible tree.
+                var target = Matches(list.SelectedItem) ? list.SelectedItem : list.Items.FirstOrDefault(Matches);
+                if (target != null)
+                    list.ScrollIntoView(target);
+            }, DispatcherPriority.Loaded);
+        }
+
         public void ToggleNodeIsExpanded(ViewModels.TagTreeNode node)
         {
             if (Content is ViewModels.TagCollectionAsTree tree)
@@ -146,6 +189,7 @@ namespace SourceGit.Views
                 tree.ToggleExpand(node);
                 Rows = tree.Rows.Count;
                 RaiseEvent(new RoutedEventArgs(RowsChangedEvent));
+                if (node.IsExpanded) RevealCommitTag(node.FullPath);
             }
         }
 
@@ -163,10 +207,12 @@ namespace SourceGit.Views
                     Rows = 0;
 
                 RaiseEvent(new RoutedEventArgs(RowsChangedEvent));
+                RevealCommitTag();
             }
             else if (change.Property == IsVisibleProperty)
             {
                 RaiseEvent(new RoutedEventArgs(RowsChangedEvent));
+                if (IsVisible) RevealCommitTag();
             }
         }
 
@@ -204,10 +250,8 @@ namespace SourceGit.Views
             if (sender is not Control control)
                 return;
 
-            if (control.DataContext is ViewModels.TagListItem { Tag: { } itemTag })
-                repo.NavigateToCommit(itemTag.SHA);
-            else if (control.DataContext is ViewModels.TagTreeNode { Tag: { } nodeTag })
-                repo.NavigateToCommit(nodeTag.SHA);
+            if (GetTag(control.DataContext) is { } tag)
+                repo.NavigateToTag(tag);
         }
 
         private void OnTagsContextMenuRequested(object sender, ContextRequestedEventArgs e)

@@ -108,7 +108,7 @@ namespace SourceGit.Automation
             var positions = toolbar?.GetVisualDescendants().OfType<TextBlock>().Where(t => t.Classes.Contains("toolbar_label") && t.IsEffectivelyVisible)
                 .Select(t => new { text = t.Text, y = t.TranslatePoint(new Point(0, t.Bounds.Height / 2), toolbar)?.Y }).ToArray();
             var taggedRefs = window.GetVisualDescendants().OfType<Views.CommitRefsPresenter>()
-                .Where(v => v.IsEffectivelyVisible && v.ShowTags && v.DataContext is Models.Commit c && c.Decorators.Any(r => r.IsTag))
+                .Where(v => v.IsEffectivelyVisible && v.DataContext is Models.Commit c && c.Decorators.Any(r => r.IsTag))
                 .SelectMany(v =>
                 {
                     var commit = (Models.Commit)v.DataContext;
@@ -121,6 +121,9 @@ namespace SourceGit.Automation
                         refs = new[] { item.Decorator.Name },
                     });
                 }).ToArray();
+            var historyDates = window.GetVisualDescendants().OfType<Views.CommitTimeTextBlock>()
+                .Where(v => v.IsEffectivelyVisible && v.Timestamp != 0 && v.FindAncestorOfType<Views.Histories>() != null)
+                .Select(v => new { actual = v.Text, formatted = Models.DateTimeFormat.Format(v.Timestamp) }).ToArray();
             var popups = window.GetVisualDescendants().OfType<Control>().Where(v => v.Name == "PopupPanel" && v.IsEffectivelyVisible)
                 .Select(v => Bounds(v, window)).ToArray();
             var dialogs = ((IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).Windows
@@ -131,6 +134,8 @@ namespace SourceGit.Automation
                     tabs = w.GetVisualDescendants().OfType<TabControl>().Where(t => t.IsEffectivelyVisible).Select(t => new { selected = t.SelectedIndex,
                         headers = t.Items.OfType<TabItem>().Select(i => (i.Header as TextBlock)?.Text ?? i.Header?.ToString()).ToArray(),
                         visibleHeaders = t.Items.OfType<TabItem>().Where(i => i.IsVisible).Select(i => (i.Header as TextBlock)?.Text ?? i.Header?.ToString()).ToArray() }).ToArray(),
+                    checkboxes = w.GetVisualDescendants().OfType<CheckBox>().Where(c => c.IsEffectivelyVisible)
+                        .Select(c => c.Content?.ToString()).ToArray(),
                     content = w.GetVisualDescendants().OfType<ScrollViewer>().Where(v => v.IsEffectivelyVisible).Select(v => new { viewport = v.Viewport.Height, extent = v.Extent.Height }).ToArray(),
                     confirm = w.GetVisualDescendants().OfType<Button>().Where(b => b.Name == "SavePreferencesButton")
                         .Select(b => new { fill = b.GetVisualDescendants().OfType<Border>().FirstOrDefault(v => v.Name == "PART_Border")?.Background?.ToString(),
@@ -145,7 +150,7 @@ namespace SourceGit.Automation
                 graphPalette = Models.CommitGraph.Pens.Select(p => p.Brush.ToString()).ToArray(),
                 graphNodes = window.GetVisualDescendants().OfType<Views.CommitGraph>().Where(v => v.IsEffectivelyVisible && v.Graph != null)
                     .SelectMany(v => v.Graph.Dots.Select(d => new { x = d.Center.X, color = d.Color })).ToArray(),
-                taggedRefs, popups, dialogs, actions,
+                taggedRefs, historyDates, popups, dialogs, actions,
             };
         }
 

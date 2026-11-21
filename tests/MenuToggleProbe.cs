@@ -60,7 +60,7 @@ namespace SourceGit.Automation
             window.IsHitTestVisible = true;
             _phase = action;
             var index = args.TryGetProperty("value", out var value) ? value.GetInt32() : 0;
-            if (index < 0 || index >= headers.Length && !action.StartsWith("recent_", StringComparison.Ordinal) && !action.StartsWith("welcome_", StringComparison.Ordinal) && !action.StartsWith("diff_", StringComparison.Ordinal) && action is not ("operation_probe" or "tab_guard")) throw new ArgumentOutOfRangeException(nameof(index));
+            if (index < 0 || index >= headers.Length && !action.StartsWith("recent_", StringComparison.Ordinal) && !action.StartsWith("welcome_", StringComparison.Ordinal) && !action.StartsWith("diff_", StringComparison.Ordinal) && action is not ("operation_probe" or "tab_guard" or "tag_sidebar")) throw new ArgumentOutOfRangeException(nameof(index));
             var selected = headers[Math.Min(index, headers.Length - 1)];
             object Bounds(Control control)
             {
@@ -78,6 +78,23 @@ namespace SourceGit.Automation
             }
             var source = selected.GetVisualDescendants().OfType<Control>().FirstOrDefault(c => c.Name == "PART_HeaderPresenter") ?? selected;
             var point = source.TranslatePoint(new Point(source.Bounds.Width / 2, source.Bounds.Height / 2), window) ?? default;
+            static double? TextCenter(TextBlock text, Visual reference)
+            {
+                if (text == null || reference == null || !text.IsArrangeValid ||
+                    text.TextLayout.TextLines.FirstOrDefault() is not { } line)
+                    return null;
+                return text.TranslatePoint(new Point(text.Padding.Left + line.Start + line.Width / 2, 0), reference)?.X;
+            }
+            static bool CaptionFits(TextBlock text, Control area, Thickness inset)
+            {
+                if (area == null || text == null || !text.IsArrangeValid ||
+                    text.TextLayout.TextLines.FirstOrDefault() is not { HasCollapsed: false } line)
+                    return false;
+
+                var x = text.TranslatePoint(new Point(text.Padding.Left + line.Start, 0), area)?.X;
+                return x.HasValue && x.Value + Math.Min(0, line.OverhangLeading) >= inset.Left + 1 &&
+                    x.Value + line.Width - Math.Min(0, line.OverhangTrailing) <= area.Bounds.Width - inset.Right - 1;
+            }
             object searchClick = null;
             if (action == "preferences_open_from_tools")
             {
@@ -101,6 +118,162 @@ namespace SourceGit.Automation
                     left = picker.TranslatePoint(default, preferenceWindow)?.X, pathVisible = path.IsEffectivelyVisible,
                     gitIndex = Models.ExternalMerger.Supported.FindIndex(tool => tool.IsGitConfiguration) };
             }
+            if (action is "diff_working_hover" or "diff_working_hover_stage" or "diff_standalone_hover" or "diff_standalone_chunk" or "diff_standalone_state")
+            {
+                var desktop = (Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime;
+                var host = action.StartsWith("diff_standalone_", StringComparison.Ordinal)
+                    ? desktop.Windows.OfType<Views.InternalDiffWindow>().Last(w => w.IsVisible)
+                    : window;
+                if (action == "diff_standalone_state")
+                {
+                    var outer = host.GetVisualDescendants().OfType<Views.DiffView>().Single(v => v.IsEffectivelyVisible);
+                    var context = (ViewModels.DiffContext)outer.DataContext;
+                    var textDiff = context.Content as ViewModels.TextDiffContext;
+                    return new { ready = context.LoadCompletion.IsCompleted, context.Title, context.IsTextDiff,
+                        canEdit = textDiff?.Option.IsLocalChange == true,
+                        lines = textDiff?.Data.Lines.Select(line => new { line.Content, type = line.Type.ToString() }).ToArray() };
+                }
+                var diff = host.GetVisualDescendants().OfType<Views.TextDiffView>()
+                    .Single(v => v.IsEffectivelyVisible && v.DataContext is ViewModels.TextDiffContext { Option.IsLocalChange: true });
+                var model = (ViewModels.TextDiffContext)diff.DataContext;
+                if (action is "diff_working_hover_stage" or "diff_standalone_chunk")
+                {
+                    var requested = action == "diff_working_hover_stage" ? "BtnStageChunk" : args.GetProperty("button").GetString();
+                    var button = diff.FindControl<Button>(requested);
+                    if (!button.IsEffectivelyVisible || model.SelectedChunk == null)
+                        throw new InvalidOperationException("No hovered change is available for this operation.");
+                    button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    return new { pressed = button.Name };
+                }
+                var presenters = diff.GetVisualDescendants().OfType<Views.ThemedTextDiffPresenter>().Where(v => v.IsEffectivelyVisible).ToArray();
+                if (index >= presenters.Length) return new { ready = false };
+                var presenter = presenters[index];
+                var view = presenter.TextArea.TextView;
+                var rows = model is ViewModels.TwoSideTextDiff split ? presenter.IsOld ? split.Old : split.New : model.Data.Lines;
+                var target = args.GetProperty("button").GetString();
+                var rowIndex = rows.FindIndex(row => target == "$alignment" ? row.Type == Models.TextDiffLineType.None :
+                    target == "$hunk" ? row.Type == Models.TextDiffLineType.Indicator : row.Content == target);
+                if (rowIndex < 0 || !view.VisualLinesValid) return new { ready = false };
+                var visual = view.GetVisualLine(rowIndex + 1);
+                if (visual == null)
+                {
+                    presenter.ScrollToLine(rowIndex + 1);
+                    return new { ready = false };
+                }
+                double Y(AvaloniaEdit.Rendering.VisualLine line, bool bottom) => line.GetTextLineVisualYPosition(
+                    bottom ? line.TextLines[^1] : line.TextLines[0], bottom ? AvaloniaEdit.Rendering.VisualYPosition.LineBottom : AvaloniaEdit.Rendering.VisualYPosition.LineTop)
+                    - view.VerticalOffset;
+                var y = Math.Max(0, Y(visual, false));
+                var bottom = Math.Min(view.Bounds.Height, Y(visual, true));
+                if (bottom <= y) return new { ready = false };
+                var hoverPoint = view.TranslatePoint(new Point(Math.Min(24, view.Bounds.Width / 2), (y + bottom) / 2), host) ?? default;
+                view.RaiseEvent(new PointerEventArgs(InputElement.PointerMovedEvent, view, Pointer, host, hoverPoint, (ulong)Environment.TickCount64,
+                    new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.Other), KeyModifiers.None));
+                var chunk = model.SelectedChunk;
+                return new { ready = true, oldSide = presenter.IsOld, wrap = presenter.WordWrap, selected = chunk != null,
+                    changed = chunk == null ? null : model.Data.Lines.Skip(chunk.StartIdx).Take(chunk.EndIdx - chunk.StartIdx + 1)
+                        .Select(line => new { line.Content, type = line.Type.ToString() }).ToArray(),
+                    visualRows = chunk == null ? null : view.VisualLines.Where(line => !line.IsDisposed && line.FirstDocumentLine.LineNumber <= rows.Count)
+                        .Where(line => Math.Min(chunk.Y + chunk.Height, Y(line, true)) - Math.Max(chunk.Y, Y(line, false)) > 1)
+                        .Select(line => rows[line.FirstDocumentLine.LineNumber - 1].Type.ToString()).ToArray(),
+                    height = chunk?.Height };
+            }
+            if (action == "sidebar_reveal")
+            {
+                var repo = window.GetVisualDescendants().OfType<Views.Repository>().Single(v => v.IsEffectivelyVisible);
+                var request = args.GetProperty("button").GetString().Split('|', 2);
+                var section = request[0];
+                var tree = section == "local" ? repo.LocalBranchTree : repo.RemoteBranchTree;
+                var tags = repo.FindControl<Views.TagsView>("TagsList");
+                var groupName = section switch { "local" => "LocalBranchGroup", "remote" => "RemoteBranchGroup", _ => "TagGroup" };
+                var group = repo.FindControl<ToggleButton>(groupName);
+                Control panel = section == "tags" ? tags : tree;
+                var list = panel.FindDescendantOfType<ListBox>();
+                var scroll = list?.FindDescendantOfType<ScrollViewer>();
+                if (index is 1 or 2)
+                    group.SetCurrentValue(ToggleButton.IsCheckedProperty, index == 2);
+                else if (index == 3)
+                {
+                    if (section == "tags")
+                        tags.ToggleNodeIsExpanded(list!.Items.OfType<ViewModels.TagTreeNode>().Single(row => row.IsFolder && row.FullPath == request[1]));
+                    else
+                        tree.ToggleNodeIsExpanded(tree.Rows.Single(row => !row.IsBranch && row.Path == request[1]));
+                }
+                else if (index == 4 && scroll != null)
+                    scroll.Offset = default;
+
+                string PathOf(object row) => row switch
+                {
+                    ViewModels.TagTreeNode tag => tag.FullPath,
+                    ViewModels.TagListItem tag => tag.Tag.Name,
+                    ViewModels.BranchTreeNode branch => branch.Path,
+                    _ => null,
+                };
+                bool InViewport(ListBoxItem row)
+                {
+                    if (scroll == null || !row.IsEffectivelyVisible || row.Bounds.Height < 1) return false;
+                    var origin = row.TranslatePoint(default, scroll);
+                    return origin is { Y: >= -1 } && origin.Value.Y + row.Bounds.Height <= scroll.Bounds.Height + 1;
+                }
+                return new { open = group.IsChecked == true, offset = scroll?.Offset.Y,
+                    rows = list?.Items.Select(PathOf).ToArray() ?? [],
+                    visible = list?.GetVisualDescendants().OfType<ListBoxItem>().Where(InViewport).Select(row => PathOf(row.DataContext)).ToArray() ?? [] };
+            }
+            if (action == "tag_sidebar")
+            {
+                var view = window.GetVisualDescendants().OfType<Views.Repository>().Single(v => v.IsEffectivelyVisible);
+                var repo = (ViewModels.Repository)view.DataContext;
+                var group = view.FindControl<ToggleButton>("TagGroup");
+                var tags = view.FindControl<Views.TagsView>("TagsList");
+                var list = tags.GetVisualDescendants().OfType<ListBox>().FirstOrDefault();
+                var tagName = args.GetProperty("button").GetString();
+                string Name(object item) => item switch
+                {
+                    ViewModels.TagListItem flat => flat.Tag.Name,
+                    ViewModels.TagTreeNode tree => tree.FullPath,
+                    _ => null,
+                };
+                if (index == 1)
+                    group.SetCurrentValue(ToggleButton.IsCheckedProperty, group.IsChecked != true);
+                else if (index == 2)
+                    repo.ShowTagsAsTree = !repo.ShowTagsAsTree;
+                else if (index == 3)
+                {
+                    list!.Focus();
+                    list.SelectedItem = list.Items.First(item => Name(item) == tagName);
+                }
+                else if (index == 4)
+                    tags.ToggleNodeIsExpanded(list!.Items.OfType<ViewModels.TagTreeNode>().First(node => node.IsFolder && node.FullPath == tagName));
+                else if (index == 5)
+                    tags.UnselectAll();
+                else if (index == 6)
+                {
+                    var row = tags.GetVisualDescendants().OfType<ListBoxItem>().First(item => Name(item.DataContext) == tagName);
+                    var target = row.GetVisualDescendants().OfType<Border>().First(b => b.Height == 24);
+                    var hit = target.TranslatePoint(new Point(40, 12), window) ?? default;
+                    target.RaiseEvent(new PointerPressedEventArgs(target, Pointer, window, hit, (ulong)Environment.TickCount64,
+                        new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None, 1));
+                    target.RaiseEvent(new PointerReleasedEventArgs(target, Pointer, window, hit, (ulong)Environment.TickCount64,
+                        new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.LeftButtonReleased), KeyModifiers.None, MouseButton.Left));
+                }
+                return new
+                {
+                    expanded = group.IsChecked == true,
+                    groupColor = group.Background?.ToString(),
+                    primary = group.FindResource("Brush.TreeGit.Selection")?.ToString(),
+                    secondary = group.FindResource("Brush.TreeGit.SelectionSecondary")?.ToString(),
+                    selectionText = group.FindResource("Brush.TreeGit.SelectionForeground")?.ToString(),
+                    tree = repo.ShowTagsAsTree,
+                    filterButtons = tags.GetVisualDescendants().OfType<Views.FilterModeSwitchButton>().Count(),
+                    rows = tags.GetVisualDescendants().OfType<ListBoxItem>().Where(row => row.IsEffectivelyVisible).Select(row =>
+                    {
+                        var background = row.GetVisualDescendants().OfType<Border>().FirstOrDefault(b => b.Name == "PART_Background");
+                        var textPresenter = row.GetVisualChildren().FirstOrDefault()?.GetVisualChildren().OfType<ContentPresenter>().FirstOrDefault();
+                        return new { name = Name(row.DataContext), selected = row.IsSelected,
+                            color = background?.Background?.ToString(), opacity = background?.Opacity, text = textPresenter?.Foreground?.ToString() };
+                    }).ToArray(),
+                };
+            }
             if (action == "dropdown_geometry")
             {
                 var name = args.GetProperty("button").GetString();
@@ -109,7 +282,10 @@ namespace SourceGit.Automation
                     .First(c => c.IsEffectivelyVisible && (c.Name == name || name == "PullBranch" && c is Views.BranchSelector && c.FindAncestorOfType<Views.Pull>() != null));
                 if (dropdown is ComboBox combo)
                 {
-                    if (index != 2) combo.IsDropDownOpen = index == 1;
+                    if (index is 3 or 4)
+                        combo.SetCurrentValue(SelectingItemsControl.SelectedIndexProperty, index - 3);
+                    else if (index != 2)
+                        combo.IsDropDownOpen = index == 1;
                 }
                 else if (dropdown is Views.BranchSelector branch)
                 {
@@ -120,6 +296,23 @@ namespace SourceGit.Automation
                 var frame = popup?.Child;
                 var left = frame?.TranslatePoint(default, dropdown)?.X;
                 var right = frame?.TranslatePoint(new Point(frame.Bounds.Width, 0), dropdown)?.X;
+                if (dropdown is ComboBox historyPicker && name is "HistoryBranchPicker" or "HistoryOrderPicker")
+                {
+                    var parts = dropdown.GetVisualDescendants().ToArray();
+                    var area = parts.OfType<ContentControl>().FirstOrDefault(c => c.Name == "ContentPresenter");
+                    var caption = parts.OfType<Panel>().FirstOrDefault(c => c.Name == "HistoryPickerCaption")?
+                        .GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.IsEffectivelyVisible);
+                    var guide = parts.OfType<Panel>().FirstOrDefault(c => c.Name == "HistoryPickerWidthGuide");
+                    var center = area?.TranslatePoint(new Point(area.Bounds.Width / 2, 0), dropdown)?.X;
+                    var items = (frame?.GetVisualDescendants().OfType<ComboBoxItem>() ?? [])
+                        .Select(item => (item, text: item.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.IsEffectivelyVisible)))
+                        .Where(entry => entry.text != null);
+                    return new { boxed = dropdown.Bounds.Width, left, right, popupOpen = popup?.IsOpen,
+                        selected = historyPicker.SelectedIndex, text = caption?.Text, centerOffset = TextCenter(caption, dropdown) - center,
+                        fits = CaptionFits(caption, area, default), longest = guide?.DesiredSize.Width,
+                        items = items.Select(entry => new { text = entry.text.Text, centerOffset = TextCenter(entry.text, frame) - center,
+                            fits = CaptionFits(entry.text, entry.item, entry.item.Padding) }).ToArray() };
+                }
                 var layer = OverlayLayer.GetOverlayLayer(dropdown);
                 var root = TopLevel.GetTopLevel(dropdown);
                 return new { boxed = dropdown.Bounds.Width, left, right, popupOpen = popup?.IsOpen,
@@ -209,23 +402,6 @@ namespace SourceGit.Automation
                     var contextLabel = profileView.FindControl<Border>("DiffContextLabelBackground");
                     var encodingBackground = profileView.FindControl<ComboBox>("DiffEncodingPicker")
                         .GetVisualDescendants().OfType<Border>().FirstOrDefault(b => b.Name == "Background")?.Background;
-                    static double? TextCenter(TextBlock text, Visual reference)
-                    {
-                        if (text == null || reference == null || !text.IsArrangeValid ||
-                            text.TextLayout.TextLines.FirstOrDefault() is not { } line)
-                            return null;
-                        return text.TranslatePoint(new Point(text.Padding.Left + line.Start + line.Width / 2, 0), reference)?.X;
-                    }
-                    static bool CaptionFits(TextBlock text, Control area, Thickness inset)
-                    {
-                        if (area == null || text == null || !text.IsArrangeValid ||
-                            text.TextLayout.TextLines.FirstOrDefault() is not { HasCollapsed: false } line)
-                            return false;
-
-                        var x = text.TranslatePoint(new Point(text.Padding.Left + line.Start, 0), area)?.X;
-                        return x.HasValue && x.Value + Math.Min(0, line.OverhangLeading) >= inset.Left + 1 &&
-                            x.Value + line.Width - Math.Min(0, line.OverhangTrailing) <= area.Bounds.Width - inset.Right - 1;
-                    }
                     var areaCenter = selectionArea?.TranslatePoint(new Point(selectionArea.Bounds.Width / 2, 0), picker)?.X;
                     return new { width = picker.Bounds.Width, longest = guide?.DesiredSize.Width,
                         text = caption?.Text, centerOffset = TextCenter(caption, picker) - areaCenter,

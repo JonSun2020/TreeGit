@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -354,8 +355,12 @@ namespace SourceGit.ViewModels
             set
             {
                 var oldCount = _selectedCommits.Count;
-                if (SetProperty(ref _selectedCommits, value) && oldCount + value.Count > 0)
-                    PostSelectedCommitsChanged();
+                if (SetProperty(ref _selectedCommits, value))
+                {
+                    _navigationVersion++;
+                    if (oldCount + value.Count > 0)
+                        PostSelectedCommitsChanged();
+                }
             }
         }
 
@@ -364,9 +369,21 @@ namespace SourceGit.ViewModels
             get => _detailContext;
             set
             {
-                if (SetProperty(ref _detailContext, value))
-                    OnPropertyChanged(nameof(IsOpenAsStandaloneVisible));
+                if (ReferenceEquals(_detailContext, value)) return;
+                if (_detailContext is CommitDetail previous)
+                    previous.PropertyChanged -= OnDetailCommitChanged;
+                SetProperty(ref _detailContext, value);
+                if (value is CommitDetail current)
+                    current.PropertyChanged += OnDetailCommitChanged;
+                OnPropertyChanged(nameof(IsOpenAsStandaloneVisible));
+                _repo.NotifySelectedCommitTagsChanged();
             }
+        }
+
+        private void OnDetailCommitChanged(object sender, PropertyChangedEventArgs e)
+        {
+            if (e.PropertyName == nameof(CommitDetail.Commit))
+                _repo.NotifySelectedCommitTagsChanged();
         }
 
         public Models.Bisect Bisect
@@ -517,9 +534,11 @@ namespace SourceGit.ViewModels
         }
 
         public event Action<string> CommitRevealRequested;
+        private int _navigationVersion;
 
         public void NavigateTo(string commitSHA)
         {
+            var navigation = ++_navigationVersion;
             var commit = _commits.Find(x => x.SHA.StartsWith(commitSHA, StringComparison.Ordinal));
             if (commit != null)
             {
@@ -539,8 +558,10 @@ namespace SourceGit.ViewModels
 
                 Dispatcher.UIThread.Post(() =>
                 {
+                    if (navigation != _navigationVersion || c == null) return;
                     _ignoreSelectionChange = true;
                     SelectedCommits = [];
+                    IsWorkingCopySelected = false;
 
                     if (_detailContext is CommitDetail detail)
                     {

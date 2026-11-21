@@ -164,7 +164,7 @@
           </DataGridTemplateColumn.CellTemplate>
         </DataGridTemplateColumn>
         <DataGridTextColumn Header="{DynamicResource Text.TreeGit.History.Description}" Binding="{Binding Subject}" Width="*" MinWidth="160"/>
-        <DataGridTemplateColumn Header="{DynamicResource Text.TreeGit.History.Date}" Width="160" MinWidth="100"><DataGridTemplateColumn.CellTemplate><DataTemplate DataType="m:Commit"><v:CommitTimeTextBlock Margin="4,0" Timestamp="{Binding CommitterTime}" ShowAsDateTime="True" DateTimeFormat="{Binding Source={x:Static vm:Preferences.Instance}, Path=DateTimeFormat}" Use24Hours="{Binding Source={x:Static vm:Preferences.Instance}, Path=Use24Hours}"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
+        <DataGridTemplateColumn Header="{DynamicResource Text.TreeGit.History.Date}" Width="160" MinWidth="100"><DataGridTemplateColumn.CellTemplate><DataTemplate DataType="m:Commit"><v:CommitTimeTextBlock Margin="4,0" Timestamp="{Binding CommitterTime}" DateTimeFormat="{Binding Source={x:Static vm:Preferences.Instance}, Path=DateTimeFormat}" Use24Hours="{Binding Source={x:Static vm:Preferences.Instance}, Path=Use24Hours}"/></DataTemplate></DataGridTemplateColumn.CellTemplate></DataGridTemplateColumn>
         <DataGridTextColumn Header="{DynamicResource Text.TreeGit.History.Author}" Binding="{Binding Author.Name}" Width="150" MinWidth="80"/>
         <DataGridTextColumn Header="{DynamicResource Text.TreeGit.History.Commit}" Binding="{Binding SHA, Converter={x:Static c:StringConverters.ToShortSHA}}" Width="100" MinWidth="70"/>
       </DataGrid.Columns>

@@ -762,8 +762,8 @@ namespace SourceGit.Views
             if (sender is not TextView view)
                 return;
 
-            var y = e.GetPosition(view).Y + view.VerticalOffset;
-            Dispatcher.UIThread.Post(() => UpdateSelectedChunk(y));
+            var viewportY = e.GetPosition(view).Y;
+            Dispatcher.UIThread.Post(() => UpdateSelectedChunk(viewportY + view.VerticalOffset));
         }
 
         private void OnTextViewVisualLinesChanged(object sender, EventArgs e)
@@ -1043,7 +1043,7 @@ namespace SourceGit.Views
 
         protected override void UpdateSelectedChunk(double y)
         {
-            if (DataContext is not ViewModels.CombinedTextDiff { Data: { } diff } combined)
+            if (DataContext is not ViewModels.CombinedTextDiff { Data: { } diff })
                 return;
 
             var view = TextArea.TextView;
@@ -1122,7 +1122,7 @@ namespace SourceGit.Views
                     return;
                 }
 
-                var (startIdx, endIdx) = combined.FindRangeByIndex(diff.Lines, lineIdx);
+                var (startIdx, endIdx) = ViewModels.TextDiffContext.FindChangeRange(diff.Lines, lineIdx);
                 if (startIdx == -1)
                 {
                     TrySetChunk(null);
@@ -1313,7 +1313,7 @@ namespace SourceGit.Views
                     return;
                 }
 
-                var (startIdx, endIdx) = diff.FindRangeByIndex(lines, lineIdx);
+                var (startIdx, endIdx) = ViewModels.TextDiffContext.FindChangeRange(lines, lineIdx);
                 if (startIdx == -1)
                 {
                     TrySetChunk(null);
@@ -1330,8 +1330,10 @@ namespace SourceGit.Views
                     endLine.GetTextLineVisualYPosition(endLine.TextLines[^1], VisualYPosition.LineBottom) - view.VerticalOffset :
                     view.Bounds.Height;
 
-                diff.GetCombinedRangeForBothSides(ref startIdx, ref endIdx, IsOld);
-                TrySetChunk(new(rectStartY, rectEndY - rectStartY, startIdx, endIdx, true, false));
+                var (combinedStart, combinedEnd) = diff.GetCombinedChangeRange(lineIdx, IsOld);
+                TrySetChunk(combinedStart >= 0
+                    ? new(rectStartY, rectEndY - rectStartY, combinedStart, combinedEnd, true, false)
+                    : null);
             }
         }
 
@@ -1587,83 +1589,64 @@ namespace SourceGit.Views
                 ctx.SelectedChunk = null;
         }
 
-        private async void OnStageChunk(object _1, RoutedEventArgs _2)
+        private async void OnStageChunk(object _1, RoutedEventArgs _2) => await ApplyChunkAsync(ChunkAction.Stage);
+        private async void OnUnstageChunk(object _1, RoutedEventArgs _2) => await ApplyChunkAsync(ChunkAction.Unstage);
+        private async void OnDiscardChunk(object _1, RoutedEventArgs _2) => await ApplyChunkAsync(ChunkAction.Discard);
+
+        private async Task ApplyChunkAsync(ChunkAction action)
         {
-            if (DataContext is not ViewModels.TextDiffContext { SelectedChunk: { } chunk, Data: { } diff, Option: { } option } vm)
+            if (_chunkActionRunning ||
+                DataContext is not ViewModels.TextDiffContext { SelectedChunk: { } chunk, Data: { } diff, Option: { IsLocalChange: true } option } vm ||
+                option.IsUnstaged != (action is ChunkAction.Stage or ChunkAction.Discard))
                 return;
 
-            if (!option.IsLocalChange || !option.IsUnstaged)
+            var standalone = TopLevel.GetTopLevel(this) as InternalDiffWindow;
+            var repo = this.FindAncestorOfType<Repository>()?.DataContext as ViewModels.Repository ?? standalone?.ChunkRepository;
+            if (repo?.WorkingCopy?.CanChangeIndex != true)
                 return;
 
             var patch = new Models.PatchGenerator(option, diff, chunk.StartIdx, chunk.EndIdx, chunk.Combined, chunk.IsOldSide);
             if (!patch.IsValid)
                 return;
 
-            if (this.FindAncestorOfType<Repository>()?.DataContext is not ViewModels.Repository repo)
-                return;
-
-            var tmpFile = Path.GetTempFileName();
-            patch.Generate(tmpFile, false);
-
-            using var lockWatcher = repo.LockWatcher();
-            await new Commands.Apply(repo.FullPath, tmpFile, true, "nowarn", "--cache --index").ExecAsync();
-
-            vm.BlockNavigation.UpdateByChunk(chunk);
-            repo.MarkWorkingCopyDirtyManually();
-            File.Delete(tmpFile);
+            var arguments = action switch
+            {
+                ChunkAction.Stage => "--cache --index",
+                ChunkAction.Unstage => "--cache --index --reverse",
+                _ => "--reverse",
+            };
+            _chunkActionRunning = true;
+            Popup.IsEnabled = false;
+            string tmpFile = null;
+            try
+            {
+                tmpFile = Path.GetTempFileName();
+                patch.Generate(tmpFile, action != ChunkAction.Stage);
+                using var lockWatcher = repo.LockWatcher();
+                if (await new Commands.Apply(repo.FullPath, tmpFile, true, "nowarn", arguments).ExecAsync())
+                    vm.BlockNavigation.UpdateByChunk(chunk);
+                vm.SelectedChunk = null;
+                standalone?.WaitForWorkingCopyRefresh();
+                repo.MarkWorkingCopyDirtyManually();
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            {
+                repo.SendNotification(error.Message, true);
+            }
+            finally
+            {
+                _chunkActionRunning = false;
+                Popup.IsEnabled = true;
+                if (tmpFile != null)
+                {
+                    try { File.Delete(tmpFile); }
+                    catch (Exception error) when (error is IOException or UnauthorizedAccessException) { Native.OS.LogException(error); }
+                }
+            }
         }
 
-        private async void OnUnstageChunk(object _1, RoutedEventArgs _2)
-        {
-            if (DataContext is not ViewModels.TextDiffContext { SelectedChunk: { } chunk, Data: { } diff, Option: { } option } vm)
-                return;
-
-            if (!option.IsLocalChange || option.IsUnstaged)
-                return;
-
-            var patch = new Models.PatchGenerator(option, diff, chunk.StartIdx, chunk.EndIdx, chunk.Combined, chunk.IsOldSide);
-            if (!patch.IsValid)
-                return;
-
-            if (this.FindAncestorOfType<Repository>()?.DataContext is not ViewModels.Repository repo)
-                return;
-
-            var tmpFile = Path.GetTempFileName();
-            patch.Generate(tmpFile, true);
-
-            using var lockWatcher = repo.LockWatcher();
-            await new Commands.Apply(repo.FullPath, tmpFile, true, "nowarn", "--cache --index --reverse").ExecAsync();
-
-            vm.BlockNavigation.UpdateByChunk(chunk);
-            repo.MarkWorkingCopyDirtyManually();
-            File.Delete(tmpFile);
-        }
-
-        private async void OnDiscardChunk(object _1, RoutedEventArgs _2)
-        {
-            if (DataContext is not ViewModels.TextDiffContext { SelectedChunk: { } chunk, Data: { } diff, Option: { } option } vm)
-                return;
-
-            if (!option.IsLocalChange || !option.IsUnstaged)
-                return;
-
-            var patch = new Models.PatchGenerator(option, diff, chunk.StartIdx, chunk.EndIdx, chunk.Combined, chunk.IsOldSide);
-            if (!patch.IsValid)
-                return;
-
-            if (this.FindAncestorOfType<Repository>()?.DataContext is not ViewModels.Repository repo)
-                return;
-
-            var tmpFile = Path.GetTempFileName();
-            patch.Generate(tmpFile, true);
-
-            using var lockWatcher = repo.LockWatcher();
-            await new Commands.Apply(repo.FullPath, tmpFile, true, "nowarn", "--reverse").ExecAsync();
-
-            vm.BlockNavigation.UpdateByChunk(chunk);
-            repo.MarkWorkingCopyDirtyManually();
-            File.Delete(tmpFile);
-        }
+        private enum ChunkAction { Stage, Unstage, Discard }
+        private bool _chunkActionRunning;
 
         private ViewModels.TextDiffSelectedChunk _selectedChunk = null;
     }

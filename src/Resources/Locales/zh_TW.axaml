@@ -661,16 +661,6 @@
   <x:String x:Key="Text.PageTabBar.Tab.Refresh" xml:space="preserve">重新整理</x:String>
   <x:String x:Key="Text.PageTabBar.Welcome.Title" xml:space="preserve">新分頁</x:String>
   <x:String x:Key="Text.Paste" xml:space="preserve">貼上</x:String>
-  <x:String x:Key="Text.Period.DaysAgo" xml:space="preserve">{0} 天前</x:String>
-  <x:String x:Key="Text.Period.HourAgo" xml:space="preserve">1 小時前</x:String>
-  <x:String x:Key="Text.Period.HoursAgo" xml:space="preserve">{0} 小時前</x:String>
-  <x:String x:Key="Text.Period.JustNow" xml:space="preserve">剛剛</x:String>
-  <x:String x:Key="Text.Period.LastMonth" xml:space="preserve">上個月</x:String>
-  <x:String x:Key="Text.Period.LastYear" xml:space="preserve">一年前</x:String>
-  <x:String x:Key="Text.Period.MinutesAgo" xml:space="preserve">{0} 分鐘前</x:String>
-  <x:String x:Key="Text.Period.MonthsAgo" xml:space="preserve">{0} 個月前</x:String>
-  <x:String x:Key="Text.Period.YearsAgo" xml:space="preserve">{0} 年前</x:String>
-  <x:String x:Key="Text.Period.Yesterday" xml:space="preserve">昨天</x:String>
   <x:String x:Key="Text.Preferences" xml:space="preserve">偏好設定</x:String>
   <x:String x:Key="Text.Preferences.AI" xml:space="preserve">AI</x:String>
   <x:String x:Key="Text.Preferences.AI.AdditionalPrompt" xml:space="preserve">附加提示詞 (請使用 '-' 列出您的要求)</x:String>
@@ -713,8 +703,6 @@
   <x:String x:Key="Text.Preferences.General.MaxHistoryCommits" xml:space="preserve">最大歷史提交數：</x:String>
   <x:String x:Key="Text.Preferences.General.ShowChangesPageByDefault" xml:space="preserve">預設顯示 [本機變更] 頁面</x:String>
   <x:String x:Key="Text.Preferences.General.ShowChangesTabInCommitDetailByDefault" xml:space="preserve">在提交詳細資訊頁面預設顯示 [變更對比]</x:String>
-  <x:String x:Key="Text.Preferences.General.ShowRelativeTimeInGraph" xml:space="preserve">在提交圖譜中顯示相對時間</x:String>
-  <x:String x:Key="Text.Preferences.General.ShowTagsInGraph" xml:space="preserve">在圖譜中顯示標籤</x:String>
   <x:String x:Key="Text.Preferences.General.SubjectGuideLength" xml:space="preserve">提交標題字數偵測：</x:String>
   <x:String x:Key="Text.Preferences.General.Use24Hours" xml:space="preserve">24 小時制</x:String>
   <x:String x:Key="Text.Preferences.General.UseCompactBranchNames" xml:space="preserve">在提交圖譜中使用簡潔的分支標籤</x:String>
