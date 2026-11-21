@@ -75,7 +75,8 @@ namespace SourceGit.Models
 
                     try
                     {
-                        var raw = GrammarReader.ReadGrammarSync(new StreamReader(asset));
+                        using var reader = new StreamReader(asset);
+                        var raw = GrammarReader.ReadGrammarSync(reader);
                         s_cachedRawGrammars.Add(scopeName, raw);
                         return raw;
                     }
@@ -104,7 +105,7 @@ namespace SourceGit.Models
         public string LastScope { get; set; } = string.Empty;
 
         public IRawTheme GetTheme(string scopeName) => _backend.GetTheme(scopeName);
-        public IRawTheme GetDefaultTheme() => _backend.GetDefaultTheme();
+        public IRawTheme GetDefaultTheme() => LoadTheme(defaultTheme);
         public ICollection<string> GetInjections(string scopeName) => _backend.GetInjections(scopeName);
         public IRawGrammar GetGrammar(string scopeName) => GrammarUtility.GetGrammar(scopeName, _backend);
         public string GetScope(string filename) => GrammarUtility.GetScope(filename, _backend);
@@ -150,7 +151,6 @@ namespace SourceGit.Models
                 {
                     reg.LastScope = scope;
                     installation.SetGrammar(scope);
-                    GC.Collect();
                 }
             }
         }

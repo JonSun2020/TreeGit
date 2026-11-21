@@ -224,6 +224,8 @@ try:
    ('utf16be',codecs.BOM_UTF16_BE+'检查\nline'.encode('utf-16-be'),3,'检查'),
    ('utf32le',codecs.BOM_UTF32_LE+'中文\nline'.encode('utf-32-le'),4,'中文'),
    ('utf32be',codecs.BOM_UTF32_BE+'记录\nline'.encode('utf-32-be'),5,'记录'),
+   ('patch-buffer-boundary',('温度' * 30000 + '\r\nfinal line').encode(),0,
+    ['温度' * 30000, 'final line']),
   ]
   client.close();client=None
   filename='encoding-sample.c'

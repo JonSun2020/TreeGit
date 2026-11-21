@@ -106,7 +106,7 @@ function Initialize-TreeGitRuntime([string]$Destination,[string]$CacheDirectory,
             @{path=$_.FullName.Substring($root.Length+1).Replace('\','/');sha256=(Get-TreeGitHash $_.FullName)}
         })
         $manifest=@{schema=1;gitVersion=$lock.gitVersion;lfsVersion=$lock.lfsVersion;flowVersion=$lock.flowVersion;inputLockSha256=$lockHash;assets=$lock.assets;files=$records}
-        [IO.File]::WriteAllText((Join-Path $root 'runtime-manifest.json'),($manifest|ConvertTo-Json -Depth 8),[Text.UTF8Encoding]::new($false))
+        [IO.File]::WriteAllText((Join-Path $root 'runtime-manifest.json'),($manifest|ConvertTo-Json -Depth 8 -Compress),[Text.UTF8Encoding]::new($false))
         return (Test-TreeGitRuntime $root)
     } finally {$cacheLock.Dispose()}
 }

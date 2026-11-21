@@ -79,7 +79,7 @@ try {
     }
     $entry=$zip.CreateEntry('TreeGit/git/runtime-manifest.json',$compression)
     $writer=[IO.StreamWriter]::new($entry.Open(),[Text.UTF8Encoding]::new($false))
-    try{$writer.Write((@{schema=1;files=@($records)}|ConvertTo-Json -Depth 4))}finally{$writer.Dispose()}
+    try{$writer.Write((@{schema=1;files=@($records)}|ConvertTo-Json -Depth 4 -Compress))}finally{$writer.Dispose()}
 } finally {$zip.Dispose()}
 $hash=Get-TreeGitHash $partial
 $checksums=$hash+'  '+$name+"`n"

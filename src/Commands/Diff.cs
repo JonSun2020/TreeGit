@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
@@ -33,7 +34,6 @@ namespace SourceGit.Commands
 
         private const string SPECIAL_DIFF_START = "diff ";
         private const string SPECIAL_BINARY = "Binary files ";
-        private const string SPECIAL_NO_NEWLINE = " No newline at end of file";
         private const string SPECIAL_SUBMODULE = "Subproject commit ";
 
         private const int MAX_INLINE_CONTENT_LENGTH = 1024;
@@ -67,39 +67,20 @@ namespace SourceGit.Commands
                 using var proc = new Process();
                 proc.StartInfo = CreateGitStartInfo(true);
                 Native.ProcessLauncher.Start(proc);
-                using var cancellation = CancellationToken.Register(() =>
+                using var cancellation = CancellationToken.Register(StopGit);
+                try
+                {
+                    proc.BeginErrorReadLine();
+                    await ReadPatchAsync(proc.StandardOutput.BaseStream).ConfigureAwait(false);
+                    await proc.WaitForExitAsync(CancellationToken).ConfigureAwait(false);
+                }
+                finally { StopGit(); }
+
+                void StopGit()
                 {
                     try { if (!proc.HasExited) Native.OS.TerminateProcess(proc); }
                     catch (InvalidOperationException) { }
-                });
-                proc.BeginErrorReadLine();
-
-                using var ms = new MemoryStream();
-                await proc.StandardOutput.BaseStream.CopyToAsync(ms, CancellationToken).ConfigureAwait(false);
-
-                if (ms.TryGetBuffer(out var buffer))
-                {
-                    var start = buffer.Offset;
-                    var end = buffer.Offset + buffer.Count;
-                    while (start < end)
-                    {
-                        CancellationToken.ThrowIfCancellationRequested();
-                        var lineEnd = Array.IndexOf(buffer.Array, (byte)'\n', start, end - start);
-                        if (lineEnd < 0)
-                        {
-                            ParseLine(buffer[start..]);
-                            break;
-                        }
-
-                        ParseLine(buffer[start..lineEnd]);
-                        if (_result.IsBinary)
-                            break;
-
-                        start = lineEnd + 1;
-                    }
                 }
-
-                await proc.WaitForExitAsync(CancellationToken).ConfigureAwait(false);
             }
             catch (OperationCanceledException) when (CancellationToken.IsCancellationRequested) { throw; }
             catch
@@ -157,28 +138,86 @@ namespace SourceGit.Commands
             return _result;
         }
 
+        private async Task ReadPatchAsync(Stream stream)
+        {
+            var pool = ArrayPool<byte>.Shared;
+            var initial = pool.Rent(64 * 1024);
+            var buffer = initial;
+            var length = 0;
+            var scanned = 0;
+            try
+            {
+                while (true)
+                {
+                    var read = await stream.ReadAsync(buffer.AsMemory(length), CancellationToken).ConfigureAwait(false);
+                    if (read == 0)
+                    {
+                        if (length > 0)
+                            ParseLine(new ArraySegment<byte>(buffer, 0, length));
+                        return;
+                    }
+
+                    length += read;
+                    var lineStart = 0;
+                    while (scanned < length)
+                    {
+                        CancellationToken.ThrowIfCancellationRequested();
+                        var lineEnd = Array.IndexOf(buffer, (byte)'\n', scanned, length - scanned);
+                        if (lineEnd < 0) break;
+
+                        ParseLine(new ArraySegment<byte>(buffer, lineStart, lineEnd - lineStart));
+                        if (_result.IsBinary)
+                        {
+                            await stream.CopyToAsync(Stream.Null, CancellationToken).ConfigureAwait(false);
+                            return;
+                        }
+
+                        scanned = lineStart = lineEnd + 1;
+                    }
+
+                    // Preserve the unfinished line. Grow only for a line that
+                    // spans the entire buffer, irrespective of total patch size.
+                    length -= lineStart;
+                    if (length == buffer.Length)
+                        Array.Resize(ref buffer, checked(buffer.Length * 2));
+                    else if (lineStart > 0)
+                    {
+                        buffer.AsSpan(lineStart, length).CopyTo(buffer);
+                    }
+                    scanned = length;
+                }
+            }
+            finally
+            {
+                pool.Return(initial, clearArray: true);
+            }
+        }
+
         private void ParseLine(ArraySegment<byte> lineBytes)
         {
             if (lineBytes.Count == 0) return;
             var bytes = lineBytes.AsSpan();
-            var line = _isInChunk && bytes[0] is (byte)'+' or (byte)'-' or (byte)' '
-                ? ((char)bytes[0]).ToString() + DecodePatchLine(bytes)
-                : Encoding.UTF8.GetString(bytes);
-            if (line.Length == 0)
-                return;
-
-            // If we are reading a chunk-body, try to read the current line as chunk-body first (because
-            // there are usually more chunk-body lines than chunk-indicator lines).
             if (_isInChunk)
             {
-                if (ParseChunkBodyLine(line, lineBytes))
+                var prefix = (char)bytes[0];
+                if (prefix is PREFIX_DELETED or PREFIX_ADDED or PREFIX_CONTEXT)
+                {
+                    ParseChunkBodyLine(prefix, DecodePatchLine(bytes), bytes[1..].ToArray());
                     return;
+                }
+
+                if (prefix == PREFIX_COMMAND)
+                {
+                    if (bytes[1..].SequenceEqual(" No newline at end of file"u8))
+                        _last.NoNewLineEndOfFile = true;
+                    return;
+                }
 
                 ProcessInlineHighlights();
                 _isInChunk = false;
             }
 
-            // If the current line is not a chunk-body, try to parse it as chunk-indicator
+            var line = Encoding.UTF8.GetString(bytes);
             if (ParseChunkStartLine(line))
             {
                 _isInChunk = true;
@@ -238,11 +277,8 @@ namespace SourceGit.Commands
             return false;
         }
 
-        private bool ParseChunkBodyLine(string line, ArraySegment<byte> lineBytes)
+        private void ParseChunkBodyLine(char prefix, string content, byte[] rawContent)
         {
-            var prefix = line[0];
-            var content = line.Substring(1);
-            var rawContent = lineBytes[1..].ToArray();
             ParseLFSChange(prefix, content);
 
             if (prefix == PREFIX_DELETED)
@@ -251,19 +287,15 @@ namespace SourceGit.Commands
                 _last = new Models.TextDiffLine(Models.TextDiffLineType.Deleted, content, rawContent, _oldLine, 0);
                 _deleted.Add(_last);
                 _oldLine++;
-                return true;
             }
-
-            if (prefix == PREFIX_ADDED)
+            else if (prefix == PREFIX_ADDED)
             {
                 _result.TextDiff.AddedLines++;
                 _last = new Models.TextDiffLine(Models.TextDiffLineType.Added, content, rawContent, 0, _newLine);
                 _added.Add(_last);
                 _newLine++;
-                return true;
             }
-
-            if (prefix == PREFIX_CONTEXT)
+            else
             {
                 ProcessInlineHighlights();
 
@@ -271,17 +303,7 @@ namespace SourceGit.Commands
                 _result.TextDiff.Lines.Add(_last);
                 _oldLine++;
                 _newLine++;
-                return true;
             }
-
-            if (prefix == PREFIX_COMMAND)
-            {
-                if (content.Equals(SPECIAL_NO_NEWLINE, StringComparison.Ordinal))
-                    _last.NoNewLineEndOfFile = true;
-                return true;
-            }
-
-            return false;
         }
 
         private bool ParseFileModeChange(string line)

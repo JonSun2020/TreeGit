@@ -838,7 +838,6 @@ namespace SourceGit.Views
                 {
                     _textMate.Dispose();
                     _textMate = null;
-                    GC.Collect();
 
                     TextArea.TextView.Redraw();
                 }
@@ -1040,8 +1039,6 @@ namespace SourceGit.Views
             {
                 Text = string.Empty;
             }
-
-            GC.Collect();
         }
 
         protected override void UpdateSelectedChunk(double y)
@@ -1200,7 +1197,6 @@ namespace SourceGit.Views
             }
 
             base.OnUnloaded(e);
-            GC.Collect();
         }
 
         protected override void OnDataContextChanged(EventArgs e)
