@@ -120,8 +120,11 @@ try:
     check('GitHub remote is connected automatically',git(repo,'remote','get-url','origin')=='https://github.com/treegit-demo/created-on-github.git')
     check('access token is absent from Git configuration','fixture-token' not in (repo/'.git/config').read_text())
     # The new account management entry is in repository settings, not global tools.
-    probe('reset');probe('enter',2);probe('press',2);probe('release',2)
-    items=probe()['headers'][2]['items']
+    probe('reset')
+    tools_index=next(h['index'] for h in probe()['headers']
+                     if any(item['name']=='ThirdPartyIntegrationMenu' for item in h['items']))
+    probe('enter',tools_index);probe('press',tools_index);probe('release',tools_index)
+    items=probe()['headers'][tools_index]['items']
     check('Tools contains third-party integration, MCP and SSH helpers',len(items)==3 and sum(item['name']=='ThirdPartyIntegrationMenu' for item in items)==1)
     probe('outside_content');tool('ui_command',repo=str(repo),command='repository_settings')
     wait(lambda:any(d['type']=='RepositorySettings' for d in tool('ui_state')['dialogs']))

@@ -181,11 +181,11 @@ try:
         check(locale+' empty composer shows only the short localized hint', sum(t['text']==hint for t in layout['localizedTexts'])==1 and not composition()['commitEnabled'])
         (out/(locale+'-empty-draft-hint.png')).write_bytes(tool('ui_screenshot'))
         expected_headers = {
-            'zh_CN': ['文件(F)', '操作(A)', '工具(T)', '设置(S)', '帮助(H)'],
-            'zh_TW': ['檔案(F)', '操作(A)', '工具(T)', '設定(S)', '說明(H)'],
-            'en_US': ['File (F)', 'Actions (A)', 'Tools (T)', 'Settings (S)', 'Help (H)'],
+            'zh_CN': ['文件(F)', '操作(A)', '设置(S)', '工具(T)', '帮助(H)'],
+            'zh_TW': ['檔案(F)', '操作(A)', '設定(S)', '工具(T)', '說明(H)'],
+            'en_US': ['File (F)', 'Actions (A)', 'Settings (S)', 'Tools (T)', 'Help (H)'],
         }
-        check(locale+' top bar places localized Settings between Tools and Help',
+        check(locale+' top bar places localized Settings before Tools',
               [item['text'] for item in probe()['headers']]==expected_headers[locale])
         for index in range(5):
             probe('reset');probe('enter',index);probe('press',index);probe('release',index)
@@ -197,8 +197,9 @@ try:
         menus=probe()['headers']
         check(locale+' welcome disables all repository operations',all(not item['enabled'] for item in menus[1]['items']),menus[1]['items'])
         (out/(locale+'-welcome-disabled-menu.png')).write_bytes(tool('ui_screenshot'))
-        probe('enter',2);menus=probe()['headers']
-        check(locale+' welcome keeps integration, MCP and SSH tools usable', len(menus[2]['items'])==3 and all(item['enabled'] for item in menus[2]['items']),menus[2]['items'])
+        tools_menu=probe('enter',3)['headers'][3]
+        check(locale+' welcome keeps integration, MCP and SSH tools usable',
+              len(tools_menu['items'])==3 and all(item['enabled'] for item in tools_menu['items']),tools_menu['items'])
         probe('outside_content');tool('ui_command',command='close_tab');tool('ui_open_repository',repo=str(repo))
         wait(lambda:tool('ui_state')['activePage']['kind']=='Repository')
         probe('enter',1);probe('press',1);probe('release',1)
