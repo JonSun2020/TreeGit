@@ -27,19 +27,21 @@ jobs:
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.source }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Include reviewed documentation without rebuilding the verified program
-        if: inputs.documentation != ''
+      - name: Select documentation for the verified program
         env:
           SOURCE: ${{ inputs.source }}
           DOCUMENTATION: ${{ inputs.documentation }}
         run: |
-          [[ "$DOCUMENTATION" =~ ^[0-9a-f]{40}$ ]]
-          git diff --exit-code "$SOURCE" "$DOCUMENTATION" -- . ':(exclude)README.md' ':(exclude)docs/**' ':(exclude)tests/*.py' ':(exclude).github/workflows/publish-treegit.yml'
-          git restore --source="$DOCUMENTATION" -- docs
-          echo "Release documents: $DOCUMENTATION; program source: $SOURCE" >> "$GITHUB_STEP_SUMMARY"
+          [[ "$SOURCE" =~ ^[0-9a-f]{40}$ ]]
+          git merge-base --is-ancestor "$SOURCE" HEAD
+          if [[ -n "$DOCUMENTATION" ]]; then
+            [[ "$DOCUMENTATION" =~ ^[0-9a-f]{40}$ ]]
+            git diff --exit-code "$SOURCE" "$DOCUMENTATION" -- . ':(exclude)README.md' ':(exclude)docs/**' ':(exclude)tests/*.py' ':(exclude).github/workflows/publish-treegit.yml'
+          fi
+          git restore --source="${DOCUMENTATION:-$SOURCE}" -- docs
+          echo "Release documents: ${DOCUMENTATION:-$SOURCE}; program source: $SOURCE" >> "$GITHUB_STEP_SUMMARY"
       - name: Publish the exact verified portable artifact
         env:
           GH_TOKEN: ${{ github.token }}
