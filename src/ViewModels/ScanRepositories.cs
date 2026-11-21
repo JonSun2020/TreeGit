@@ -8,74 +8,31 @@ namespace SourceGit.ViewModels
 {
     public class ScanRepositories : Popup
     {
-        public bool UseCustomDir
+        public string RootPath
         {
-            get => _useCustomDir;
-            set => SetProperty(ref _useCustomDir, value);
-        }
-
-        public string CustomDir
-        {
-            get => _customDir;
-            set => SetProperty(ref _customDir, value);
-        }
-
-        public List<Models.ScanDir> ScanDirs
-        {
-            get;
-        }
-
-        public Models.ScanDir Selected
-        {
-            get => _selected;
-            set => SetProperty(ref _selected, value, true);
+            get => _rootPath;
+            set => SetProperty(ref _rootPath, value);
         }
 
         public ScanRepositories()
         {
-            ScanDirs = new List<Models.ScanDir>();
-
-            var workspace = Preferences.Instance.GetActiveWorkspace();
-            if (!string.IsNullOrEmpty(workspace.DefaultCloneDir))
-                ScanDirs.Add(new Models.ScanDir(workspace.DefaultCloneDir, "Workspace"));
-
-            if (!string.IsNullOrEmpty(Preferences.Instance.GitDefaultCloneDir))
-                ScanDirs.Add(new Models.ScanDir(Preferences.Instance.GitDefaultCloneDir, "Global"));
-
-            if (ScanDirs.Count > 0)
-                _selected = ScanDirs[0];
-            else
-                _useCustomDir = true;
-
+            _rootPath = Preferences.Instance.GitDefaultCloneDir ?? string.Empty;
             GetManagedRepositories(Preferences.Instance.RepositoryNodes, _managed);
         }
 
         public override async Task<bool> Sure()
         {
-            string selectedDir;
-            if (_useCustomDir)
+            var selectedDir = RootPath;
+            if (string.IsNullOrWhiteSpace(selectedDir))
             {
-                if (string.IsNullOrEmpty(_customDir))
-                {
-                    Models.Notification.Send(null, "Missing root directory to scan!", true);
-                    return false;
-                }
-
-                selectedDir = _customDir;
+                Models.Notification.Send(null, App.Text("ScanRepositories.NoRoot"), true);
+                return false;
             }
-            else
-            {
-                if (_selected == null || string.IsNullOrEmpty(_selected.Path))
-                {
-                    Models.Notification.Send(null, "Missing root directory to scan!", true);
-                    return false;
-                }
-
-                selectedDir = _selected.Path;
-            }
-
             if (!Directory.Exists(selectedDir))
-                return true;
+            {
+                Models.Notification.Send(null, App.Text("TreeGit.Message.PathMissing"), true);
+                return false;
+            }
 
             SetProgressDescription("TreeGit.Progress.ScanRepositories", selectedDir);
 
@@ -187,9 +144,7 @@ namespace SourceGit.ViewModels
         }
 
         private HashSet<string> _managed = new();
-        private bool _useCustomDir = false;
-        private string _customDir = string.Empty;
-        private Models.ScanDir _selected = null;
+        private string _rootPath;
         private int _untrusted = 0;
     }
 }

@@ -119,6 +119,7 @@ namespace SourceGit.ViewModels
                     OnPropertyChanged(nameof(CanCloseOperation));
                     OnPropertyChanged(nameof(OperationProgress));
                     OnPropertyChanged(nameof(ShowStatus));
+                    OnPropertyChanged(nameof(IsOperationActivityRunning));
                 }
             }
         }

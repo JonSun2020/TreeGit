@@ -20,6 +20,7 @@ namespace SourceGit.ViewModels
         public string StatusDescription => UsesOperationPanel ? OperationStage : ProgressDescription;
         public bool ShowStatus => InProgress || UsesOperationPanel && OperationPhaseFailed;
         public bool CanCancelOperation => InProgress && !_operationCancelRequested;
+        public bool IsOperationActivityRunning => CanCancelOperation && !OperationPhaseFailed;
         public bool CanCloseOperation => OperationPanelVisible && !InProgress;
         public bool OperationSucceeded => _operationStage == "Succeeded";
         public int OperationProgress { get => _operationProgress; private set => SetProperty(ref _operationProgress, value); }
@@ -126,6 +127,7 @@ namespace SourceGit.ViewModels
             OnPropertyChanged(nameof(OperationStage)); OnPropertyChanged(nameof(OperationPhaseFailed));
             OnPropertyChanged(nameof(StatusDescription));
             OnPropertyChanged(nameof(ShowStatus));
+            OnPropertyChanged(nameof(IsOperationActivityRunning));
             if (previousStage != _operationStage || _operationOutput.Count == 0) AppendOperationOutput(OperationStage, OperationPhaseFailed);
         }
 

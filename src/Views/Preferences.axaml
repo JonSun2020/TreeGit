@@ -613,10 +613,16 @@
           </TabItem.Header>
           <ScrollViewer x:Name="ExternalDiffSettingsScroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
             <Grid Margin="16" RowDefinitions="32,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
-              <TextBlock Grid.Row="0" Grid.Column="0"
-                         Text="{DynamicResource Text.Preferences.DiffMerge.Type}"
-                         HorizontalAlignment="Right"
-                         Margin="0,0,16,0"/>
+              <Panel Margin="0,0,16,0">
+                <!-- Measure every label to keep the input column fixed when optional rows are hidden. -->
+                <Panel Opacity="0" IsHitTestVisible="False">
+                  <TextBlock Text="{DynamicResource Text.Preferences.DiffMerge.Path}"/>
+                  <TextBlock Text="{DynamicResource Text.Preferences.DiffMerge.DiffArgs}"/>
+                  <TextBlock Text="{DynamicResource Text.Preferences.DiffMerge.MergeArgs}"/>
+                </Panel>
+                <TextBlock Text="{DynamicResource Text.Preferences.DiffMerge.Type}"
+                           HorizontalAlignment="Right"/>
+              </Panel>
               <ComboBox Grid.Row="0" Grid.Column="1"
                         MinHeight="28"
                         Padding="8,0"

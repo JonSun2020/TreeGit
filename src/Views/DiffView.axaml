@@ -30,9 +30,9 @@
           <StackPanel Grid.Column="4" Margin="8,0,0,0" Orientation="Horizontal" VerticalAlignment="Center">
             <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,4,0" IsVisible="{Binding CanChooseEncoding}">
               <TextBlock x:Name="DiffEncodingLabel" Text="{DynamicResource Text.UI.DisplayEncoding}"
-                         FontSize="11" VerticalAlignment="Center"/>
+                         VerticalAlignment="Center"/>
               <v:DisplayEncodingPicker x:Name="DiffEncodingPicker" Classes="dialog_selections" Height="24" MinHeight="24" MinWidth="98"
-                                       Padding="6,0" FontSize="11" VerticalAlignment="Center"
+                                       Padding="6,0" VerticalAlignment="Center"
                                        SelectedIndex="{Binding DisplayEncodingIndex, Mode=TwoWay}"/>
             </StackPanel>
             <Button x:Name="BtnGotoFirstChange" Classes="icon_button" Width="28" Click="OnGotoFirstChange" IsVisible="{Binding IsTextDiff}">

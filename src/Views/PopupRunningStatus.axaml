@@ -10,8 +10,8 @@
   <StackPanel Orientation="Vertical">
     <Rectangle Height="1" HorizontalAlignment="Stretch" Fill="{DynamicResource Brush.Border1}" />
 
-    <StackPanel Orientation="Horizontal" Margin="0,8">
-      <ContentPresenter x:Name="Icon" Width="12" Height="12"/>
+    <StackPanel Orientation="Horizontal" Margin="0,8" IsVisible="{Binding #ThisControl.IsRunning}">
+      <Path Width="12" Height="12" Classes.waiting="{Binding #ThisControl.IsRunning}"/>
       <TextBlock Margin="6,0,0,0" FontSize="14" FontWeight="Bold" Text="{DynamicResource Text.Running}"/>
     </StackPanel>
 
@@ -23,6 +23,7 @@
 
     <ProgressBar x:Name="ProgressBar"
                  Margin="0,8,0,0"
+                 IsIndeterminate="{Binding #ThisControl.IsRunning}"
                  HorizontalAlignment="Stretch"
                  Background="{DynamicResource Brush.FG2}" Foreground="{DynamicResource Brush.TreeGit.WelcomeToolbarIcon}"
                  Minimum="0" Maximum="100"/>

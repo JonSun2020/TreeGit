@@ -4,10 +4,30 @@ using System.Text.Unicode;
 
 namespace SourceGit.Models
 {
+    public sealed class DisplayEncodingOption(string name, int codePage) : LocalizedOption
+    {
+        public string Name => CodePage == 0 ? App.Text("UI.AutoEncoding") : name;
+        public int CodePage { get; } = codePage;
+
+        public static readonly DisplayEncodingOption[] Supported =
+        [
+            new("", 0),
+            new("UTF-8", 65001),
+            new("UTF-16 LE", 1200),
+            new("UTF-16 BE", 1201),
+            new("UTF-32 LE", 12000),
+            new("UTF-32 BE", 12001),
+            new("GB2312", 51936),
+            new("GBK", 936),
+            new("GB18030", 54936),
+            new("Big5", 950),
+            new("Windows-1252", 1252),
+        ];
+    }
+
     // These decoders produce display text only. Git patches keep their original bytes.
     public static class DisplayEncoding
     {
-        private static readonly int[] CodePages = [0, 65001, 1200, 1201, 12000, 12001, 51936, 936, 54936, 950, 1252];
         private static readonly Encoding Chinese;
         static DisplayEncoding()
         {
@@ -15,7 +35,7 @@ namespace SourceGit.Models
             Chinese = Encoding.GetEncoding(51936, EncoderFallback.ExceptionFallback, DecoderFallback.ExceptionFallback);
         }
 
-        public static int CodePage(int index) => (uint)index < CodePages.Length ? CodePages[index] : 0;
+        public static int CodePage(int index) => (uint)index < DisplayEncodingOption.Supported.Length ? DisplayEncodingOption.Supported[index].CodePage : 0;
         public static bool IsWide(int codePage) => codePage is 1200 or 1201 or 12000 or 12001;
         public static bool IsReadableText(string text)
         {

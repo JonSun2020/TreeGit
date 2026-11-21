@@ -605,6 +605,12 @@
       </Setter.Value>
     </Setter>
   </Style>
+  <Style Selector=":is(TextBox)[IsReadOnly=False] /template/ TextPresenter#PART_TextPresenter">
+    <Setter Property="Margin" Value="0,0,3,0"/>
+  </Style>
+  <Style Selector=":is(TextBox)[IsReadOnly=False]:focus:not(:disabled) /template/ TextPresenter#PART_TextPresenter">
+    <Setter Property="v:TextBoxCaret.CorrectPosition" Value="True"/>
+  </Style>
   <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.Accent}"/>
     <Setter Property="Background" Value="{DynamicResource Brush.Contents}"/>

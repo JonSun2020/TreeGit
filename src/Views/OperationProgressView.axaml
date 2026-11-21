@@ -8,7 +8,7 @@
     <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" ColumnDefinitions="*,Auto">
       <TextBlock Grid.Row="0" Grid.ColumnSpan="2" Text="{Binding DialogTitle}" FontWeight="SemiBold" Margin="0,0,0,8"/>
       <v:ActivityProgressBar Grid.Row="1" Height="16" VerticalAlignment="Center" Margin="0,0,12,0"
-                             ReportedValue="{Binding OperationProgress}" IsRunning="{Binding CanCancelOperation}"/>
+                             ReportedValue="{Binding OperationProgress}" IsRunning="{Binding IsOperationActivityRunning}"/>
       <Button Grid.Row="1" Grid.Column="1" Name="CancelOperation" Classes="flat dialog_action dialog_cancel compact_dialog_action" Content="{DynamicResource Text.Cancel}"
               IsEnabled="{Binding CanCancelOperation}" MinWidth="60" Height="28" Padding="4,2" VerticalAlignment="Center" Click="OnCancelOperation"/>
       <CheckBox Grid.Row="2" Grid.ColumnSpan="2" Name="ShowFullOperationOutput" IsChecked="{Binding ShowFullOutput, Mode=TwoWay}"

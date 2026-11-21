@@ -76,7 +76,7 @@ try:
  with (out/'mcp.log').open('w',encoding='utf-8') as log:process=subprocess.Popen([str(exe),'--mcp'],env=env,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=log,text=True,encoding='utf-8',creationflags=getattr(subprocess,'CREATE_NO_WINDOW',0))
  threading.Thread(target=lambda:[q.put(v)for v in process.stdout],daemon=True).start();rpc('initialize',{'protocolVersion':'2025-11-25'});pid=tool('ui_state')['processId'];verify_process(pid,exe)
  if os.environ.get('TREEGIT_LOCAL_QA_ROOT'):check('local QA windows stay hidden and do not activate',probe()['localWindowsPrivate'] is True)
- advanced=probe()['headers'][2]['items'][-1]
+ advanced=probe()['headers'][1]['items'][-1]
  check('welcome page disables repository-only advanced operations',advanced['text']=='高级操作' and not advanced['enabled'],advanced)
  for locale in ['zh_CN','zh_TW','en_US']:
   tool('ui_window',locale=locale,theme='Light',zoom=1,width=1280,height=820)
@@ -106,7 +106,7 @@ try:
    (out/(locale+'-'+theme+'-create.png')).write_bytes(tool('ui_screenshot'))
    tool('ui_layout',action='test_click',button='ClosePopup');wait(lambda:not probe()['pageDialogs']);check(locale+' '+theme+' title close dismisses only the popup',tool('ui_state')['processId']==pid)
   tool('ui_window',theme='Light');tool('ui_open_repository',repo=str(repo));wait(lambda:any(Path(r['repo']).resolve()==repo and not r['graphLoading'] for r in tool('ui_state')['repositories']))
-  check(locale+' repository exposes advanced operations',probe()['headers'][2]['items'][-1]['enabled'])
+  check(locale+' repository exposes advanced operations',probe()['headers'][1]['items'][-1]['enabled'])
   for command in ['create_branch','create_tag','fetch_dialog','stash_dialog','apply_patch']:
    tool('ui_command',repo=str(repo),command=command);wait(geometry);exercise(locale+' '+command,command in ['create_branch','create_tag','apply_patch']);cancel()
   for theme in ['Light','Dark','Blue']:
@@ -182,6 +182,14 @@ try:
     tool('ui_command',repo=str(repo),command='fetch_dialog');original=wait(geometry);probe('operation_probe',0);wait(operation);probe('operation_probe',3);restored=wait(geometry)
     check(locale+' '+theme+' cancel returns to the original form',restored['title']==original['title'] and not operation());cancel()
     if locale=='en_US' and theme=='Blue':
+     tool('ui_command',repo=str(repo),command='fetch_dialog');wait(geometry)
+     probe('operation_probe',8)
+     connecting=wait(lambda:next(iter(probe()['operationStatuses']),None))
+     check('verification animates the lower progress bar',connecting['animated'],connecting)
+     probe('operation_probe',9)
+     failed=wait(lambda:next((s for s in probe()['operationStatuses'] if s['Description']!=connecting['Description']),None))
+     check('connection failure keeps the message and stops the lower progress bar',not failed['animated'],failed)
+     probe('operation_probe',10);cancel()
      tool('ui_command',repo=str(repo),command='fetch_dialog');wait(geometry);probe('operation_probe',0);wait(operation)
      partial=git_progress('Receiving objects: 50% (1/2)')
      probe('operation_probe',7);failed=wait(lambda:operation() if operation() and operation()['closeEnabled'] else None)

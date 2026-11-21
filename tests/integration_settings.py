@@ -70,9 +70,9 @@ try:
    before=json.loads(profile.read_text('utf-8'))
    open_tools();dialog=state()['layoutProbe']['dialogs'][0]
    expected={
-    'zh_CN':('外部工具',['GIT配置','终端/SHELL','对比/合并工具']),
-    'zh_TW':('外部工具',['Git 設定','終端機/Shell','對比/合併工具']),
-    'en_US':('External Tools',['GIT','SHELL/TERMINAL','DIFF/MERGE TOOL']),
+    'zh_CN':('外部工具',['GIT配置','终端/SHELL','对比/合并']),
+    'zh_TW':('外部工具',['Git 設定','終端機/Shell','對比/合併']),
+    'en_US':('External Tools',['GIT','SHELL/TERMINAL','DIFF/MERGE']),
    }[locale]
    check(locale+' '+theme+' tools starts with the localized Git tab',len(dialog['tabs'])==1 and dialog['tabs'][0]['visibleHeaders']==expected[1] and dialog['tabs'][0]['selected']==0)
    check(locale+' '+theme+' external tools title matches its caption',dialog['header']==state()['dialogs'][0]['title']==expected[0])
@@ -80,6 +80,14 @@ try:
    check(locale+' '+theme+' actual confirmation label and fill '+str(dialog['confirm']),dialog['confirm']['fill'].upper()==fill and dialog['confirm']['text'].upper()==text)
    select_page('terminal',1,'ExternalTerminalSettingsScroll')
    select_page('diff-merge',2,'ExternalDiffSettingsScroll')
+   def tool_layout():
+    return client.tool('ui_layout',window='main',action='test_menu',text='preferences_diff_tool_layout')
+   layouts=[]
+   for index, path_visible in [(6,True),(0,False),(tool_layout()['gitIndex'],False)]:
+    client.tool('ui_layout',window='active',action='test_set',button='ExternalToolSelector',value=index)
+    layouts.append(wait(lambda: value if (value:=tool_layout())['selected']==index and value['pathVisible']==path_visible and value['width']>0 else None))
+   check(locale+' '+theme+' tool selection keeps the same bounds for all tool types',
+         all(abs(value['width']-layouts[0]['width'])<.5 and abs(value['left']-layouts[0]['left'])<.5 for value in layouts))
    edit_tool(6,'not-saved-tool.exe');trap_identity()
    select_page('git',0,'ExternalGitSettingsScroll');close('CancelPreferencesButton')
    after=json.loads(profile.read_text('utf-8'))

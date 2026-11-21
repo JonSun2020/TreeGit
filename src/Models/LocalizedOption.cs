@@ -15,6 +15,7 @@ namespace SourceGit.Models
             foreach (var option in ApplyWhiteSpaceMode.Supported) option.RefreshLocalizedText();
             foreach (var option in DealWithChangesAfterStashing.Supported) option.RefreshLocalizedText();
             foreach (var option in ExternalMerger.Supported) option.RefreshLocalizedText();
+            DisplayEncodingOption.Supported[0].RefreshLocalizedText();
             foreach (var option in ChangeListOptions.StatusFilters) option.RefreshLocalizedText();
             foreach (var option in ChangeListOptions.SortOrders) option.RefreshLocalizedText();
         }

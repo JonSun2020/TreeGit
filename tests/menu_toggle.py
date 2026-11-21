@@ -129,12 +129,13 @@ try:
             check('hover switches header ' + str(index), state['headers'][other]['open'] and not state['headers'][index]['open'])
             state = action('escape', other)
             check('Escape closes hover menu ' + str(index), not state['menuOpen'])
-        action('reset'); action('enter', 0); action('press', 0); action('release', 0)
+        action('reset'); action('enter', 2); action('press', 2); action('release', 2)
         (out / (theme + '-header.png')).write_bytes(tool('ui_screenshot'))
-        state = action('right', 0)
-        check('keyboard Right opens next header', state['headers'][1]['open'] and not state['headers'][0]['open'])
-        check('keyboard Down selects command', action('down', 1)['headers'][1]['childSelected'] >= 0)
-        check('Escape after keyboard navigation', not action('escape', 1)['menuOpen'])
+        state = action('right', 2)
+        check('keyboard Right opens Tools after Settings', state['headers'][2]['text']=='设置(S)' and
+              state['headers'][3]['text']=='工具(T)' and state['headers'][3]['open'] and not state['headers'][2]['open'])
+        check('keyboard Down selects command', action('down', 3)['headers'][3]['childSelected'] >= 0)
+        check('Escape after keyboard navigation', not action('escape', 3)['menuOpen'])
         action('press', 0); action('release', 0)
         check('outside press closes menu', not action('outside')['menuOpen'])
         # Re-enable real hit testing and verify the same event sequence through

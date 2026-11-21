@@ -35,7 +35,8 @@ namespace SourceGit.Automation
                 throw new InvalidOperationException("An isolated menu fixture is required.");
             var menu = window.GetVisualDescendants().OfType<Menu>().Single(m => m.Name == "PrimaryMenu");
             var headers = menu.Items.OfType<MenuItem>().ToArray();
-            var language = headers[1].Items.OfType<MenuItem>().Single(i => i.Name == "LanguageMenu");
+            var settings = headers.Single(i => i.Name == "SettingsMenu");
+            var language = settings.Items.OfType<MenuItem>().Single(i => i.Name == "LanguageMenu");
             var languageOptions = language.Items.OfType<MenuItem>().ToArray();
             if (_menu != menu)
             {
@@ -91,6 +92,15 @@ namespace SourceGit.Automation
                 preferenceWindow.GPGUserKey = "Signing settings are outside the integration dialog";
                 return new { changed = true };
             }
+            if (action == "preferences_diff_tool_layout")
+            {
+                var preferenceWindow = ((Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime).Windows.OfType<Views.Preferences>().Single();
+                var picker = preferenceWindow.FindControl<ComboBox>("ExternalToolSelector");
+                var path = preferenceWindow.FindControl<TextBox>("ExternalToolPath");
+                return new { selected = picker.SelectedIndex, width = picker.Bounds.Width,
+                    left = picker.TranslatePoint(default, preferenceWindow)?.X, pathVisible = path.IsEffectivelyVisible,
+                    gitIndex = Models.ExternalMerger.Supported.FindIndex(tool => tool.IsGitConfiguration) };
+            }
             if (action.StartsWith("diff_", StringComparison.Ordinal))
             {
                 var profileLifetime = (Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime;
@@ -100,7 +110,7 @@ namespace SourceGit.Automation
                     var profileRepo = (ViewModels.Repository)((ViewModels.Launcher)window.DataContext).ActivePage.Data;
                     App.OpenInternalComparison(profileRepo.FullPath, new Models.DiffOption("HEAD~1", "HEAD", new Models.Change { Path = args.GetProperty("button").GetString() }));
                 }
-                else if (action == "diff_encoding")
+                else if (action is "diff_encoding" or "diff_encoding_state")
                 {
                     var view = profileViews.First(v => v.Settings is ViewModels.Preferences);
                     var picker = view.FindControl<Views.DisplayEncodingPicker>("DiffEncodingPicker");
@@ -108,9 +118,13 @@ namespace SourceGit.Automation
                     var first = view.FindControl<Button>("BtnGotoFirstChange");
                     var beforeFirst = picker.TranslatePoint(new Point(picker.Bounds.Width, 0), view)?.X <= first.TranslatePoint(default, view)?.X;
                     var labelBeforePicker = label.TranslatePoint(new Point(label.Bounds.Width, 0), view)?.X <= picker.TranslatePoint(default, view)?.X;
-                    var labels = picker.Items.OfType<ComboBoxItem>().Select(item => item.Content?.ToString()).ToArray();
-                    picker.SetCurrentValue(SelectingItemsControl.SelectedIndexProperty, index);
-                    return new { labels, selected = picker.SelectedIndex, beforeFirst, caption = label.Text, labelBeforePicker, labelVisible = label.IsEffectivelyVisible };
+                    if (action == "diff_encoding") picker.SetCurrentValue(SelectingItemsControl.SelectedIndexProperty, index);
+                    var labels = picker.Items.OfType<Models.DisplayEncodingOption>().Select(item => item.Name).ToArray();
+                    var selectedText = picker.GetVisualDescendants().OfType<TextBlock>()
+                        .FirstOrDefault(block => block.IsEffectivelyVisible && ReferenceEquals(block.DataContext, picker.SelectedItem));
+                    return new { labels, selected = picker.SelectedIndex, selectedCaption = selectedText?.Text,
+                        sameFontSize = selectedText?.FontSize == label.FontSize,
+                        beforeFirst, caption = label.Text, labelBeforePicker, labelVisible = label.IsEffectivelyVisible };
                 }
                 else if (action == "diff_decoded_text")
                 {
@@ -302,6 +316,9 @@ namespace SourceGit.Automation
                 else if (index == 5) window.GetVisualDescendants().OfType<Views.OperationOutputView>().Single(v => v.IsEffectivelyVisible).SelectAll();
                 else if (index == 6) popup.OnReceiveCommandLog(args.GetProperty("button").GetString());
                 else if (index == 7) { popup.FinishOperation(false); popup.InProgress = false; }
+                else if (index == 8) { popup.BeginOperation(); popup.InProgress = true; }
+                else if (index == 9) popup.OnAuthenticationState("ConnectionFailed");
+                else if (index == 10) popup.InProgress = false;
             }
             else if (action is "remote_query_start" or "remote_query_cancel" or "remote_query_state")
             {
@@ -545,7 +562,7 @@ namespace SourceGit.Automation
             }
             else if (action == "language_open")
             {
-                menu.Open(); headers[1].IsSubMenuOpen = true;
+                menu.Open(); settings.IsSubMenuOpen = true;
                 window.UpdateLayout();
                 language.RaiseEvent(new PointerEventArgs(InputElement.PointerEnteredEvent, language, Pointer, window,
                     default, (ulong)Environment.TickCount64, new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.Other), KeyModifiers.None));
@@ -746,7 +763,7 @@ namespace SourceGit.Automation
                 supportedLocales = Models.Locale.Supported.Select(l => l.Key).ToArray(),
                 languageMenu = new
                 {
-                    first = headers[1].Items.OfType<MenuItem>().First().Name,
+                    first = settings.Items.OfType<MenuItem>().First().Name,
                     text = language.Header?.ToString(),
                     open = language.IsSubMenuOpen,
                     overlay = (typeof(MenuItem).GetField("_popup", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(language) as Popup)?.IsUsingOverlayLayer,
@@ -797,6 +814,8 @@ namespace SourceGit.Automation
                                 iconColors = path.Fill is Avalonia.Media.SolidColorBrush solid ? new[] { solid.Color.ToString() }
                                     : (path.Fill as Avalonia.Media.LinearGradientBrush)?.GradientStops.Select(s => s.Color.ToString()).ToArray() };
                         })).ToArray(),
+                operationStatuses = window.GetVisualDescendants().OfType<Views.PopupRunningStatus>().Where(v => v.IsEffectivelyVisible).Select(v =>
+                    new { v.Description, animated = v.FindControl<ProgressBar>("ProgressBar").IsIndeterminate }).ToArray(),
                 operationPanels = window.GetVisualDescendants().OfType<Views.OperationProgressView>().Where(v => v.IsEffectivelyVisible).Select(v =>
                 {
                     var popup = (ViewModels.Popup)v.DataContext;

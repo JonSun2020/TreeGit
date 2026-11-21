@@ -90,7 +90,27 @@
           <MenuItem Header="{DynamicResource Text.TreeGit.Menu.OpenClone}" Click="OnTreeGitShowRepositories"/>
           <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Quit}" Command="{x:Static s:App.QuitCommand}"/>
         </MenuItem>
-        <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Edit}">
+        <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Actions}">
+          <MenuItem Classes="treegit_repository_action" Header="{DynamicResource Text.TreeGit.Menu.Fetch}" Click="OnTreeGitFetch"/><MenuItem Classes="treegit_worktree_action" Header="{DynamicResource Text.TreeGit.Menu.Pull}" Click="OnTreeGitPull"/><MenuItem Classes="treegit_repository_action" Header="{DynamicResource Text.TreeGit.Menu.Push}" Click="OnTreeGitPush"/>
+          <MenuItem Classes="treegit_repository_action" Header="{DynamicResource Text.TreeGit.Menu.NewBranch}" Click="OnTreeGitBranch"/><MenuItem Classes="treegit_repository_action" Header="{DynamicResource Text.TreeGit.Menu.NewTag}" Click="OnTreeGitTag"/>
+          <MenuItem Classes="treegit_repository_action" Header="{DynamicResource Text.TreeGit.Menu.Advanced}">
+            <MenuItem Classes="treegit_worktree_action" Header="{DynamicResource Text.WorkingCopy.Amend}" x:Name="GitAction_amend" Click="OnTreeGitExtraAction"/>
+            <MenuItem Classes="treegit_worktree_action" Header="{DynamicResource Text.WorkingCopy.ResetAuthor}" x:Name="GitAction_reset_author" Click="OnTreeGitExtraAction"/>
+            <MenuItem Classes="treegit_worktree_action" Header="{DynamicResource Text.ConventionalCommit}" x:Name="GitAction_conventional" Click="OnTreeGitExtraAction"/>
+            <MenuItem Classes="treegit_worktree_action" Header="{DynamicResource Text.TreeGit.Menu.AddSubmodule}" x:Name="GitAction_submodule" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.AddWorktree}" x:Name="GitAction_worktree" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="Git LFS" x:Name="GitAction_lfs" Click="OnTreeGitExtraAction"/>
+            <MenuItem Classes="treegit_worktree_action" Header="{DynamicResource Text.TreeGit.Menu.ApplyPatch}" x:Name="GitAction_patch" Click="OnTreeGitExtraAction"/>
+            <MenuItem Classes="treegit_worktree_action" Header="{DynamicResource Text.TreeGit.Menu.Bisect}" x:Name="GitAction_bisect" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.GitFlow}" x:Name="GitAction_gitflow" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.GoToHead}" x:Name="GitAction_head" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Reflog}" x:Name="GitAction_reflog" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.CommandLog}" x:Name="GitAction_logs" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Statistics}" x:Name="GitAction_statistics" Click="OnTreeGitExtraAction"/>
+            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Cleanup}" x:Name="GitAction_cleanup" Click="OnTreeGitExtraAction"/>
+          </MenuItem>
+        </MenuItem>
+        <MenuItem x:Name="SettingsMenu" Header="{DynamicResource Text.TreeGit.Menu.Settings}">
           <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Language}" Classes="flat_submenu" x:Name="LanguageMenu" PointerEntered="OnLanguageMenuPointerEntered">
             <MenuItem x:Name="Language_zh_CN" Click="OnTreeGitLanguageChanged" PointerEntered="OnLanguageOptionPointerEntered">
               <MenuItem.Header>
@@ -118,27 +138,6 @@
             </MenuItem>
           </MenuItem>
           <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Preferences}" Command="{x:Static s:App.OpenPreferencesCommand}"/>
-        </MenuItem>
-
-        <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Actions}">
-          <MenuItem Classes="treegit_repository_action" Header="{DynamicResource Text.TreeGit.Menu.Fetch}" Click="OnTreeGitFetch"/><MenuItem Classes="treegit_worktree_action" Header="{DynamicResource Text.TreeGit.Menu.Pull}" Click="OnTreeGitPull"/><MenuItem Classes="treegit_repository_action" Header="{DynamicResource Text.TreeGit.Menu.Push}" Click="OnTreeGitPush"/>
-          <MenuItem Classes="treegit_repository_action" Header="{DynamicResource Text.TreeGit.Menu.NewBranch}" Click="OnTreeGitBranch"/><MenuItem Classes="treegit_repository_action" Header="{DynamicResource Text.TreeGit.Menu.NewTag}" Click="OnTreeGitTag"/>
-          <MenuItem Classes="treegit_repository_action" Header="{DynamicResource Text.TreeGit.Menu.Advanced}">
-            <MenuItem Classes="treegit_worktree_action" Header="{DynamicResource Text.WorkingCopy.Amend}" x:Name="GitAction_amend" Click="OnTreeGitExtraAction"/>
-            <MenuItem Classes="treegit_worktree_action" Header="{DynamicResource Text.WorkingCopy.ResetAuthor}" x:Name="GitAction_reset_author" Click="OnTreeGitExtraAction"/>
-            <MenuItem Classes="treegit_worktree_action" Header="{DynamicResource Text.ConventionalCommit}" x:Name="GitAction_conventional" Click="OnTreeGitExtraAction"/>
-            <MenuItem Classes="treegit_worktree_action" Header="{DynamicResource Text.TreeGit.Menu.AddSubmodule}" x:Name="GitAction_submodule" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.AddWorktree}" x:Name="GitAction_worktree" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="Git LFS" x:Name="GitAction_lfs" Click="OnTreeGitExtraAction"/>
-            <MenuItem Classes="treegit_worktree_action" Header="{DynamicResource Text.TreeGit.Menu.ApplyPatch}" x:Name="GitAction_patch" Click="OnTreeGitExtraAction"/>
-            <MenuItem Classes="treegit_worktree_action" Header="{DynamicResource Text.TreeGit.Menu.Bisect}" x:Name="GitAction_bisect" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.GitFlow}" x:Name="GitAction_gitflow" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.GoToHead}" x:Name="GitAction_head" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Reflog}" x:Name="GitAction_reflog" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.CommandLog}" x:Name="GitAction_logs" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Statistics}" x:Name="GitAction_statistics" Click="OnTreeGitExtraAction"/>
-            <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Cleanup}" x:Name="GitAction_cleanup" Click="OnTreeGitExtraAction"/>
-          </MenuItem>
         </MenuItem>
         <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Tools}">
           <MenuItem Header="{DynamicResource Text.TreeGit.Menu.Mcp}" Command="{x:Static s:App.OpenMcpConnectionCommand}"/>

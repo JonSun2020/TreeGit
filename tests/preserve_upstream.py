@@ -57,6 +57,9 @@ for name in files:
         checks.append(f'{name}: all original {label} retained')
 for p in (root/'src/Resources/Locales').glob('*.axaml'):
     old=subprocess.check_output(['git','show','upstream-c0f40a2:'+p.relative_to(root).as_posix()],cwd=root).decode('utf-8-sig')
-    assert set(re.findall(r'x:Key="([^"]+)"',old)) <= set(re.findall(r'x:Key="([^"]+)"',p.read_text(encoding='utf-8-sig')))
-checks.append('all upstream localization resource keys retained')
+    removed = {'Text.ScanRepositories.UseCustomDir'}
+    current = set(re.findall(r'x:Key="([^"]+)"',p.read_text(encoding='utf-8-sig')))
+    assert set(re.findall(r'x:Key="([^"]+)"',old)) - removed <= current
+    assert not (current & removed) and 'Text.ScanRepositories.NoRoot' in current
+checks.append('upstream localization resource keys retained outside the removed custom scan option')
 print(json.dumps({'passed':len(checks),'checks':checks},ensure_ascii=False,indent=2))

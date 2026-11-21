@@ -91,10 +91,12 @@ try:
   check('automatic is the default display encoding',client.probe('diff_decoded_text')['encoding']==0)
   picker=client.probe('diff_encoding',0);choices=picker['labels']
   check('encoding has its own control to the left of the first-difference arrow',picker['beforeFirst'],picker)
-  for locale, caption in [('zh_CN','文件编码'),('zh_TW','檔案編碼'),('en_US','File encoding')]:
+  for locale, caption, automatic in [('zh_CN','文件编码','自动适配'),('zh_TW','檔案編碼','自動適配'),('en_US','File encoding','Automatic')]:
    client.tool('ui_window',locale=locale)
-   picker=wait(lambda: p if (p:=client.probe('diff_encoding',0))['caption']==caption and p['labelBeforePicker'] and p['labelVisible'] else None)
+   picker=wait(lambda: p if (p:=client.probe('diff_encoding_state'))['caption']==caption and p['labelBeforePicker'] and p['labelVisible'] and p['selectedCaption']==automatic else None)
    check(locale+' displays the file encoding label to the left of its control',bool(picker))
+   check(locale+' updates the displayed Automatic option without changing its selection',picker['selected']==0 and picker['labels'][0]==automatic,picker)
+   check(locale+' encoding label matches the selected text size',picker['sameFontSize'],picker)
   check('encoding choices retain the Unicode and Chinese families',choices==['Automatic','UTF-8','UTF-16 LE','UTF-16 BE','UTF-32 LE','UTF-32 BE','GB2312','GBK','GB18030','Big5','Windows-1252'],choices)
   corpora=[
    ('mixed-lines','UTF 温度𠮷\r\n'.encode()+'GB 使用传感器\n'.encode('gb2312'),0,['UTF 温度𠮷','GB 使用传感器']),

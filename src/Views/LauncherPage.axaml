@@ -107,13 +107,18 @@
                       <!-- Options -->
                       <StackPanel Grid.Row="2" Margin="8,8,8,8" Height="32" Orientation="Horizontal" HorizontalAlignment="Right" IsVisible="{Binding InProgress, Converter={x:Static BoolConverters.Not}}">
                         <Button Width="0" Height="0" Click="OnPopupSureByHotKey" HotKey="Enter" Focusable="False"/>
-                        <Button x:Name="ConfirmPopup" Classes="flat primary" Width="100" Height="28" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="{DynamicResource Text.Sure}" Click="OnPopupSure" ToolTip.Tip="Enter"/>
-                        <Button x:Name="CancelPopup" Classes="flat" Width="100" Height="28" Margin="8,0,0,0" Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" Content="{DynamicResource Text.Cancel}" Click="OnPopupCancel" ToolTip.Tip="ESC"/>
+                        <Button x:Name="ConfirmPopup" Classes="flat primary dialog_action dialog_confirm" Click="OnPopupSure" ToolTip.Tip="Enter">
+                          <TextBlock Classes="dialog_caption" Text="{DynamicResource Text.Sure}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Button>
+                        <Button x:Name="CancelPopup" Classes="flat dialog_action dialog_cancel" Margin="8,0,0,0" Click="OnPopupCancel" ToolTip.Tip="ESC">
+                          <TextBlock Classes="dialog_caption" Text="{DynamicResource Text.Cancel}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Button>
                       </StackPanel>
 
                       <!-- Running -->
                       <ScrollViewer Grid.Row="3" MaxHeight="140" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" IsVisible="{Binding ShowStatus}">
-                        <v:PopupRunningStatus Margin="12,8" Focusable="False" Description="{Binding StatusDescription}" IsHitTestVisible="False" Classes.failed="{Binding OperationPhaseFailed}">
+                        <v:PopupRunningStatus Margin="12,8" Focusable="False" Description="{Binding StatusDescription}" IsHitTestVisible="False"
+                                              IsRunning="{Binding IsOperationActivityRunning}" Classes.failed="{Binding OperationPhaseFailed}">
                           <v:PopupRunningStatus.Styles><Style Selector="v|PopupRunningStatus.failed TextBlock"><Setter Property="Foreground" Value="IndianRed"/></Style></v:PopupRunningStatus.Styles>
                         </v:PopupRunningStatus>
                       </ScrollViewer>

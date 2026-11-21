@@ -180,23 +180,29 @@ try:
         layout = wait(lambda: (g if any(t['text']==hint for t in g['localizedTexts']) else None) if (g:=tool('ui_layout')) else None)
         check(locale+' empty composer shows only the short localized hint', sum(t['text']==hint for t in layout['localizedTexts'])==1 and not composition()['commitEnabled'])
         (out/(locale+'-empty-draft-hint.png')).write_bytes(tool('ui_screenshot'))
-        check(locale+' top bar has five menus without the duplicate repository menu',len(probe()['headers'])==5)
+        expected_headers = {
+            'zh_CN': ['文件(F)', '操作(A)', '工具(T)', '设置(S)', '帮助(H)'],
+            'zh_TW': ['檔案(F)', '操作(A)', '工具(T)', '設定(S)', '說明(H)'],
+            'en_US': ['File (F)', 'Actions (A)', 'Tools (T)', 'Settings (S)', 'Help (H)'],
+        }
+        check(locale+' top bar places localized Settings between Tools and Help',
+              [item['text'] for item in probe()['headers']]==expected_headers[locale])
         for index in range(5):
             probe('reset');probe('enter',index);probe('press',index);probe('release',index)
             check(locale+' outside content closes menu '+str(index),not probe('outside_content')['menuOpen'])
 
         tool('ui_command',command='new_tab')
         wait(lambda:tool('ui_state')['activePage']['kind']=='Welcome')
-        probe('enter',2);probe('press',2);probe('release',2)
+        probe('enter',1);probe('press',1);probe('release',1)
         menus=probe()['headers']
-        check(locale+' welcome disables all repository operations',all(not item['enabled'] for item in menus[2]['items']),menus[2]['items'])
+        check(locale+' welcome disables all repository operations',all(not item['enabled'] for item in menus[1]['items']),menus[1]['items'])
         (out/(locale+'-welcome-disabled-menu.png')).write_bytes(tool('ui_screenshot'))
-        probe('enter',3);menus=probe()['headers']
-        check(locale+' welcome keeps integration, MCP and SSH tools usable', len(menus[3]['items'])==3 and all(item['enabled'] for item in menus[3]['items']),menus[3]['items'])
+        probe('enter',2);menus=probe()['headers']
+        check(locale+' welcome keeps integration, MCP and SSH tools usable', len(menus[2]['items'])==3 and all(item['enabled'] for item in menus[2]['items']),menus[2]['items'])
         probe('outside_content');tool('ui_command',command='close_tab');tool('ui_open_repository',repo=str(repo))
         wait(lambda:tool('ui_state')['activePage']['kind']=='Repository')
-        probe('enter',2);probe('press',2);probe('release',2)
-        check(locale+' switching back restores repository menu operations', all(item['enabled'] for item in probe()['headers'][2]['items']))
+        probe('enter',1);probe('press',1);probe('release',1)
+        check(locale+' switching back restores repository menu operations', all(item['enabled'] for item in probe()['headers'][1]['items']))
         probe('outside_content')
 
         tool('ui_command',repo=str(repo),command='repository_settings')

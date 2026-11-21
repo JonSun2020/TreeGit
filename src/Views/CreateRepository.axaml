@@ -4,6 +4,28 @@
              xmlns:v="using:SourceGit.Views"
              x:Class="SourceGit.Views.CreateRepository"
              x:DataType="vm:CreateRepository">
+  <UserControl.Styles>
+    <Style Selector="CheckBox#CreateRepositoryPrivate:disabled /template/ Border#Border">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.FG2}"/>
+    </Style>
+    <Style Selector="CheckBox#CreateRepositoryPrivate:disabled /template/ Path#Icon">
+      <Setter Property="Fill" Value="{DynamicResource Brush.FG2}"/>
+    </Style>
+    <Style Selector="CheckBox#CreateRepositoryPrivate:disabled TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.FG2}"/>
+    </Style>
+    <Style Selector="Button#VerifyGitHubAccount:disabled /template/ Border#PART_Border">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource Brush.FG2}"/>
+    </Style>
+    <Style Selector="Button#VerifyGitHubAccount:disabled /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.FG2}"/>
+    </Style>
+    <Style Selector="ToggleButton#ShowGitHubToken:disabled /template/ Path#PART_IndicatorIcon">
+      <Setter Property="Fill" Value="{DynamicResource Brush.FG2}"/>
+    </Style>
+  </UserControl.Styles>
   <StackPanel Spacing="10" Margin="8,4">
     <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto">
       <TextBlock Margin="0,0,10,8" VerticalAlignment="Center" Text="{DynamicResource Text.TreeGit.CreateRepository.Parent}"/>
