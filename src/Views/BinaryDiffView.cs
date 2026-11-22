@@ -409,7 +409,7 @@ namespace SourceGit.Views
                         IBrush background = different ? changed : null;
                         if (selected)
                             background = different ? highlight : addressHighlight;
-                        Text(i < a.Length ? a[i].ToString("X2") : "--", x, y, fg, selected, background, padHex: true);
+                        Text(i < a.Length ? a[i].ToString("X2") : "--", x, y, fg, selected, background, padHex: selected && different);
                         Text(i < a.Length ? a[i] is >= 32 and <= 126 ? ((char)a[i]).ToString() : "." : "·", asciiX, y, fg, selected, background);
                     }
                 }
