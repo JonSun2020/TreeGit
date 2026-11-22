@@ -207,16 +207,23 @@ def open_commit_menu(sha, select=True):
 def press_commit_menu(name):
     # Popup placement and pointer hover finish asynchronously. Measure the
     # final menu item, rather than clicking its first non-empty layout bounds.
-    previous = None; stable = 0
+    main = activate_main()
+    previous = None; stable = 0; hit_window = None
     for _ in range(60):
+        if owner(api.GetForegroundWindow()) != pid:
+            api.SetForegroundWindow(main)
         menu = state()['commitMenu']
         item = next((i for i in (menu or {}).get('items', []) if i['name'] == name and i['enabled']), None)
         geometry = tuple(item.get(k) for k in ('x', 'y', 'width', 'height')) if item else None
-        hit = item and owner(api.WindowFromPoint(wintypes.POINT(item['x'], item['y']))) == pid
-        stable = stable + 1 if hit and geometry == previous else 0
+        hit_window = api.WindowFromPoint(wintypes.POINT(item['x'], item['y'])) if item else None
+        stable = stable + 1 if owner(hit_window) == pid and geometry == previous else 0
         if stable >= 3: break
         previous = geometry; time.sleep(.05)
-    assert item and stable >= 3, ('Menu item did not settle on the owned CI GUI', name, item)
+    bounds = wintypes.RECT()
+    api.GetWindowRect(main, ctypes.byref(bounds))
+    assert item and stable >= 3, ('Menu item did not settle on the owned CI GUI', name, item,
+                                  (bounds.left, bounds.top, bounds.right, bounds.bottom),
+                                  pid, owner(hit_window), owner(api.GetForegroundWindow()))
     point = wintypes.POINT(item['x'], item['y'])
     assert api.SetCursorPos(point.x, point.y)
     time.sleep(.1)

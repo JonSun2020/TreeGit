@@ -1521,13 +1521,14 @@ namespace SourceGit.ViewModels
                     });
                     return;
                 }
-                var builder = BuildBranchTree(branches, remotes);
-
                 Dispatcher.UIThread.Invoke(() =>
                 {
                     if (token.IsCancellationRequested)
                         return;
 
+                    // The expansion list and filters can change while Git queries run.
+                    // Build and install the trees together using the current UI state.
+                    var builder = BuildBranchTree(branches, remotes);
                     SetRefreshFailure("branches", false);
                     Remotes = remotes;
                     var searchChanged = _hasBranchSnapshot && !_branches.ConvertAll(b => (b.FullName, b.Head, b.Upstream, b.IsCurrent))
