@@ -364,12 +364,13 @@ namespace SourceGit.Views
                 var fg = this.FindResource("Brush.FG1") as IBrush ?? Brushes.Black;
                 var dim = this.FindResource("Brush.FG2") as IBrush ?? Brushes.Gray;
                 var changed = new SolidColorBrush(old ? Color.FromArgb(75, 240, 90, 90) : Color.FromArgb(75, 50, 190, 100));
-                var highlight = this.FindResource(old ? "Brush.Diff.DeletedHighlight" : "Brush.Diff.AddedHighlight") as IBrush;
-                var differenceOutline = new Pen(highlight ?? (old ? Brushes.IndianRed : Brushes.SeaGreen));
-                var addressOutline = new Pen(dim);
+                var highlight = this.FindResource(old ? "Brush.Diff.DeletedHighlight" : "Brush.Diff.AddedHighlight") as IBrush
+                    ?? (old ? Brushes.IndianRed : Brushes.SeaGreen);
+                var addressHighlight = this.FindResource("Brush.Diff.EmptyBG") as IBrush;
                 var typeface = new Typeface("fonts:SourceGit#JetBrains Mono NL");
-                void Text(string value, double x, double y, IBrush brush) => context.DrawText(new FormattedText(value,
-                    CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, 12, brush), new Point(x, y));
+                var boldTypeface = new Typeface(typeface.FontFamily, FontStyle.Normal, FontWeight.Bold);
+                void Text(string value, double x, double y, IBrush brush, bool bold = false) => context.DrawText(new FormattedText(value,
+                    CultureInfo.InvariantCulture, FlowDirection.LeftToRight, bold ? boldTypeface : typeface, 12, brush), new Point(x, y));
                 var columns = owner._bytesPerRow; var offset = owner.TopOffset;
                 var rows = Math.Max(0, (int)Math.Ceiling((Bounds.Height - 24) / 20));
                 var count = rows * columns;
@@ -391,25 +392,17 @@ namespace SourceGit.Views
                         var x = addressWidth + c * 23; var asciiX = addressWidth + columns * 23 + 10 + c * 8;
                         var different = Models.BinaryComparison.Different(a, b, i);
                         var selected = offset + i == owner._selected;
-                        if (different || selected)
+                        IBrush background = different ? changed : null;
+                        if (selected)
+                            background = different ? highlight : addressHighlight;
+                        if (background != null)
                         {
-                            var hexCell = new Rect(x - 2, y - 1, 22, 19);
-                            var asciiCell = new Rect(asciiX, y - 1, 8, 19);
-                            if (different)
-                            {
-                                context.FillRectangle(changed, hexCell);
-                                context.FillRectangle(changed, asciiCell);
-                            }
-                            if (selected)
-                            {
-                                var pen = different ? differenceOutline : addressOutline;
-                                context.DrawRectangle(null, pen, hexCell.Deflate(.5));
-                                context.DrawRectangle(null, pen, asciiCell.Deflate(.5));
-                            }
+                            context.FillRectangle(background, new Rect(x - 2, y - 1, 22, 19));
+                            context.FillRectangle(background, new Rect(asciiX, y - 1, 8, 19));
                         }
 
-                        Text(i < a.Length ? a[i].ToString("X2") : "--", x, y, fg);
-                        Text(i < a.Length ? a[i] is >= 32 and <= 126 ? ((char)a[i]).ToString() : "." : "·", asciiX, y, fg);
+                        Text(i < a.Length ? a[i].ToString("X2") : "--", x, y, fg, selected);
+                        Text(i < a.Length ? a[i] is >= 32 and <= 126 ? ((char)a[i]).ToString() : "." : "·", asciiX, y, fg, selected);
                     }
                 }
             }
