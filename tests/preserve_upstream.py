@@ -11,7 +11,9 @@ for name in files:
     old=subprocess.check_output(['git','show','upstream-c0f40a2:'+name],cwd=root).decode('utf-8-sig')
     new=(root/name).read_text(encoding='utf-8-sig')
     for label,pattern in [('named controls',r'x:Name="[^"]+"'),('actions',r'(?:Click|Tapped|DoubleTapped|Command|HotKey|ContextRequested|SelectionChanged|PointerPressed|SizeChanged|RowsChanged|SearchRequested)="[^"]+"'),('data bindings',r'\{Binding [^}]+\}')]:
-        missing=Counter(re.findall(pattern,old))-Counter(re.findall(pattern,new))
+        # Formatting a path for display preserves the upstream data source and binding mode.
+        actual = new.replace(', Converter={x:Static c:PathConverters.Local}', '') if label == 'data bindings' else new
+        missing=Counter(re.findall(pattern,old))-Counter(re.findall(pattern,actual))
         if name == 'src/Views/LauncherPage.axaml' and label == 'data bindings':
             operation = (root/'src/ViewModels/Popup.Operation.cs').read_text(encoding='utf-8-sig')
             assert 'Description="{Binding StatusDescription}"' in new and 'IsVisible="{Binding ShowStatus}"' in new
@@ -29,6 +31,11 @@ for name in files:
             assert 'Native.OS.OpenTerminal(repo.FullPath)' in handler
             missing.pop('Command="{Binding OpenTerminal}"', None)
             missing.pop('{Binding OpenTerminal}', None)
+        if name == 'src/Views/RepositoryToolbar.axaml' and label == 'data bindings':
+            # The counters avoid expanding the divergence into commit lists.
+            for direction in ('Behind', 'Ahead'):
+                assert f'{{Binding CurrentBranch?.{direction}Count, Mode=OneWay, Converter={{x:Static c:IntConverters.IsGreaterThanZero}}' in new
+                missing.pop(f'{{Binding CurrentBranch?.{direction}, Mode=OneWay, Converter={{x:Static c:ListConverters.IsNotNullOrEmpty}}', None)
         if name == 'src/Views/Repository.axaml' and label == 'data bindings':
             # Search moved from the repository sidebar into the history area.
             moved = {'{Binding Histories.SearchCommitContext, Mode=OneWay}', '{Binding #ThisControl.IsCommitSearchPanelVisible, Mode=OneWay}'}
@@ -57,9 +64,17 @@ for name in files:
         checks.append(f'{name}: all original {label} retained')
 for p in (root/'src/Resources/Locales').glob('*.axaml'):
     old=subprocess.check_output(['git','show','upstream-c0f40a2:'+p.relative_to(root).as_posix()],cwd=root).decode('utf-8-sig')
-    removed = {'Text.ScanRepositories.UseCustomDir'}
+    removed = {
+        'Text.ScanRepositories.UseCustomDir',
+        'Text.Preferences.General.ShowRelativeTimeInGraph',
+        'Text.Preferences.General.ShowTagsInGraph',
+        *(f'Text.Period.{name}' for name in (
+            'DaysAgo', 'HourAgo', 'HoursAgo', 'JustNow', 'LastMonth',
+            'LastYear', 'MinutesAgo', 'MonthsAgo', 'YearsAgo', 'Yesterday',
+        )),
+    }
     current = set(re.findall(r'x:Key="([^"]+)"',p.read_text(encoding='utf-8-sig')))
     assert set(re.findall(r'x:Key="([^"]+)"',old)) - removed <= current
     assert not (current & removed) and 'Text.ScanRepositories.NoRoot' in current
-checks.append('upstream localization resource keys retained outside the removed custom scan option')
+checks.append('upstream localization resource keys retained outside the removed scan and history display options')
 print(json.dumps({'passed':len(checks),'checks':checks},ensure_ascii=False,indent=2))

@@ -1101,6 +1101,7 @@
 
     <Style Selector="^ /template/ Popup#PART_Popup">
       <Setter Property="ShouldUseOverlayLayer" Value="True"/>
+      <Setter Property="UseLayoutRounding" Value="False"/>
       <Setter Property="Placement" Value="Custom"/>
       <Setter Property="CustomPopupPlacementCallback" Value="{x:Static v:DropdownPlacement.Align}"/>
       <Setter Property="Width" Value="{Binding Bounds.Width, RelativeSource={RelativeSource TemplatedParent}}"/>

@@ -39,11 +39,24 @@ for locale in ['zh_CN', 'zh_TW']:
             simplified_in_traditional.append(name)
 assert not untranslated, ('Untranslated English UI text', len(untranslated), untranslated[:12])
 assert not simplified_in_traditional, ('Simplified Chinese in traditional UI', len(simplified_in_traditional), simplified_in_traditional[:12])
+source = root / 'src'
+project = ET.parse(source / 'SourceGit.csproj').getroot()
+excluded = {
+    name.replace('\\', '/')
+    for group in project.findall('ItemGroup') if not group.get('Condition')
+    for item in group if item.tag in {'Compile', 'AvaloniaXaml'} and item.get('Remove') and not item.get('Condition')
+    for name in item.get('Remove').split(';')
+}
 missing = []
 references = 0
-for path in (root / 'src').rglob('*'):
+for path in source.rglob('*'):
     if path.suffix not in ['.cs', '.axaml'] or set(path.parts) & {'bin', 'obj'}: continue
+    if path.relative_to(source).as_posix() in excluded: continue
     text = path.read_text(encoding='utf-8-sig')
+    if path.suffix == '.cs':
+        # Skip explicitly retired source blocks. Keep other conditional code
+        # checked, including platform-specific and integration-only surfaces.
+        text = re.sub(r'(?m)^[ \t]*#if[ \t]+false\b[^\n]*\n(?:(?!^[ \t]*#(?:if|elif|else|endif)\b)[\s\S])*^[ \t]*#endif\b[^\n]*', '', text)
     names = re.findall(r'App\.(?:Text|TextBinding)\("([^"]+)"\s*[,)]', text)
     names += re.findall(r'App\.BindText\([^\n]+?,\s*"([^"]+)"\)', text)
     names += re.findall(r'\{(?:DynamicResource|StaticResource) Text\.([^}]+)\}', text)
