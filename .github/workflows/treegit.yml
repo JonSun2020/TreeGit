@@ -235,6 +235,9 @@ jobs:
       - name: Verify editable merge results, undo history and encodings
         shell: pwsh
         run: dotnet run --project tests/MergeConflictProbe.csproj -c Release -- "$env:RUNNER_TEMP/merge-model-results"
+      - name: Verify byte-by-byte binary comparison navigation
+        shell: pwsh
+        run: dotnet run --project tests/BinaryComparisonProbe.csproj -c Release
       - name: Package
         id: package
         shell: pwsh

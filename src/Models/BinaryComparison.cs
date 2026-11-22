@@ -24,7 +24,10 @@ namespace SourceGit.Models
         private readonly FileStream _new;
         private readonly string _directory;
         private List<Page> _pages = [];
+        private PageBytes _navigationPage;
         private readonly record struct Page(long Offset, int Length, int Count);
+        private sealed record PageBytes(long Offset, byte[] Old, byte[] New);
+        private static readonly Comparer<Page> PageOrder = Comparer<Page>.Create((a, b) => a.Offset.CompareTo(b.Offset));
 
         public BinaryComparison(string oldFile, string newFile, string ownedDirectory = null)
         {
@@ -106,43 +109,31 @@ namespace SourceGit.Models
         public long Navigate(long current, int direction, CancellationToken token)
         {
             direction = direction < 0 ? -1 : 1;
-            if (Length == 0) return -1;
-            if (current < 0 || current >= Length)
-                return FindByte(direction > 0 ? 0 : Length - 1, direction, true, token);
-            var same = FindByte(current, direction, false, token);
-            return same < 0 ? -1 : FindByte(same, direction, true, token);
-        }
+            var start = current >= 0 && current < Length
+                ? current + direction
+                : direction > 0 ? 0 : Length - 1;
+            if (start < 0 || start >= Length) return -1;
 
-        private long FindByte(long start, int direction, bool different, CancellationToken token)
-        {
-            var pageIndex = _pages.BinarySearch(new Page(start / PageSize * PageSize, 0, 0),
-                Comparer<Page>.Create((a, b) => a.Offset.CompareTo(b.Offset)));
-            if (pageIndex < 0) pageIndex = ~pageIndex;
-            for (var pos = start; pos >= 0 && pos < Length;)
+            var pageIndex = _pages.BinarySearch(new Page(start / PageSize * PageSize, 0, 0), PageOrder);
+            if (pageIndex < 0)
+                pageIndex = ~pageIndex + (direction > 0 ? 0 : -1);
+
+            for (; pageIndex >= 0 && pageIndex < _pages.Count; pageIndex += direction)
             {
                 token.ThrowIfCancellationRequested();
-                var pageOffset = pos / PageSize * PageSize;
-                while (pageIndex > 0 && _pages[pageIndex - 1].Offset >= pageOffset) pageIndex--;
-                while (pageIndex < _pages.Count && _pages[pageIndex].Offset < pageOffset) pageIndex++;
-                var count = pageIndex < _pages.Count && _pages[pageIndex].Offset == pageOffset ? _pages[pageIndex].Count : 0;
-                var length = (int)Math.Min(PageSize, Length - pageOffset);
-                if ((different && count == 0) || (!different && count == length))
+                var page = _pages[pageIndex];
+                var first = (int)Math.Clamp(start - page.Offset, 0, page.Length - 1);
+                if (page.Count == page.Length) return page.Offset + first;
+
+                // A sequence of nearby navigation requests reuses one immutable page.
+                var bytes = Volatile.Read(ref _navigationPage);
+                if (bytes == null || bytes.Offset != page.Offset)
                 {
-                    if (different)
-                    {
-                        var next = direction > 0 ? pageIndex : pageIndex - 1;
-                        if (next < 0 || next >= _pages.Count) return -1;
-                        pos = _pages[next].Offset + (direction > 0 ? 0 : _pages[next].Length - 1);
-                    }
-                    else pos = direction > 0 ? pageOffset + length : pageOffset - 1;
-                    continue;
+                    bytes = new PageBytes(page.Offset, Read(true, page.Offset, page.Length), Read(false, page.Offset, page.Length));
+                    Volatile.Write(ref _navigationPage, bytes);
                 }
-                if ((different && count == length) || (!different && count == 0)) return pos;
-                var a = Read(true, pageOffset, PageSize);
-                var b = Read(false, pageOffset, PageSize);
-                for (var i = (int)(pos - pageOffset); i >= 0 && i < length; i += direction)
-                    if (Different(a, b, i) == different) return pageOffset + i;
-                pos = direction > 0 ? pageOffset + length : pageOffset - 1;
+                for (var i = first; i >= 0 && i < page.Length; i += direction)
+                    if (Different(bytes.Old, bytes.New, i)) return page.Offset + i;
             }
             return -1;
         }

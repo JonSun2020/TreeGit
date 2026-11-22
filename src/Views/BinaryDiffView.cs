@@ -369,8 +369,14 @@ namespace SourceGit.Views
                 var addressHighlight = this.FindResource("Brush.Diff.EmptyBG") as IBrush;
                 var typeface = new Typeface("fonts:SourceGit#JetBrains Mono NL");
                 var boldTypeface = new Typeface(typeface.FontFamily, FontStyle.Normal, FontWeight.Bold);
-                void Text(string value, double x, double y, IBrush brush, bool bold = false) => context.DrawText(new FormattedText(value,
-                    CultureInfo.InvariantCulture, FlowDirection.LeftToRight, bold ? boldTypeface : typeface, 12, brush), new Point(x, y));
+                void Text(string value, double x, double y, IBrush brush, bool bold = false, IBrush background = null)
+                {
+                    var text = new FormattedText(value, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                        bold ? boldTypeface : typeface, 12, brush);
+                    if (background != null)
+                        context.FillRectangle(background, new Rect(x, y - 1, text.WidthIncludingTrailingWhitespace, 19));
+                    context.DrawText(text, new Point(x, y));
+                }
                 var columns = owner._bytesPerRow; var offset = owner.TopOffset;
                 var rows = Math.Max(0, (int)Math.Ceiling((Bounds.Height - 24) / 20));
                 var count = rows * columns;
@@ -395,14 +401,8 @@ namespace SourceGit.Views
                         IBrush background = different ? changed : null;
                         if (selected)
                             background = different ? highlight : addressHighlight;
-                        if (background != null)
-                        {
-                            context.FillRectangle(background, new Rect(x - 2, y - 1, 22, 19));
-                            context.FillRectangle(background, new Rect(asciiX, y - 1, 8, 19));
-                        }
-
-                        Text(i < a.Length ? a[i].ToString("X2") : "--", x, y, fg, selected);
-                        Text(i < a.Length ? a[i] is >= 32 and <= 126 ? ((char)a[i]).ToString() : "." : "·", asciiX, y, fg, selected);
+                        Text(i < a.Length ? a[i].ToString("X2") : "--", x, y, fg, selected, background);
+                        Text(i < a.Length ? a[i] is >= 32 and <= 126 ? ((char)a[i]).ToString() : "." : "·", asciiX, y, fg, selected, background);
                     }
                 }
             }

@@ -35,7 +35,9 @@ original = bytes(range(256)) * 512
 initial = git('rev-parse', 'HEAD')
 staged = bytearray(original); staged[23] ^= 0x40
 (repo/name).write_bytes(staged); git('add', '.')
-working = bytearray(staged); working[17] ^= 0x40; working[65533:65540] = b'abcdefg'; working.extend(b'\x00\xac\xff')
+working = bytearray(staged)
+for offset in (17, 18, 20): working[offset] ^= 0x40
+working[65533:65540] = b'abcdefg'; working.extend(b'\x00\xac\xff')
 (repo/name).write_bytes(working)
 env=os.environ.copy();env.update(TMPDIR=str(snapshot_root),TEMP=str(snapshot_root),TMP=str(snapshot_root))
 p = subprocess.Popen([str(exe), '--mcp'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8', env=env, creationflags=subprocess.CREATE_NO_WINDOW)
@@ -103,9 +105,12 @@ state = select()
 expected = sum(a != b for a, b in zip(staged, working)) + len(working)-len(staged)
 check('unstaged binary compares against index, including changes across a 64 KiB boundary and append', state['differentBytes'] == expected and state['oldSize'] == len(staged) and state['newSize'] == len(working))
 check('binary comparison automatically selects the first difference', state['selectedOffset'] == 17)
-state = diff('next'); check('next difference navigates across page boundary', state['selectedOffset'] == 65533)
-state = diff('next'); check('next difference reaches appended bytes', state['selectedOffset'] == len(staged))
-state = diff('previous'); check('previous difference reaches the end of the preceding range', state['selectedOffset'] == 65539)
+for offset in (18, 20, *range(65533, 65540), len(staged), len(staged) + 1):
+    state = diff('next')
+    check(f'next difference selects actual byte {offset}', state['selectedOffset'] == offset)
+for offset in (len(staged), *range(65539, 65532, -1), 20, 18, 17):
+    state = diff('previous')
+    check(f'previous difference selects actual byte {offset}', state['selectedOffset'] == offset)
 state = diff('last'); check('last difference selects the final added byte', state['selectedOffset'] == len(working)-1)
 state = diff('goto', offset=16)
 check('address jump reads the two matching snapshot offsets', bytes.fromhex(state['oldHex']) == staged[state['topOffset']:state['topOffset']+256] and bytes.fromhex(state['newHex']) == working[state['topOffset']:state['topOffset']+256])

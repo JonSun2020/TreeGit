@@ -30,13 +30,14 @@ internal static class BinaryComparisonProbe
                 File.WriteAllBytes(oldFile, a); File.WriteAllBytes(newFile, b);
                 using var c = new BinaryComparison(oldFile, newFile);
                 await c.ScanAsync(CancellationToken.None);
-                var starts = Enumerable.Range(0, length).Where(i => a[i] != b[i] && (i == 0 || a[i - 1] == b[i - 1])).Select(i => (long)i).ToArray();
-                var ends = Enumerable.Range(0, length).Where(i => a[i] != b[i] && (i == length - 1 || a[i + 1] == b[i + 1])).Select(i => (long)i).Reverse().ToArray();
-                Check("exact differing byte count " + length, c.DifferentBytes == a.Where((v, i) => v != b[i]).LongCount());
-                long position = -1; var forward = starts.All(expected => (position = c.Navigate(position, 1, CancellationToken.None)) == expected);
-                Check("all forward difference ranges " + length, forward && c.Navigate(position, 1, CancellationToken.None) == -1);
-                position = -1; var backward = ends.All(expected => (position = c.Navigate(position, -1, CancellationToken.None)) == expected);
-                Check("all backward difference ranges " + length, backward && c.Navigate(position, -1, CancellationToken.None) == -1);
+                var differences = Enumerable.Range(0, length).Where(i => a[i] != b[i]).ToArray();
+                Check("exact differing byte count " + length, c.DifferentBytes == differences.Length);
+                long position = -1;
+                var forward = differences.All(expected => (position = c.Navigate(position, 1, CancellationToken.None)) == expected);
+                Check("all forward differing bytes " + length, forward && c.Navigate(position, 1, CancellationToken.None) == -1);
+                position = -1;
+                var backward = differences.Reverse().All(expected => (position = c.Navigate(position, -1, CancellationToken.None)) == expected);
+                Check("all backward differing bytes " + length, backward && c.Navigate(position, -1, CancellationToken.None) == -1);
             }
             foreach (var sizes in new[] { (0, 10), (10, 0), (65540, 65530), (65530, 65540) })
             {
@@ -44,6 +45,23 @@ internal static class BinaryComparisonProbe
                 using var c = new BinaryComparison(oldFile, newFile); await c.ScanAsync(CancellationToken.None);
                 Check("added/deleted/truncated counts " + sizes, c.DifferentBytes == Math.Abs(sizes.Item1 - sizes.Item2));
                 Check("added/deleted/truncated navigation " + sizes, c.Navigate(-1, 1, CancellationToken.None) == Math.Min(sizes.Item1, sizes.Item2) && c.Navigate(-1, -1, CancellationToken.None) == Math.Max(sizes.Item1, sizes.Item2) - 1);
+            }
+            var sparse = new byte[4 * BinaryComparison.PageSize];
+            var firstChange = BinaryComparison.PageSize - 2;
+            var lastChange = 3 * BinaryComparison.PageSize + 2;
+            File.WriteAllBytes(oldFile, sparse);
+            sparse[firstChange] = 1;
+            sparse[lastChange] = 1;
+            File.WriteAllBytes(newFile, sparse);
+            using (var c = new BinaryComparison(oldFile, newFile))
+            {
+                await c.ScanAsync(CancellationToken.None);
+                var unchanged = 2 * BinaryComparison.PageSize;
+                Check("navigation skips clean pages in both directions",
+                    c.Navigate(unchanged, 1, CancellationToken.None) == lastChange &&
+                    c.Navigate(unchanged, -1, CancellationToken.None) == firstChange &&
+                    c.Navigate(firstChange, 1, CancellationToken.None) == lastChange &&
+                    c.Navigate(lastChange, -1, CancellationToken.None) == firstChange);
             }
             var big = new byte[32 * 1024 * 1024]; File.WriteAllBytes(oldFile, big);
             for (var i = 0; i < big.Length; i += 2) big[i] = 1;
@@ -60,7 +78,11 @@ internal static class BinaryComparisonProbe
             using (var c = new BinaryComparison(oldFile, newFile))
             {
                 await c.ScanAsync(CancellationToken.None);
-                Check("fully changed pages skip a whole contiguous run", c.Navigate(0, 1, CancellationToken.None) == -1 && c.Navigate(big.Length - 1, -1, CancellationToken.None) == -1);
+                Check("fully changed pages advance one byte per click",
+                    c.Navigate(0, 1, CancellationToken.None) == 1 && c.Navigate(big.Length - 1, -1, CancellationToken.None) == big.Length - 2);
+                Check("fully changed pages advance one byte across page boundaries",
+                    c.Navigate(BinaryComparison.PageSize - 1, 1, CancellationToken.None) == BinaryComparison.PageSize &&
+                    c.Navigate(BinaryComparison.PageSize, -1, CancellationToken.None) == BinaryComparison.PageSize - 1);
             }
             var owned = Path.Combine(dir, "owned"); Directory.CreateDirectory(owned);
             File.Copy(oldFile, Path.Combine(owned, "a")); File.Copy(newFile, Path.Combine(owned, "b"));
