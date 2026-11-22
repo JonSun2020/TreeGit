@@ -88,9 +88,10 @@ namespace SourceGit.ViewModels
                 {
                     var visible = new List<string>();
 
+                    var pathFilter = Native.OS.FormatGitPath(_filter);
                     foreach (var f in _repoFiles)
                     {
-                        if (f.Contains(_filter, StringComparison.OrdinalIgnoreCase))
+                        if (f.Contains(pathFilter, StringComparison.OrdinalIgnoreCase))
                             visible.Add(f);
                     }
 

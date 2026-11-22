@@ -48,8 +48,8 @@ namespace SourceGit.Views
             message
                 .AppendLine(App.Text("SSHKeyHelper.ConfirmDeletion"))
                 .AppendLine()
-                .Append("• ").Append(key.PrivateKeyPath).AppendLine()
-                .Append("• ").Append(key.PublicKeyPath);
+                .Append("• ").Append(Native.OS.FormatLocalPath(key.PrivateKeyPath)).AppendLine()
+                .Append("• ").Append(Native.OS.FormatLocalPath(key.PublicKeyPath));
 
             var confirm = new Confirm();
             confirm.SetData(message.ToString(), Models.ConfirmButtonType.YesNo);

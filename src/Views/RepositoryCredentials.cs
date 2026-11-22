@@ -29,7 +29,7 @@ namespace SourceGit.Views
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             var panel = new StackPanel { Margin = new Thickness(24), Spacing = 12 };
             panel.Children.Add(new TextBlock { [!Avalonia.Controls.TextBlock.TextProperty] = App.TextBinding("TreeGit.Credentials.Authentication"), FontSize = 20 });
-            panel.Children.Add(new TextBlock { Text = repo.FullPath, TextWrapping = Avalonia.Media.TextWrapping.Wrap });
+            panel.Children.Add(new TextBlock { Text = Native.OS.FormatLocalPath(repo.FullPath), TextWrapping = Avalonia.Media.TextWrapping.Wrap });
             panel.Children.Add(new TextBlock { [!Avalonia.Controls.TextBlock.TextProperty] = App.TextBinding("TreeGit.Credentials.Description"), TextWrapping = Avalonia.Media.TextWrapping.Wrap });
             var query = new Commands.QueryRemotes(repo.FullPath);
             var remoteList = query.GetResult();

@@ -88,7 +88,7 @@
                   <v:BranchTreeNodeTrackStatusTooltip Grid.Row="1" Grid.Column="1" Margin="8,4,0,0"/>
 
                   <TextBlock Grid.Row="2" Grid.Column="0" Classes="info_label" Margin="0,4,0,0" HorizontalAlignment="Left" VerticalAlignment="Center" Text="{DynamicResource Text.BranchTree.Worktree}" IsVisible="{Binding HasWorktree}"/>
-                  <TextBlock Grid.Row="2" Grid.Column="1" Margin="8,4,0,0" Text="{Binding WorktreePath, Mode=OneWay}" IsVisible="{Binding HasWorktree}"/>
+                  <TextBlock Grid.Row="2" Grid.Column="1" Margin="8,4,0,0" Text="{Binding WorktreePath, Mode=OneWay, Converter={x:Static c:PathConverters.Local}}" IsVisible="{Binding HasWorktree}"/>
                 </Grid>
 
                 <v:BranchTreeNodeDescription Margin="0,8,0,0"/>
@@ -105,7 +105,7 @@
                 <Grid Margin="0,8,0,0" RowDefinitions="Auto,Auto" ColumnDefinitions="Auto,Auto">
                   <TextBlock Grid.Row="0" Grid.Column="0" Classes="info_label" HorizontalAlignment="Left" VerticalAlignment="Center" Text="{DynamicResource Text.BranchTree.URL}"/>
 
-                  <TextBlock Grid.Row="0" Grid.Column="1" Margin="6,0,0,0" Foreground="{DynamicResource Brush.Link}" Text="{Binding URL, Mode=OneWay}"/>
+                  <TextBlock Grid.Row="0" Grid.Column="1" Margin="6,0,0,0" Foreground="{DynamicResource Brush.Link}" Text="{Binding URL, Mode=OneWay, Converter={x:Static c:PathConverters.RemoteAddress}}"/>
 
                   <TextBlock Grid.Row="1" Grid.Column="0" Classes="info_label" HorizontalAlignment="Left" VerticalAlignment="Center" Text="{DynamicResource Text.BranchTree.PushURL}" IsVisible="{Binding PushURL, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
 

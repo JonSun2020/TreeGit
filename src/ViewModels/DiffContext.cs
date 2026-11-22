@@ -114,9 +114,9 @@ namespace SourceGit.ViewModels
             }
 
             if (string.IsNullOrEmpty(_option.OrgPath) || _option.OrgPath == "/dev/null")
-                Title = _option.Path;
+                Title = Native.OS.FormatLocalPath(_option.Path);
             else
-                Title = $"{_option.OrgPath} → {_option.Path}";
+                Title = $"{Native.OS.FormatLocalPath(_option.OrgPath)} → {Native.OS.FormatLocalPath(_option.Path)}";
 
             LoadContent();
         }

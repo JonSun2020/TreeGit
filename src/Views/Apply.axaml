@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
-<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:m="using:SourceGit.Models" xmlns:vm="using:SourceGit.ViewModels" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SourceGit.Views.Apply" x:DataType="vm:Apply">
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="using:SourceGit.Views" xmlns:d="http://schemas.microsoft.com/expression/blend/2008" xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" xmlns:m="using:SourceGit.Models" xmlns:vm="using:SourceGit.ViewModels" mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450" x:Class="SourceGit.Views.Apply" x:DataType="vm:Apply">
   <StackPanel Orientation="Vertical" Margin="8,0">
     <StackPanel Orientation="Horizontal" Classes="popup_heading">
       <Path Width="16" Height="16" Data="{StaticResource Icons.ApplyPatch}"/>
@@ -17,7 +18,7 @@
         <RadioButton Content="{DynamicResource Text.Apply.Source.Clipboard}" IsChecked="{Binding FromClipboard, Mode=TwoWay}" Margin="18,0,0,0"/>
       </StackPanel>
 
-      <TextBox Grid.Row="1" Grid.Column="1"
+      <v:PathTextBox Grid.Row="1" Grid.Column="1"
                x:Name="TxtPatchFile"
                Height="28"
                Margin="0,0,0,6"
@@ -39,7 +40,7 @@
             <Path Data="{StaticResource Icons.Folder.Open}" Fill="{DynamicResource Brush.FG1}"/>
           </Button>
         </TextBox.InnerRightContent>
-      </TextBox>
+      </v:PathTextBox>
 
       <TextBlock Grid.Row="2" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" Classes="option_dependent" IsEnabled="{Binding !IgnoreWhiteSpace}" Text="{DynamicResource Text.Apply.WS}"/>
       <ComboBox Grid.Row="2" Grid.Column="1" Height="28" Padding="8,0" VerticalAlignment="Center" HorizontalAlignment="Stretch" ItemsSource="{Binding Source={x:Static m:ApplyWhiteSpaceMode.Supported}}" SelectedItem="{Binding SelectedWhiteSpaceMode, Mode=TwoWay}" IsEnabled="{Binding !IgnoreWhiteSpace}" Grid.IsSharedSizeScope="True">

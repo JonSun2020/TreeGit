@@ -33,8 +33,6 @@ namespace SourceGit.Converters
 
         public static readonly NotificationAreaHeightConverter NotificationAreaHeight = new();
 
-        public static readonly FuncValueConverter<double, double> CommitSummaryHeight = new(v => System.Math.Min(240, System.Math.Max(0, v * .65)));
-
         public static readonly FuncValueConverter<double, double> Increase =
             new FuncValueConverter<double, double>(v => v + 1.0);
 

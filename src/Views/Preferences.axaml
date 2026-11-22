@@ -80,7 +80,7 @@
                        Text="{DynamicResource Text.Preferences.Git.DefaultCloneDir}"
                        HorizontalAlignment="Right"
                        Margin="0,0,16,0"/>
-            <TextBox Grid.Row="2" Grid.Column="1"
+            <v:PathTextBox Grid.Row="2" Grid.Column="1"
                      Height="28"
                      CornerRadius="3"
                      Text="{Binding GitDefaultCloneDir, Mode=TwoWay}">
@@ -89,7 +89,7 @@
                   <Path Data="{StaticResource Icons.Folder.Open}" Fill="{DynamicResource Brush.FG1}"/>
                 </Button>
               </TextBox.InnerRightContent>
-            </TextBox>
+            </v:PathTextBox>
 
             <TextBlock Grid.Row="3" Grid.Column="0"
                        Text="{DynamicResource Text.Preferences.General.SubjectGuideLength}"
@@ -322,7 +322,7 @@
                        HorizontalAlignment="Right"
                        Margin="0,0,16,0"
                        IsVisible="{Binding #ThisControl.GPGFormat.NeedFindProgram}"/>
-            <TextBox Grid.Row="1" Grid.Column="1"
+            <v:PathTextBox Grid.Row="1" Grid.Column="1"
                      Height="28"
                      CornerRadius="3"
                      Text="{Binding #ThisControl.GPGExecutableFile, Mode=TwoWay}"
@@ -333,7 +333,7 @@
                   <Path Data="{StaticResource Icons.Folder.Open}" Fill="{DynamicResource Brush.FG1}"/>
                 </Button>
               </TextBox.InnerRightContent>
-            </TextBox>
+            </v:PathTextBox>
 
             <TextBlock Grid.Row="2" Grid.Column="0"
                        Text="{DynamicResource Text.Preferences.GPG.UserKey}"
@@ -384,7 +384,7 @@
                        HorizontalAlignment="Right"
                        Margin="0,0,16,0"/>
             <Grid Grid.Row="0" IsEnabled="{Binding !#UseBundledGitChoice.IsChecked}" Grid.Column="1" ColumnDefinitions="*,Auto">
-              <TextBox x:Name="GitPathInput" Grid.Column="0"
+              <v:PathTextBox x:Name="GitPathInput" Grid.Column="0"
                      Height="28"
                      CornerRadius="3"
                      TextChanged="OnGitInstallPathChanged">
@@ -393,7 +393,7 @@
                   <Path Data="{StaticResource Icons.Folder.Open}" Fill="{DynamicResource Brush.FG1}"/>
                 </Button>
               </TextBox.InnerRightContent>
-              </TextBox>
+              </v:PathTextBox>
               <Button Grid.Column="1" x:Name="DetectGitButton" Classes="flat" Margin="6,0,0,0"
                       Height="28" Padding="10,0" Content="{DynamicResource Text.TreeGit.Git.Detect}" Click="OnDetectGit"/>
             </Grid>
@@ -560,7 +560,7 @@
                 <TextBlock Text="{DynamicResource Text.Preferences.Shell.Path}"
                            HorizontalAlignment="Right" />
               </Border>
-              <TextBox Grid.Row="1" Grid.Column="1"
+              <v:PathTextBox Grid.Row="1" Grid.Column="1"
                        Height="28"
                        CornerRadius="3"
                        Text="{Binding ShellOrTerminalPath, Mode=TwoWay}"
@@ -570,7 +570,7 @@
                     <Path Data="{StaticResource Icons.Folder.Open}" Fill="{DynamicResource Brush.FG1}"/>
                   </Button>
                 </TextBox.InnerRightContent>
-              </TextBox>
+              </v:PathTextBox>
 
               <Border Grid.Row="2" Grid.Column="0"
                       Height="32"
@@ -638,7 +638,7 @@
                 <TextBlock Text="{DynamicResource Text.Preferences.DiffMerge.Path}"
                            HorizontalAlignment="Right" />
               </Border>
-              <TextBox Grid.Row="1" Grid.Column="1"
+              <v:PathTextBox Grid.Row="1" Grid.Column="1"
                        Height="28"
                        CornerRadius="3"
                        x:Name="ExternalToolPath"
@@ -650,7 +650,7 @@
                     <Path Data="{StaticResource Icons.Folder.Open}" Fill="{DynamicResource Brush.FG1}"/>
                   </Button>
                 </TextBox.InnerRightContent>
-              </TextBox>
+              </v:PathTextBox>
 
               <Border Grid.Row="2" Grid.Column="0"
                       Height="32"

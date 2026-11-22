@@ -26,25 +26,14 @@
       <Setter Property="Margin" Value="0"/>
       <Setter Property="Padding" Value="0"/>
     </Style>
-    <Style Selector="ListBoxItem:selected">
-      <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.Selection}"/>
-      <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
-    </Style>
-    <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.Selection}"/>
-      <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
-    </Style>
     <Style Selector="TextBlock.change_directory">
       <Setter Property="Foreground" Value="{DynamicResource Brush.FG2}"/>
-    </Style>
-    <Style Selector="ListBoxItem:selected TextBlock">
-      <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
     </Style>
   </UserControl.Styles>
 
   <UserControl.DataTemplates>
     <DataTemplate DataType="vm:ChangeCollectionAsTree">
-      <v:ChangeCollectionContainer Focusable="True"
+      <v:ChangeCollectionContainer Classes="file_selection" Focusable="True"
                                    ItemsSource="{Binding Rows}"
                                    SelectedItems="{Binding SelectedRows, Mode=TwoWay}"
                                    SelectionMode="Multiple"
@@ -94,7 +83,7 @@
     </DataTemplate>
 
     <DataTemplate DataType="vm:ChangeCollectionAsGrid">
-      <v:ChangeCollectionContainer Focusable="True"
+      <v:ChangeCollectionContainer Classes="file_selection" Focusable="True"
                                    ItemsSource="{Binding Changes}"
                                    SelectedItems="{Binding SelectedChanges, Mode=TwoWay}"
                                    SelectionMode="Multiple"
@@ -129,7 +118,7 @@
     </DataTemplate>
 
     <DataTemplate DataType="vm:ChangeCollectionAsList">
-      <v:ChangeCollectionContainer Focusable="True"
+      <v:ChangeCollectionContainer Classes="file_selection" Focusable="True"
                                    ItemsSource="{Binding Changes}"
                                    SelectedItems="{Binding SelectedChanges, Mode=TwoWay}"
                                    SelectionMode="Multiple"
@@ -153,7 +142,7 @@
                          IsVisible="{Binding IsConflicted}"/>
 
               <TextBlock Margin="4,0,0,0"
-                         Text="{Binding Path}"/>
+                         Text="{Binding Path, Converter={x:Static c:PathConverters.Local}}"/>
             </StackPanel>
           </DataTemplate>
         </ListBox.ItemTemplate>

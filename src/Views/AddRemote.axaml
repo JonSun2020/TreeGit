@@ -42,7 +42,7 @@
                  HorizontalAlignment="Right" VerticalAlignment="Center"
                  Margin="0,0,8,0"
                  Text="{DynamicResource Text.Remote.URL}"/>
-      <TextBox Grid.Row="1" Grid.Column="1"
+      <v:RemoteAddressTextBox Grid.Row="1" Grid.Column="1"
                Height="26"
                VerticalAlignment="Center"
                CornerRadius="3"
@@ -58,7 +58,7 @@
         <TextBox.InnerRightContent>
           <v:RemoteProtocolSwitcher Url="{Binding Url, Mode=TwoWay}"/>
         </TextBox.InnerRightContent>
-      </TextBox>
+      </v:RemoteAddressTextBox>
 
       <TextBlock Grid.Row="2" Grid.Column="0"
                  HorizontalAlignment="Right" VerticalAlignment="Center"
@@ -66,7 +66,7 @@
                  Text="{DynamicResource Text.SSHKey}"
                  IsVisible="{Binding UseSSH}"/>
       <Border Grid.Row="2" Grid.Column="1" Height="32" IsVisible="{Binding UseSSH}">
-        <TextBox x:Name="TxtSshKey"
+        <v:PathTextBox x:Name="TxtSshKey"
                  Height="28"
                  VerticalAlignment="Center"
                  CornerRadius="3"
@@ -83,7 +83,7 @@
               <Path Data="{StaticResource Icons.Folder.Open}" Fill="{DynamicResource Brush.FG1}"/>
             </Button>
           </TextBox.InnerRightContent>
-        </TextBox>
+        </v:PathTextBox>
       </Border>
 
       <CheckBox Grid.Row="3" Grid.Column="1"

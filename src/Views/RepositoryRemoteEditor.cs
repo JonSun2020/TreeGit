@@ -19,8 +19,8 @@ namespace SourceGit.Views
             var panel = new StackPanel { Margin = new Thickness(20), Spacing = 9 };
             panel.Children.Add(new TextBlock { [!TextBlock.TextProperty] = new Avalonia.Data.Binding("Title") { Source = this }, FontSize = 18, FontWeight = FontWeight.Bold });
             var name = new TextBox { Name = "RemoteEditorName", Text = remote?.Name ?? "origin", Height = 28 };
-            var url = new TextBox { Name = "RemoteEditorPath", Text = remote?.URL ?? "", Height = 28, [!TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Remote.UrlHint") };
-            var key = new TextBox { Name = "RemoteEditorSshKey", Text = remote?.PrivateSSHKey ?? "", Height = 28,
+            var url = new RemoteAddressTextBox { Name = "RemoteEditorPath", Text = remote?.URL ?? "", Height = 28, [!TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Remote.UrlHint") };
+            var key = new PathTextBox { Name = "RemoteEditorSshKey", Text = remote?.PrivateSSHKey ?? "", Height = 28,
                 CornerRadius = new CornerRadius(3), [!TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Remote.KeyHint") };
             var keyRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
             keyRow.Children.Add(key);

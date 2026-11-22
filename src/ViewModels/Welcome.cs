@@ -264,7 +264,7 @@ namespace SourceGit.ViewModels
             else
             {
                 node.IsVisible = node.Name.Contains(_searchFilter, StringComparison.OrdinalIgnoreCase) ||
-                    node.Id.Contains(_searchFilter, StringComparison.OrdinalIgnoreCase);
+                    node.Id.Contains(Native.OS.FormatGitPath(_searchFilter), StringComparison.OrdinalIgnoreCase);
             }
         }
 

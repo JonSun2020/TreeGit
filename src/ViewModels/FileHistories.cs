@@ -264,9 +264,9 @@ namespace SourceGit.ViewModels
         public FileHistories(string repo, string file, string commit = null)
         {
             if (!string.IsNullOrEmpty(commit))
-                Title = $"{file} @ {commit}";
+                Title = $"{Native.OS.FormatLocalPath(file)} @ {commit}";
             else
-                Title = file;
+                Title = Native.OS.FormatLocalPath(file);
 
             _repo = repo;
 

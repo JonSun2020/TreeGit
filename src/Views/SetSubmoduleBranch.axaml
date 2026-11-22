@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:SourceGit.Converters"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:SourceGit.ViewModels"
@@ -24,7 +25,7 @@
                  Text="{DynamicResource Text.SetSubmoduleBranch.Submodule}"/>
       <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal">
         <Path Width="14" Height="14" Data="{StaticResource Icons.Submodule}"/>
-        <TextBlock Margin="6,0,0,0" Text="{Binding Submodule.Path}"/>
+        <TextBlock Margin="6,0,0,0" Text="{Binding Submodule.Path, Converter={x:Static c:PathConverters.Local}}"/>
       </StackPanel>
 
       <TextBlock Grid.Row="1" Grid.Column="0"

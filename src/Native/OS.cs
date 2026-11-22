@@ -403,17 +403,24 @@ namespace SourceGit.Native
 
         public static string GetAbsPath(string root, string sub)
         {
-            var fullpath = Path.Combine(root, sub);
-            if (OperatingSystem.IsWindows())
-                return fullpath.Replace('/', '\\');
-
-            return fullpath;
+            return FormatLocalPath(Path.Combine(root, sub));
         }
+
+        public static string FormatLocalPath(string path) =>
+            OperatingSystem.IsWindows() ? path?.Replace('/', '\\') : path;
+
+        public static string FormatGitPath(string path) =>
+            OperatingSystem.IsWindows() ? path?.Replace('\\', '/') : path;
+
+        public static string FormatRemoteAddress(string address) =>
+            OperatingSystem.IsWindows() && !string.IsNullOrEmpty(address) && Path.IsPathFullyQualified(address)
+                ? FormatLocalPath(address)
+                : address;
 
         public static string GetRelativePathToHome(string path)
         {
-            if (OperatingSystem.IsWindows())
-                return path;
+            if (string.IsNullOrEmpty(path) || OperatingSystem.IsWindows())
+                return FormatLocalPath(path);
 
             var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
             var prefixLen = home.EndsWith('/') ? home.Length - 1 : home.Length;

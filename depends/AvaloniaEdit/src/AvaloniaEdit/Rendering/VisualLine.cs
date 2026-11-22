@@ -252,13 +252,15 @@ namespace AvaloniaEdit.Rendering
             Debug.Assert(textOffset == LastDocumentLine.EndOffset - FirstDocumentLine.Offset);
         }
 
-        internal void RunTransformers(ITextRunConstructionContext context, IReadOnlyList<IVisualLineTransformer> transformers)
+        internal void RunTransformers(ITextRunConstructionContext context, IReadOnlyList<IVisualLineTransformer> transformers, IVisualLineTransformer selectionColorizer)
         {
             Debug.Assert(_phase == LifetimePhase.Transforming);
             foreach (var transformer in transformers)
             {
                 transformer.Transform(context, _elements);
             }
+            // Apply the selected foreground after syntax and other line styles.
+            selectionColorizer?.Transform(context, _elements);
             _phase = LifetimePhase.Live;
         }
 

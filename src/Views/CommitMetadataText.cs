@@ -9,6 +9,7 @@ using Avalonia.Controls.Documents;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Media.TextFormatting;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
@@ -25,9 +26,6 @@ namespace SourceGit.Views
     }
 
     // One selection surface for labels, values and the full commit message.
-    // Keep inline foregrounds while selecting (set by the view): otherwise the
-    // base control splits shaped runs at each selection edge and caret positions
-    // can move under a captured pointer. A tinted background marks the selection.
     public sealed class CommitMetadataText : SelectableTextBlock
     {
         public static readonly StyledProperty<IBrush> LinkBrushProperty =
@@ -35,14 +33,68 @@ namespace SourceGit.Views
         public IBrush LinkBrush { get => GetValue(LinkBrushProperty); set => SetValue(LinkBrushProperty, value); }
         public string PlainText => _plainText;
         public IReadOnlyList<CommitMetadataSpan> Spans => _spans;
+        public IBrush SelectedGlyphBrush => this.FindResource("Brush.TreeGit.SelectionSecondaryForeground") as IBrush;
+
 #if INTEGRATION_TESTS
         public int MaxRenderedParentLength { get; private set; }
+#endif
         protected override void RenderTextLayout(DrawingContext context, Point origin)
         {
             base.RenderTextLayout(context, origin);
+#if INTEGRATION_TESTS
             MaxRenderedParentLength = Math.Max(MaxRenderedParentLength, _spans.Where(s => s.IsParent).Select(s => s.Length).DefaultIfEmpty().Max());
-        }
 #endif
+            var start = Math.Min(SelectionStart, SelectionEnd);
+            var end = Math.Max(SelectionStart, SelectionEnd);
+            if (start == end || SelectionBrush is not { } background || SelectedGlyphBrush is not { } foreground)
+                return;
+
+            // Recolor the selected glyphs in place. A foreground override on the
+            // text layout would reshape the bold labels at each drag position.
+            var layout = TextLayout;
+            var selected = new StreamGeometry();
+            using (var path = selected.Open())
+            {
+                path.SetFillRule(FillRule.NonZero);
+                foreach (var region in layout.HitTestTextRange(start, end - start))
+                {
+                    var rect = PixelRect.FromRect(region, 1).ToRect(1);
+                    path.BeginFigure(rect.TopLeft, true);
+                    path.LineTo(rect.TopRight);
+                    path.LineTo(rect.BottomRight);
+                    path.LineTo(rect.BottomLeft);
+                    path.EndFigure(true);
+                }
+            }
+
+            using var translation = context.PushTransform(Matrix.CreateTranslation(origin));
+            using var clip = context.PushGeometryClip(selected);
+            context.FillRectangle(background, selected.Bounds);
+            var y = 0.0;
+            foreach (var line in layout.TextLines)
+            {
+                if (line.FirstTextSourceIndex >= end)
+                    break;
+                if (line.FirstTextSourceIndex + line.Length > start)
+                {
+                    var x = line.Start;
+                    foreach (var run in line.TextRuns.OfType<ShapedTextRun>())
+                    {
+                        using var glyphPosition = context.PushTransform(Matrix.CreateTranslation(x, y + line.Baseline - run.Baseline));
+                        context.DrawGlyphRun(foreground, run.GlyphRun);
+                        var width = run.Size.Width;
+                        if (run.Properties.TextDecorations is { Count: > 0 })
+                        {
+                            // The metadata's only decoration is the parent link underline.
+                            var underline = run.GlyphRun.BaselineOrigin + new Point(0, run.TextMetrics.UnderlinePosition);
+                            context.DrawLine(new Pen(foreground, run.TextMetrics.UnderlineThickness), underline, underline + new Point(width, 0));
+                        }
+                        x += width;
+                    }
+                }
+                y += line.Height;
+            }
+        }
         public event EventHandler<CommitParentNavigationEventArgs> ParentNavigationRequested;
         protected override Type StyleKeyOverride => typeof(SelectableTextBlock);
 

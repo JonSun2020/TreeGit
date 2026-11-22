@@ -10,6 +10,8 @@ namespace SourceGit.ViewModels
         // Transient position belongs to this dialog in this tab, never a global setting.
         internal Avalonia.Point? DialogPosition { get; set; }
 
+        public virtual double DialogMaxWidth => 560;
+
         public string DialogTitle => GetType().Name switch
         {
             "AddRemote" => App.Text("Remote.AddTitle"),

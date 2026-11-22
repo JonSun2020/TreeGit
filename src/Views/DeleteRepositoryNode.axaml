@@ -53,7 +53,7 @@
               Fill="{DynamicResource Brush.FG1}"
               HorizontalAlignment="Left" VerticalAlignment="Center"
               Data="{StaticResource Icons.Folder}"/>
-        <TextBlock Text="{Binding Node.Id}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
+        <TextBlock Text="{Binding Node.Id, Converter={x:Static c:PathConverters.Local}}" HorizontalAlignment="Left" VerticalAlignment="Center"/>
       </StackPanel>
 
       <Grid Grid.Row="2" Grid.Column="1">

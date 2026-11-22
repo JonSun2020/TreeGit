@@ -671,9 +671,10 @@ namespace SourceGit.ViewModels
             else
             {
                 var visible = new List<Models.Change>();
+                var pathFilter = Native.OS.FormatGitPath(_searchChangeFilter);
                 foreach (var c in _changes)
                 {
-                    if (c.Path.Contains(_searchChangeFilter, StringComparison.OrdinalIgnoreCase))
+                    if (c.Path.Contains(pathFilter, StringComparison.OrdinalIgnoreCase))
                         visible.Add(c);
                 }
 
@@ -727,10 +728,11 @@ namespace SourceGit.ViewModels
         private void CalcRevisionFileSearchSuggestion()
         {
             var suggestion = new List<string>();
+            var pathFilter = Native.OS.FormatGitPath(_revisionFileSearchFilter);
             foreach (var file in _revisionFiles)
             {
-                if (file.Contains(_revisionFileSearchFilter, StringComparison.OrdinalIgnoreCase) &&
-                    file.Length != _revisionFileSearchFilter.Length)
+                if (file.Contains(pathFilter, StringComparison.OrdinalIgnoreCase) &&
+                    file.Length != pathFilter.Length)
                     suggestion.Add(file);
 
                 if (suggestion.Count >= 100)

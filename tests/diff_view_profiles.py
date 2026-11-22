@@ -199,7 +199,53 @@ try:
  client.tool('ui_window',locale='en_US')
  tag_sidebar(1)
  if tag_sidebar()['tree']:tag_sidebar(2)
+ client.tool('ui_select_commit', repo=str(repo), revision='HEAD')
+ wait(lambda: filename in (repository_state()['detailChanges'] or []))
+ select_file(repo, filename)
+ for theme in ('Light', 'Dark', 'Blue', 'Default'):
+  client.tool('ui_window', theme=theme)
+  selection=wait(lambda: state if (state:=client.probe('content_selection'))['ready'] else None)
+  check(theme+' text fields, metadata and file diff use the same readable secondary branch palette',
+        selection['backgrounds']==[selection['secondary']]*3 and
+        selection['foregrounds']==[selection['secondaryForeground']]*3 and not selection['diffBorder'], selection)
+  check(theme+' dragging metadata preserves glyph positions and copied text',
+        selection['stable'] and selection['selectedText']==selection['expectedText'], selection)
+ check('Windows local paths use backslashes and URLs retain their syntax',
+       selection['local']==r'C:\demo\sample\file.txt' and
+       selection['remote']==[r'C:\demo\repo.git', r'\\server\share\repo.git', 'https://example.invalid/a/b.git',
+                              'git@example.invalid:a/b.git', '../other/demo.git'], selection)
+ for theme in ('Light','Dark','Blue'):
+  client.tool('ui_window',theme=theme)
+  for page in ('commit_info','commit_files','commit_changes'):
+   client.tool('ui_command',command=page,repo=str(repo))
+   painted=wait(lambda: p if (p:=client.probe('commit_file_selection'))['ready'] else None)
+   check(theme+' '+page+' uses the same readable file selection colors',
+         painted['background']==painted['expectedBackground'] and painted['foreground']==painted['expectedForeground'] and
+         painted['labels'] and all(label==painted['expectedForeground'] for label in painted['labels']),painted)
+ def commit_divider():
+  return next((s for s in client.tool('ui_layout')['splitters'] if s['name']=='CommitInfoFilesSplitter' and s['visible']),None)
+ divider=wait(commit_divider)
+ client.tool('ui_layout',action='drag',splitter=divider['index'],dy=35)
+ moved=wait(lambda: p if (p:=commit_divider()) and p['actualRows'][0]-divider['actualRows'][0]>15 else None)
+ check('dragging the commit divider down trades file area height for commit information',
+       moved['actualRows'][2]<divider['actualRows'][2] and abs(sum(moved['actualRows'])-sum(divider['actualRows']))<2,moved)
+ client.tool('ui_command',command='commit_files',repo=str(repo))
+ client.tool('ui_command',command='commit_changes',repo=str(repo))
+ restored=wait(commit_divider)
+ check('reopening the changes panel restores the repository divider position',
+       abs(restored['actualRows'][0]-moved['actualRows'][0])<2,restored)
+ client.tool('ui_layout',action='drag',splitter=restored['index'],dy=-35)
+ check('dragging the commit divider up increases file list height',
+       wait(lambda: p if (p:=commit_divider()) and p['actualRows'][2]-restored['actualRows'][2]>15 else None))
+ client.tool('ui_window',theme='Light')
  open_pair();main=ready('main');external=ready('standalone')
+ client.tool('ui_window', theme='Dark')
+ for scope, count in (('main', 1), ('standalone', 2)):
+  selection=wait(lambda: result if (result:=client.probe('diff_selection_colors',value=scope))['ready'] else None)
+  check('Dark syntax highlighting preserves readable selected text in '+scope,
+        len(selection['panes'])==count and all(p['selected']==p['expected']=='#ff102d16' and p['syntaxColor']!=p['selected']
+            and p['outsideSelection'] and p['copiedText']=='int' for p in selection['panes']),selection)
+ client.tool('ui_window', theme='Light')
  check('main defaults to five lines of context',not main['columns'] and main['syntax'] and main['wrap'] and main['context']==5,main)
  check('standalone defaults to columns with syntax highlighting, no wrapping and full file',
        external['columns'] and external['syntax'] and not external['wrap'] and external['context']==0,external)

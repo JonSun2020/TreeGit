@@ -140,7 +140,7 @@ namespace SourceGit.Views
                     Header = new TextBlock { Text = name, MaxWidth = 350, TextTrimming = TextTrimming.CharacterEllipsis, FontWeight = selected ? FontWeight.Bold : FontWeight.Normal },
                     Icon = this.CreateMenuIcon(selected ? "Icons.Check" : "Icons.Repositories"),
                 };
-                ToolTip.SetTip(item, page.Data is ViewModels.Repository repo ? repo.FullPath : name);
+                ToolTip.SetTip(item, page.Data is ViewModels.Repository repo ? Native.OS.FormatLocalPath(repo.FullPath) : name);
                 item.Click += (_, e) => { ActivateTab(page); e.Handled = true; };
                 menu.Items.Add(item);
                 if (selected) active = item;
@@ -335,7 +335,7 @@ namespace SourceGit.Views
                     copyPath.Click += async (_, ev) =>
                     {
                         var dir = new DirectoryInfo(repo.FullPath);
-                        await this.CopyTextAsync(dir.FullName);
+                        await this.CopyPathAsync(dir.FullName);
                         ev.Handled = true;
                     };
                     menu.Items.Add(copyPath);

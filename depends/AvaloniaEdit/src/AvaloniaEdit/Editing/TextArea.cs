@@ -94,7 +94,7 @@ namespace AvaloniaEdit.Editing
 
             textView.Services.AddService(this);
 
-            textView.LineTransformers.Add(new SelectionColorizer(this));
+            textView.SelectionColorizer = new SelectionColorizer(this);
             textView.InsertLayer(new SelectionLayer(this), KnownLayer.Selection, LayerInsertionPosition.Replace);
 
             Caret = new Caret(this);

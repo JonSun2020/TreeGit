@@ -27,7 +27,7 @@ namespace SourceGit.Views
                 {
                     var folder = selected[0];
                     var folderPath = folder is { Path: { IsAbsoluteUri: true } path } ? path.LocalPath : folder.Path.ToString();
-                    TxtLocation.Text = folderPath.TrimEnd('\\', '/');
+                    TxtLocation.Text = System.IO.Path.TrimEndingDirectorySeparator(folderPath);
                 }
             }
             catch (Exception exception)

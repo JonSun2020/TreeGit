@@ -113,7 +113,35 @@ try:
    tool('ui_command',**args);exercise(locale+' '+command,width,height)
    if command in ['preferences','repository_settings_advanced']:(out/(locale+'-'+command+'.png')).write_bytes(tool('ui_screenshot',window='active'))
    close()
- tool('ui_window',locale='zh_CN',zoom=1,width=1280,height=820)
+ for locale, title in [('zh_CN', '\u4ed3\u5e93\u914d\u7f6e'), ('en_US', 'Repo Config'), ('zh_TW', '\u5132\u5b58\u5eab\u914d\u7f6e')]:
+  tool('ui_window', locale=locale, theme='Dark', zoom=1, width=1280, height=820)
+  tool('ui_command', command='repository_settings', repo=str(repo))
+  original_window=wait(lambda: owned() if tool('ui_state')['dialogs'] else None)
+  current=probe('repository_config_tabs')
+  check(locale+' title matches its toolbar label',current['windowTitle']==current['heading']==current['toolbar']==title,current)
+  check(locale+' Dark paints the inactive tab dark with readable text',
+        current['tabs'][0]['active'] and not current['tabs'][1]['active'] and
+        current['tabs'][1]['background']=='#ff383838' and current['tabs'][1]['foreground']=='#ffdfdfdf',current)
+  probe('repository_config_tabs',2)
+  taller=wait(lambda: v if (v:=owned())['height']>original_window['height']+20 else None)
+  check(locale+' switching to Advanced expands downward with a fixed top',same(original_window,taller) and inside(taller),taller)
+  check(locale+' switching pages moves the inactive palette to the other tab',
+        probe('repository_config_tabs')['tabs'][0]['background']=='#ff383838')
+  probe('repository_config_tabs',1)
+  shorter=wait(lambda: v if abs((v:=owned())['height']-original_window['height'])<=1 else None)
+  check(locale+' returning to remotes shrinks from the bottom',same(original_window,shorter),shorter)
+  close()
+  tool('ui_command', command='stash_dialog',repo=str(repo))
+  for index, mode in enumerate(('discard','keep_index','keep_all')):
+   tool('ui_command',command='stash_options',repo=str(repo),stashMode=mode)
+   captions=wait(lambda: v if (v:=probe('stash_captions'))['width']>0 and len(v['closed'])==2 else None)
+   check(locale+' stash keeps both captions visible for '+mode, captions['width']>460 and all(c['fits'] for c in captions['closed']),captions)
+  probe('stash_captions',button='open')
+  captions=wait(lambda: v if len((v:=probe('stash_captions'))['options'])==6 else None)
+  check(locale+' all stash options show complete labels and descriptions',all(c['fits'] for c in captions['options']),captions)
+  probe('stash_captions',button='close')
+  tool('ui_command',command='cancel_popup')
+ tool('ui_window',locale='zh_CN',theme='Light',zoom=1,width=1280,height=820)
  tool('ui_command',command='repository_settings',repo=str(repo));wait(lambda:tool('ui_state')['dialogs']);tool('ui_command',command='repository_settings_remotes');parent=owned()
  tool('ui_layout',window='active',action='test_click',button='RepositorySettingsCredentials');wait(lambda:len(tool('ui_state')['dialogs'])==2);child=owned()
  check('nested credential dialog uses its immediate owner',same(child['owner'],parent) and abs(child['owner']['width']-parent['width'])<2,child)
@@ -159,7 +187,7 @@ try:
  tool('ui_command',command='merge_conflicts',repo=str(conflict),file='example.txt');exercise('merge conflict editor',1280,820)
  exercise_maximize('TreeGit merge editor');close()
  check('all read-only dialog checks preserve the original repository',original==[git('rev-parse','HEAD'),git('ls-files','--stage'),git('status','--porcelain')])
- assert len(checks)==(420 if os.environ.get('TREEGIT_LOCAL_QA_ROOT') else 436 if os.name=='nt' else 426),len(checks)
+ assert len(checks)==(447 if os.environ.get('TREEGIT_LOCAL_QA_ROOT') else 463 if os.name=='nt' else 453),len(checks)
 except BaseException:
  failure=traceback.format_exc();traceback.print_exc()
  if pid:

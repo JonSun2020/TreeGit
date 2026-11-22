@@ -133,8 +133,8 @@ namespace SourceGit.Views
         private void RefreshLocalizedLabels()
         {
             if (DataContext is not Models.BinaryDiff diff) return;
-            _oldTitle.Text = App.Text("TreeGit.Binary.OldPrefix") + Label(diff.OldRevision, diff.NewRevision) + " · " + diff.OldFilePath;
-            _newTitle.Text = App.Text("TreeGit.Binary.NewPrefix") + Label(diff.NewRevision) + " · " + diff.FilePath;
+            _oldTitle.Text = App.Text("TreeGit.Binary.OldPrefix") + Label(diff.OldRevision, diff.NewRevision) + " · " + DisplayPath(diff.OldFilePath);
+            _newTitle.Text = App.Text("TreeGit.Binary.NewPrefix") + Label(diff.NewRevision) + " · " + Native.OS.FormatLocalPath(diff.FilePath);
             if (Status == "error")
                 _summary.Text = App.Text("BinaryDiff.LoadFailed");
             else if (_comparison is { } comparison)
@@ -175,8 +175,8 @@ namespace SourceGit.Views
             _session = session;
             _retry.IsVisible = false; _errorDetails = null;
             Status = "loading"; _summary.Text = App.Text("TreeGit.Binary.Loading");
-            _oldTitle.Text = App.Text("TreeGit.Binary.OldPrefix") + Label(diff.OldRevision, diff.NewRevision) + " · " + diff.OldFilePath;
-            _newTitle.Text = App.Text("TreeGit.Binary.NewPrefix") + Label(diff.NewRevision) + " · " + diff.FilePath;
+            _oldTitle.Text = App.Text("TreeGit.Binary.OldPrefix") + Label(diff.OldRevision, diff.NewRevision) + " · " + DisplayPath(diff.OldFilePath);
+            _newTitle.Text = App.Text("TreeGit.Binary.NewPrefix") + Label(diff.NewRevision) + " · " + Native.OS.FormatLocalPath(diff.FilePath);
             try
             {
                 var comparison = await session.Snapshots.WaitAsync(token);
@@ -349,8 +349,13 @@ namespace SourceGit.Views
             }
         }
 
+        private static string DisplayPath(string path) =>
+            path == "/dev/null" ? App.Text("Diff.Source.Empty") : Native.OS.FormatLocalPath(path);
+
         private sealed class HexPane(BinaryDiffView owner, bool old) : Control
         {
+            static HexPane() => AffectsRender<HexPane>(ThemeVariantScope.ActualThemeVariantProperty);
+
             public override void Render(DrawingContext context)
             {
                 base.Render(context);
@@ -359,7 +364,8 @@ namespace SourceGit.Views
                 var fg = this.FindResource("Brush.FG1") as IBrush ?? Brushes.Black;
                 var dim = this.FindResource("Brush.FG2") as IBrush ?? Brushes.Gray;
                 var changed = new SolidColorBrush(old ? Color.FromArgb(75, 240, 90, 90) : Color.FromArgb(75, 50, 190, 100));
-                var selection = new Pen(this.FindResource("Brush.Accent") as IBrush ?? Brushes.DodgerBlue, 1);
+                var selection = this.FindResource("Brush.TreeGit.SelectionSecondary") as IBrush;
+                var selectionForeground = this.FindResource("Brush.TreeGit.SelectionSecondaryForeground") as IBrush ?? fg;
                 var typeface = new Typeface("fonts:SourceGit#JetBrains Mono NL");
                 void Text(string value, double x, double y, IBrush brush) => context.DrawText(new FormattedText(value,
                     CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, 12, brush), new Point(x, y));
@@ -387,9 +393,16 @@ namespace SourceGit.Views
                             context.FillRectangle(changed, new Rect(x - 2, y - 1, 22, 19));
                             context.FillRectangle(changed, new Rect(asciiX, y - 1, 8, 19));
                         }
-                        if (offset + i == owner._selected) context.DrawRectangle(selection, new Rect(x - 2, y - 1, 22, 19));
-                        Text(i < a.Length ? a[i].ToString("X2") : "--", x, y, fg);
-                        Text(i < a.Length ? a[i] is >= 32 and <= 126 ? ((char)a[i]).ToString() : "." : "·", asciiX, y, fg);
+                        var selected = offset + i == owner._selected && selection != null;
+                        if (selected)
+                        {
+                            context.FillRectangle(selection, new Rect(x - 2, y - 1, 22, 19));
+                            context.FillRectangle(selection, new Rect(asciiX, y - 1, 8, 19));
+                        }
+
+                        var textBrush = selected ? selectionForeground : fg;
+                        Text(i < a.Length ? a[i].ToString("X2") : "--", x, y, textBrush);
+                        Text(i < a.Length ? a[i] is >= 32 and <= 126 ? ((char)a[i]).ToString() : "." : "·", asciiX, y, textBrush);
                     }
                 }
             }

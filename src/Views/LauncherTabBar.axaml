@@ -53,7 +53,7 @@
                   <Grid>
                     <TextBlock Text="{DynamicResource Text.Welcome}" IsVisible="{Binding !Node.IsRepository}"/>
                     <StackPanel Orientation="Horizontal" IsVisible="{Binding Node.IsRepository}">
-                      <TextBlock Text="{Binding Node.Id}"/>
+                      <TextBlock Text="{Binding Node.Id, Converter={x:Static c:PathConverters.Local}}"/>
                       <TextBlock Text="{Binding DirtyState, Converter={x:Static c:DirtyStateConverters.ToDesc}}" Foreground="{DynamicResource Brush.FG2}"/>
                     </StackPanel>
                   </Grid>

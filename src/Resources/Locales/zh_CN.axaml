@@ -1194,7 +1194,7 @@
 <x:String x:Key="Text.Options.ResetMode.soft.Name">软重置（soft）</x:String><x:String x:Key="Text.Options.ResetMode.soft.Desc">保留暂存区和工作区</x:String><x:String x:Key="Text.Options.ResetMode.mixed.Name">混合重置（mixed）</x:String><x:String x:Key="Text.Options.ResetMode.mixed.Desc">保留工作区修改，重置暂存区</x:String><x:String x:Key="Text.Options.ResetMode.merge.Name">合并重置（merge）</x:String><x:String x:Key="Text.Options.ResetMode.merge.Desc">保留未暂存修改，有冲突时中止</x:String><x:String x:Key="Text.Options.ResetMode.keep.Name">保留重置（keep）</x:String><x:String x:Key="Text.Options.ResetMode.keep.Desc">保留本地修改，有冲突时中止</x:String><x:String x:Key="Text.Options.ResetMode.hard.Name">硬重置（hard）</x:String><x:String x:Key="Text.Options.ResetMode.hard.Desc">丢弃暂存区和工作区的已跟踪修改</x:String><x:String x:Key="Text.Options.MergeMode.default.Name">默认</x:String><x:String x:Key="Text.Options.MergeMode.default.Desc">使用 Git 配置</x:String><x:String x:Key="Text.Options.MergeMode.ff-only.Name">仅快进（ff-only）</x:String><x:String x:Key="Text.Options.MergeMode.ff-only.Desc">无法快进时拒绝合并</x:String><x:String x:Key="Text.Options.MergeMode.no-ff.Name">创建合并提交（no-ff）</x:String><x:String x:Key="Text.Options.MergeMode.no-ff.Desc">始终创建新的合并提交</x:String><x:String x:Key="Text.Options.MergeMode.squash.Name">压缩合并（squash）</x:String><x:String x:Key="Text.Options.MergeMode.squash.Desc">合并差异，不立即创建提交</x:String><x:String x:Key="Text.Options.MergeMode.no-ff_no-commit.Name">合并但不提交</x:String><x:String x:Key="Text.Options.MergeMode.no-ff_no-commit.Desc">合并差异，保留为未提交修改</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.nowarn.Name">不警告</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.nowarn.Desc">忽略行尾空白警告</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.warn.Name">警告</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.warn.Desc">显示空白问题警告，继续应用补丁</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.error.Name">报错</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.error.Desc">遇到空白错误时拒绝应用补丁</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.error-all.Name">显示全部错误</x:String><x:String x:Key="Text.Options.ApplyWhiteSpaceMode.error-all.Desc">拒绝应用补丁，并显示全部空白错误</x:String><x:String x:Key="Text.Options.CRLFMode.true.Name">自动转换（true）</x:String><x:String x:Key="Text.Options.CRLFMode.true.Desc">提交时使用 LF，检出时使用 CRLF</x:String><x:String x:Key="Text.Options.CRLFMode.input.Name">仅提交时转换（input）</x:String><x:String x:Key="Text.Options.CRLFMode.input.Desc">仅在提交时转换为 LF</x:String><x:String x:Key="Text.Options.CRLFMode.false.Name">不转换（false）</x:String><x:String x:Key="Text.Options.CRLFMode.false.Desc">不自动转换换行符</x:String><x:String x:Key="Text.Options.MergeStrategy.default.Name">默认</x:String><x:String x:Key="Text.Options.MergeStrategy.default.Desc">让 Git 自动选择合并策略</x:String><x:String x:Key="Text.Options.MergeStrategy.octopus.Name">多分支合并（octopus）</x:String><x:String x:Key="Text.Options.MergeStrategy.octopus.Desc">同时合并多个分支头</x:String><x:String x:Key="Text.Options.MergeStrategy.ours.Name">保留当前内容（ours）</x:String><x:String x:Key="Text.Options.MergeStrategy.ours.Desc">记录合并关系，保留当前文件内容</x:String><x:String x:Key="Text.Option.TextBox">文本框</x:String><x:String x:Key="Text.Option.PathSelector">路径选择器</x:String><x:String x:Key="Text.Option.CheckBox">复选框</x:String><x:String x:Key="Text.Option.ComboBox">下拉列表</x:String><x:String x:Key="Text.Option.LocalBranch">本地分支选择器</x:String><x:String x:Key="Text.Option.RemoteBranch">远程分支选择器</x:String><x:String x:Key="Text.Common.LocalOnly">仅本地</x:String><x:String x:Key="Text.Common.Global">全局</x:String><x:String x:Key="Text.Common.None">（无）</x:String><x:String x:Key="Text.Conflict.MineLabel">Local</x:String><x:String x:Key="Text.Conflict.TheirsLabel">Remote</x:String><x:String x:Key="Text.CommitChanges.CommitLabel" xml:space="preserve">提交: </x:String><x:String x:Key="Text.CommitChanges.AuthorLabel" xml:space="preserve">作者: </x:String><x:String x:Key="Text.CommitChanges.DateLabel" xml:space="preserve">日期: </x:String><x:String x:Key="Text.Diff.ImageLabel">图片</x:String><x:String x:Key="Text.StashChanges.StagedHint">--staged：如果文件只暂存了部分修改，未暂存部分也会一并贮藏。</x:String>  <x:String x:Key="Text.PreferenceRecovery.Backup" xml:space="preserve">配置文件未能读取，已使用默认设置启动。原文件已备份到 data 文件夹。</x:String>
   <x:String x:Key="Text.PreferenceRecovery.Readonly" xml:space="preserve">配置文件暂时无法读取，本次设置不会保存。请关闭其他 TreeGit 窗口，或检查配置文件的访问权限后重新打开。</x:String>
   <x:String x:Key="Text.Launcher.CloseWhileBusy">操作尚未完成，请等待完成，或在操作窗口中取消后，再关闭标签页或退出。</x:String>
-  <x:String x:Key="Text.Repository.NoRemotes">尚未设置远程仓库，请先在“仓库设置”的“远程仓库”中添加。</x:String>
+  <x:String x:Key="Text.Repository.NoRemotes">尚未设置远程仓库，请先在“仓库配置”的“远程仓库”中添加。</x:String>
   <x:String x:Key="Text.Repository.NoCurrentBranch">未找到当前分支。请确认仓库已有提交，刷新后重试。</x:String>
   <x:String x:Key="Text.Repository.ReadMetadataFailed">暂时无法读取仓库信息，请刷新仓库后重试。</x:String>
   <x:String x:Key="Text.WorkingCopy.OperationBusy">其他操作尚未完成，请等待完成后再提交。</x:String>
@@ -1262,7 +1262,7 @@
   <x:String x:Key="Text.Merge.SubmodulesPending">合并已完成，部分子模块尚未更新，可在子模块列表中重试。</x:String>
   <x:String x:Key="Text.Merge.FastForwardBlocked">当前仅快进模式无法完成这次合并，可改为普通合并并手动处理冲突。</x:String>
   <x:String x:Key="Text.Merge.Unrelated">两个历史没有共同起点。确认需要合并后，请勾选“允许合并没有共同起点的历史”再继续。</x:String>
-  <x:String x:Key="Text.Merge.IdentityRequired">请在仓库设置中填写提交者姓名和邮箱，再重试合并。</x:String>
+  <x:String x:Key="Text.Merge.IdentityRequired">请在仓库配置中填写提交者姓名和邮箱，再重试合并。</x:String>
   <x:String x:Key="Text.Merge.LocalFilesBlocked">部分本地文件会被目标版本覆盖。请保留或贮藏本地修改；重名的新文件需先改名或移动。</x:String>
   <x:String x:Key="Text.Merge.IndexBusy">仓库正被其他 Git 操作使用，请等待该操作结束后重试。</x:String>
   <x:String x:Key="Text.Merge.Failed">合并未能完成。修改仍保留，可查看本次操作日志后重试。</x:String>
@@ -1404,7 +1404,7 @@
   <x:String x:Key="Text.TreeGit.Branches.NoOther" xml:space="preserve">该提交没有可展开的其他包含分支。</x:String>
   <x:String x:Key="Text.TreeGit.CommandLogs.FailedSuffix" xml:space="preserve"> ✕ · 查看命令日志</x:String>
   <x:String x:Key="Text.TreeGit.Branches.Unavailable" xml:space="preserve">分支信息暂不可用，请重新搜索</x:String>
-  <x:String x:Key="Text.TreeGit.Config.Changed" xml:space="preserve">配置文件已被其他程序修改，请重新打开仓库设置。</x:String>
+  <x:String x:Key="Text.TreeGit.Config.Changed" xml:space="preserve">配置文件已被其他程序修改，请重新打开仓库配置。</x:String>
   <x:String x:Key="Text.TreeGit.Config.RestoreFailed" xml:space="preserve">保存失败，部分配置未能还原。请检查仓库配置文件。</x:String>
   <x:String x:Key="Text.TreeGit.Branches.ShowAll" xml:space="preserve">查看全部 {0} 个包含此提交的分支</x:String>
   <x:String x:Key="Text.TreeGit.Branches.NotContained" xml:space="preserve">已知本地和远程分支均不包含此提交</x:String>
@@ -1484,7 +1484,6 @@
   <x:String x:Key="Text.TreeGit.Menu.Settings" xml:space="preserve">设置(S)</x:String>
   <x:String x:Key="Text.TreeGit.Menu.Preferences" xml:space="preserve">偏好设置</x:String>
   <x:String x:Key="Text.TreeGit.Menu.Repository" xml:space="preserve">仓库(R)</x:String>
-  <x:String x:Key="Text.TreeGit.Settings.Title" xml:space="preserve">仓库设置</x:String>
   <x:String x:Key="Text.TreeGit.Menu.Explorer" xml:space="preserve">在文件管理器中打开</x:String>
   <x:String x:Key="Text.TreeGit.Menu.Terminal" xml:space="preserve">打开终端</x:String>
   <x:String x:Key="Text.TreeGit.Menu.Actions" xml:space="preserve">操作(A)</x:String>
@@ -1539,12 +1538,12 @@ SSH 密钥仍在原有远程配置中设置。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Cleared" xml:space="preserve">已清除此仓库保存的认证。远端需要认证时，会重新要求输入账号和密码。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.ClearPending">已清空输入。点击“确定”后清除原认证；取消则保留原认证。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Loading">正在读取账号配置…</x:String>
-  <x:String x:Key="Text.TreeGit.Clone.SettingsIncomplete">仓库已克隆，但部分设置未能保存，请在仓库设置中检查后重试。</x:String>
+  <x:String x:Key="Text.TreeGit.Clone.SettingsIncomplete">仓库已克隆，但部分设置未能保存，请在仓库配置中检查后重试。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.ReadFailed">暂时无法读取账号配置，请重新打开后重试。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.SaveFailed">未能保存账号配置，请检查后重试。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.InvalidCharacters">账号或密码不能包含换行或空字符，请检查输入。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.TooLong">密码或访问令牌过长，请检查是否粘贴了多余内容。</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.IdentityHint">换人使用时，请同时在“仓库设置 → 高级 → 提交身份”中确认姓名和邮箱；远端登录账号不会自动替换提交身份。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.IdentityHint">换人使用时，请同时在“仓库配置 → 高级 → 提交身份”中确认姓名和邮箱；远端登录账号不会自动替换提交身份。</x:String>
   <x:String x:Key="Text.TreeGit.Remote.Add" xml:space="preserve">添加远程仓库</x:String>
   <x:String x:Key="Text.TreeGit.Remote.Edit" xml:space="preserve">编辑远程仓库</x:String>
   <x:String x:Key="Text.TreeGit.Remote.UrlHint" xml:space="preserve">HTTPS / SSH 地址或本地仓库路径</x:String>
@@ -1811,7 +1810,7 @@ SSH 密钥仍在原有远程配置中设置。</x:String>
   <x:String x:Key="Text.TreeGit.Tabs.Commit">提交</x:String>
   <x:String x:Key="Text.TreeGit.Commit.NoStagedFiles">无暂存文件</x:String>
   <x:String x:Key="Text.TreeGit.Commit.IdentityLoading">正在读取提交账号…</x:String>
-  <x:String x:Key="Text.TreeGit.Commit.IdentityMissing">未配置提交账号，请在仓库设置中填写姓名和邮箱</x:String>
+  <x:String x:Key="Text.TreeGit.Commit.IdentityMissing">未配置提交账号，请在仓库配置中填写姓名和邮箱</x:String>
   <x:String x:Key="Text.TreeGit.Commit.PushAfter">立即推送</x:String>
   <x:String x:Key="Text.TreeGit.Commit.History.Button">历史提交说明</x:String>
   <x:String x:Key="Text.TreeGit.Commit.History.Loading">正在读取提交说明…</x:String>
@@ -1841,7 +1840,7 @@ SSH 密钥仍在原有远程配置中设置。</x:String>
   <x:String x:Key="Text.TreeGit.CreateRepository.PartialLocal">目录中已有本次操作留下的文件，已保留。请通过“打开”检查该目录后再继续。</x:String>
   <x:String x:Key="Text.TreeGit.CreateRepository.LocalFailed">本地仓库创建失败。请检查目录权限和磁盘空间；已有文件已保留。</x:String>
   <x:String x:Key="Text.TreeGit.CreateRepository.RemoteCreatedLocalFailed">GitHub 仓库已创建，本地尚未完成。请检查目录权限和磁盘空间后重试，不会重复创建远端。</x:String>
-  <x:String x:Key="Text.TreeGit.CreateRepository.ConnectFailed">本地与 GitHub 仓库已保留，但远端关联未完成。请重试或在仓库设置中检查远端地址。</x:String>
+  <x:String x:Key="Text.TreeGit.CreateRepository.ConnectFailed">本地与 GitHub 仓库已保留，但远端关联未完成。请重试或在仓库配置中检查远端地址。</x:String>
   <x:String x:Key="Text.TreeGit.CreateRepository.CredentialSaveFailed">仓库已创建，但账号未能保存。首次推送时请重新输入账号与访问令牌。</x:String>
   <x:String x:Key="Text.TreeGit.CreateRepository.AuthenticationFailed">GitHub 认证失败，请检查访问令牌是否正确或已过期。</x:String>
   <x:String x:Key="Text.TreeGit.CreateRepository.PermissionDenied">该 GitHub 账号或令牌没有创建权限。请检查权限后重试。</x:String>

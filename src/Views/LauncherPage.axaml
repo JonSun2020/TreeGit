@@ -56,7 +56,7 @@
 
       <Border Background="#66000000" PointerPressed="OnMaskClicked" IsVisible="{Binding Popup, Converter={x:Static ObjectConverters.IsNotNull}}"/>
 
-      <Grid RowDefinitions="*,Auto,Auto" Classes="popup_frame" Classes.dialog_open="{Binding Popup, Converter={x:Static ObjectConverters.IsNotNull}}" MaxWidth="560" MaxHeight="{Binding #PopupArea.Bounds.Height}" HorizontalAlignment="Stretch">
+      <Grid RowDefinitions="*,Auto,Auto" Classes="popup_frame" Classes.dialog_open="{Binding Popup, Converter={x:Static ObjectConverters.IsNotNull}}" MaxWidth="{Binding Popup.DialogMaxWidth, FallbackValue=560}" MaxHeight="{Binding #PopupArea.Bounds.Height}" HorizontalAlignment="Stretch">
         <Grid.Styles>
           <Style Selector="Grid.popup_frame"><Setter Property="VerticalAlignment" Value="Top"/><Setter Property="Margin" Value="0,60,0,0"/></Style>
           <Style Selector="Grid.popup_frame.dialog_open"><Setter Property="VerticalAlignment" Value="Center"/><Setter Property="Margin" Value="0"/></Style>

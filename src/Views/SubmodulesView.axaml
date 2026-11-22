@@ -22,7 +22,7 @@
             <StackPanel Orientation="Vertical">
               <StackPanel Orientation="Horizontal">
                 <Path Width="10" Height="10" Data="{StaticResource Icons.Submodule}"/>
-                <TextBlock FontWeight="Bold" Margin="4,0,0,0" Text="{Binding Path}"/>
+                <TextBlock FontWeight="Bold" Margin="4,0,0,0" Text="{Binding Path, Converter={x:Static c:PathConverters.Local}}"/>
               </StackPanel>
 
               <Grid RowDefinitions="24,24,24" ColumnDefinitions="Auto,Auto" Margin="0,8,0,0">
@@ -90,7 +90,7 @@
                            Text="{DynamicResource Text.Submodule.URL}"/>
                 <TextBlock Grid.Row="2" Grid.Column="1"
                            Margin="8,0,0,0"
-                           Text="{Binding URL}"
+                           Text="{Binding URL, Converter={x:Static c:PathConverters.RemoteAddress}}"
                            Foreground="{DynamicResource Brush.Link}"
                            VerticalAlignment="Center"/>
               </Grid>
@@ -157,7 +157,7 @@
                 <StackPanel Orientation="Vertical">
                   <StackPanel Orientation="Horizontal">
                     <Path Width="10" Height="10" Data="{StaticResource Icons.Submodule}"/>
-                    <TextBlock FontWeight="Bold" Margin="4,0,0,0" Text="{Binding Path}"/>
+                    <TextBlock FontWeight="Bold" Margin="4,0,0,0" Text="{Binding Path, Converter={x:Static c:PathConverters.Local}}"/>
                   </StackPanel>
 
                   <Grid RowDefinitions="24,24,24" ColumnDefinitions="Auto,Auto" Margin="0,8,0,0">
@@ -225,7 +225,7 @@
                                Text="{DynamicResource Text.Submodule.URL}"/>
                     <TextBlock Grid.Row="2" Grid.Column="1"
                                Margin="8,0,0,0"
-                               Text="{Binding URL}"
+                               Text="{Binding URL, Converter={x:Static c:PathConverters.RemoteAddress}}"
                                Foreground="{DynamicResource Brush.Link}"
                                VerticalAlignment="Center"/>
                   </Grid>
@@ -237,7 +237,7 @@
                       HorizontalAlignment="Left"
                       Data="{StaticResource Icons.Submodule}"/>
                 <Border Grid.Column="2" ClipToBounds="True">
-                  <TextBlock Text="{Binding Path}" TextTrimming="CharacterEllipsis"/>
+                  <TextBlock Text="{Binding Path, Converter={x:Static c:PathConverters.Local}}" TextTrimming="CharacterEllipsis"/>
                 </Border>
                 <Path Grid.Column="3"
                       Width="8" Height="8"

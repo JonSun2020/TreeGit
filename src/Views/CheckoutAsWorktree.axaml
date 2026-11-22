@@ -32,7 +32,7 @@
                  HorizontalAlignment="Right" VerticalAlignment="Center"
                  Margin="0,0,8,0"
                  Text="{DynamicResource Text.CheckoutAsWorktree.WorktreePath}"/>
-      <TextBox Grid.Row="1" Grid.Column="1"
+      <v:PathTextBox Grid.Row="1" Grid.Column="1"
                x:Name="TxtLocation"
                Height="28"
                CornerRadius="3"
@@ -43,7 +43,7 @@
             <Path Data="{StaticResource Icons.Folder.Open}" Fill="{DynamicResource Brush.FG1}"/>
           </Button>
         </TextBox.InnerRightContent>
-      </TextBox>
+      </v:PathTextBox>
     </Grid>
   </StackPanel>
 </UserControl>

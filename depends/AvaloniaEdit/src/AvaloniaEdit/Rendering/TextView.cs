@@ -271,6 +271,8 @@ namespace AvaloniaEdit.Rendering
         /// </summary>
         public IList<IVisualLineTransformer> LineTransformers => _lineTransformers;
 
+        internal IVisualLineTransformer SelectionColorizer { get; set; }
+
         private void LineTransformer_Added(IVisualLineTransformer lineTransformer)
         {
             ConnectToTextView(lineTransformer);
@@ -1085,7 +1087,7 @@ namespace AvaloniaEdit.Rendering
                 }
             }
 
-            visualLine.RunTransformers(textSource, lineTransformersArray);
+            visualLine.RunTransformers(textSource, lineTransformersArray, SelectionColorizer);
 
             // now construct textLines:
             TextLineBreak lastLineBreak = null;

@@ -10,6 +10,7 @@ using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Layout;
+using Avalonia.Markup.Xaml.MarkupExtensions;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 
@@ -38,34 +39,48 @@ namespace SourceGit.Views
         public void FitToOwner(Window owner)
         {
             _screenOwner = owner;
-            FitToScreen();
+            FitToScreen(place: true);
         }
 
-        private void FitToScreen()
+        private void FitToScreen(bool place = false)
         {
             if (_screenOwner == null) return;
             var screen = IsVisible ? Screens.ScreenFromWindow(this) : _screenOwner.Screens.ScreenFromWindow(_screenOwner);
             screen ??= _screenOwner.Screens.Primary;
             if (screen == null) return;
-            var area = screen.WorkingArea;
-            var scale = screen.Scaling;
+            var scale = IsVisible ? RenderScaling : screen.Scaling;
             var zoom = ViewModels.Preferences.Instance.Zoom;
-            var centerX = IsVisible ? Position.X + Bounds.Width * scale / 2 : _screenOwner.Position.X + _screenOwner.Bounds.Width * scale / 2;
-            var centerY = IsVisible ? Position.Y + Bounds.Height * scale / 2 : _screenOwner.Position.Y + _screenOwner.Bounds.Height * scale / 2;
-            MaxWidth = Math.Max(1, area.Width / scale - 32);
-            MaxHeight = Math.Max(1, area.Height / scale - 32);
-            Width = Math.Min(640 * zoom, MaxWidth);
-            Height = Math.Min((_advanced ? 620 : 420) * zoom, MaxHeight);
-            var x = Math.Clamp(centerX - Width * scale / 2, area.X + 8, Math.Max(area.X + 8, area.Right - Width * scale - 8));
-            var y = Math.Clamp(centerY - Height * scale / 2, area.Y + 8, Math.Max(area.Y + 8, area.Bottom - Height * scale - 8));
-            Position = new PixelPoint((int)x, (int)y);
+            var ownerFrame = new PixelRect(_screenOwner.Position,
+                PixelSize.FromSize(_screenOwner.FrameSize ?? _screenOwner.Bounds.Size, _screenOwner.RenderScaling));
+            var area = OwnedMovementBounds ?? ownerFrame.Intersect(screen.WorkingArea);
+            if (area.Width <= 0 || area.Height <= 0)
+                area = screen.WorkingArea;
+
+            var desiredHeight = (_advanced ? 620 : 420) * zoom;
+            if (place)
+            {
+                MaxWidth = Math.Max(1, (area.Width - 16) / scale);
+                MaxHeight = Math.Max(1, (area.Height - 16) / scale);
+                Width = Math.Min(640 * zoom, MaxWidth);
+                Height = Math.Min(desiredHeight, MaxHeight);
+                var advancedHeight = Math.Min(620 * zoom, MaxHeight);
+                var x = area.X + (area.Width - Width * scale) / 2;
+                var y = Math.Min(area.Y + (area.Height - Height * scale) / 2, area.Bottom - advancedHeight * scale - 8);
+                Position = new PixelPoint((int)x, (int)Math.Max(area.Y + 8, y));
+                return;
+            }
+
+            // Keep the current title-bar position, even after the dialog has been dragged.
+            var frameInset = Math.Max(0, (FrameSize ?? Bounds.Size).Height - Bounds.Height);
+            var available = Math.Floor((area.Bottom - Position.Y) / scale - frameInset);
+            Height = Math.Min(desiredHeight, Math.Min(MaxHeight, Math.Max(1, available)));
         }
 
         public RepositorySettings(ViewModels.Repository repo)
         {
             _repo = repo;
             _configuration = new ViewModels.RepositoryConfigure(repo);
-            App.BindText(this, TitleProperty, "TreeGit.Settings.Title");
+            App.BindText(this, TitleProperty, "TreeGit.Toolbar.Settings");
             Width = 640;
             SizeToContent = SizeToContent.Manual;
             CanResize = false;
@@ -76,10 +91,16 @@ namespace SourceGit.Views
             title.Margin = new Thickness(-8, -8, -8, 8);
             root.Children.Add(title);
             var tabs = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, -1), ZIndex = 1 };
-            var remoteTab = Tab("TreeGit.Settings.Remotes", "Icons.Remotes");
-            var advancedTab = Tab("TreeGit.Settings.Advanced", "Icons.Settings");
+            var remoteTab = Tab("RepositoryRemoteTab", "TreeGit.Settings.Remotes", "Icons.Remotes");
+            var advancedTab = Tab("RepositoryAdvancedTab", "TreeGit.Settings.Advanced", "Icons.Settings");
             tabs.Children.Add(remoteTab); tabs.Children.Add(advancedTab); Grid.SetRow(tabs, 1); root.Children.Add(tabs);
-            var border = new Border { BorderBrush = Brushes.Gray, BorderThickness = new Thickness(1), Background = this.FindResource("Brush.Contents") as IBrush, Padding = new Thickness(8) };
+            var border = new Border
+            {
+                [!BorderBrushProperty] = new DynamicResourceExtension("Brush.Border1"),
+                [!BackgroundProperty] = new DynamicResourceExtension("Brush.Contents"),
+                BorderThickness = new Thickness(1),
+                Padding = new Thickness(8),
+            };
             var remotePage = new StackPanel { Spacing = 8 };
             _remotes = new DataGrid
             {
@@ -98,7 +119,7 @@ namespace SourceGit.Views
             _remotes.Columns.Add(new DataGridTextColumn
             {
                 Header = new TextBlock { [!TextBlock.TextProperty] = App.TextBinding("TreeGit.Remote.Column.Address") },
-                Binding = new Binding(nameof(Models.Remote.URL)), Width = new DataGridLength(1, DataGridLengthUnitType.Star),
+                Binding = new Binding(nameof(Models.Remote.URL)) { Converter = Converters.PathConverters.RemoteAddress }, Width = new DataGridLength(1, DataGridLengthUnitType.Star),
             });
             remotePage.Children.Add(_remotes);
             var remoteActions = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
@@ -118,7 +139,7 @@ namespace SourceGit.Views
             var advancedPage = new StackPanel { Name = "AdvancedRepositorySettings", Spacing = 6, Margin = new Thickness(0, 0, 18, 0) };
             var ignored = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
             var ignorePath = Path.Combine(repo.FullPath, ".gitignore");
-            ignored.Children.Add(new TextBlock { Name = "RepositoryIgnorePath", Text = ignorePath.Replace('\\', '/'), TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center });
+            ignored.Children.Add(new TextBlock { Name = "RepositoryIgnorePath", Text = Native.OS.FormatLocalPath(ignorePath), TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center });
             var ignoreEdit = Action("TreeGit.Edit", () => { if (!File.Exists(ignorePath)) File.WriteAllText(ignorePath, ""); Native.OS.OpenWithDefaultEditor(ignorePath); return Task.CompletedTask; });
             Grid.SetColumn(ignoreEdit, 1); ignored.Children.Add(ignoreEdit); advancedPage.Children.Add(Group("TreeGit.Settings.Ignore", ignored));
             var identity = new StackPanel { Spacing = 4 };
@@ -221,7 +242,7 @@ namespace SourceGit.Views
             }
             Opened += async (_, _) =>
             {
-                FitToScreen(); await RefreshRemotesAsync();
+                await RefreshRemotesAsync();
 #if INTEGRATION_TESTS
                 Tests.RepositorySettingsProbe.OnOpened(this, _configuration, _repo, SaveAsync);
 #endif
@@ -319,29 +340,33 @@ namespace SourceGit.Views
             return button;
         }
 
-        private void SetTabAppearance(Button button, bool selected)
+        private static void SetTabAppearance(Button button, bool selected)
         {
-            button.Background = selected ? this.FindResource("Brush.Contents") as IBrush : new SolidColorBrush(Color.Parse("#E1E5E8"));
-            button.BorderThickness = new Thickness(1, 1, 1, selected ? 0 : 1);
-            if (button.Content is StackPanel content)
-                foreach (var child in content.Children)
-                {
-                    if (child is TextBlock text) { text.FontWeight = selected ? FontWeight.Bold : FontWeight.Normal; text.Foreground = this.FindResource(selected ? "Brush.FG1" : "Brush.FG2") as IBrush; }
-                    else if (child is Avalonia.Controls.Shapes.Path icon) icon.Fill = new SolidColorBrush(Color.Parse(selected ? "#61768A" : "#9DA6AE"));
-                }
+            button.Classes.Set("selected", selected);
+            var content = (StackPanel)button.Content;
+            ((TextBlock)content.Children[1]).FontWeight = selected ? FontWeight.Bold : FontWeight.Normal;
         }
 
-        private static Button Tab(string caption, string icon)
+        private static Button Tab(string name, string caption, string icon)
         {
             var content = new StackPanel { Spacing = 5, HorizontalAlignment = HorizontalAlignment.Center };
-            content.Children.Add(new Avalonia.Controls.Shapes.Path { Width = 22, Height = 22, Data = App.Current.FindResource(icon) as Geometry, Fill = new SolidColorBrush(Color.Parse("#7A869A")), HorizontalAlignment = HorizontalAlignment.Center });
-            content.Children.Add(new TextBlock { [!TextBlock.TextProperty] = App.TextBinding(caption), HorizontalAlignment = HorizontalAlignment.Center });
+            content.Children.Add(new Avalonia.Controls.Shapes.Path
+            {
+                Width = 22, Height = 22, Data = App.Current.FindResource(icon) as Geometry, HorizontalAlignment = HorizontalAlignment.Center,
+                [!Avalonia.Controls.Shapes.Path.FillProperty] = new DynamicResourceExtension("Brush.FG2"),
+            });
+            content.Children.Add(new TextBlock
+            {
+                [!TextBlock.TextProperty] = App.TextBinding(caption),
+                [!TextBlock.ForegroundProperty] = new DynamicResourceExtension("Brush.FG1"),
+                HorizontalAlignment = HorizontalAlignment.Center,
+            });
             // Keep the selected page visible while the pointer is over a tab, too.
             // The generic button theme otherwise replaces its background on hover.
             return new Button
             {
-                Content = content, MinWidth = 84, MaxWidth = 180, Height = 58,
-                BorderThickness = new Thickness(1), BorderBrush = Brushes.Gray,
+                Name = name, Content = content, MinWidth = 84, MaxWidth = 180, Height = 58,
+                Classes = { "repository_config_tab" },
                 Padding = new Thickness(4),
                 Template = new FuncControlTemplate<Button>((button, _) =>
                 {

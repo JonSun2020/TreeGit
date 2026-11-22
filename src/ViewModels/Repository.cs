@@ -63,12 +63,30 @@ namespace SourceGit.ViewModels
                     _uiStates.ChangesPanelWidth == value.Value) return;
                 _uiStates.ChangesPanelWidth = value.Value;
                 OnPropertyChanged();
-                _changesWidthSave?.Dispose();
-                _changesWidthSave = DispatcherTimer.RunOnce(() => _uiStates.Save(), TimeSpan.FromMilliseconds(250));
+                ScheduleChangesLayoutSave();
             }
         }
 
-        private IDisposable _changesWidthSave;
+        public double CommitInfoSplit
+        {
+            get => _uiStates?.CommitInfoSplit is > 0 and < 1 and var fraction ? fraction : 0.45;
+            set
+            {
+                if (_uiStates == null || value is not (> 0 and < 1) || _uiStates.CommitInfoSplit == value)
+                    return;
+
+                _uiStates.CommitInfoSplit = value;
+                ScheduleChangesLayoutSave();
+            }
+        }
+
+        private void ScheduleChangesLayoutSave()
+        {
+            _changesLayoutSave?.Dispose();
+            _changesLayoutSave = DispatcherTimer.RunOnce(() => _uiStates.Save(), TimeSpan.FromMilliseconds(250));
+        }
+
+        private IDisposable _changesLayoutSave;
 
         public Models.GitFlow GitFlow
         {
@@ -625,7 +643,7 @@ namespace SourceGit.ViewModels
 
         public void Close()
         {
-            _changesWidthSave?.Dispose();
+            _changesLayoutSave?.Dispose();
             SaveUIState();
             _histories?.SearchCommitContext.EndSearch();
             var commitMessage = _workingCopy.CommitMessage;

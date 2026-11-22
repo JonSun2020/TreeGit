@@ -1,5 +1,6 @@
 <v:ChromelessWindow xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:SourceGit.Converters"
                     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
                     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                     xmlns:m="using:SourceGit.Models"
@@ -124,7 +125,7 @@
               <TextBlock Classes="group_header_label"
                          Text="{DynamicResource Text.SSHKeyHelper.Path}"/>
               <SelectableTextBlock Margin="0,6,0,0"
-                                   Text="{Binding PrivateKeyPath, Mode=OneWay}"
+                                   Text="{Binding PrivateKeyPath, Mode=OneWay, Converter={x:Static c:PathConverters.Local}}"
                                    TextWrapping="Wrap"/>
 
               <TextBlock Classes="group_header_label"

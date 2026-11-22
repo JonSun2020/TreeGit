@@ -24,6 +24,9 @@ namespace SourceGit.Views
             return null;
         }
 
+        public static Task CopyPathAsync(this Control control, string path) =>
+            control.CopyTextAsync(Native.OS.FormatLocalPath(path));
+
         public static async Task CopyTextAsync(this Control control, string text)
         {
             var topLevel = TopLevel.GetTopLevel(control) as Window;

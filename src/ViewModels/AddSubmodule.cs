@@ -49,7 +49,7 @@ namespace SourceGit.ViewModels
             var log = _repo.CreateLog("Add Submodule");
             Use(log);
 
-            var relativePath = _relativePath;
+            var relativePath = Native.OS.FormatGitPath(_relativePath);
             if (string.IsNullOrEmpty(relativePath))
             {
                 if (_url.EndsWith("/.git", StringComparison.Ordinal))

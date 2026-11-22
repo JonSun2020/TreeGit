@@ -47,7 +47,7 @@
         <TextBlock Grid.Column="1"
                    Margin="4,0,0,0"
                    VerticalAlignment="Center"
-                   Text="{Binding File, Mode=OneWay}"/>
+                   Text="{Binding File, Mode=OneWay, Converter={x:Static c:PathConverters.Local}}"/>
 
         <Border Grid.Column="2"
                 Width="14" Height="14"

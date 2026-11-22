@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="using:SourceGit.Converters"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:m="using:SourceGit.Models"
@@ -39,7 +40,7 @@
           <DataTemplate x:DataType="m:Submodule">
             <StackPanel Orientation="Horizontal" Height="20" VerticalAlignment="Center">
               <Path Margin="0,0,8,0" Width="14" Height="14" Fill="{DynamicResource Brush.FG1}" Data="{StaticResource Icons.Submodule}"/>
-              <TextBlock Text="{Binding Path, Mode=OneWay}"/>
+              <TextBlock Text="{Binding Path, Mode=OneWay, Converter={x:Static c:PathConverters.Local}}"/>
             </StackPanel>
           </DataTemplate>
         </ComboBox.ItemTemplate>

@@ -20,7 +20,9 @@ namespace SourceGit.Models
         public static List<Change> Apply(List<Change> changes, string text, int status, int order, bool staged)
         {
             IEnumerable<Change> query = changes;
-            if (!string.IsNullOrEmpty(text)) query = query.Where(c => c.Path.Contains(text, StringComparison.OrdinalIgnoreCase));
+            var pathFilter = Native.OS.FormatGitPath(text);
+            if (!string.IsNullOrEmpty(pathFilter))
+                query = query.Where(c => c.Path.Contains(pathFilter, StringComparison.OrdinalIgnoreCase));
             query = status switch
             {
                 1 => query.Where(c => c.IsConflicted),

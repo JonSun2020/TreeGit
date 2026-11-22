@@ -305,7 +305,7 @@ namespace SourceGit.Views
                 if (node.Change is { } c)
                     UpdateRowTips(control, c);
                 else
-                    ToolTip.SetTip(control, node.FullPath);
+                    ToolTip.SetTip(control, Native.OS.FormatLocalPath(node.FullPath));
             }
             else if (ctx is Models.Change change)
             {

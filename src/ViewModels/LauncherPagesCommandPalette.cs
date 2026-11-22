@@ -153,6 +153,7 @@ namespace SourceGit.ViewModels
 
         private void CollectVisiblePages(List<LauncherPage> pages)
         {
+            var pathFilter = Native.OS.FormatGitPath(_searchFilter);
             foreach (var page in _launcher.Pages)
             {
                 if (page == _launcher.ActivePage)
@@ -160,13 +161,14 @@ namespace SourceGit.ViewModels
 
                 if (string.IsNullOrEmpty(_searchFilter) ||
                     page.Node.Name.Contains(_searchFilter, StringComparison.OrdinalIgnoreCase) ||
-                    (page.Node.IsRepository && page.Node.Id.Contains(_searchFilter, StringComparison.OrdinalIgnoreCase)))
+                    (page.Node.IsRepository && page.Node.Id.Contains(pathFilter, StringComparison.OrdinalIgnoreCase)))
                     pages.Add(page);
             }
         }
 
         private void CollectVisibleRepository(List<RepositoryNode> outs, List<RepositoryNode> nodes)
         {
+            var pathFilter = Native.OS.FormatGitPath(_searchFilter);
             foreach (var node in nodes)
             {
                 if (!node.IsRepository)
@@ -179,7 +181,7 @@ namespace SourceGit.ViewModels
                     continue;
 
                 if (string.IsNullOrEmpty(_searchFilter) ||
-                    node.Id.Contains(_searchFilter, StringComparison.OrdinalIgnoreCase) ||
+                    node.Id.Contains(pathFilter, StringComparison.OrdinalIgnoreCase) ||
                     node.Name.Contains(_searchFilter, StringComparison.OrdinalIgnoreCase))
                     outs.Add(node);
             }

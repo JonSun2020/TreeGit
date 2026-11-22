@@ -1171,7 +1171,7 @@
   <x:String x:Key="Text.PreferenceRecovery.Backup" xml:space="preserve">設定檔案未能讀取，已使用預設設定啟動。原檔案已備份到 data 資料夾。</x:String>
   <x:String x:Key="Text.PreferenceRecovery.Readonly" xml:space="preserve">設定檔案暫時無法讀取，本次設定不會儲存。請關閉其他 TreeGit 視窗，或檢查設定檔案的訪問權限後重新開啟。</x:String>
   <x:String x:Key="Text.Launcher.CloseWhileBusy">操作尚未完成，請等待完成，或在操作視窗中取消後，再關閉分頁或退出。</x:String>
-  <x:String x:Key="Text.Repository.NoRemotes">尚未設定遠端倉庫，請先在「倉庫設定」的「遠端倉庫」中新增。</x:String>
+  <x:String x:Key="Text.Repository.NoRemotes">尚未設定遠端倉庫，請先在「儲存庫配置」的「遠端倉庫」中新增。</x:String>
   <x:String x:Key="Text.Repository.NoCurrentBranch">未找到目前分支。請確認倉庫已有提交，重新整理後重試。</x:String>
   <x:String x:Key="Text.Repository.ReadMetadataFailed">暫時無法讀取倉庫資訊，請重新整理倉庫後重試。</x:String>
   <x:String x:Key="Text.WorkingCopy.OperationBusy">其他操作尚未完成，請等待完成後再提交。</x:String>
@@ -1463,7 +1463,6 @@
   <x:String x:Key="Text.TreeGit.Menu.Settings" xml:space="preserve">設定(S)</x:String>
   <x:String x:Key="Text.TreeGit.Menu.Preferences" xml:space="preserve">偏好設定</x:String>
   <x:String x:Key="Text.TreeGit.Menu.Repository" xml:space="preserve">儲存庫(R)</x:String>
-  <x:String x:Key="Text.TreeGit.Settings.Title" xml:space="preserve">儲存庫設定</x:String>
   <x:String x:Key="Text.TreeGit.Menu.Explorer" xml:space="preserve">在檔案管理員中開啟</x:String>
   <x:String x:Key="Text.TreeGit.Menu.Terminal" xml:space="preserve">開啟終端機</x:String>
   <x:String x:Key="Text.TreeGit.Menu.Actions" xml:space="preserve">操作(A)</x:String>
@@ -1591,7 +1590,7 @@ SSH 金鑰仍在遠端設定中設定。</x:String>
   <x:String x:Key="Text.TreeGit.Toolbar.CommandLine" xml:space="preserve">命令列模式</x:String>
   <x:String x:Key="Text.TreeGit.Toolbar.Browse" xml:space="preserve">瀏覽</x:String>
   <x:String x:Key="Text.TreeGit.Toolbar.Explorer" xml:space="preserve">檔案管理員</x:String>
-  <x:String x:Key="Text.TreeGit.Toolbar.Settings" xml:space="preserve">儲存庫設定</x:String>
+  <x:String x:Key="Text.TreeGit.Toolbar.Settings" xml:space="preserve">儲存庫配置</x:String>
   <x:String x:Key="Text.TreeGit.Toolbar.RepoTools" xml:space="preserve">儲存庫工具</x:String>
   <x:String x:Key="Text.TreeGit.Toolbar.Tools" xml:space="preserve">工具</x:String>
   <x:String x:Key="Text.TreeGit.Toolbar.MoreActions" xml:space="preserve">更多操作</x:String>

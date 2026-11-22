@@ -109,6 +109,98 @@ namespace SourceGit.Automation
                 return x.HasValue && x.Value + Math.Min(0, line.OverhangLeading) >= inset.Left + 1 &&
                     x.Value + line.Width - Math.Min(0, line.OverhangTrailing) <= area.Bounds.Width - inset.Right - 1;
             }
+            if (action == "content_selection")
+            {
+                var views = window.GetVisualDescendants().ToArray();
+                var metadata = views.OfType<Views.CommitMetadataText>().FirstOrDefault(c => c.IsEffectivelyVisible && c.Spans.Count > 0);
+                var diff = views.OfType<Views.ThemedTextDiffPresenter>().FirstOrDefault(c => c.IsEffectivelyVisible);
+                var entry = views.OfType<TextBox>().FirstOrDefault(c => c.IsEffectivelyVisible);
+                if (metadata == null || diff == null || entry == null)
+                    return new { ready = false };
+
+                var anchor = metadata.Spans.First(s => s.IsLabel).Length + 10;
+                metadata.ClearSelection();
+                var before = metadata.TextLayout.HitTestTextPosition(anchor);
+                metadata.SelectionStart = 1;
+                metadata.SelectionEnd = anchor;
+                window.UpdateLayout();
+                var after = metadata.TextLayout.HitTestTextPosition(anchor);
+                var stable = after == before && metadata.SelectionForegroundBrush == null;
+                var selectedText = metadata.SelectedText;
+                if (index == 0) metadata.ClearSelection();
+                var files = new Views.PathTextBox { Text = @"C:/demo/sample\file.txt" };
+                var addresses = new[] { "C:/demo/repo.git", "//server/share/repo.git", "https://example.invalid/a/b.git", "git@example.invalid:a/b.git", "../other/demo.git" };
+                return new
+                {
+                    ready = true, stable, selectedText, before = before.ToString(), after = after.ToString(),
+                    selectionForegroundOverride = metadata.SelectionForegroundBrush?.ToString(),
+                    expectedText = metadata.PlainText[1..anchor],
+                    secondary = window.FindResource("Brush.TreeGit.SelectionSecondary")?.ToString(),
+                    secondaryForeground = window.FindResource("Brush.TreeGit.SelectionSecondaryForeground")?.ToString(),
+                    backgrounds = new[] { metadata.SelectionBrush?.ToString(), diff.TextArea.SelectionBrush?.ToString(), entry.SelectionBrush?.ToString() },
+                    foregrounds = new[] { metadata.SelectedGlyphBrush?.ToString(), diff.TextArea.SelectionForeground?.ToString(), entry.SelectionForegroundBrush?.ToString() },
+                    diffBorder = diff.TextArea.SelectionBorder != null,
+                    local = files.Text,
+                    remote = addresses.Select(value => new Views.RemoteAddressTextBox { Text = value }.Text).ToArray(),
+                };
+            }
+            if (action == "repository_config_tabs")
+            {
+                var lifetime = (Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime)App.Current.ApplicationLifetime;
+                var dialog = lifetime.Windows.OfType<Views.RepositorySettings>().Single(w => w.IsVisible);
+                var controls = dialog.GetVisualDescendants().OfType<Control>().ToArray();
+                var tabs = new[] { "RepositoryRemoteTab", "RepositoryAdvancedTab" }.Select(name => controls.OfType<Button>().Single(c => c.Name == name)).ToArray();
+                if (index is 1 or 2)
+                    tabs[index - 1].RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                var title = controls.OfType<TextBlock>().Single(c => c.Name == "DialogTitleText");
+                return new
+                {
+                    windowTitle = dialog.Title, heading = title.Text, toolbar = App.Text("TreeGit.Toolbar.Settings"),
+                    tabs = tabs.Select(button =>
+                    {
+                        var caption = ((StackPanel)button.Content).Children.OfType<TextBlock>().Single();
+                        return new { title = caption.Text, active = button.Classes.Contains("selected"),
+                            background = button.Background?.ToString(), foreground = caption.Foreground?.ToString() };
+                    }).ToArray(),
+                };
+            }
+            if (action == "stash_captions")
+            {
+                var box = window.GetVisualDescendants().OfType<ComboBox>().Single(c => c.Name == "StashModePicker");
+                if (args.TryGetProperty("button", out var operation))
+                    box.IsDropDownOpen = operation.GetString() == "open";
+                var area = box.GetVisualDescendants().OfType<Control>().Single(c => c.Name == "ContentPresenter");
+                var popup = box.GetVisualDescendants().OfType<Popup>().Single(c => c.Name == "PART_Popup");
+                object[] Captions(Visual root) => root?.GetVisualDescendants().OfType<TextBlock>()
+                    .Where(c => c.DataContext is Models.DealWithChangesAfterStashing && c.IsEffectivelyVisible).Select(c =>
+                        (object)new { text = c.Text, fits = c.IsArrangeValid && c.TextLayout.Height <= c.Bounds.Height + 1 &&
+                            c.TextLayout.TextLines.All(line => !line.HasCollapsed && line.Width <= c.Bounds.Width + 1) }).ToArray() ?? [];
+                return new { width = box.Bounds.Width, closed = Captions(area), options = Captions(popup.Child) };
+            }
+            if (action == "commit_file_selection")
+            {
+                var list = window.GetVisualDescendants().OfType<ListBox>().FirstOrDefault(c =>
+                    c.Classes.Contains("file_selection") && c.Name != "SearchSuggestionBox" &&
+                    c.IsEffectivelyVisible && c.FindAncestorOfType<Views.CommitDetail>() != null);
+                if (list == null || list.ItemCount == 0)
+                    return new { ready = false };
+
+                list.SelectedIndex = 0;
+                list.ScrollIntoView(0);
+                window.UpdateLayout();
+                var row = list.ContainerFromIndex(0) as ListBoxItem;
+                var presenter = row?.GetVisualDescendants().OfType<ContentPresenter>().FirstOrDefault(p => p.Name == "PART_ContentPresenter");
+                return new
+                {
+                    ready = row?.IsSelected == true && presenter != null,
+                    background = presenter?.Background?.ToString(),
+                    foreground = presenter?.Foreground?.ToString(),
+                    labels = row?.GetVisualDescendants().OfType<TextBlock>().Where(t => t.IsEffectivelyVisible)
+                        .Select(t => t.Foreground?.ToString()).ToArray(),
+                    expectedBackground = window.FindResource("Brush.TreeGit.Selection")?.ToString(),
+                    expectedForeground = window.FindResource("Brush.TreeGit.SelectionForeground")?.ToString(),
+                };
+            }
             object searchClick = null;
             if (action is "settings_expanders" or "settings_remote_selection" or "settings_default_remote" or "settings_remote_form")
             {
@@ -605,6 +697,62 @@ namespace SourceGit.Automation
                         dropdown = items.Select(entry => new { entry.caption.Text,
                             centerOffset = TextCenter(entry.caption, popup.Child) - areaCenter,
                             fits = CaptionFits(entry.caption, entry.item, entry.item.Padding) }).ToArray() };
+                }
+                else if (action == "diff_selection_colors")
+                {
+                    var scope = args.GetProperty("button").GetString();
+                    var profile = profileViews.FirstOrDefault(v => (v.Settings is ViewModels.Preferences) == (scope == "main"));
+                    if (profile == null)
+                        return new { ready = false };
+
+                    var panes = profile.GetVisualDescendants().OfType<Views.ThemedTextDiffPresenter>().Where(p => p.IsEffectivelyVisible).ToArray();
+                    if (panes.Length == 0)
+                        return new { ready = false };
+
+                    var checks = new List<object>();
+                    foreach (var pane in panes)
+                    {
+                        var area = pane.TextArea;
+                        var view = area.TextView;
+                        if (!pane.UseSyntaxHighlighting)
+                            return new { ready = false };
+
+                        view.EnsureVisualLines();
+                        var line = view.VisualLines.FirstOrDefault(l =>
+                            pane.Document.GetText(l.FirstDocumentLine).StartsWith("int value_", StringComparison.Ordinal) &&
+                            l.Elements.Select(e => e.TextRunProperties.ForegroundBrush?.ToString()).Distinct().Count() > 1);
+                        if (line == null)
+                            return new { ready = false };
+
+                        var documentLine = line.FirstDocumentLine;
+                        var keyword = line.Elements.First(e => e.RelativeTextOffset == 0);
+                        var syntaxColor = keyword.TextRunProperties.ForegroundBrush?.ToString();
+                        var expected = area.SelectionForeground?.ToString();
+                        int length = Math.Min(3, keyword.DocumentLength);
+                        string ColorAt(int offset) => view.GetOrConstructVisualLine(documentLine).Elements
+                            .First(e => e.DocumentLength > 0 && e.RelativeTextOffset <= offset && e.RelativeTextOffset + e.DocumentLength > offset)
+                            .TextRunProperties.ForegroundBrush?.ToString();
+                        var outside = ColorAt(documentLine.Length - 1);
+                        pane.Select(documentLine.Offset, length);
+                        try
+                        {
+                            view.EnsureVisualLines();
+                            checks.Add(new
+                            {
+                                selected = ColorAt(0), expected, syntaxColor,
+                                outsideSelection = ColorAt(documentLine.Length - 1) == outside,
+                                copiedText = pane.SelectedText,
+                            });
+                        }
+                        finally
+                        {
+                            pane.Select(0, 0);
+                            view.EnsureVisualLines();
+                        }
+                        if (ColorAt(0) != syntaxColor)
+                            throw new InvalidOperationException("Clearing the selection did not restore syntax coloring.");
+                    }
+                    return new { ready = true, panes = checks };
                 }
                 else if (action is "diff_scroll_standalone" or "diff_select_standalone")
                 {

@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="using:SourceGit.Views"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="using:SourceGit.ViewModels"
@@ -22,7 +23,7 @@
                  HorizontalAlignment="Right" VerticalAlignment="Center"
                  Margin="0,0,8,0"
                  Text="{DynamicResource Text.ScanRepositories.RootDir}"/>
-      <TextBox Grid.Column="1" x:Name="ScanRootPath" Height="28" CornerRadius="3"
+      <v:PathTextBox Grid.Column="1" x:Name="ScanRootPath" Height="28" CornerRadius="3"
                AutomationProperties.Name="{DynamicResource Text.ScanRepositories.RootDir}"
                Watermark="{DynamicResource Text.ScanRepositories.NoRoot}"
                Text="{Binding RootPath, Mode=TwoWay}">
@@ -31,7 +32,7 @@
             <Path Width="14" Height="14" Data="{StaticResource Icons.Folder.Open}" Fill="{DynamicResource Brush.FG1}"/>
           </Button>
         </TextBox.InnerRightContent>
-      </TextBox>
+      </v:PathTextBox>
     </Grid>
   </StackPanel>
 </UserControl>

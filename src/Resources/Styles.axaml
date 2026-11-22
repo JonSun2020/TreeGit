@@ -572,6 +572,16 @@
     <Setter Property="Foreground" Value="{DynamicResource Brush.InlineCodeFG}"/>
   </Style>
 
+  <Style Selector=":is(TextBox)">
+    <Setter Property="SelectionBrush" Value="{DynamicResource Brush.TreeGit.SelectionSecondary}"/>
+    <Setter Property="SelectionForegroundBrush" Value="{DynamicResource Brush.TreeGit.SelectionSecondaryForeground}"/>
+  </Style>
+
+  <Style Selector=":is(SelectableTextBlock)">
+    <Setter Property="SelectionBrush" Value="{DynamicResource Brush.TreeGit.SelectionSecondary}"/>
+    <Setter Property="SelectionForegroundBrush" Value="{DynamicResource Brush.TreeGit.SelectionSecondaryForeground}"/>
+  </Style>
+
   <Style Selector="TextBox">
     <Setter Property="CornerRadius" Value="0"/>
     <Setter Property="Padding" Value="4,0"/>
@@ -770,6 +780,20 @@
     </Style>
     <Style Selector="^ /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/>
+    </Style>
+  </Style>
+
+  <Style Selector=":is(ListBox).file_selection">
+    <Style Selector="^ ListBoxItem:selected">
+      <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.Selection}"/>
+      <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
+    </Style>
+    <Style Selector="^ ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.Selection}"/>
+      <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
+    </Style>
+    <Style Selector="^ ListBoxItem:selected TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
     </Style>
   </Style>
 
@@ -1124,6 +1148,17 @@
     </Setter>
   </Style>
 
+  <Style Selector="Button.repository_config_tab">
+    <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.TabInactive}"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border1}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+  </Style>
+
+  <Style Selector="Button.repository_config_tab.selected">
+    <Setter Property="Background" Value="{DynamicResource Brush.Contents}"/>
+    <Setter Property="BorderThickness" Value="1,1,1,0"/>
+  </Style>
+
   <Style Selector="ComboBox.center_dropdown_labels">
     <Setter Property="Padding" Value="3,0"/>
   </Style>
@@ -1146,10 +1181,6 @@
     <Style Selector="^ RadioButton:checked /template/ Ellipse#Border">
       <Setter Property="Fill" Value="{DynamicResource Brush.TreeGit.Selection}"/>
       <Setter Property="Stroke" Value="{DynamicResource Brush.TreeGit.ParentSHA}"/>
-    </Style>
-    <Style Selector="^ TextBox">
-      <Setter Property="SelectionBrush" Value="{DynamicResource Brush.TreeGit.Selection}"/>
-      <Setter Property="SelectionForegroundBrush" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
     </Style>
   </Style>
 
@@ -1649,16 +1680,9 @@
         <Border/>
       </FocusAdornerTemplate>
     </Setter>
-    <Setter Property="SelectionBorder">
-      <Setter.Value>
-        <Pen Brush="{DynamicResource SystemAccentColor}" Thickness="1" />
-      </Setter.Value>
-    </Setter>
-    <Setter Property="SelectionBrush">
-      <Setter.Value>
-        <SolidColorBrush Opacity="0.5" Color="{DynamicResource SystemAccentColor}" />
-      </Setter.Value>
-    </Setter>
+    <Setter Property="SelectionBorder" Value="{x:Null}"/>
+    <Setter Property="SelectionBrush" Value="{DynamicResource Brush.TreeGit.SelectionSecondary}"/>
+    <Setter Property="SelectionForeground" Value="{DynamicResource Brush.TreeGit.SelectionSecondaryForeground}"/>
   </Style>
 
   <Style Selector="aes|SearchPanel">

@@ -123,13 +123,13 @@
               <TextBox Grid.Row="1" CornerRadius="3" Height="28" Text="{Binding Name, Mode=TwoWay}"/>
 
               <TextBlock Grid.Row="2" Margin="0,0,0,4" Text="{DynamicResource Text.Preferences.Git.DefaultCloneDir}" VerticalAlignment="Bottom"/>
-              <TextBox Grid.Row="3" CornerRadius="3" Height="28" Text="{Binding DefaultCloneDir, Mode=TwoWay}">
+              <v:PathTextBox Grid.Row="3" CornerRadius="3" Height="28" Text="{Binding DefaultCloneDir, Mode=TwoWay}">
                 <TextBox.InnerRightContent>
                   <Button Classes="icon_button" Width="30" Height="30" Click="SelectDefaultCloneDir">
                     <Path Data="{StaticResource Icons.Folder.Open}" Fill="{DynamicResource Brush.FG1}"/>
                   </Button>
                 </TextBox.InnerRightContent>
-              </TextBox>
+              </v:PathTextBox>
 
               <TextBlock Grid.Row="4" Margin="0,0,0,4" Text="{DynamicResource Text.ConfigureWorkspace.Color}" VerticalAlignment="Bottom"/>
               <v:ColorPicker Grid.Row="5" HorizontalAlignment="Left" Value="{Binding Color, Mode=TwoWay}"/>

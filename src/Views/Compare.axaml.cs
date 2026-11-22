@@ -127,7 +127,7 @@ namespace SourceGit.Views
                     copyPath.Tag = OperatingSystem.IsMacOS() ? "⌘+C" : "Ctrl+C";
                     copyPath.Click += async (_, ev) =>
                     {
-                        await this.CopyTextAsync(selectedSingleFolder ? relativePathOfFolder : change.Path);
+                        await this.CopyPathAsync(selectedSingleFolder ? relativePathOfFolder : change.Path);
                         ev.Handled = true;
                     };
 
@@ -137,7 +137,7 @@ namespace SourceGit.Views
                     copyFullPath.Tag = OperatingSystem.IsMacOS() ? "⌘+⇧+C" : "Ctrl+Shift+C";
                     copyFullPath.Click += async (_, ev) =>
                     {
-                        await this.CopyTextAsync(selectedSingleFolder ? fullPathOfFolder : changeFullPath);
+                        await this.CopyPathAsync(selectedSingleFolder ? fullPathOfFolder : changeFullPath);
                         ev.Handled = true;
                     };
 
@@ -198,7 +198,7 @@ namespace SourceGit.Views
                     {
                         if (selectedSingleFolder)
                         {
-                            await this.CopyTextAsync(relativePathOfFolder);
+                            await this.CopyPathAsync(relativePathOfFolder);
                         }
                         else
                         {
@@ -220,7 +220,7 @@ namespace SourceGit.Views
                     {
                         if (selectedSingleFolder)
                         {
-                            await this.CopyTextAsync(fullPathOfFolder);
+                            await this.CopyPathAsync(fullPathOfFolder);
                         }
                         else
                         {
