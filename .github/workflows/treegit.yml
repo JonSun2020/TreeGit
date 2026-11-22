@@ -240,6 +240,15 @@ jobs:
         shell: pwsh
         run: |
           ./package-treegit.ps1 -Source "$env:RUNNER_TEMP/TreeGit" -Destination . -WithAppUpdate
+      - uses: actions/upload-artifact@v4
+        if: ${{ inputs.preview }}
+        with:
+          name: TreeGit-Preview-Windows-x64
+          path: |
+            TreeGit-*-Windows-x64-BundledGit.zip
+            TreeGit-*-Windows-x64-SystemGit.zip
+            SHA256SUMS.txt
+            BundledGit-Identity.txt
       - name: Verify Git discovery and bundled runtime
         if: ${{ !inputs.preview }}
         shell: pwsh
@@ -344,6 +353,7 @@ jobs:
             ${{ runner.temp }}/public-gallery/*.png
             ${{ runner.temp }}/public-gallery/*.log
       - uses: actions/upload-artifact@v4
+        if: ${{ !inputs.preview }}
         with:
           name: TreeGit-Windows-x64
           path: |

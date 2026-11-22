@@ -237,9 +237,8 @@ try:
  client.tool('ui_layout',action='drag',splitter=restored['index'],dy=-35)
  check('dragging the commit divider up increases file list height',
        wait(lambda: p if (p:=commit_divider()) and p['actualRows'][2]-restored['actualRows'][2]>15 else None))
- client.tool('ui_window',theme='Light')
+ client.tool('ui_window',theme='Dark')
  open_pair();main=ready('main');external=ready('standalone')
- client.tool('ui_window', theme='Dark')
  for scope, count in (('main', 1), ('standalone', 2)):
   selection=wait(lambda: result if (result:=client.probe('diff_selection_colors',value=scope))['ready'] else None)
   check('Dark syntax highlighting preserves readable selected text in '+scope,

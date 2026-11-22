@@ -736,35 +736,35 @@ namespace SourceGit.Automation
                         var before = Positions(line);
                         var linesBefore = line.TextLines.Count;
                         var colors = line.Elements.Select(e => e.TextRunProperties.ForegroundBrush?.ToString()).ToArray();
-                        bool HasWhiteKeyword()
+                        var lineVisual = view.GetVisualDescendants().FirstOrDefault(v =>
+                            v.GetType().Name == "VisualLineDrawingVisual" &&
+                            ReferenceEquals(v.GetType().GetProperty("VisualLine")?.GetValue(v), line));
+                        if (lineVisual == null)
+                            return new { ready = false };
+
+                        int KeywordBrightness()
                         {
-                            var size = new PixelSize((int)Math.Ceiling(view.Bounds.Width), (int)Math.Ceiling(view.Bounds.Height));
-                            using var bitmap = new RenderTargetBitmap(size, new Vector(96, 96));
-                            bitmap.Render(view);
+                            const int scale = 2;
+                            var width = (int)Math.Ceiling(before[3] * scale);
+                            var height = (int)Math.Ceiling(line.TextLines[0].Height * scale);
+                            using var bitmap = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96 * scale, 96 * scale));
+                            bitmap.Render(lineVisual);
                             using var png = new MemoryStream();
                             bitmap.Save(png);
                             png.Position = 0;
                             var pixels = StbImageSharp.ImageResult.FromStream(png, StbImageSharp.ColorComponents.RedGreenBlue);
-                            var y1 = Math.Max(0, (int)Math.Floor(line.VisualTop - view.VerticalOffset));
-                            var y2 = Math.Min(pixels.Height, y1 + (int)Math.Ceiling(line.TextLines[0].Height));
-                            var x1 = Math.Max(0, (int)Math.Floor(before[0] - view.HorizontalOffset));
-                            var x2 = Math.Min(pixels.Width, (int)Math.Ceiling(before[3] - view.HorizontalOffset));
-                            for (var y = y1; y < y2; y++)
-                                for (var x = x1; x < x2; x++)
-                                {
-                                    var index = (y * pixels.Width + x) * 3;
-                                    if (pixels.Data[index] >= 226 && pixels.Data[index + 1] >= 226 && pixels.Data[index + 2] >= 226)
-                                        return true;
-                                }
-                            return false;
+                            var value = 0;
+                            for (var i = 0; i < pixels.Data.Length; i += 3)
+                                value = Math.Max(value, Math.Min(pixels.Data[i], Math.Min(pixels.Data[i + 1], pixels.Data[i + 2])));
+                            return value;
                         }
-                        var whiteBefore = HasWhiteKeyword();
+                        var brightnessBefore = KeywordBrightness();
                         pane.Select(documentLine.Offset, 3);
                         try
                         {
                             view.EnsureVisualLines();
                             var after = view.GetOrConstructVisualLine(documentLine);
-                            var readable = !whiteBefore && HasWhiteKeyword();
+                            var brightnessSelected = KeywordBrightness();
                             var copiedText = pane.SelectedText;
                             var unchangedSyntax = colors.SequenceEqual(after.Elements.Select(e => e.TextRunProperties.ForegroundBrush?.ToString()));
                             pane.Select(documentLine.Offset + space, 1);
@@ -772,7 +772,9 @@ namespace SourceGit.Automation
                             var spaceSelected = view.GetOrConstructVisualLine(documentLine);
                             checks.Add(new
                             {
-                                readable, unchangedSyntax, copiedText,
+                                readable = brightnessSelected >= 226 && brightnessSelected > brightnessBefore,
+                                brightnessBefore, brightnessSelected, unchangedSyntax, copiedText,
+                                foreground = area.SelectionForeground?.ToString(),
                                 fixedLayout = linesBefore == spaceSelected.TextLines.Count && before.SequenceEqual(Positions(spaceSelected)),
                                 spaceText = pane.SelectedText,
                             });
