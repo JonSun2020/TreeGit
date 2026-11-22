@@ -28,6 +28,7 @@ using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
 
 using AvaloniaEdit.Document;
+using AvaloniaEdit.Editing;
 using AvaloniaEdit.Utils;
 
 using LogicalDirection = AvaloniaEdit.Document.LogicalDirection;
@@ -796,6 +797,8 @@ namespace AvaloniaEdit.Rendering
 
         private VisualLineDrawingVisual _visual;
 
+        internal void InvalidateDrawing() => _visual?.InvalidateVisual();
+
         internal VisualLineDrawingVisual Render()
         {
             Debug.Assert(_phase == LifetimePhase.Live);
@@ -825,6 +828,16 @@ namespace AvaloniaEdit.Rendering
 
         public override void Render(DrawingContext context)
         {
+            var area = VisualLine.TextView.Services.GetService<TextArea>();
+            var selection = area?.PreserveSelectionLayout == true && area.SelectionForeground != null
+                ? area.Selection
+                : null;
+            var range = selection?.SurroundingSegment;
+            var first = VisualLine.FirstDocumentLine.Offset;
+            var last = VisualLine.LastDocumentLine.EndOffset;
+            if (range == null || range.EndOffset <= first || range.Offset >= last)
+                selection = null;
+
             double pos = 0;
             double defaultLineHeight = VisualLine.TextView.DefaultLineHeight;
             var textLines = VisualLine.TextLines;
@@ -834,8 +847,75 @@ namespace AvaloniaEdit.Rendering
                 double textHeight = textLine.Height;
                 double lineHeight = Math.Max(textHeight, defaultLineHeight);
                 double textOffset = (lineHeight - textHeight) / 2;
-                textLine.Draw(context, new Point(0, pos + textOffset));
+                var origin = new Point(0, pos + textOffset);
+                textLine.Draw(context, origin);
+                if (selection != null)
+                    DrawSelection(context, textLine, origin, selection, area.SelectionForeground);
                 pos += lineHeight;
+            }
+        }
+
+        private void DrawSelection(DrawingContext context, TextLine line, Point origin, Selection selection, IBrush foreground)
+        {
+            var first = VisualLine.FirstDocumentLine.Offset;
+            var last = VisualLine.LastDocumentLine.EndOffset;
+            var lineStart = line.FirstTextSourceIndex;
+            var lineEnd = Math.Min(VisualLine.VisualLength, lineStart + line.Length);
+            foreach (var segment in selection.Segments)
+            {
+                if (segment.EndOffset <= first || segment.StartOffset >= last)
+                    continue;
+
+                var start = segment.StartOffset < first ? 0 : VisualLine.ValidateVisualColumn(segment.StartOffset, segment.StartVisualColumn, selection.EnableVirtualSpace);
+                var end = segment.EndOffset > last ? VisualLine.VisualLength : VisualLine.ValidateVisualColumn(segment.EndOffset, segment.EndVisualColumn, selection.EnableVirtualSpace);
+                start = Math.Max(lineStart, start);
+                end = Math.Min(lineEnd, end);
+                if (start >= end)
+                    continue;
+
+                // The same shaped runs supply both the original text and its selection.
+                // Splitting a run at the selection boundary can change fallback font metrics.
+                var selected = new StreamGeometry();
+                using (var path = selected.Open())
+                {
+                    path.SetFillRule(FillRule.NonZero);
+                    foreach (var bound in line.GetTextBounds(start, end - start))
+                    {
+                        var left = Math.Min(bound.Rectangle.Left, bound.Rectangle.Right);
+                        var right = Math.Max(bound.Rectangle.Left, bound.Rectangle.Right);
+                        if (right <= left)
+                            continue;
+
+                        var bottom = origin.Y + line.Height;
+                        path.BeginFigure(new Point(left, origin.Y), true);
+                        path.LineTo(new Point(right, origin.Y));
+                        path.LineTo(new Point(right, bottom));
+                        path.LineTo(new Point(left, bottom));
+                        path.EndFigure(true);
+                    }
+                }
+
+                var bounds = selected.Bounds;
+                if (bounds.Width <= 0)
+                    continue;
+
+                using var clip = context.PushGeometryClip(selected);
+                var x = origin.X + line.Start;
+                foreach (var run in line.TextRuns)
+                {
+                    if (run is not DrawableTextRun drawable)
+                        continue;
+
+                    var width = drawable.Size.Width;
+                    if (x >= bounds.Right)
+                        break;
+                    if (run is ShapedTextRun shaped && x + width > bounds.Left && !Equals(shaped.Properties.ForegroundBrush, foreground))
+                    {
+                        using var position = context.PushTransform(Matrix.CreateTranslation(x, origin.Y + line.Baseline - shaped.Baseline));
+                        context.DrawGlyphRun(foreground, shaped.GlyphRun);
+                    }
+                    x += width;
+                }
             }
         }
     }

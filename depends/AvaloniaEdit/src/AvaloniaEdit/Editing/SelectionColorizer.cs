@@ -33,7 +33,7 @@ namespace AvaloniaEdit.Editing
         protected override void Colorize(ITextRunConstructionContext context)
         {
             // if SelectionForeground is null, keep the existing foreground color
-            if (_textArea.SelectionForeground == null)
+            if (_textArea.SelectionForeground == null || _textArea.PreserveSelectionLayout)
                 return;
 
             var lineStartOffset = context.VisualLine.FirstDocumentLine.Offset;

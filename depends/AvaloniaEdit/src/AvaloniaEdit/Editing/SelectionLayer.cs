@@ -32,6 +32,7 @@ namespace AvaloniaEdit.Editing
 
             _textArea = textArea;
 
+            _textArea.SelectionChanged += ReceiveWeakEvent;
             TextViewWeakEventManager.VisualLinesChanged.AddHandler(TextView, ReceiveWeakEvent);
             TextViewWeakEventManager.ScrollOffsetChanged.AddHandler(TextView, ReceiveWeakEvent);
         }

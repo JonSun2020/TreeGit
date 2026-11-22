@@ -719,29 +719,62 @@ namespace SourceGit.Automation
 
                         view.EnsureVisualLines();
                         var line = view.VisualLines.FirstOrDefault(l =>
-                            pane.Document.GetText(l.FirstDocumentLine).StartsWith("int value_", StringComparison.Ordinal) &&
+                            l.VisualTop >= view.VerticalOffset &&
+                            pane.Document.GetText(l.FirstDocumentLine).Contains("\u4e2d\u6587 English", StringComparison.Ordinal) &&
                             l.Elements.Select(e => e.TextRunProperties.ForegroundBrush?.ToString()).Distinct().Count() > 1);
                         if (line == null)
                             return new { ready = false };
 
                         var documentLine = line.FirstDocumentLine;
-                        var keyword = line.Elements.First(e => e.RelativeTextOffset == 0);
-                        var syntaxColor = keyword.TextRunProperties.ForegroundBrush?.ToString();
-                        var expected = area.SelectionForeground?.ToString();
-                        int length = Math.Min(3, keyword.DocumentLength);
-                        string ColorAt(int offset) => view.GetOrConstructVisualLine(documentLine).Elements
-                            .First(e => e.DocumentLength > 0 && e.RelativeTextOffset <= offset && e.RelativeTextOffset + e.DocumentLength > offset)
-                            .TextRunProperties.ForegroundBrush?.ToString();
-                        var outside = ColorAt(documentLine.Length - 1);
-                        pane.Select(documentLine.Offset, length);
+                        var space = pane.Document.GetText(documentLine).IndexOf(" English", StringComparison.Ordinal);
+                        double[] Positions(AvaloniaEdit.Rendering.VisualLine visualLine) =>
+                            Enumerable.Range(0, documentLine.Length + 1).Select(offset =>
+                            {
+                                var column = visualLine.GetVisualColumn(offset);
+                                return visualLine.GetTextLineVisualXPosition(visualLine.GetTextLine(column), column);
+                            }).ToArray();
+                        var before = Positions(line);
+                        var linesBefore = line.TextLines.Count;
+                        var colors = line.Elements.Select(e => e.TextRunProperties.ForegroundBrush?.ToString()).ToArray();
+                        bool HasWhiteKeyword()
+                        {
+                            var size = new PixelSize((int)Math.Ceiling(view.Bounds.Width), (int)Math.Ceiling(view.Bounds.Height));
+                            using var bitmap = new RenderTargetBitmap(size, new Vector(96, 96));
+                            bitmap.Render(view);
+                            using var png = new MemoryStream();
+                            bitmap.Save(png);
+                            png.Position = 0;
+                            var pixels = StbImageSharp.ImageResult.FromStream(png, StbImageSharp.ColorComponents.RedGreenBlue);
+                            var y1 = Math.Max(0, (int)Math.Floor(line.VisualTop - view.VerticalOffset));
+                            var y2 = Math.Min(pixels.Height, y1 + (int)Math.Ceiling(line.TextLines[0].Height));
+                            var x1 = Math.Max(0, (int)Math.Floor(before[0] - view.HorizontalOffset));
+                            var x2 = Math.Min(pixels.Width, (int)Math.Ceiling(before[3] - view.HorizontalOffset));
+                            for (var y = y1; y < y2; y++)
+                                for (var x = x1; x < x2; x++)
+                                {
+                                    var index = (y * pixels.Width + x) * 3;
+                                    if (pixels.Data[index] >= 226 && pixels.Data[index + 1] >= 226 && pixels.Data[index + 2] >= 226)
+                                        return true;
+                                }
+                            return false;
+                        }
+                        var whiteBefore = HasWhiteKeyword();
+                        pane.Select(documentLine.Offset, 3);
                         try
                         {
                             view.EnsureVisualLines();
+                            var after = view.GetOrConstructVisualLine(documentLine);
+                            var readable = !whiteBefore && HasWhiteKeyword();
+                            var copiedText = pane.SelectedText;
+                            var unchangedSyntax = colors.SequenceEqual(after.Elements.Select(e => e.TextRunProperties.ForegroundBrush?.ToString()));
+                            pane.Select(documentLine.Offset + space, 1);
+                            view.EnsureVisualLines();
+                            var spaceSelected = view.GetOrConstructVisualLine(documentLine);
                             checks.Add(new
                             {
-                                selected = ColorAt(0), expected, syntaxColor,
-                                outsideSelection = ColorAt(documentLine.Length - 1) == outside,
-                                copiedText = pane.SelectedText,
+                                readable, unchangedSyntax, copiedText,
+                                fixedLayout = linesBefore == spaceSelected.TextLines.Count && before.SequenceEqual(Positions(spaceSelected)),
+                                spaceText = pane.SelectedText,
                             });
                         }
                         finally
@@ -749,8 +782,6 @@ namespace SourceGit.Automation
                             pane.Select(0, 0);
                             view.EnsureVisualLines();
                         }
-                        if (ColorAt(0) != syntaxColor)
-                            throw new InvalidOperationException("Clearing the selection did not restore syntax coloring.");
                     }
                     return new { ready = true, panes = checks };
                 }

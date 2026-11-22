@@ -18,6 +18,13 @@ namespace SourceGit.Views
         public WorkingCopy()
         {
             InitializeComponent();
+            UnstagedChangesView.AddHandler(RequestBringIntoViewEvent, (_, args) =>
+            {
+                // Reveal the automatic selection inside its list without
+                // scrolling the surrounding history away from the clicked row.
+                if (IsOverview && !UnstagedChangesView.IsKeyboardFocusWithin)
+                    args.Handled = true;
+            });
         }
 
         public static readonly Avalonia.StyledProperty<bool> IsOverviewProperty = Avalonia.AvaloniaProperty.Register<WorkingCopy, bool>(nameof(IsOverview));

@@ -191,6 +191,8 @@ def click_pending_and_measure(label):
     finally: stopped.set(); observer.join(timeout=3)
     motion_samples.append({'case': label, 'row': row, 'scale': scale, 'samples': samples})
     (out / 'pending-row-motion.json').write_text(json.dumps(motion_samples, indent=2), encoding='utf-8')
+    selected_row = state()['pendingRow']
+    check(label + ': opening the working-copy detail preserves the history viewport', (selected_row['x'], selected_row['y']) == (row['x'], row['y']))
     check(label + ': pending graph marker stays at the same physical pixel throughout selection', len(samples) >= 10 and all(p['dot'] == 0x8a8a8a for p in samples))
     positions = [p['inkX'] for p in samples]
     check(label + ': rendered description ink stays fixed throughout selection', len(samples) >= 10 and None not in positions and max(positions) - min(positions) <= 2)

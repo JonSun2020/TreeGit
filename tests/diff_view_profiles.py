@@ -71,7 +71,7 @@ def check_edges(name, result):
        abs(result['left'])<=1 and abs(result['right']-result['boxed'])<=1,result)
 try:
  for args in [('init','-b','main'),('config','user.name','TreeGit Demo'),('config','user.email','demo@example.invalid')]:git(*args)
- lines=['int value_'+str(i)+' = '+str(i)+';\n' for i in range(120)]
+ lines=[f'int value_{i} = {i}; /* \u4e2d\u6587 English */\n' for i in range(120)]
  lines[5]='/* '+('long wrapped comparison text '*24)+'*/\n'
  other_file='second.c'
  for name in (filename,other_file):(repo/name).write_text(''.join(lines),'utf-8')
@@ -79,7 +79,7 @@ try:
  tagged_commit=git('rev-parse','HEAD')
  git('tag','sidebar-demo')
  git('tag','-a','releases/sidebar-demo','-m','Anonymous annotated tag')
- lines[5]='// Short replacement\n';lines[60]='int value_60 = 999;\n';lines[90]='/* '+('long replacement on the other side '*22)+'*/\n'
+ lines[5]='// Short replacement\n';lines[60]='int value_60 = 999; /* \u4e2d\u6587 English */\n';lines[90]='/* '+('long replacement on the other side '*22)+'*/\n'
  for name in (filename,other_file):(repo/name).write_text(''.join(lines),'utf-8')
  git('add','.');git('commit','-m','Change example values')
  side_commit=git('commit-tree',git('rev-parse','HEAD^{tree}'),'-p',tagged_commit,'-m','Tagged side revision')
@@ -243,8 +243,10 @@ try:
  for scope, count in (('main', 1), ('standalone', 2)):
   selection=wait(lambda: result if (result:=client.probe('diff_selection_colors',value=scope))['ready'] else None)
   check('Dark syntax highlighting preserves readable selected text in '+scope,
-        len(selection['panes'])==count and all(p['selected']==p['expected']=='#ff102d16' and p['syntaxColor']!=p['selected']
-            and p['outsideSelection'] and p['copiedText']=='int' for p in selection['panes']),selection)
+        len(selection['panes'])==count and all(p['readable'] and p['unchangedSyntax'] and p['copiedText']=='int'
+            for p in selection['panes']),selection)
+  check('Selecting the space between Chinese and English keeps glyph positions and wrapping fixed in '+scope,
+        all(p['fixedLayout'] and p['spaceText']==' ' for p in selection['panes']),selection)
  client.tool('ui_window', theme='Light')
  check('main defaults to five lines of context',not main['columns'] and main['syntax'] and main['wrap'] and main['context']==5,main)
  check('standalone defaults to columns with syntax highlighting, no wrapping and full file',

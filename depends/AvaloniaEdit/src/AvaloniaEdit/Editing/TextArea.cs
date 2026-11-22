@@ -471,21 +471,23 @@ namespace AvaloniaEdit.Editing
                             var newSegmentOffset = newSegment.Offset;
                             if (oldSegmentOffset != newSegmentOffset)
                             {
-                                TextView.Redraw(Math.Min(oldSegmentOffset, newSegmentOffset),
+                                RedrawSelection(Math.Min(oldSegmentOffset, newSegmentOffset),
                                                 Math.Abs(oldSegmentOffset - newSegmentOffset));
                             }
                             var oldSegmentEndOffset = oldSegment.EndOffset;
                             var newSegmentEndOffset = newSegment.EndOffset;
                             if (oldSegmentEndOffset != newSegmentEndOffset)
                             {
-                                TextView.Redraw(Math.Min(oldSegmentEndOffset, newSegmentEndOffset),
+                                RedrawSelection(Math.Min(oldSegmentEndOffset, newSegmentEndOffset),
                                                 Math.Abs(oldSegmentEndOffset - newSegmentEndOffset));
                             }
                         }
                         else
                         {
-                            TextView.Redraw(oldSegment);
-                            TextView.Redraw(newSegment);
+                            if (oldSegment != null)
+                                RedrawSelection(oldSegment.Offset, oldSegment.Length);
+                            if (newSegment != null)
+                                RedrawSelection(newSegment.Offset, newSegment.Length);
                         }
                     }
                     _selection = value;
@@ -494,6 +496,14 @@ namespace AvaloniaEdit.Editing
                     //CommandManager.InvalidateRequerySuggested();
                 }
             }
+        }
+
+        private void RedrawSelection(int offset, int length)
+        {
+            if (PreserveSelectionLayout)
+                TextView.InvalidateSelectionVisuals(offset, length);
+            else
+                TextView.Redraw(offset, length);
         }
 
         /// <summary>
@@ -533,6 +543,12 @@ namespace AvaloniaEdit.Editing
             get => GetValue(SelectionForegroundProperty);
             set => SetValue(SelectionForegroundProperty, value);
         }
+
+        /// <summary>
+        /// Draw the selection foreground on existing glyphs without changing text layout.
+        /// Set before displaying the text area.
+        /// </summary>
+        public bool PreserveSelectionLayout { get; set; }
 
         /// <summary>
         /// The <see cref="SelectionBorder"/> property.

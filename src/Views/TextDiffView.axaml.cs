@@ -526,6 +526,7 @@ namespace SourceGit.Views
             _lineStyleTransformer = new LineStyleTransformer(this);
 
             TextArea.TextView.Margin = new Thickness(2, 0);
+            TextArea.PreserveSelectionLayout = true;
             TextArea.TextView.BackgroundRenderers.Add(new LineBackgroundRenderer(this));
             TextArea.TextView.LineTransformers.Add(_lineStyleTransformer);
         }

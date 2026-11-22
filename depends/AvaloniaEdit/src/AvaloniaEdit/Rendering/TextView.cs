@@ -672,6 +672,15 @@ namespace AvaloniaEdit.Rendering
             }
         }
 
+        internal void InvalidateSelectionVisuals(int offset, int length)
+        {
+            foreach (var line in _allVisualLines)
+            {
+                if (offset <= line.LastDocumentLine.EndOffset && offset + length >= line.FirstDocumentLine.Offset)
+                    line.InvalidateDrawing();
+            }
+        }
+
         /// <summary>
         /// Causes a known layer to redraw.
         /// This method does not invalidate visual lines;
