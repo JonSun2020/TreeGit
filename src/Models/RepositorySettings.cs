@@ -134,6 +134,7 @@ namespace SourceGit.Models
             _orgHash = hash;
         }
 
+#if false // The removed editor was the only writer; legacy actions can still run.
         public CustomAction AddNewCustomAction()
         {
             var act = new CustomAction() { Name = "Unnamed Action" };
@@ -160,6 +161,7 @@ namespace SourceGit.Models
             if (idx < CustomActions.Count - 1)
                 CustomActions.Move(idx + 1, idx);
         }
+#endif
 
         private static string HashContent(string source)
         {

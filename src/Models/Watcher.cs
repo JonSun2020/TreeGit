@@ -206,7 +206,8 @@ namespace SourceGit.Models
             if ((due & Changes.Submodules) != 0) _repo.RefreshSubmodules();
             if ((due & Changes.Stashes) != 0) _repo.RefreshStashes();
             if ((due & Changes.Tags) != 0) _repo.RefreshTags();
-            if ((due & (Changes.Branch | Changes.Tags)) != 0) _repo.RefreshCommits();
+            // A branch refresh updates history after it has the new branch snapshot.
+            if ((due & Changes.Branch) == 0 && (due & Changes.Tags) != 0) _repo.RefreshCommits();
         }
 
         private void OnRepositoryChanged(object o, FileSystemEventArgs e)

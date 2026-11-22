@@ -1474,7 +1474,7 @@ namespace SourceGit.Views
 
             if (!isHead)
             {
-                if (current.Ahead.Contains(commit.SHA))
+                if (current.AheadCommits?.Contains(commit.SHA) == true)
                 {
                     var upstream = repo.Branches.Find(x => x.FullName.Equals(current.Upstream, StringComparison.Ordinal));
                     var pushRevision = new MenuItem();
@@ -1697,7 +1697,7 @@ namespace SourceGit.Views
                 var fastForward = new MenuItem();
                 fastForward.Header = App.Text("BranchCM.FastForward", upstream);
                 fastForward.Icon = this.CreateMenuIcon("Icons.FastForward");
-                fastForward.IsEnabled = current.Ahead.Count == 0 && current.Behind.Count > 0;
+                fastForward.IsEnabled = current.AheadCount == 0 && current.BehindCount > 0;
                 fastForward.Click += async (_, e) =>
                 {
                     var b = repo.Branches.Find(x => x.FriendlyName == upstream);

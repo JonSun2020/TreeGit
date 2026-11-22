@@ -89,7 +89,8 @@ namespace SourceGit.ViewModels
                 {
                     try { await _repo.AutoUpdateSubmodulesAsync(log); }
                     catch (System.Exception ex) { Native.OS.LogException(ex); _repo.SendNotification(App.Text("Repository.SubmodulesPending"), true); }
-                    LocalBranch.Behind.Clear();
+                    LocalBranch.BehindCount = 0;
+                    LocalBranch.BehindCommits = null;
                     LocalBranch.Head = _sourceRevision;
                     LocalBranch.CommitterDate = RemoteBranch.CommitterDate;
                 }

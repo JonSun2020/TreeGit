@@ -81,6 +81,12 @@
                       Condition="$(RuntimeIdentifier.StartsWith('win-'))" />
   </ItemGroup>
 
+  <!-- The removed settings pages were the only callers of these upstream editors. -->
+  <ItemGroup>
+    <Compile Remove="ViewModels/ConfigureCustomActionControls.cs;Views/ConfigureCustomActionControls.axaml.cs;Views/EditApiKey.axaml.cs" />
+    <AvaloniaXaml Remove="Views/ConfigureCustomActionControls.axaml;Views/EditApiKey.axaml" />
+  </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.3.22" />
     <PackageReference Include="Avalonia.Desktop" Version="11.3.22" />

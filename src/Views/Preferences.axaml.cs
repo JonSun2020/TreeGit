@@ -109,6 +109,7 @@ namespace SourceGit.Views
             set;
         } = false;
 
+#if false // The custom-action editor is absent from Preferences.
         public static readonly DirectProperty<Preferences, Models.CustomAction> SelectedCustomActionProperty =
             AvaloniaProperty.RegisterDirect<Preferences, Models.CustomAction>(
                 nameof(SelectedCustomAction),
@@ -120,6 +121,7 @@ namespace SourceGit.Views
             get => _selectedCustomAction;
             set => SetAndRaise(SelectedCustomActionProperty, ref _selectedCustomAction, value);
         }
+#endif
 
         public Preferences()
         {
@@ -393,6 +395,7 @@ namespace SourceGit.Views
             e.Handled = true;
         }
 
+#if false // The JSON theme picker is absent from Preferences; saved themes still load.
         private async void SelectThemeOverrideFile(object _, RoutedEventArgs e)
         {
             var options = new FilePickerOpenOptions()
@@ -420,6 +423,7 @@ namespace SourceGit.Views
             Native.OS.OpenBrowser($"https://github.com/sourcegit-scm/sourcegit-theme");
             e.Handled = true;
         }
+#endif
 
         private async void SelectGitExecutable(object _, RoutedEventArgs e)
         {
@@ -710,6 +714,7 @@ namespace SourceGit.Views
             ShowGitVersionWarning = number != null && number < Models.GitVersions.MINIMAL;
         }
 
+#if false // Handlers for the removed custom-action editor.
         private void OnAddCustomAction(object sender, RoutedEventArgs e)
         {
             var action = new Models.CustomAction() { Name = App.Text("TreeGit.Message.UnnamedAction") };
@@ -783,6 +788,8 @@ namespace SourceGit.Views
             await this.ShowDialogAsync(new ViewModels.ConfigureCustomActionControls(act.Controls));
             e.Handled = true;
         }
+        private Models.CustomAction _selectedCustomAction = null;
+#endif
 
         private ViewModels.Preferences.EditSession _editSession;
         private Dictionary<string, string> _initialConfig = new(StringComparer.OrdinalIgnoreCase);
@@ -800,6 +807,5 @@ namespace SourceGit.Views
         private bool _showGitVersionWarning = false;
         private Models.GPGFormat _gpgFormat = Models.GPGFormat.Supported[0];
         private string _gpgExecutableFile = string.Empty;
-        private Models.CustomAction _selectedCustomAction = null;
     }
 }

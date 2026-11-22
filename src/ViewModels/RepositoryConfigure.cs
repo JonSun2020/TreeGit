@@ -80,22 +80,27 @@ namespace SourceGit.ViewModels
 
         public bool EnableRecursiveWhenAutoUpdatingSubmodules { get; set; }
 
+#if false // Removed repository settings editors. Previously saved values remain in RepositorySettings.
         public AvaloniaList<Models.CommitTemplate> CommitTemplates { get; } = [];
+#endif
         public bool UseGlobalIdentity { get; set; }
         public bool AutoRefreshEnabled { get; set; }
         public bool BackgroundFetchEnabled { get; set; }
 
+#if false
         public Models.CommitTemplate SelectedCommitTemplate
         {
             get => _selectedCommitTemplate;
             set => SetProperty(ref _selectedCommitTemplate, value);
         }
+#endif
 
         public AvaloniaList<Models.IssueTracker> IssueTrackers
         {
             get;
         } = [];
 
+#if false // The replacement view manages list selection and only edits live issue links.
         public Models.IssueTracker SelectedIssueTracker
         {
             get => _selectedIssueTracker;
@@ -124,6 +129,7 @@ namespace SourceGit.ViewModels
             get => _selectedCustomAction;
             set => SetProperty(ref _selectedCustomAction, value);
         }
+#endif
 
         public RepositoryConfigure(Repository repo)
         {
@@ -139,8 +145,6 @@ namespace SourceGit.ViewModels
             EnableRecursiveWhenAutoUpdatingSubmodules = repo.Settings.EnableRecursiveWhenAutoUpdatingSubmodules;
             AutoRefreshEnabled = repo.Settings.AutoRefreshEnabled;
             BackgroundFetchEnabled = repo.Settings.BackgroundFetchEnabled;
-            foreach (var template in repo.Settings.CommitTemplates)
-                CommitTemplates.Add(new Models.CommitTemplate { Name = template.Name, Content = template.Content });
             var localQuery = new Commands.Config(repo.FullPath);
             _cachedLocal = localQuery.ReadAll(true);
             UseGlobalIdentity = !_cachedLocal.ContainsKey("user.name") && !_cachedLocal.ContainsKey("user.email");
@@ -180,6 +184,7 @@ namespace SourceGit.ViewModels
             }
         }
 
+#if false // Unused commands from the earlier repository configuration dialog.
         public void ClearHttpProxy()
         {
             HttpProxy = string.Empty;
@@ -209,6 +214,7 @@ namespace SourceGit.ViewModels
             }
             return outs;
         }
+#endif
 
         public void AddIssueTracker(string name, string regex, string url)
         {
@@ -221,9 +227,9 @@ namespace SourceGit.ViewModels
             };
 
             IssueTrackers.Add(rule);
-            SelectedIssueTracker = rule;
         }
 
+#if false
         public void RemoveIssueTracker()
         {
             if (_selectedIssueTracker is { } rule)
@@ -254,6 +260,7 @@ namespace SourceGit.ViewModels
             if (_selectedCustomAction != null)
                 _repo.Settings.MoveCustomActionDown(_selectedCustomAction);
         }
+#endif
 
         public async Task SaveAsync()
         {
@@ -292,7 +299,6 @@ namespace SourceGit.ViewModels
                 staged.EnableRecursiveWhenAutoUpdatingSubmodules = EnableRecursiveWhenAutoUpdatingSubmodules;
                 staged.AutoRefreshEnabled = AutoRefreshEnabled;
                 staged.BackgroundFetchEnabled = BackgroundFetchEnabled;
-                staged.CommitTemplates = new AvaloniaList<Models.CommitTemplate>(CommitTemplates);
                 var content = staged.Serialize();
                 transaction.WriteSettings(content);
                 transaction.Commit();
@@ -303,7 +309,6 @@ namespace SourceGit.ViewModels
                 settings.EnableRecursiveWhenAutoUpdatingSubmodules = staged.EnableRecursiveWhenAutoUpdatingSubmodules;
                 settings.AutoRefreshEnabled = staged.AutoRefreshEnabled;
                 settings.BackgroundFetchEnabled = staged.BackgroundFetchEnabled;
-                settings.CommitTemplates = staged.CommitTemplates;
                 settings.MarkSaved(content);
                 _ = _repo.WorkingCopy?.RefreshCommitterIdentityAsync(true);
                 _repo.WorkingCopy?.RefreshCommitPushTarget();
@@ -405,8 +410,10 @@ namespace SourceGit.ViewModels
         private readonly Dictionary<string, string> _cached;
         private readonly Dictionary<string, string> _cachedLocal;
         private string _httpProxy;
+#if false
         private Models.CommitTemplate _selectedCommitTemplate = null;
         private Models.IssueTracker _selectedIssueTracker = null;
         private Models.CustomAction _selectedCustomAction = null;
+#endif
     }
 }

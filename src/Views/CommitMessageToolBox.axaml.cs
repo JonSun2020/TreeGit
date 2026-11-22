@@ -644,6 +644,7 @@ namespace SourceGit.Views
             e.Handled = true;
         }
 
+#if false // The toolbar button was removed. Existing AI profiles still work from the file menu.
         private void OnOpenOpenAIHelper(object sender, RoutedEventArgs e)
         {
             if (DataContext is ViewModels.WorkingCopy vm && sender is Button button && _showAdvancedOptions)
@@ -695,6 +696,7 @@ namespace SourceGit.Views
 
             e.Handled = true;
         }
+#endif
 
         private void OnOpenConventionalCommitHelper(object _, RoutedEventArgs e)
         {
@@ -716,6 +718,7 @@ namespace SourceGit.Views
             e.Handled = true;
         }
 
+#if false
         private void DoOpenAIAssistant(ViewModels.Repository repo, AI.Service service, List<Models.Change> changes)
         {
             var owner = TopLevel.GetTopLevel(this) as Window;
@@ -726,6 +729,7 @@ namespace SourceGit.Views
             var view = new AIAssistant() { DataContext = assistant };
             view.Show(owner);
         }
+#endif
 
         private string _commitMessage = string.Empty;
         private bool _showAdvancedOptions = false;

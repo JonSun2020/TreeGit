@@ -18,22 +18,24 @@ namespace SourceGit.Models
         public bool IsCurrent { get; set; }
         public bool IsDetachedHead { get; set; }
         public string Upstream { get; set; }
-        public List<string> Ahead { get; set; } = [];
-        public List<string> Behind { get; set; } = [];
+        public int AheadCount { get; set; }
+        public int BehindCount { get; set; }
+        internal HashSet<string> AheadCommits { get; set; }
+        internal HashSet<string> BehindCommits { get; set; }
         public string Remote { get; set; }
         public bool IsUpstreamGone { get; set; }
         public string WorktreePath { get; set; }
 
         public bool HasWorktree => !IsCurrent && !string.IsNullOrEmpty(WorktreePath);
         public string FriendlyName => IsLocal ? Name : $"{Remote}/{Name}";
-        public bool IsTrackStatusVisible => Ahead.Count > 0 || Behind.Count > 0;
+        public bool IsTrackStatusVisible => AheadCount > 0 || BehindCount > 0;
 
         public string TrackStatusDescription
         {
             get
             {
-                var ahead = Ahead.Count;
-                var behind = Behind.Count;
+                var ahead = AheadCount;
+                var behind = BehindCount;
                 if (ahead > 0)
                     return behind > 0 ? $"{ahead}↑ {behind}↓" : $"{ahead}↑";
 

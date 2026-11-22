@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -38,9 +38,6 @@ namespace SourceGit.Tests
                                 combo.SelectedIndex = field.Value.ValueKind == JsonValueKind.Number ? field.Value.GetInt32() :
                                     combo.Items.Cast<object>().Select((v, i) => (v, i)).Single(v => v.v?.ToString() == field.Value.GetString()).i;
                         }
-                    if (data.TryGetProperty("templates", out var templates))
-                        foreach (var template in templates.EnumerateArray())
-                            model.CommitTemplates.Add(new Models.CommitTemplate { Name = template.GetProperty("name").GetString(), Content = template.GetProperty("content").GetString() });
                     if (data.TryGetProperty("links", out var links))
                         foreach (var link in links.EnumerateArray())
                         {
@@ -162,13 +159,13 @@ namespace SourceGit.Tests
                                 for (var attempt = 0; attempt < 100; attempt++)
                                 {
                                     if ((!expectedView.TryGetProperty("head", out var expectedHead) || repo.CurrentBranch?.Head == expectedHead.GetString()) &&
-                                        (!expectedView.TryGetProperty("ahead", out var expectedAhead) || repo.CurrentBranch?.Ahead.Count == expectedAhead.GetInt32()) &&
-                                        (!expectedView.TryGetProperty("behind", out var expectedBehind) || repo.CurrentBranch?.Behind.Count == expectedBehind.GetInt32()) &&
+                                        (!expectedView.TryGetProperty("ahead", out var expectedAhead) || repo.CurrentBranch?.AheadCount == expectedAhead.GetInt32()) &&
+                                        (!expectedView.TryGetProperty("behind", out var expectedBehind) || repo.CurrentBranch?.BehindCount == expectedBehind.GetInt32()) &&
                                         (!expectedView.TryGetProperty("tag", out var expectedTag) || repo.Tags.Any(t => t.Name == expectedTag.GetString())) &&
                                         (!expectedView.TryGetProperty("changes", out var expectedChanges) || repo.LocalChangesCount == expectedChanges.GetInt32())) break;
                                     await Task.Delay(50);
                                 }
-                                operationDetails = new { head = repo.CurrentBranch?.Head, ahead = repo.CurrentBranch?.Ahead.Count, behind = repo.CurrentBranch?.Behind.Count,
+                                operationDetails = new { head = repo.CurrentBranch?.Head, ahead = repo.CurrentBranch?.AheadCount, behind = repo.CurrentBranch?.BehindCount,
                                     tags = repo.Tags.Select(t => t.Name).ToArray(), changes = repo.LocalChangesCount, context = repo.WorkingCopy.InProgressContext?.GetType().Name,
                                     log = repo.Logs.FirstOrDefault()?.Content, popupClosed = ownerPage.Popup == null };
                                 operationResult = true; break;
@@ -477,7 +474,7 @@ namespace SourceGit.Tests
                             default: throw new ArgumentException("Unknown audit operation");
                         }
                     }
-                    var before = new { defaultRemote = model.DefaultRemote, mergeMode = model.PreferredMergeMode, templates = model.CommitTemplates.Count };
+                    var before = new { defaultRemote = model.DefaultRemote, mergeMode = model.PreferredMergeMode, templates = repo.Settings.CommitTemplates.Count };
                     if (data.GetProperty("action").GetString() == "save") await save();
                     var error = window.GetLogicalDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Name == "RepositorySettingsError");
                     var result = new { before, operationResult, operationDetails, links = model.IssueTrackers.Select(r => new { name = r.Name, shared = r.IsShared }).ToArray(), staysOpen = window.IsVisible, error = error?.IsVisible == true ? error.Text : null,

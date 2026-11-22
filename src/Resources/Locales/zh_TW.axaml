@@ -219,6 +219,7 @@
   <x:String x:Key="Text.Compare.Commits.RightOnly" xml:space="preserve">右側獨有提交</x:String>
   <x:String x:Key="Text.Compare.Commits.Tips" xml:space="preserve">提示: 如果比較的另一方是 HEAD，您可以揀選 (cherry-pick) 已選擇的提交 (使用滑鼠右鍵)</x:String>
   <x:String x:Key="Text.Configure" xml:space="preserve">存放庫設定</x:String>
+  <!-- Archived commit template editor
   <x:String x:Key="Text.Configure.CommitMessageTemplate" xml:space="preserve">提交訊息範本</x:String>
   <x:String x:Key="Text.Configure.CommitMessageTemplate.BuiltinVars" xml:space="preserve">內建參數:
 
@@ -230,6 +231,8 @@
   ${pure_files:N} 類似 ${files:N}，不含資料夾的純檔案名稱</x:String>
   <x:String x:Key="Text.Configure.CommitMessageTemplate.Content" xml:space="preserve">範本內容:</x:String>
   <x:String x:Key="Text.Configure.CommitMessageTemplate.Name" xml:space="preserve">範本名稱:</x:String>
+  -->
+  <!-- Archived custom-action editor
   <x:String x:Key="Text.Configure.CustomAction" xml:space="preserve">自訂動作</x:String>
   <x:String x:Key="Text.Configure.CustomAction.Arguments" xml:space="preserve">指令參數:</x:String>
   <x:String x:Key="Text.Configure.CustomAction.Arguments.Tip" xml:space="preserve">內建參數:
@@ -254,6 +257,7 @@
   <x:String x:Key="Text.Configure.CustomAction.Scope.Repository" xml:space="preserve">存放庫</x:String>
   <x:String x:Key="Text.Configure.CustomAction.Scope.Tag" xml:space="preserve">選取的標籤</x:String>
   <x:String x:Key="Text.Configure.CustomAction.WaitForExit" xml:space="preserve">等待自訂動作執行結束</x:String>
+  -->
   <x:String x:Key="Text.Configure.Email" xml:space="preserve">電子郵件</x:String>
   <x:String x:Key="Text.Configure.Email.Placeholder" xml:space="preserve">電子郵件地址</x:String>
   <x:String x:Key="Text.Configure.Git" xml:space="preserve">Git 設定</x:String>
@@ -286,6 +290,7 @@
   <x:String x:Key="Text.Configure.Proxy.Placeholder" xml:space="preserve">HTTP 網路代理</x:String>
   <x:String x:Key="Text.Configure.User" xml:space="preserve">使用者名稱</x:String>
   <x:String x:Key="Text.Configure.User.Placeholder" xml:space="preserve">用於本存放庫的使用者名稱</x:String>
+  <!-- Archived custom-action editor
   <x:String x:Key="Text.ConfigureCustomActionControls" xml:space="preserve">編輯自訂動作輸入控制項</x:String>
   <x:String x:Key="Text.ConfigureCustomActionControls.CheckedValue" xml:space="preserve">啟用時的指令參數:</x:String>
   <x:String x:Key="Text.ConfigureCustomActionControls.CheckedValue.Tip" xml:space="preserve">勾選核取方塊後，此值將用於指令參數中</x:String>
@@ -300,6 +305,7 @@
   <x:String x:Key="Text.ConfigureCustomActionControls.StringValue.Tip" xml:space="preserve">內建變數 ${REPO}、${REMOTE}、${BRANCH}、${BRANCH_FRIENDLY_NAME}、${SHA}、${FILE} 及 ${TAG} 在此處仍可使用</x:String>
   <x:String x:Key="Text.ConfigureCustomActionControls.Type" xml:space="preserve">類型:</x:String>
   <x:String x:Key="Text.ConfigureCustomActionControls.UseFriendlyName" xml:space="preserve">輸出包含遠端的名稱:</x:String>
+  -->
   <x:String x:Key="Text.ConfigureWorkspace" xml:space="preserve">工作區</x:String>
   <x:String x:Key="Text.ConfigureWorkspace.Color" xml:space="preserve">顏色</x:String>
   <x:String x:Key="Text.ConfigureWorkspace.Name" xml:space="preserve">名稱</x:String>
@@ -683,7 +689,9 @@
   <x:String x:Key="Text.Preferences.Appearance.DefaultFont.Default" xml:space="preserve">預設（Segoe UI / 微軟正黑體）</x:String>
   <x:String x:Key="Text.Preferences.Appearance.MonospaceFont.Default" xml:space="preserve">預設（JetBrains Mono）</x:String>
   <x:String x:Key="Text.Preferences.Appearance.MonospaceFont.Tip" xml:space="preserve">用於程式碼與 Diff。建議選擇等寬字型，例如 Consolas；預設使用內建 JetBrains Mono。</x:String>
+  <!-- Archived settings controls
   <x:String x:Key="Text.Preferences.Appearance.ThemeOverrides" xml:space="preserve">自訂主題</x:String>
+  -->
   <x:String x:Key="Text.Preferences.Appearance.UseAutoHideScrollBars" xml:space="preserve">允許自動隱藏捲軸</x:String>
   <x:String x:Key="Text.Preferences.Appearance.UseFixedTabWidth" xml:space="preserve">使用固定寬度的分頁標籤</x:String>
   <x:String x:Key="Text.Preferences.Appearance.UseNativeWindowFrame" xml:space="preserve">使用系統原生預設視窗樣式</x:String>
@@ -1603,12 +1611,14 @@ SSH 金鑰仍在遠端設定中設定。</x:String>
   <x:String x:Key="Text.Apply.CommitChanges" xml:space="preserve">套用並提交修改</x:String>
   <x:String x:Key="Text.Apply.CommitChanges.Tip" xml:space="preserve">執行 `git am` 命令而非 `git apply` 命令</x:String>
   <x:String x:Key="Text.DeleteBranch.DeleteAttachedWorktree" xml:space="preserve">同時刪除與使用此分支的工作樹</x:String>
+  <!-- Archived API key editor
   <x:String x:Key="Text.EditApiKey" xml:space="preserve">編輯 API 金鑰</x:String>
   <x:String x:Key="Text.EditApiKey.ApiKey" xml:space="preserve">API 金鑰</x:String>
   <x:String x:Key="Text.EditApiKey.EnvironmentVariable" xml:space="preserve">環境變數</x:String>
   <x:String x:Key="Text.EditApiKey.InvalidStorage" xml:space="preserve">未檢測到 `secret-tool`, 請安裝後重啟程式再嘗試</x:String>
   <x:String x:Key="Text.EditApiKey.Server" xml:space="preserve">服務位址</x:String>
   <x:String x:Key="Text.EditApiKey.Storage" xml:space="preserve">儲存方式</x:String>
+  -->
   <x:String x:Key="Text.Repository.FocusOnCurrentBranch" xml:space="preserve">專注模式
 
 進入該模式後，歷史提交列表將僅顯示屬於目前分支及其跟蹤的上游分支（如果有的話）的提交，並且自動清空已設置的過濾條件。
@@ -1676,8 +1686,10 @@ SSH 金鑰仍在遠端設定中設定。</x:String>
   <x:String x:Key="Text.TreeGit.Branches.Group" xml:space="preserve">{0}（{1}）</x:String>
   <x:String x:Key="Text.TreeGit.Language.SaveFailed" xml:space="preserve">語種設定未儲存，已還原原來的語種。請確認軟體目錄的寫入權限與可用空間後重試。</x:String>
   <x:String x:Key="Text.TreeGit.RestartRequired" xml:space="preserve">需要重新啟動</x:String>
+  <!-- Archived API key editor
   <x:String x:Key="Text.TreeGit.ApiKey.SystemKeychain" xml:space="preserve">系統鑰匙圈</x:String>
   <x:String x:Key="Text.TreeGit.ApiKey.PlainText" xml:space="preserve">明文</x:String>
+  -->
   <x:String x:Key="Text.TreeGit.Tool.GitConfiguration">使用 Git 設定</x:String>
   <x:String x:Key="Text.TreeGit.Tool.MergeNotSaved">合併結果未儲存，或仍有未解決的衝突。請在 TreeGit 中檢查後再標記為已解決。</x:String>
   <x:String x:Key="Text.TreeGit.Tool.CannotOpen">無法開啟所選工具。請在「工具 → 外部工具」中確認工具路徑，或選擇 TreeGit。</x:String>
@@ -1783,7 +1795,9 @@ SSH 金鑰仍在遠端設定中設定。</x:String>
   <x:String x:Key="Text.TreeGit.Message.FirstCommitTag" xml:space="preserve">請先完成首次提交，再建立標籤。</x:String>
   <x:String x:Key="Text.TreeGit.Message.PatchSaveFailed" xml:space="preserve">無法儲存修補檔：{0}</x:String>
   <x:String x:Key="Text.TreeGit.Message.FileSaveFailed" xml:space="preserve">無法儲存檔案：{0}</x:String>
+  <!-- Archived settings controls
   <x:String x:Key="Text.TreeGit.Message.AIConfig" xml:space="preserve">請檢查 AI 服務設定。</x:String>
+  -->
   <x:String x:Key="Text.TreeGit.Message.NoStagedFiles" xml:space="preserve">請先暫存要提交的檔案。</x:String>
   <x:String x:Key="Text.TreeGit.Message.BisectRunning" xml:space="preserve">請先完成或中止目前的二分查找。</x:String>
   <x:String x:Key="Text.TreeGit.Message.UncommittedChanges" xml:space="preserve">請先提交、儲藏或捨棄本機變更。</x:String>
@@ -1795,11 +1809,15 @@ SSH 金鑰仍在遠端設定中設定。</x:String>
   <x:String x:Key="Text.TreeGit.Message.PatchSaved" xml:space="preserve">修補檔已儲存。</x:String>
   <x:String x:Key="Text.TreeGit.Message.PatchSavedAlt" xml:space="preserve">修補檔已儲存。</x:String>
   <x:String x:Key="Text.TreeGit.Message.ResetSucceeded" xml:space="preserve">已重設至選取的提交。</x:String>
+  <!-- Archived settings controls
   <x:String x:Key="Text.TreeGit.Message.ThemeFile" xml:space="preserve">佈景主題設定檔</x:String>
+  -->
   <x:String x:Key="Text.TreeGit.Message.GitExecutable" xml:space="preserve">Git 執行檔</x:String>
   <x:String x:Key="Text.TreeGit.Message.GPGProgram" xml:space="preserve">GPG 執行檔</x:String>
+  <!-- Archived settings controls
   <x:String x:Key="Text.TreeGit.Message.Executable" xml:space="preserve">執行檔或指令碼</x:String>
   <x:String x:Key="Text.TreeGit.Message.UnnamedAction" xml:space="preserve">未命名的全域操作</x:String>
+  -->
   <x:String x:Key="Text.TreeGit.Message.Pick" xml:space="preserve">保留此提交</x:String>
   <x:String x:Key="Text.TreeGit.Message.Edit" xml:space="preserve">暫停並修改此提交</x:String>
   <x:String x:Key="Text.TreeGit.Message.Reword" xml:space="preserve">編輯提交說明</x:String>
@@ -1818,12 +1836,16 @@ SSH 金鑰仍在遠端設定中設定。</x:String>
   <x:String x:Key="Text.TreeGit.Tool.GitMergeMissing">Git 尚未設定合併工具，請在「工具 → 外部工具」中選擇 TreeGit 或設定其他工具。</x:String>
   <x:String x:Key="Text.TreeGit.Tool.ConsoleUnsupported">「{0}」需要互動式終端機，請在偏好設定中選擇圖形比較工具。</x:String>
   <x:String x:Key="Text.TreeGit.Message.CloneFolderSelect">無法選擇複製目錄：{0}</x:String>
+  <!-- Archived settings controls
   <x:String x:Key="Text.TreeGit.Message.ThemeFileSelect">無法選擇佈景主題檔案：{0}</x:String>
+  -->
   <x:String x:Key="Text.TreeGit.Message.GitSelect">無法選擇 Git 程式：{0}</x:String>
   <x:String x:Key="Text.TreeGit.Message.GpgSelect">無法選擇 GPG 程式：{0}</x:String>
   <x:String x:Key="Text.TreeGit.Message.ShellSelect">無法選擇終端機：{0}</x:String>
   <x:String x:Key="Text.TreeGit.Message.MergeSelect">無法選擇比較工具：{0}</x:String>
+  <!-- Archived settings controls
   <x:String x:Key="Text.TreeGit.Message.ActionSelect">無法選擇自訂操作的程式：{0}</x:String>
+  -->
   <x:String x:Key="Text.TreeGit.Message.InvalidBranchNamed">「{0}」不是有效的分支名稱。</x:String>
   <x:String x:Key="Text.TreeGit.Message.CopyFailed">無法複製文字：{0}</x:String>
   <x:String x:Key="Text.TreeGit.Search.NoMatches">找不到符合項目</x:String>

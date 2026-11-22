@@ -232,8 +232,8 @@ namespace SourceGit.Views
                 return;
             }
 
-            var ahead = branch.Ahead.Count;
-            var behind = branch.Behind.Count;
+            var ahead = branch.AheadCount;
+            var behind = branch.BehindCount;
             if (ahead > 0)
                 Text = behind > 0 ? App.Text("BranchTree.AheadBehind", ahead, behind) : App.Text("BranchTree.Ahead", ahead);
             else
@@ -869,7 +869,7 @@ namespace SourceGit.Views
                         var fastForward = new MenuItem();
                         fastForward.Header = App.Text("BranchCM.FastForward", upstream.FriendlyName);
                         fastForward.Icon = this.CreateMenuIcon("Icons.FastForward");
-                        fastForward.IsEnabled = branch.Ahead.Count == 0 && branch.Behind.Count > 0;
+                        fastForward.IsEnabled = branch.AheadCount == 0 && branch.BehindCount > 0;
                         fastForward.Click += async (_, e) =>
                         {
                             if (repo.CanCreatePopup())
@@ -970,7 +970,7 @@ namespace SourceGit.Views
                     var fastForward = new MenuItem();
                     fastForward.Header = App.Text("BranchCM.FastForward", upstream.FriendlyName);
                     fastForward.Icon = this.CreateMenuIcon("Icons.FastForward");
-                    fastForward.IsEnabled = branch.Ahead.Count == 0 && branch.Behind.Count > 0;
+                    fastForward.IsEnabled = branch.AheadCount == 0 && branch.BehindCount > 0;
                     fastForward.Click += async (_, e) =>
                     {
                         if (repo.CanCreatePopup())
@@ -982,7 +982,7 @@ namespace SourceGit.Views
                     var fetchInto = new MenuItem();
                     fetchInto.Header = App.Text("BranchCM.FetchInto", upstream.FriendlyName, branch.Name);
                     fetchInto.Icon = this.CreateMenuIcon("Icons.Fetch");
-                    fetchInto.IsEnabled = branch.Ahead.Count == 0;
+                    fetchInto.IsEnabled = branch.AheadCount == 0;
                     fetchInto.Click += async (_, e) =>
                     {
                         if (repo.CanCreatePopup())

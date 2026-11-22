@@ -93,6 +93,7 @@ namespace SourceGit.Commands
         // operation; never repeat a rejected local mutation automatically.
         protected virtual bool SupportsAuthenticationRetry => false;
         protected virtual bool RequiresAuthenticationTransportExitCode => false;
+        protected virtual bool RequiresInvariantOutput => false;
 
         public async Task<bool> ExecAsync()
         {
@@ -411,8 +412,8 @@ namespace SourceGit.Commands
                 start.Environment.Add("GIT_SSH_COMMAND", $"ssh -i '{key}' -o AddKeysToAgent=yes");
             }
 
-            // Force the C locale on Unix, so that git's output (including fatal errors) can always be parsed.
-            if (!OperatingSystem.IsWindows() || Log?.HasOperationPanel == true)
+            // Commands that parse human-readable fields need stable tokens on every platform.
+            if (!OperatingSystem.IsWindows() || Log?.HasOperationPanel == true || RequiresInvariantOutput)
             {
                 start.Environment["LANG"] = "C";
                 start.Environment["LC_ALL"] = "C";

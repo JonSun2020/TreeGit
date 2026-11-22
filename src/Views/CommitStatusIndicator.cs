@@ -59,9 +59,9 @@ namespace SourceGit.Views
             {
                 var sha = commit.SHA;
 
-                if (_currentBranch.Ahead.Contains(sha))
+                if (_currentBranch.AheadCommits?.Contains(sha) == true)
                     _status = Status.Ahead;
-                else if (_currentBranch.Behind.Contains(sha))
+                else if (_currentBranch.BehindCommits?.Contains(sha) == true)
                     _status = Status.Behind;
                 else
                     _status = Status.Normal;

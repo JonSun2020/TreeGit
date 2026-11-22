@@ -41,6 +41,9 @@ def probe(target,operation,expected,**fields):
     state=r['operationDetails'];records.append({'operation':operation,'expected':expected,'state':state})
     matched=all(value in state['tags'] if key=='tag' else state[key]==value for key,value in expected.items())
     check(operation+' updates the visible repository state without automatic refresh',matched)
+    if not state['popupClosed']:
+        # Remote operations keep their result panel open until the user dismisses it.
+        assert tool('ui_command',{'repo':str(target),'command':'cancel_popup'})['cancelled'], state
     return state
 
 try:

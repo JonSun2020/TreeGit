@@ -44,8 +44,9 @@ shared_file.write_text('[issuetracker "SHARED"]\n\tregex = "#([0-9]+)"\n\turl = 
 git('add', '.')
 git('commit', '-m', 'Initial')
 settings_file = repo / '.git/sourcegit.settings'
+legacy_templates = [{'Name': 'Existing', 'Content': 'Original summary\n\nOriginal body'}]
 settings_file.write_text(json.dumps({'DefaultRemote':'origin', 'PreferredMergeMode':0,
-    'PreferredOpenAIService':'keep-existing-provider', 'CommitTemplates':[{'Name':'Existing', 'Content':'Original content'}]}), encoding='utf-8')
+    'PreferredOpenAIService':'keep-existing-provider', 'CommitTemplates':legacy_templates}), encoding='utf-8')
 
 p = subprocess.Popen([str(exe), '--mcp'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
     text=True, encoding='utf-8', env=env, creationflags=subprocess.CREATE_NO_WINDOW)
@@ -73,10 +74,10 @@ def check(name, value=True):
     checks.append(name)
     print('PASS', name, flush=True)
 
-def edit(action, fields=None, templates=None, links=None, operation=None, external_link=None):
+def edit(action, fields=None, *, links=None, operation=None, external_link=None):
     result_file = Path(str(fixture)+'.result')
     result_file.unlink(missing_ok=True)
-    fixture.write_text(json.dumps({'action':action, 'fields':fields or {}, 'templates':templates or [], 'links':links or [], 'operation':operation, 'externalLink':external_link}), encoding='utf-8')
+    fixture.write_text(json.dumps({'action':action, 'fields':fields or {}, 'links':links or [], 'operation':operation, 'externalLink':external_link}), encoding='utf-8')
     tool('ui_command', {'repo':str(repo), 'command':'repository_settings'})
     deadline = time.monotonic()+30
     while time.monotonic() < deadline:
@@ -109,13 +110,13 @@ try:
         'CommitterEmail':'cancel@example.invalid', 'DefaultRemote':'backup', 'MergeMode':1,
         'HttpProxy':'http://127.0.0.1:9', 'PruneOnFetch':True, 'AutoRefresh':False,
         'BackgroundFetch':False, 'SigningKey':'Cancelled key', 'SignCommits':True,
-        'SignTags':True, 'AskSubmodules':True, 'RecursiveSubmodules':False},
-        [{'name':'Cancelled template', 'content':'Must not be saved'}])
+        'SignTags':True, 'AskSubmodules':True, 'RecursiveSubmodules':False})
     check('cancel leaves actual Git configuration byte-for-byte unchanged', (repo/'.git/config').read_bytes()==before_git)
     check('cancel leaves repository settings byte-for-byte unchanged', settings_file.read_bytes()==before_settings)
     check('redundant other-configuration button is absent', not result['hasOtherConfiguration'])
-    check('useful signing, synchronization, submodule and template settings remain reachable',
-        all(c in result['controls'] for c in ['SigningKey','SignCommits','SignTags','DefaultRemote','MergeMode','HttpProxy','PruneOnFetch','AskSubmodules','RecursiveSubmodules','CommitTemplates']))
+    check('signing, synchronization and submodule settings remain reachable',
+        all(c in result['controls'] for c in ['SigningKey','SignCommits','SignTags','DefaultRemote','MergeMode','HttpProxy','PruneOnFetch','AskSubmodules','RecursiveSubmodules']))
+    check('the retired template editor is absent and legacy templates remain available', 'CommitTemplates' not in result['controls'] and json.loads(settings_file.read_text())['CommitTemplates']==legacy_templates)
     result = edit('cancel')
     check('cancelled edits do not leak into the next dialog', result['before']=={'defaultRemote':'origin','mergeMode':0,'templates':1})
     check('opening settings preserves existing provider configuration', json.loads(settings_file.read_text())['PreferredOpenAIService']=='keep-existing-provider')
@@ -124,8 +125,7 @@ try:
         'CommitterEmail':'saved@example.invalid', 'DefaultRemote':'backup', 'MergeMode':1,
         'HttpProxy':'http://127.0.0.1:9', 'PruneOnFetch':True, 'AutoRefresh':False,
         'BackgroundFetch':False, 'SigningKey':'Saved key', 'SignCommits':True,
-        'SignTags':True, 'AskSubmodules':True, 'RecursiveSubmodules':False},
-        [{'name':'Saved template', 'content':'Summary\n\nBody'}])
+        'SignTags':True, 'AskSubmodules':True, 'RecursiveSubmodules':False})
     check('successful confirmation closes the dialog without an error', not result['staysOpen'] and result['error'] is None)
     check('confirmed identity is saved locally', git('config','--local','user.name')=='Saved user' and git('config','--local','user.email')=='saved@example.invalid')
     check('proxy, prune and signing switches persist in Git configuration',
@@ -134,7 +134,7 @@ try:
     saved = json.loads(settings_file.read_text())
     check('confirmed synchronization and submodule choices persist', saved['DefaultRemote']=='backup' and saved['PreferredMergeMode']==1 and
         saved['AutoRefreshEnabled'] is False and saved['BackgroundFetchEnabled'] is False and saved['AskBeforeAutoUpdatingSubmodules'] is True and saved['EnableRecursiveWhenAutoUpdatingSubmodules'] is False)
-    check('confirmed templates preserve multiline content', saved['CommitTemplates']==[{'Name':'Existing','Content':'Original content'}, {'Name':'Saved template','Content':'Summary\n\nBody'}])
+    check('saving the current settings preserves legacy multiline templates and AI provider', saved['CommitTemplates']==legacy_templates and saved['PreferredOpenAIService']=='keep-existing-provider')
 
     result = edit('save', {'UseGlobalIdentity':True})
     check('global identity removes both local overrides', git('config','--local','--get','user.name',success=False)=='' and git('config','--local','--get','user.email',success=False)=='')
@@ -156,7 +156,7 @@ try:
     tmp = repo/'.git/sourcegit.settings.tmp'
     tmp.mkdir()
     try:
-        result = edit('save', {'DefaultRemote':'origin', 'UseGlobalIdentity':False, 'CommitterName':'Must roll back', 'CommitterEmail':'rollback@example.invalid'}, [{'name':'Blocked template','content':'Cannot save'}])
+        result = edit('save', {'DefaultRemote':'origin', 'UseGlobalIdentity':False, 'CommitterName':'Must roll back', 'CommitterEmail':'rollback@example.invalid'})
         check('unwritable repository-settings file keeps the dialog open with an error', result['staysOpen'] and bool(result['error']))
         check('failed settings write preserves the existing settings file', settings_file.read_bytes()==before_settings)
         check('failed settings write rolls back Git identity changes as well', (repo/'.git/config').read_bytes()==before_git)
@@ -173,7 +173,7 @@ try:
     finally:
         settings_file.chmod(stat.S_IREAD|stat.S_IWRITE)
     result = edit('cancel')
-    check('failed settings write rolls back in-memory settings and templates', result['before']=={'defaultRemote':'backup','mergeMode':1,'templates':2})
+    check('failed settings write rolls back in-memory settings and preserves templates', result['before']=={'defaultRemote':'backup','mergeMode':1,'templates':1})
     result = edit('save', {'DefaultRemote':'origin'})
     check('saving works again after the lock is removed', not result['staysOpen'] and json.loads(settings_file.read_text())['DefaultRemote']=='origin')
     before_git = (repo/'.git/config').read_bytes()

@@ -558,7 +558,7 @@ namespace SourceGit.ViewModels
                 var message = await new Commands.QueryCommitFullMessage(_repo.FullPath, messageRevision) { CancellationToken = token }
                     .GetResultAsync()
                     .ConfigureAwait(false);
-                var inlines = await ParseInlinesInMessageAsync(message).ConfigureAwait(false);
+                var inlines = await ParseInlinesInMessageAsync(message, token).ConfigureAwait(false);
 
                 if (!token.IsCancellationRequested)
                     Dispatcher.UIThread.Post(() =>
@@ -602,8 +602,9 @@ namespace SourceGit.ViewModels
                 DiffContext = null;
         }
 
-        private async Task<Models.InlineElementCollector> ParseInlinesInMessageAsync(string message)
+        private async Task<Models.InlineElementCollector> ParseInlinesInMessageAsync(string message, CancellationToken token)
         {
+            token.ThrowIfCancellationRequested();
             var inlines = new Models.InlineElementCollector();
             if (_repo.IssueTrackers is { Count: > 0 } rules)
             {
@@ -625,15 +626,23 @@ namespace SourceGit.ViewModels
             }
 
             var shaMatches = REG_SHA_FORMAT().Matches(message);
+            Dictionary<string, bool> validatedHashes = null;
             foreach (Match match in shaMatches)
             {
+                token.ThrowIfCancellationRequested();
                 var start = match.Index;
                 var len = match.Length;
                 if (inlines.Intersect(start, len) != null)
                     continue;
 
                 var sha = match.Groups[1].Value;
-                var isCommitSHA = await new Commands.IsCommitSHA(_repo.FullPath, sha).GetResultAsync().ConfigureAwait(false);
+                validatedHashes ??= new Dictionary<string, bool>(StringComparer.Ordinal);
+                if (!validatedHashes.TryGetValue(sha, out var isCommitSHA))
+                {
+                    var query = new Commands.IsCommitSHA(_repo.FullPath, sha) { CancellationToken = token };
+                    isCommitSHA = await query.GetResultAsync().ConfigureAwait(false);
+                    validatedHashes.Add(sha, isCommitSHA);
+                }
                 if (isCommitSHA)
                     inlines.Add(new Models.InlineElement(Models.InlineElementType.CommitSHA, start, len, sha));
             }

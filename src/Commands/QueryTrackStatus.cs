@@ -22,13 +22,20 @@ namespace SourceGit.Commands
                 return;
             Succeeded = true;
 
+            local.AheadCount = local.BehindCount = 0;
             var lines = rs.StdOut.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
             foreach (var line in lines)
             {
                 if (line[0] == '>')
-                    local.Behind.Add(line.Substring(1));
+                {
+                    local.BehindCount++;
+                    if (local.IsCurrent) (local.BehindCommits ??= []).Add(line[1..]);
+                }
                 else
-                    local.Ahead.Add(line.Substring(1));
+                {
+                    local.AheadCount++;
+                    if (local.IsCurrent) (local.AheadCommits ??= []).Add(line[1..]);
+                }
             }
         }
     }

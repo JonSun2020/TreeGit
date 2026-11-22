@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading.Tasks;
 
 namespace SourceGit.Commands
@@ -7,6 +8,7 @@ namespace SourceGit.Commands
     public class QueryBranches : Command
     {
         public bool Succeeded { get; private set; }
+        protected override bool RequiresInvariantOutput => true;
         private const string PREFIX_LOCAL = "refs/heads/";
         private const string PREFIX_REMOTE = "refs/remotes/";
         private const string PREFIX_DETACHED_AT = "(HEAD detached at";
@@ -16,7 +18,7 @@ namespace SourceGit.Commands
         {
             WorkingDirectory = repo;
             Context = repo;
-            Args = "branch -l --all -v --format=\"%(refname)%00%(committerdate:unix)%00%(objectname)%00%(HEAD)%00%(upstream)%00%(upstream:trackshort)%00%(worktreepath)\"";
+            Args = "branch -l --all -v --format=\"%(refname)%00%(committerdate:unix)%00%(objectname)%00%(HEAD)%00%(upstream)%00%(upstream:track,nobracket)%00%(worktreepath)\"";
         }
 
         public async Task<List<Models.Branch>> GetResultAsync()
@@ -28,11 +30,11 @@ namespace SourceGit.Commands
                 return branches;
 
             var lines = rs.StdOut.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
-            var mismatched = new HashSet<string>();
+            var needsTrackingQuery = new HashSet<Models.Branch>();
             var remotes = new Dictionary<string, Models.Branch>();
             foreach (var line in lines)
             {
-                var b = ParseLine(line, mismatched);
+                var b = ParseLine(line, needsTrackingQuery);
                 if (b != null)
                 {
                     branches.Add(b);
@@ -49,7 +51,8 @@ namespace SourceGit.Commands
                     {
                         b.IsUpstreamGone = false;
 
-                        if (mismatched.Contains(b.FullName))
+                        // Only the current branch needs commit IDs for the graph and commit actions.
+                        if (needsTrackingQuery.Contains(b) || b.IsCurrent && b.IsTrackStatusVisible)
                         {
                             var tracking = new QueryTrackStatus(WorkingDirectory) { CancellationToken = CancellationToken };
                             await tracking.GetResultAsync(b, upstream).ConfigureAwait(false);
@@ -59,6 +62,7 @@ namespace SourceGit.Commands
                     else
                     {
                         b.IsUpstreamGone = true;
+                        b.AheadCount = b.BehindCount = 0;
                     }
                 }
             }
@@ -67,7 +71,7 @@ namespace SourceGit.Commands
             return branches;
         }
 
-        private Models.Branch ParseLine(string line, HashSet<string> mismatched)
+        private static Models.Branch ParseLine(string line, HashSet<Models.Branch> needsTrackingQuery)
         {
             var parts = line.Split('\0');
             if (parts.Length != 7)
@@ -117,14 +121,36 @@ namespace SourceGit.Commands
             branch.Upstream = parts[4];
             branch.IsUpstreamGone = false;
 
-            if (branch.IsLocal &&
-                !string.IsNullOrEmpty(branch.Upstream) &&
-                !string.IsNullOrEmpty(parts[5]) &&
-                !parts[5].Equals("=", StringComparison.Ordinal))
-                mismatched.Add(branch.FullName);
+            if (branch.IsLocal && !string.IsNullOrEmpty(branch.Upstream) &&
+                !TryParseTrackingCounts(parts[5], branch))
+                needsTrackingQuery.Add(branch);
 
             branch.WorktreePath = parts[6];
             return branch;
+        }
+
+        private static bool TryParseTrackingCounts(ReadOnlySpan<char> status, Models.Branch branch)
+        {
+            if (status.IsEmpty)
+                return true;
+
+            if (status.StartsWith("ahead ", StringComparison.Ordinal))
+            {
+                var separator = status.IndexOf(", ", StringComparison.Ordinal);
+                var count = separator < 0 ? status[6..] : status[6..separator];
+                if (!int.TryParse(count, NumberStyles.None, CultureInfo.InvariantCulture, out var ahead))
+                    return false;
+                branch.AheadCount = ahead;
+                if (separator < 0)
+                    return true;
+                status = status[(separator + 2)..];
+            }
+
+            if (!status.StartsWith("behind ", StringComparison.Ordinal) ||
+                !int.TryParse(status[7..], NumberStyles.None, CultureInfo.InvariantCulture, out var behind))
+                return false;
+            branch.BehindCount = behind;
+            return true;
         }
     }
 }

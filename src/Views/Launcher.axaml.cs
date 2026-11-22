@@ -86,9 +86,11 @@ namespace SourceGit.Views
 
         private ViewModels.Repository TreeGitRepository => (DataContext as ViewModels.Launcher)?.ActivePage?.Data as ViewModels.Repository;
         private void OnTreeGitShowRepositories(object sender, RoutedEventArgs e) => (DataContext as ViewModels.Launcher)?.AddNewTab();
+#if false // The retired View menu used these handlers; navigation uses the repository tabs.
         private void OnTreeGitWorkingCopy(object sender, RoutedEventArgs e) { if (TreeGitRepository is { IsBare: false } repo) repo.SelectedViewIndex = 1; }
         private void OnTreeGitHistory(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) repo.ShowHistoryPage(); }
         private void OnTreeGitSearch(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) { repo.SelectedViewIndex = 0; repo.Histories.IsSearchingCommits = true; } }
+#endif
         private async void OnTreeGitFetch(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) await repo.FetchAsync(false); }
         private async void OnTreeGitPull(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) await repo.PullAsync(false); }
         private async void OnTreeGitPush(object sender, RoutedEventArgs e) { if (TreeGitRepository is { } repo) await repo.PushAsync(false); }

@@ -618,12 +618,12 @@ namespace SourceGit.ViewModels
                     return false;
 
                 var lb = _repo.Branches.Find(x => x.IsLocal && x.Upstream == rb.FullName);
-                if (lb == null || lb.Ahead.Count > 0)
+                if (lb == null || lb.AheadCount > 0)
                 {
                     if (_repo.CanCreatePopup())
                         _repo.ShowPopup(new CreateBranch(_repo, rb));
                 }
-                else if (lb.Behind.Count > 0)
+                else if (lb.BehindCount > 0)
                 {
                     if (_repo.CanCreatePopup())
                         _repo.ShowPopup(new CheckoutAndFastForward(_repo, lb, rb));
@@ -664,7 +664,7 @@ namespace SourceGit.ViewModels
                         continue;
 
                     var lb = _repo.Branches.Find(x => x.IsLocal && x.Upstream == rb.FullName);
-                    if (lb != null && lb.Behind.Count > 0 && lb.Ahead.Count == 0)
+                    if (lb != null && lb.BehindCount > 0 && lb.AheadCount == 0)
                     {
                         if (_repo.CanCreatePopup())
                             _repo.ShowPopup(new CheckoutAndFastForward(_repo, lb, rb));

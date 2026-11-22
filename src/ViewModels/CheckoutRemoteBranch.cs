@@ -26,7 +26,7 @@ namespace SourceGit.ViewModels
         }
 
         private Models.Branch Existing => _repo.Branches.Find(b => b.IsLocal && b.Name == _name);
-        public bool CanUpdateRemote => Existing is { Ahead.Count: 0, Behind.Count: > 0, HasWorktree: false };
+        public bool CanUpdateRemote => Existing is { AheadCount: 0, BehindCount: > 0, HasWorktree: false };
         public bool UpdateRemote
         {
             get => _updateRemote;
@@ -36,8 +36,8 @@ namespace SourceGit.ViewModels
         public Models.DealWithLocalChanges DealWithLocalChanges { get; set; }
         public string Hint => App.Text(Existing is { HasWorktree: true } ? "Checkout.OtherWorktree" :
             Existing is { Upstream: null or "" } ? "CheckoutRemote.Associate" :
-            Existing is { Ahead.Count: > 0, Behind.Count: > 0 } ? "CheckoutRemote.Diverged" :
-            Existing is { Ahead.Count: > 0 } ? "CheckoutRemote.Ahead" :
+            Existing is { AheadCount: > 0, BehindCount: > 0 } ? "CheckoutRemote.Diverged" :
+            Existing is { AheadCount: > 0 } ? "CheckoutRemote.Ahead" :
             Existing is { IsCurrent: true } && !CanUpdateRemote ? "CheckoutRemote.Current" :
             Existing != null ? "CheckoutRemote.Existing" : "CheckoutRemote.First");
 

@@ -1054,7 +1054,7 @@ namespace SourceGit.ViewModels
             CurrentBranch = checkouted;
             GetOwnerPage()?.ChangeDirtyState(Models.DirtyState.HasPendingPullOrPush, !checkouted.IsTrackStatusVisible);
 
-            RefreshCommits();
+            // Checkout will refresh history with the new branch tracking data.
             RefreshWorkingCopyChanges();
             RefreshWorktrees();
         }
@@ -1076,8 +1076,10 @@ namespace SourceGit.ViewModels
                 IsCurrent = b.IsCurrent,
                 IsDetachedHead = b.IsDetachedHead,
                 Upstream = b.Upstream,
-                Ahead = b.Ahead,
-                Behind = b.Behind,
+                AheadCount = b.AheadCount,
+                AheadCommits = b.AheadCommits,
+                BehindCount = b.BehindCount,
+                BehindCommits = b.BehindCommits,
                 Remote = b.Remote,
                 IsUpstreamGone = b.IsUpstreamGone,
                 WorktreePath = b.WorktreePath,
@@ -1107,7 +1109,6 @@ namespace SourceGit.ViewModels
         {
             _watcher?.MarkBranchUpdated();
             RefreshBranches();
-            RefreshCommits();
             RefreshWorkingCopyChanges();
             RefreshWorktrees();
         }
@@ -1486,11 +1487,20 @@ namespace SourceGit.ViewModels
             {
                 var branchQuery = new Commands.QueryBranches(FullPath) { CancellationToken = token };
                 var branches = await branchQuery.GetResultAsync().ConfigureAwait(false);
+                if (token.IsCancellationRequested)
+                    return;
                 var remoteQuery = new Commands.QueryRemotes(FullPath) { CancellationToken = token };
                 var remotes = await remoteQuery.GetResultAsync().ConfigureAwait(false);
                 if (!branchQuery.Succeeded || !remoteQuery.Succeeded)
                 {
-                    Dispatcher.UIThread.Invoke(() => { if (!token.IsCancellationRequested) SetRefreshFailure("branches", true); });
+                    Dispatcher.UIThread.Invoke(() =>
+                    {
+                        if (token.IsCancellationRequested)
+                            return;
+
+                        SetRefreshFailure("branches", true);
+                        RefreshCommits();
+                    });
                     return;
                 }
                 var builder = BuildBranchTree(branches, remotes);
@@ -1582,13 +1592,21 @@ namespace SourceGit.ViewModels
             {
                 var graphView = await Dispatcher.UIThread.InvokeAsync(() =>
                 {
+                    token.ThrowIfCancellationRequested();
                     _histories.IsLoading = true;
                     var upstream = _histories.ShowRemoteBranches && CurrentBranch is { IsLocal: true, IsUpstreamGone: false } ? CurrentBranch.Upstream : null;
+                    var tracking = new Dictionary<string, string>(StringComparer.Ordinal);
+                    foreach (var branch in _branches)
+                        if (branch.IsLocal && branch.IsTrackStatusVisible)
+                            tracking[branch.Name] = branch.TrackStatusDescription;
+
                     return (Name: _histories.GraphBranchName, OnlyBranch: _histories.BranchDisplayMode != 0, Upstream: upstream,
                         NavigationCommit: _histories.BranchDisplayMode == 0 ? _historyNavigationCommit : string.Empty,
-                        LocalBranches: _branches.FindAll(b => b.IsLocal));
+                        Tracking: tracking);
                 });
-                var preferredHead = await new Commands.QueryRevisionByRefName(FullPath, "HEAD").GetResultAsync().ConfigureAwait(false);
+                var headQuery = new Commands.QueryRevisionByRefName(FullPath, "HEAD") { CancellationToken = token };
+                var preferredHead = await headQuery.GetResultAsync().ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
 
                 var builder = new StringBuilder();
                 builder
@@ -1598,7 +1616,9 @@ namespace SourceGit.ViewModels
                 string upstreamName = null;
                 if (graphView.OnlyBranch && !string.IsNullOrEmpty(graphView.Upstream))
                 {
-                    var upstreamHead = await new Commands.QueryRevisionByRefName(FullPath, graphView.Upstream).GetResultAsync().ConfigureAwait(false);
+                    var upstreamQuery = new Commands.QueryRevisionByRefName(FullPath, graphView.Upstream) { CancellationToken = token };
+                    var upstreamHead = await upstreamQuery.GetResultAsync().ConfigureAwait(false);
+                    token.ThrowIfCancellationRequested();
                     if (!string.IsNullOrEmpty(upstreamHead))
                     {
                         builder.Append(' ').Append(graphView.Upstream.Quoted());
@@ -1629,27 +1649,33 @@ namespace SourceGit.ViewModels
                 {
                     // Keep the normal recent-history limit. A much older search hit gets
                     // a bounded context, without loading every intervening commit.
-                    var context = await new Commands.QueryCommits(FullPath, $"-200 --date-order {graphView.NavigationCommit.Quoted()}", false)
-                        .GetResultAsync().ConfigureAwait(false);
+                    var contextQuery = new Commands.QueryCommits(FullPath, $"-200 --date-order {graphView.NavigationCommit.Quoted()}", false) { CancellationToken = token };
+                    var context = await contextQuery.GetResultAsync().ConfigureAwait(false);
                     if (context.Count > 0)
                     {
-                        context[0].IsMerged = await new Commands.IsAncestor(FullPath, graphView.NavigationCommit, "HEAD").GetResultAsync().ConfigureAwait(false);
+                        var ancestorQuery = new Commands.IsAncestor(FullPath, graphView.NavigationCommit, "HEAD") { CancellationToken = token };
+                        context[0].IsMerged = await ancestorQuery.GetResultAsync().ConfigureAwait(false);
                         var known = new HashSet<string>(commits.ConvertAll(c => c.SHA));
                         foreach (var c in context)
                             if (known.Add(c.SHA)) commits.Add(c);
                     }
                 }
 
-                var containingBranches = !string.IsNullOrEmpty(graphView.NavigationCommit)
-                    ? await new Commands.QueryBranchesContainingCommit(FullPath, graphView.NavigationCommit).GetResultAsync().ConfigureAwait(false)
-                    : null;
+                HashSet<string> containingBranches = null;
+                if (!string.IsNullOrEmpty(graphView.NavigationCommit))
+                {
+                    var containsQuery = new Commands.QueryBranchesContainingCommit(FullPath, graphView.NavigationCommit) { CancellationToken = token };
+                    containingBranches = await containsQuery.GetResultAsync().ConfigureAwait(false);
+                }
+                token.ThrowIfCancellationRequested();
 
                 var merged = new HashSet<string>();
                 foreach (var c in commits)
                 {
                     foreach (var decorator in c.Decorators)
-                        if (decorator.Type is Models.DecoratorType.LocalBranchHead or Models.DecoratorType.CurrentBranchHead)
-                            decorator.TrackStatusDescription = graphView.LocalBranches.Find(b => b.Name == decorator.Name)?.TrackStatusDescription ?? "";
+                        if (decorator.Type is (Models.DecoratorType.LocalBranchHead or Models.DecoratorType.CurrentBranchHead) &&
+                            graphView.Tracking.TryGetValue(decorator.Name, out var status))
+                            decorator.TrackStatusDescription = status;
                     if (merged.Remove(c.SHA))
                         c.IsMerged = true;
 
