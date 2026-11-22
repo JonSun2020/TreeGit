@@ -369,12 +369,19 @@ namespace SourceGit.Views
                 var addressHighlight = this.FindResource("Brush.Diff.EmptyBG") as IBrush;
                 var typeface = new Typeface("fonts:SourceGit#JetBrains Mono NL");
                 var boldTypeface = new Typeface(typeface.FontFamily, FontStyle.Normal, FontWeight.Bold);
-                void Text(string value, double x, double y, IBrush brush, bool bold = false, IBrush background = null)
+                const double fontSize = 12, hexPitch = 23, asciiPitch = 8, highlightGap = 1.5;
+                var space = new FormattedText(" ", CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, fontSize, fg);
+                var halfSpace = space.WidthIncludingTrailingWhitespace / 2;
+                void Text(string value, double x, double y, IBrush brush, bool bold = false, IBrush background = null, double pitch = 0)
                 {
                     var text = new FormattedText(value, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
-                        bold ? boldTypeface : typeface, 12, brush);
+                        bold ? boldTypeface : typeface, fontSize, brush);
                     if (background != null)
-                        context.FillRectangle(background, new Rect(x, y - 1, text.WidthIncludingTrailingWhitespace, 19));
+                    {
+                        var advance = text.WidthIncludingTrailingWhitespace;
+                        var width = Math.Min(advance + 2 * halfSpace, pitch - highlightGap);
+                        context.FillRectangle(background, new Rect(x + (advance - width) / 2, y - 1, width, 19));
+                    }
                     context.DrawText(text, new Point(x, y));
                 }
                 var columns = owner._bytesPerRow; var offset = owner.TopOffset;
@@ -383,8 +390,8 @@ namespace SourceGit.Views
                 var a = comparison.Read(old, offset, count); var b = comparison.Read(!old, offset, count);
                 Text(App.Text("TreeGit.Binary.Offset"), 6, 3, dim);
                 var addressWidth = comparison.Length > uint.MaxValue ? 102 : 74;
-                for (var c = 0; c < columns; c++) Text(c.ToString("X2"), addressWidth + c * 23, 3, dim);
-                Text("ASCII", addressWidth + columns * 23 + 10, 3, dim);
+                for (var c = 0; c < columns; c++) Text(c.ToString("X2"), addressWidth + c * hexPitch, 3, dim);
+                Text("ASCII", addressWidth + columns * hexPitch + 10, 3, dim);
                 for (var row = 0; row < rows; row++)
                 {
                     var rowOffset = offset + row * columns;
@@ -395,14 +402,15 @@ namespace SourceGit.Views
                     {
                         var i = row * columns + c;
                         if (offset + i >= comparison.Length) break;
-                        var x = addressWidth + c * 23; var asciiX = addressWidth + columns * 23 + 10 + c * 8;
+                        var x = addressWidth + c * hexPitch;
+                        var asciiX = addressWidth + columns * hexPitch + 10 + c * asciiPitch;
                         var different = Models.BinaryComparison.Different(a, b, i);
                         var selected = offset + i == owner._selected;
                         IBrush background = different ? changed : null;
                         if (selected)
                             background = different ? highlight : addressHighlight;
-                        Text(i < a.Length ? a[i].ToString("X2") : "--", x, y, fg, selected, background);
-                        Text(i < a.Length ? a[i] is >= 32 and <= 126 ? ((char)a[i]).ToString() : "." : "·", asciiX, y, fg, selected, background);
+                        Text(i < a.Length ? a[i].ToString("X2") : "--", x, y, fg, selected, background, hexPitch);
+                        Text(i < a.Length ? a[i] is >= 32 and <= 126 ? ((char)a[i]).ToString() : "." : "·", asciiX, y, fg, selected, background, asciiPitch);
                     }
                 }
             }
