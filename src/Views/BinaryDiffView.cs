@@ -369,17 +369,17 @@ namespace SourceGit.Views
                 var addressHighlight = this.FindResource("Brush.Diff.EmptyBG") as IBrush;
                 var typeface = new Typeface("fonts:SourceGit#JetBrains Mono NL");
                 var boldTypeface = new Typeface(typeface.FontFamily, FontStyle.Normal, FontWeight.Bold);
-                const double fontSize = 12, hexPitch = 23, asciiPitch = 8, highlightGap = 1.5;
+                const double fontSize = 12, hexPitch = 23, highlightGap = 1.5;
                 var space = new FormattedText(" ", CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, fontSize, fg);
                 var halfSpace = space.WidthIncludingTrailingWhitespace / 2;
-                void Text(string value, double x, double y, IBrush brush, bool bold = false, IBrush background = null, double pitch = 0)
+                void Text(string value, double x, double y, IBrush brush, bool bold = false, IBrush background = null, bool padHex = false)
                 {
                     var text = new FormattedText(value, CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
                         bold ? boldTypeface : typeface, fontSize, brush);
                     if (background != null)
                     {
                         var advance = text.WidthIncludingTrailingWhitespace;
-                        var width = Math.Min(advance + 2 * halfSpace, pitch - highlightGap);
+                        var width = padHex ? Math.Min(advance + 2 * halfSpace, hexPitch - highlightGap) : advance;
                         context.FillRectangle(background, new Rect(x + (advance - width) / 2, y - 1, width, 19));
                     }
                     context.DrawText(text, new Point(x, y));
@@ -403,14 +403,14 @@ namespace SourceGit.Views
                         var i = row * columns + c;
                         if (offset + i >= comparison.Length) break;
                         var x = addressWidth + c * hexPitch;
-                        var asciiX = addressWidth + columns * hexPitch + 10 + c * asciiPitch;
+                        var asciiX = addressWidth + columns * hexPitch + 10 + c * 8;
                         var different = Models.BinaryComparison.Different(a, b, i);
                         var selected = offset + i == owner._selected;
                         IBrush background = different ? changed : null;
                         if (selected)
                             background = different ? highlight : addressHighlight;
-                        Text(i < a.Length ? a[i].ToString("X2") : "--", x, y, fg, selected, background, hexPitch);
-                        Text(i < a.Length ? a[i] is >= 32 and <= 126 ? ((char)a[i]).ToString() : "." : "·", asciiX, y, fg, selected, background, asciiPitch);
+                        Text(i < a.Length ? a[i].ToString("X2") : "--", x, y, fg, selected, background, padHex: true);
+                        Text(i < a.Length ? a[i] is >= 32 and <= 126 ? ((char)a[i]).ToString() : "." : "·", asciiX, y, fg, selected, background);
                     }
                 }
             }
