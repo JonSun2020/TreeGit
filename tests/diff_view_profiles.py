@@ -205,9 +205,9 @@ try:
  for theme in ('Light', 'Dark', 'Blue', 'Default'):
   client.tool('ui_window', theme=theme)
   selection=wait(lambda: state if (state:=client.probe('content_selection'))['ready'] else None)
-  check(theme+' text fields, metadata and file diff use the same readable secondary branch palette',
-        selection['backgrounds']==[selection['secondary']]*3 and
-        selection['foregrounds']==[selection['secondaryForeground']]*3 and not selection['diffBorder'], selection)
+  check(theme+' text fields, metadata and file diff use the same readable primary branch palette',
+        selection['backgrounds']==[selection['primary']]*3 and
+        selection['foregrounds']==[selection['primaryForeground']]*3 and not selection['diffBorder'], selection)
   check(theme+' dragging metadata preserves glyph positions and copied text',
         selection['stable'] and selection['selectedText']==selection['expectedText'], selection)
  check('Windows local paths use backslashes and URLs retain their syntax',

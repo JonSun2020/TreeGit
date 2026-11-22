@@ -72,14 +72,14 @@ namespace SourceGit.Views
             var clipWidth = _layout.ClipWidth;
             var clipHeight = Bounds.Height;
             var rowHeight = _layout.RowHeight;
-            var rowOffset = HasPendingChanges ? rowHeight : 0;
+            var rowOffset = HasPendingChanges ? _layout.PendingRowHeight : 0;
             var endY = startY + clipHeight - rowOffset + 28;
 
             using (context.PushClip(new Rect(0, 0, clipWidth, clipHeight)))
             {
                 // The working-copy row is pinned; real history must not paint
                 // over its marker when the list has scrolled to older commits.
-                var bodyTop = HasPendingChanges && startY > .01 ? rowOffset : 0;
+                var bodyTop = rowOffset;
                 if (_graph != null)
                 {
                     using (context.PushClip(new Rect(0, bodyTop, clipWidth, System.Math.Max(0, clipHeight - bodyTop))))
@@ -92,7 +92,7 @@ namespace SourceGit.Views
                 if (HasPendingChanges)
                 {
                     var gray = new Pen(Brushes.Gray, 2);
-                    var origin = new Point(6, rowHeight * .5);
+                    var origin = new Point(6, rowOffset * .5);
                     if (startY <= .01 && _graph?.HasWorkingCopyNode == true)
                     {
                         foreach (var path in _graph.Paths)
@@ -100,7 +100,7 @@ namespace SourceGit.Views
                             {
                                 var a = path.Points[i - 1]; var b = path.Points[i];
                                 if (b.Y > 0) b = new Point(a.X + (b.X - a.X) * -a.Y / (b.Y - a.Y), 0);
-                                context.DrawLine(gray, new Point(a.X, rowOffset + a.Y * rowHeight), new Point(b.X, rowOffset + b.Y * rowHeight));
+                                context.DrawLine(gray, new Point(a.X, rowOffset + a.Y * rowOffset), new Point(b.X, rowOffset + b.Y * rowOffset));
                             }
                     }
                     else

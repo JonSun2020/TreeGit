@@ -925,7 +925,7 @@ namespace SourceGit.Views
             double startY = 0;
             foreach (var child in rowsPresenter.Children)
             {
-                if (child is DataGridRow { IsVisible: true } row)
+                if (child is DataGridRow { IsVisible: true } row && row.Bounds.Height > 0)
                 {
                     rowHeight = row.Bounds.Height;
 
@@ -941,12 +941,14 @@ namespace SourceGit.Views
             IsScrollToTopVisible = startY >= rowHeight;
 
             var clipWidth = Math.Max(0, dataGrid.Columns[0].ActualWidth - 4);
+            var pendingRowHeight = WorkingCopyRow.Height;
             var lastLayout = CommitGraph.Layout;
             if (lastLayout == null ||
                 Math.Abs(lastLayout.StartY - startY) > 0.01 ||
                 Math.Abs(lastLayout.ClipWidth - clipWidth) > 0.01 ||
-                Math.Abs(lastLayout.RowHeight - rowHeight) > 0.01)
-                CommitGraph.Layout = new(startY, clipWidth, rowHeight);
+                Math.Abs(lastLayout.RowHeight - rowHeight) > 0.01 ||
+                Math.Abs(lastLayout.PendingRowHeight - pendingRowHeight) > 0.01)
+                CommitGraph.Layout = new(startY, clipWidth, rowHeight, pendingRowHeight);
         }
 
         private void OnScrollToTopPointerPressed(object sender, PointerPressedEventArgs e)
