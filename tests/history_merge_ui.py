@@ -212,15 +212,17 @@ def press_commit_menu(name):
         menu = state()['commitMenu']
         item = next((i for i in (menu or {}).get('items', []) if i['name'] == name and i['enabled']), None)
         geometry = tuple(item.get(k) for k in ('x', 'y', 'width', 'height')) if item else None
-        stable = stable + 1 if geometry and geometry == previous else 0
+        hit = item and owner(api.WindowFromPoint(wintypes.POINT(item['x'], item['y']))) == pid
+        stable = stable + 1 if hit and geometry == previous else 0
         if stable >= 3: break
         previous = geometry; time.sleep(.05)
-    assert item and stable >= 3, 'Menu item did not settle: ' + name
+    assert item and stable >= 3, ('Menu item did not settle on the owned CI GUI', name, item)
     point = wintypes.POINT(item['x'], item['y'])
-    assert owner(api.WindowFromPoint(point)) == pid
-    api.SetCursorPos(point.x, point.y); time.sleep(.1)
+    assert api.SetCursorPos(point.x, point.y)
+    time.sleep(.1)
     current = next(i for i in state()['commitMenu']['items'] if i['name'] == name)
     assert all(current[k] == item[k] for k in ('x', 'y', 'width', 'height')), 'Menu moved before the click'
+    assert owner(api.WindowFromPoint(point)) == pid, 'Menu click target outside owned CI GUI'
     api.mouse_event(2, 0, 0, 0, 0); time.sleep(.05); api.mouse_event(4, 0, 0, 0, 0)
 
 def close_commit_menu():

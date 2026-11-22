@@ -213,7 +213,7 @@ try:
             tool('ui_layout',window='active',action='test_set',button='TreeGitSettings'+name,value=1)
         layout=tool('ui_layout',window='active');records.append({'advancedLocale':locale,'layout':layout})
         ignored=next(t['text'] for t in layout['localizedTexts'] if t['name']=='RepositoryIgnorePath')
-        check(locale+' ignore path uses forward slashes consistently',ignored.endswith('/.gitignore') and '\\' not in ignored)
+        check(locale+' ignore path uses native separators',ignored == str(repo / '.gitignore'),ignored)
         bars=[b for b in layout['scrollBars'] if b['visible'] and b['orientation']=='Vertical']
         bar=max(bars,key=lambda b:b['bounds']['x'])
         # Scrollbar paging buttons belong in the bar; inspect labeled settings
