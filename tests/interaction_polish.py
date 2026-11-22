@@ -34,6 +34,25 @@ def owned():return probe('owner_inspect')
 def inside(d):
  a=d['owner'];return d['x']>=a['x']-1 and d['y']>=a['y']-1 and d['x']+d['width']<=a['x']+a['width']+1 and d['y']+d['height']<=a['y']+a['height']+1
 def same(a,b):return abs(a['x']-b['x'])<=1 and abs(a['y']-b['y'])<=1
+def maximized_content(d):
+ area,body=d['screen'],d['body']
+ return (d['state']=='Maximized' and abs(body['x']-area['x'])<=2
+         and abs(body['right']-area['right'])<=2 and abs(body['bottom']-area['bottom'])<=2
+         and area['y']-2<=body['y']<=area['y']+48*area['scale'])
+def exercise_maximize(label,maximize='owner_maximize',restore='owner_restore'):
+ before=owned()
+ if os.environ.get('TREEGIT_LOCAL_QA_ROOT'):return before  # Native maximization requires a visible fixture.
+ probe(maximize)
+ try:maximized=wait(lambda:d if maximized_content(d:=owned()) else None)
+ except AssertionError:raise AssertionError((label, 'maximize', owned())) from None
+ check(label+' maximizes to the screen with the content flush to both screen edges',maximized_content(maximized),maximized)
+ probe(restore)
+ try:
+  restored=wait(lambda:r if (r:=owned())['state']=='Normal' and inside(r) and same(r,before) and
+                abs(r['width']-before['width'])<=1 and abs(r['height']-before['height'])<=1 else None)
+ except AssertionError:raise AssertionError((label, 'restore', before, owned())) from None
+ check(label+' returns to its original size inside the owner',inside(restored),restored)
+ return restored
 def exercise(label,width,height):
  initial=wait(lambda:owned() if tool('ui_state')['dialogs'] else None)
  check(label+' starts inside its owner',inside(initial) and (not os.environ.get('TREEGIT_LOCAL_QA_ROOT') or probe()['localWindowsPrivate'] is True),initial)
@@ -43,7 +62,8 @@ def exercise(label,width,height):
  for corner in range(4):
   result=probe('owner_drag',corner);check(label+' corner '+str(corner)+' is clamped to owner',inside(result),result)
  tool('ui_window',width=1024,height=640)
- result=wait(lambda:(v if inside(v) else None) if (v:=owned()) else None)
+ try:result=wait(lambda:(v if inside(v) else None) if (v:=owned()) else None)
+ except AssertionError:raise AssertionError((label, 'owner resize', owned())) from None
  check(label+' follows owner resizing',inside(result),result)
  tool('ui_window',width=width,height=height)
 def close():tool('ui_command',command='close_dialog');wait(lambda:not tool('ui_state')['dialogs'])
@@ -101,28 +121,45 @@ try:
  tool('ui_command',command='close_dialog');close()
  tool('ui_select_commit',repo=str(repo),revision=head);tool('ui_diff',repo=str(repo),action='select',file='example.bin',source='history');wait(lambda:tool('ui_diff',repo=str(repo),action='state').get('status')=='ready')
  tool('ui_diff',repo=str(repo),action='window');exercise('native binary comparison',1280,820)
- before=owned();probe('owner_maximize');maximized=wait(lambda:owned())
- check('owned binary inspector keeps its maximized state',maximized['state']=='Maximized',maximized)
- check('maximized binary inspector remains inside its owner',inside(maximized),maximized)
- probe('owner_restore');restored=wait(lambda:r if (r:=owned())['state']=='Normal' and abs(r['width']-before['width'])<=2 and abs(r['height']-before['height'])<=2 else None)
- check('owned binary inspector restores its original size',restored['state']=='Normal' and abs(restored['width']-before['width'])<=2 and abs(restored['height']-before['height'])<=2,restored)
+ restored=exercise_maximize('native binary comparison')
  check('native inspector has no custom frame padding',restored['padding']=='0,0,0,0',restored)
- full_width=restored['maximum']['width']
- tool('ui_window',width=1024,height=640);wait(lambda:r if (r:=owned())['maximum']['width']<full_width-100 else None)
+ tool('ui_window',width=1024,height=640);wait(lambda:r if inside(r:=owned()) else None)
  reopened=probe('owner_hide_show');check('hidden and reopened inspector remains within its owner',inside(reopened),reopened)
  tool('ui_window',width=1280,height=820)
- expanded=wait(lambda:r if (r:=owned())['maximum']['width']>=full_width-2 else None)
- check('reopened inspector recovers the larger owner size limit',inside(expanded) and expanded['maximum']['width']>=full_width-2,expanded)
+ expanded=wait(lambda:r if (r:=owned())['owner']['width']>reopened['owner']['width']+100 else None)
+ check('reopened inspector follows the larger owner',inside(expanded),expanded)
  close()
+ tool('ui_diff',repo=str(repo),action='select',file='src/example.txt',source='history')
+ tool('ui_command',command='external_diff')
+ wait(lambda:tool('ui_state')['dialogs'])
+ exercise_maximize('TreeGit external text comparison')
+ if not os.environ.get('TREEGIT_LOCAL_QA_ROOT') and os.name=='nt':
+  caption_actions=(('maximize button','owner_native_maximize_button'),('caption double-click','owner_native_caption_double_click'))
+  for label,caption in caption_actions:
+   exercise_maximize('external text comparison from '+label,caption,'owner_native_caption_double_click')
+  original_size=owned()
+  tool('ui_layout',action='resize',window='active',width=920,height=600)
+  wait(lambda:(r:=owned())['width']<original_size['width']-100)
+  exercise_maximize('manually resized external text comparison','owner_native_maximize_button','owner_native_caption_double_click')
+ close()
+ if not os.environ.get('TREEGIT_LOCAL_QA_ROOT') and os.name=='nt':
+  tool('ui_window',state='maximized')
+  tool('ui_command',command='external_diff')
+  wait(lambda:tool('ui_state')['dialogs'])
+  for label,caption in caption_actions:
+   exercise_maximize('external text comparison with maximized main window from '+label,caption,'owner_native_caption_double_click')
+  close()
+  tool('ui_window',state='normal',width=1280,height=820)
  conflict=root/'Conflict';conflict.mkdir()
  for args in [('init','-b','main'),('config','user.name','TreeGit Demo'),('config','user.email','demo@example.invalid')]:git(*args,cwd=conflict)
  (conflict/'example.txt').write_text('base\n',encoding='utf-8');git('add','.',cwd=conflict);git('commit','-m','Base',cwd=conflict);git('switch','-c','side',cwd=conflict)
  (conflict/'example.txt').write_text('remote\n',encoding='utf-8');git('commit','-am','Remote example',cwd=conflict);git('switch','main',cwd=conflict)
  (conflict/'example.txt').write_text('local\n',encoding='utf-8');git('commit','-am','Local example',cwd=conflict);git('merge','side',cwd=conflict,success=False)
  tool('ui_open_repository',repo=str(conflict));wait(lambda:any(Path(r['repo']).resolve()==conflict and not r['graphLoading'] for r in tool('ui_state')['repositories']))
- tool('ui_command',command='merge_conflicts',repo=str(conflict),file='example.txt');exercise('merge conflict editor',1280,820);close()
+ tool('ui_command',command='merge_conflicts',repo=str(conflict),file='example.txt');exercise('merge conflict editor',1280,820)
+ exercise_maximize('TreeGit merge editor');close()
  check('all read-only dialog checks preserve the original repository',original==[git('rev-parse','HEAD'),git('ls-files','--stage'),git('status','--porcelain')])
- assert len(checks)==423,len(checks)
+ assert len(checks)==(420 if os.environ.get('TREEGIT_LOCAL_QA_ROOT') else 436 if os.name=='nt' else 426),len(checks)
 except BaseException:
  failure=traceback.format_exc();traceback.print_exc()
  if pid:

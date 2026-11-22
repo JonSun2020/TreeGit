@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
@@ -29,6 +30,12 @@ namespace SourceGit.Automation
         private static Control _tooltipTarget;
         private static (int Type, string Executable, string Merge, string Diff)? _externalSettings;
         private static bool? _autoHideBeforeDropdownAudit;
+
+        [DllImport("user32.dll", EntryPoint = "SendMessageW")]
+        private static extern IntPtr SendCaptionMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll")]
+        private static extern uint GetWindowThreadProcessId(IntPtr window, out uint processId);
 
         public static object Execute(Window window, JsonElement args)
         {
@@ -682,6 +689,22 @@ namespace SourceGit.Automation
                 }
                 else if (action is "owner_maximize" or "owner_restore")
                     dialog.WindowState = action == "owner_maximize" ? WindowState.Maximized : WindowState.Normal;
+                else if (action is "owner_native_maximize_button" or "owner_native_caption_double_click")
+                {
+                    if (!OperatingSystem.IsWindows() || LocalAuditHost.IsEnabled || Environment.GetEnvironmentVariable("CI") != "true" ||
+                        dialog is not Views.InternalDiffWindow || dialog.TryGetPlatformHandle()?.Handle is not { } handle ||
+                        GetWindowThreadProcessId(handle, out var process) == 0 || process != Environment.ProcessId)
+                        throw new InvalidOperationException("Native caption messages require a visible comparison window owned by this test process.");
+                    // Deliver only to this fixture. No system pointer or keyboard input.
+                    if (action == "owner_native_maximize_button")
+                        SendCaptionMessage(handle, 0x112 /* WM_SYSCOMMAND */, 0xF030 /* SC_MAXIMIZE */, IntPtr.Zero);
+                    else
+                    {
+                        var x = dialog.Position.X + (int)(100 * dialog.RenderScaling);
+                        var y = dialog.Position.Y + (int)(16 * dialog.RenderScaling);
+                        SendCaptionMessage(handle, 0xA3 /* WM_NCLBUTTONDBLCLK */, 2 /* HTCAPTION */, (y << 16) | (x & 0xFFFF));
+                    }
+                }
                 else if (action != "owner_inspect")
                 {
                     var start = new Point(24, 14);
@@ -699,8 +722,15 @@ namespace SourceGit.Automation
                 }
                 var frame = dialog.FrameSize ?? dialog.Bounds.Size;
                 var area = dialog.OwnedMovementBounds.Value;
+                var screen = dialog.Screens.ScreenFromWindow(dialog) ?? dialog.Screens.Primary;
+                var workArea = screen.WorkingArea;
+                var body = (Control)dialog.Content;
+                var bodyPosition = body.PointToScreen(default);
+                var bodyEnd = body.PointToScreen(new Point(body.Bounds.Width, body.Bounds.Height));
                 return new { type = dialog.GetType().Name, state = dialog.WindowState.ToString(), padding = dialog.Padding.ToString(), x = dialog.Position.X, y = dialog.Position.Y, width = frame.Width * dialog.RenderScaling, height = frame.Height * dialog.RenderScaling,
-                    owner = new { x = area.X, y = area.Y, width = area.Width, height = area.Height }, maximum = new { width = dialog.MaxWidth, height = dialog.MaxHeight } };
+                    owner = new { x = area.X, y = area.Y, width = area.Width, height = area.Height },
+                    screen = new { x = workArea.X, y = workArea.Y, right = workArea.Right, bottom = workArea.Bottom, scale = screen.Scaling },
+                    body = new { x = bodyPosition.X, y = bodyPosition.Y, right = bodyEnd.X, bottom = bodyEnd.Y } };
             }
             else if (action.StartsWith("tab_drag_", StringComparison.Ordinal) || action == "tab_drop")
             {

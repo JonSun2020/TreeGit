@@ -455,6 +455,8 @@ namespace SourceGit.Views
 
     public partial class MergeConflictEditor : ChromelessWindow
     {
+        protected override bool MaximizeToScreen => true;
+
         public MergeConflictEditor()
         {
             InitializeComponent();

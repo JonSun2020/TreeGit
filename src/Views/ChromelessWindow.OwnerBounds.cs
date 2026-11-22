@@ -22,6 +22,12 @@ namespace SourceGit.Views
         private Func<PixelRect?> _externalMovementBounds;
         private DispatcherTimer _externalOwnerTimer;
         private Rect? _ownedRestoreRectangle;
+        private OwnedNativeRect? _normalComparisonFrame;
+        private bool _restoreComparisonFrame;
+
+        protected virtual bool MaximizeToScreen => false;
+
+        private bool IsMaximizedToScreen => MaximizeToScreen && WindowState is (WindowState.Maximized or WindowState.FullScreen);
 
         internal void SetExternalMovementBounds(Func<PixelRect?> bounds) => _externalMovementBounds = bounds;
 
@@ -52,7 +58,11 @@ namespace SourceGit.Views
         private void InitializeOwnedWindowDragging()
         {
             if (OperatingSystem.IsWindows()) Win32Properties.AddWndProcHookCallback(this, OwnedWindowProc);
-            PositionChanged += (_, _) => RestrictToMovementOwner();
+            PositionChanged += (_, _) =>
+            {
+                if (MaximizeToScreen) ScheduleOwnerClamp();
+                else RestrictToMovementOwner();
+            };
             SizeChanged += (_, _) => ScheduleOwnerClamp();
             AddHandler(PointerMovedEvent, OnOwnedWindowPointerMoved, RoutingStrategies.Tunnel);
             AddHandler(PointerReleasedEvent, OnOwnedWindowPointerReleased, RoutingStrategies.Tunnel);
@@ -115,6 +125,7 @@ namespace SourceGit.Views
         {
             var previous = _lastOwnerPosition;
             _lastOwnerPosition = e.Point;
+            if (IsMaximizedToScreen) return;
             Position = new PixelPoint(Position.X + e.Point.X - previous.X, Position.Y + e.Point.Y - previous.Y);
             RestrictToMovementOwner();
         }
@@ -131,6 +142,33 @@ namespace SourceGit.Views
             if (_movementOwner == null && _externalMovementBounds == null || _restrictingOwnedWindow) return;
             if (change.Property == WindowStateProperty)
             {
+                if (MaximizeToScreen)
+                {
+                    // The platform chooses the maximized geometry. Keep our last
+                    // normal frame because native caption restore can lose it.
+                    var previousState = change.GetOldValue<WindowState>();
+                    if (IsMaximizedToScreen)
+                    {
+                        if (OperatingSystem.IsWindows() && previousState == WindowState.Normal &&
+                            TryGetPlatformHandle()?.Handle is { } handle)
+                            RememberNormalComparisonFrame(handle);
+                        _restoreComparisonFrame = false;
+                        _restrictingOwnedWindow = true;
+                        try
+                        {
+                            MaxWidth = _requestedMaxWidth;
+                            MaxHeight = _requestedMaxHeight;
+                        }
+                        finally { _restrictingOwnedWindow = false; }
+                    }
+                    else
+                    {
+                        if (WindowState == WindowState.Normal && previousState is (WindowState.Maximized or WindowState.FullScreen))
+                            _restoreComparisonFrame = true;
+                        ScheduleOwnerClamp();
+                    }
+                    return;
+                }
                 if (change.GetOldValue<WindowState>() == WindowState.Normal && change.GetNewValue<WindowState>() == WindowState.Maximized)
                     _ownedRestoreRectangle = new Rect(Position.X, Position.Y, Bounds.Width, Bounds.Height);
                 else if (change.GetOldValue<WindowState>() == WindowState.Maximized && change.GetNewValue<WindowState>() == WindowState.Normal && _ownedRestoreRectangle is { } restore)
@@ -163,19 +201,23 @@ namespace SourceGit.Views
 
         private void RestrictToMovementOwner()
         {
-            if (_restrictingOwnedWindow || !IsVisible || WindowState == WindowState.Minimized || OwnedMovementBounds is not { } area) return;
+            if (_restrictingOwnedWindow || !IsVisible || WindowState == WindowState.Minimized || IsMaximizedToScreen || OwnedMovementBounds is not { } area) return;
+            var comparisonHandle = MaximizeToScreen && OperatingSystem.IsWindows() ? TryGetPlatformHandle()?.Handle ?? IntPtr.Zero : IntPtr.Zero;
+            // WM_MOVE and WM_SIZE can precede Avalonia's WindowState notification.
+            if (comparisonHandle != IntPtr.Zero && (IsZoomed(comparisonHandle) || IsIconic(comparisonHandle))) return;
             _restrictingOwnedWindow = true;
             try
             {
-                var frame = FrameSize ?? Bounds.Size;
-                var extraWidth = Math.Max(0, frame.Width - Bounds.Width);
-                var extraHeight = Math.Max(0, frame.Height - Bounds.Height);
-                var maxWidth = Math.Max(1, area.Width / RenderScaling - extraWidth);
-                var maxHeight = Math.Max(1, area.Height / RenderScaling - extraHeight);
+                var client = MaximizeToScreen ? ClientSize : Bounds.Size;
+                var frame = FrameSize ?? client;
+                var extraWidth = Math.Max(0, frame.Width - client.Width);
+                var extraHeight = Math.Max(0, frame.Height - client.Height);
+                var maxWidth = Math.Min(_requestedMaxWidth, Math.Max(1, area.Width / RenderScaling - extraWidth));
+                var maxHeight = Math.Min(_requestedMaxHeight, Math.Max(1, area.Height / RenderScaling - extraHeight));
                 MinWidth = Math.Min(_requestedMinWidth, maxWidth);
                 MinHeight = Math.Min(_requestedMinHeight, maxHeight);
-                MaxWidth = Math.Min(_requestedMaxWidth, maxWidth);
-                MaxHeight = Math.Min(_requestedMaxHeight, maxHeight);
+                MaxWidth = maxWidth;
+                MaxHeight = maxHeight;
                 if (WindowState == WindowState.Maximized)
                 {
                     if (OperatingSystem.IsWindows())
@@ -188,8 +230,23 @@ namespace SourceGit.Views
                     WindowState = WindowState.Normal;
                     Width = MaxWidth; Height = MaxHeight;
                 }
-                if (Bounds.Width > MaxWidth) Width = MaxWidth;
-                if (Bounds.Height > MaxHeight) Height = MaxHeight;
+                if (comparisonHandle != IntPtr.Zero && GetWindowRect(comparisonHandle, out var actual))
+                {
+                    // Layout bounds can already be capped while the native frame
+                    // is still too large after the owner shrinks.
+                    var target = _restoreComparisonFrame ? _normalComparisonFrame ?? actual : actual;
+                    _restoreComparisonFrame = false;
+                    var width = Math.Min(target.Right - target.Left, area.Width);
+                    var height = Math.Min(target.Bottom - target.Top, area.Height);
+                    var x = Math.Clamp(target.Left, area.X, area.Right - width);
+                    var y = Math.Clamp(target.Top, area.Y, area.Bottom - height);
+                    if (actual.Left != x || actual.Top != y || actual.Right != x + width || actual.Bottom != y + height)
+                        SetWindowPos(comparisonHandle, IntPtr.Zero, x, y, width, height, 0x14 /* NOZORDER | NOACTIVATE */);
+                    RememberNormalComparisonFrame(comparisonHandle);
+                    return;
+                }
+                if (Bounds.Width > maxWidth) Width = maxWidth;
+                if (Bounds.Height > maxHeight) Height = maxHeight;
                 var position = ClampOwnedPosition(Position, area, frame);
                 if (Position != position) Position = position;
             }
@@ -208,15 +265,31 @@ namespace SourceGit.Views
 
         private IntPtr OwnedWindowProc(IntPtr window, uint message, IntPtr wParam, IntPtr lParam, ref bool handled)
         {
-            if (message != 0x24 /* WM_GETMINMAXINFO */ || OwnedMovementBounds is not { } area) return IntPtr.Zero;
-            var rectangle = MaximizedOwnedRectangle(area);
-            var monitor = Screens.ScreenFromWindow(this)?.Bounds.Position ?? default;
+            if (MaximizeToScreen && message == 0x112 /* WM_SYSCOMMAND */ &&
+                (wParam.ToInt64() & 0xFFF0) == 0xF030 /* SC_MAXIMIZE */)
+                RememberNormalComparisonFrame(window);
+            if (message != 0x24 /* WM_GETMINMAXINFO */ || IsMaximizedToScreen || OwnedMovementBounds is not { } area) return IntPtr.Zero;
             var info = Marshal.PtrToStructure<OwnedMinMaxInfo>(lParam);
-            info.MaxX = rectangle.Width; info.MaxY = rectangle.Height;
-            info.PositionX = rectangle.X - monitor.X; info.PositionY = rectangle.Y - monitor.Y;
-            info.MinTrackX = Math.Min(info.MinTrackX, rectangle.Width);
-            info.MinTrackY = Math.Min(info.MinTrackY, rectangle.Height);
-            info.MaxTrackX = rectangle.Width; info.MaxTrackY = rectangle.Height;
+            if (MaximizeToScreen)
+            {
+                // Use the measured frame in normal mode. A custom caption is
+                // already inside the client area, including at fractional DPI.
+                var frame = FrameSize ?? ClientSize;
+                var horizontalFrame = Math.Max(0, frame.Width - ClientSize.Width);
+                var verticalFrame = Math.Max(0, frame.Height - ClientSize.Height);
+                info.MinTrackX = Math.Min(area.Width, Math.Max(info.MinTrackX, (int)Math.Ceiling((MinWidth + horizontalFrame) * RenderScaling)));
+                info.MinTrackY = Math.Min(area.Height, Math.Max(info.MinTrackY, (int)Math.Ceiling((MinHeight + verticalFrame) * RenderScaling)));
+            }
+            else
+            {
+                var rectangle = MaximizedOwnedRectangle(area);
+                var monitor = Screens.ScreenFromWindow(this)?.Bounds.Position ?? default;
+                info.MaxX = rectangle.Width; info.MaxY = rectangle.Height;
+                info.PositionX = rectangle.X - monitor.X; info.PositionY = rectangle.Y - monitor.Y;
+                info.MinTrackX = Math.Min(info.MinTrackX, rectangle.Width);
+                info.MinTrackY = Math.Min(info.MinTrackY, rectangle.Height);
+                info.MaxTrackX = rectangle.Width; info.MaxTrackY = rectangle.Height;
+            }
             Marshal.StructureToPtr(info, lParam, false);
             handled = true;
             return IntPtr.Zero;
@@ -244,6 +317,19 @@ namespace SourceGit.Views
         private static extern bool GetWindowRect(IntPtr window, out OwnedNativeRect rectangle);
 
         [DllImport("user32.dll")]
+        private static extern bool IsZoomed(IntPtr window);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsIconic(IntPtr window);
+
+        private void RememberNormalComparisonFrame(IntPtr window)
+        {
+            if (window != IntPtr.Zero && !IsZoomed(window) && !IsIconic(window) &&
+                GetWindowRect(window, out var frame) && frame.Right > frame.Left && frame.Bottom > frame.Top)
+                _normalComparisonFrame = frame;
+        }
+
+        [DllImport("user32.dll")]
         private static extern bool SetWindowPos(IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
 
         private PixelPoint ClampOwnedPosition(PixelPoint position, PixelRect area, Size frame) => new(
@@ -252,7 +338,7 @@ namespace SourceGit.Views
 
         private bool BeginOwnedWindowDrag(PointerPressedEventArgs e)
         {
-            if (OwnedMovementBounds == null) return false;
+            if (IsMaximizedToScreen || OwnedMovementBounds == null) return false;
             _windowDragStart = Position;
             _windowDragPointerStart = this.PointToScreen(e.GetPosition(this));
             _windowDragPointer = e.Pointer;
@@ -288,6 +374,8 @@ namespace SourceGit.Views
     // Inspectors retain their native caption, with the same owner containment.
     public class OwnedNativeWindow : ChromelessWindow
     {
+        protected override bool MaximizeToScreen => true;
+
         public OwnedNativeWindow()
         {
             Classes.Remove("custom_window_frame");

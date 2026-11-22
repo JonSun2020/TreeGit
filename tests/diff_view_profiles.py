@@ -201,11 +201,13 @@ try:
  if tag_sidebar()['tree']:tag_sidebar(2)
  open_pair();main=ready('main');external=ready('standalone')
  check('main defaults to five lines of context',not main['columns'] and main['syntax'] and main['wrap'] and main['context']==5,main)
- check('standalone defaults to columns syntax highlighting wrapping and full file',all(external[k] for k in ['columns','syntax','wrap']) and external['context']==0,external)
+ check('standalone defaults to columns with syntax highlighting, no wrapping and full file',
+       external['columns'] and external['syntax'] and not external['wrap'] and external['context']==0,external)
  check('the context picker offers exactly four choices in both views',
        all(v['contextChoices']==['5 lines','15 lines','50 lines','Full file'] for v in (main,external)))
- check('both standalone text presenters receive wrapping and syntax settings',all(p['wrap'] and p['syntax'] for p in external['presenters']),external)
+ check('both standalone text presenters receive unwrapped syntax-highlighted defaults',all(not p['wrap'] and p['syntax'] for p in external['presenters']),external)
  check('standalone actually loads the complete file',all(p['lines']>=120 for p in external['presenters']),external)
+ client.probe('diff_toggle_standalone',2,'true')
  def aligned(require_wrap=True):
   value=ready('standalone')
   if not value or len(value['presenters'])!=2:return False
@@ -594,7 +596,7 @@ try:
  def sidebar(group,action=0,folder=None):
   return client.probe('sidebar_reveal',action,group+('|' + folder if folder else ''))
  def visible_in(group,item):
-  return wait(lambda:s if (s:=sidebar(group))['open'] and item in s['visible'] else None)
+  return wait(lambda:s if (s:=sidebar(group))['open'] and s['offset']>0 and item in s['visible'] else None)
  def select_sidebar_commit(sha):
   client.tool('ui_select_commit',repo=str(scroll_repo),revision=sha)
   return wait(lambda:s if (s:=scroll_state())['detailCommit']==sha and

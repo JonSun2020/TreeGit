@@ -23,12 +23,12 @@ namespace SourceGit.Views
             var screen = owner.Screens.ScreenFromWindow(owner) ?? owner.Screens.Primary;
             if (screen != null)
             {
-                MaxWidth = Math.Max(1, screen.WorkingArea.Width / screen.Scaling - 32);
-                MaxHeight = Math.Max(1, screen.WorkingArea.Height / screen.Scaling - 64);
-                MinWidth = Math.Min(MinWidth, MaxWidth);
-                MinHeight = Math.Min(MinHeight, MaxHeight);
-                Width = Math.Min(Width, MaxWidth);
-                Height = Math.Min(Height, MaxHeight);
+                var maxWidth = Math.Max(1, screen.WorkingArea.Width / screen.Scaling - 32);
+                var maxHeight = Math.Max(1, screen.WorkingArea.Height / screen.Scaling - 64);
+                MinWidth = Math.Min(MinWidth, maxWidth);
+                MinHeight = Math.Min(MinHeight, maxHeight);
+                Width = Math.Min(Width, maxWidth);
+                Height = Math.Min(Height, maxHeight);
             }
             _diff = new DiffView { DataContext = context };
             Content = _diff;

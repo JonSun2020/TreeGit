@@ -295,12 +295,12 @@ namespace SourceGit.Views
                 // native frame and caption, including on a small or scaled desktop.
                 var area = screen.WorkingArea;
                 var scaling = owner.RenderScaling;
-                window.MaxWidth = Math.Max(1, area.Width / scaling - 32);
-                window.MaxHeight = Math.Max(1, area.Height / scaling - 64);
-                window.MinWidth = Math.Min(window.MinWidth, window.MaxWidth);
-                window.MinHeight = Math.Min(window.MinHeight, window.MaxHeight);
-                window.Width = Math.Min(window.Width, window.MaxWidth);
-                window.Height = Math.Min(window.Height, window.MaxHeight);
+                var maxWidth = Math.Max(1, area.Width / scaling - 32);
+                var maxHeight = Math.Max(1, area.Height / scaling - 64);
+                window.MinWidth = Math.Min(window.MinWidth, maxWidth);
+                window.MinHeight = Math.Min(window.MinHeight, maxHeight);
+                window.Width = Math.Min(window.Width, maxWidth);
+                window.Height = Math.Min(window.Height, maxHeight);
                 window.WindowStartupLocation = WindowStartupLocation.Manual;
                 window.Position = new PixelPoint(
                     area.X + (int)Math.Max(8 * scaling, (area.Width - (window.Width + 16) * scaling) / 2),

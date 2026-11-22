@@ -84,7 +84,7 @@ namespace SourceGit.Views
             base.OnOpened(e);
             Dispatcher.UIThread.Post(() => { if (IsVisible) DialogButtons.Apply(this); }, DispatcherPriority.Loaded);
             AttachMovementOwner();
-            if (!CanResize || this is Launcher) return;
+            if (!CanResize || this is Launcher || WindowState != WindowState.Normal) return;
             var screen = Screens.ScreenFromWindow(this) ?? Screens.Primary;
             if (screen == null) return;
             var area = screen.WorkingArea;

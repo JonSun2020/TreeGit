@@ -27,7 +27,7 @@ namespace SourceGit.ViewModels
         public bool ShowHiddenSymbolsInDiffView { get => _symbols; set => SetProperty(ref _symbols, value); }
         private bool _columns = true;
         private bool _syntax = true;
-        private bool _wrap = true;
+        private bool _wrap;
         private bool _whitespace;
         private bool _cr = true;
         private bool _symbols;
