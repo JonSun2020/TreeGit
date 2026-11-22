@@ -186,7 +186,7 @@ namespace SourceGit.ViewModels
                 return;
 
             if (!IsHistoryTabSelected || _histories.SelectedCommits.Count != 0 ||
-                _histories.DetailContext is not (Models.Null or WorkingCopy) ||
+                (_histories.DetailContext is not Models.Null && _histories.DetailContext != _workingCopy) ||
                 !string.IsNullOrEmpty(_navigateToCommitDelayed))
             {
                 _selectHistoryOnActivation = false;
