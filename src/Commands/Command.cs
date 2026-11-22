@@ -34,6 +34,7 @@ namespace SourceGit.Commands
         public string Context { get; set; } = string.Empty;
         public string WorkingDirectory { get; set; } = null;
         public string CredentialScope { get; set; } = null;
+        internal string HttpProxyTarget { get; set; }
         public bool? UseCredentialManager { get; set; } = null;
         public EditorType Editor { get; set; } = EditorType.CoreEditor;
         public string SSHKey { get; set; } = string.Empty;
@@ -126,7 +127,14 @@ namespace SourceGit.Commands
                 var errs = new Models.BoundedTextBuffer(65536);
 
                 using var proc = new Process();
-                proc.StartInfo = CreateGitStartInfo(true);
+                proc.StartInfo = await CreateGitStartInfoAsync().ConfigureAwait(false);
+                if (OperatingSystem.IsWindows() && string.IsNullOrEmpty(proc.StartInfo.FileName))
+                {
+                    FailureMessage = App.Text("TreeGit.Git.Unavailable");
+                    if (RaiseError || Log?.HasOperationPanel == true) App.NotifyGitUnavailable();
+                    return false;
+                }
+                if (CancellationToken.IsCancellationRequested) { FailureMessage = "Operation cancelled."; return false; }
                 proc.OutputDataReceived += (_, e) => HandleOutput(e.Data, errs);
                 proc.ErrorDataReceived += (_, e) => HandleOutput(e.Data, errs);
 
@@ -216,6 +224,8 @@ namespace SourceGit.Commands
         {
             using var proc = new Process();
             proc.StartInfo = CreateGitStartInfo(true);
+            if (HttpProxyTarget != null)
+                Native.GitSystemProxy.Configure(proc.StartInfo, HttpProxyTarget);
 
             try
             {
@@ -274,7 +284,8 @@ namespace SourceGit.Commands
         {
             CancellationToken.ThrowIfCancellationRequested();
             using var proc = new Process();
-            proc.StartInfo = CreateGitStartInfo(true);
+            proc.StartInfo = await CreateGitStartInfoAsync().ConfigureAwait(false);
+            CancellationToken.ThrowIfCancellationRequested();
             if (outputEncoding != null) proc.StartInfo.StandardOutputEncoding = outputEncoding;
 
             try
@@ -309,6 +320,17 @@ namespace SourceGit.Commands
                 return await ReadToEndAttemptAsync(false, outputEncoding).ConfigureAwait(false);
             }
             return rs;
+        }
+
+        protected async Task<ProcessStartInfo> CreateGitStartInfoAsync()
+        {
+            var start = CreateGitStartInfo(true);
+            if (OperatingSystem.IsWindows() && Native.GitSystemProxy.IsHttpUrl(HttpProxyTarget))
+            {
+                // PAC/WPAD lookup can take time. Keep it off the dispatch thread.
+                await Task.Run(() => Native.GitSystemProxy.Configure(start, HttpProxyTarget)).ConfigureAwait(false);
+            }
+            return start;
         }
 
         protected ProcessStartInfo CreateGitStartInfo(bool redirect)

@@ -138,12 +138,6 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _layout, value);
         }
 
-        public bool ShowLocalChangesByDefault
-        {
-            get;
-            set;
-        } = false;
-
         public bool ShowChangesInCommitDetailByDefault
         {
             get;
@@ -392,8 +386,14 @@ namespace SourceGit.ViewModels
         public bool UseBundledGit
         {
             get => _useBundledGit;
-            set => SetProperty(ref _useBundledGit, value);
+            set
+            {
+                if (SetProperty(ref _useBundledGit, value))
+                    BundledGitFallbackThisSession = false;
+            }
         }
+
+        internal bool BundledGitFallbackThisSession { get; private set; }
 
         public string GitDefaultCloneDir
         {
@@ -763,7 +763,8 @@ namespace SourceGit.ViewModels
         {
             var configured = GitInstallPath;
             var windows = OperatingSystem.IsWindows();
-            var bundled = windows && UseBundledGit;
+            var forceBundled = windows && Native.TreeGitUpdateInstaller.BootstrapPlan?.EnableBundledGit == true;
+            var bundled = windows && (UseBundledGit || forceBundled);
             if (windows && Native.GitExecutableLocator.IsManagedBundle(configured))
                 configured = GitInstallPath = string.Empty;
             string path = null;
@@ -781,7 +782,7 @@ namespace SourceGit.ViewModels
                 }
             }
 
-            if (windows && string.IsNullOrEmpty(path))
+            if (windows && string.IsNullOrEmpty(path) && Native.TreeGitUpdateInstaller.BootstrapPlan?.RequiresSystemGit != true)
             {
                 stage?.Invoke("Bundled");
                 path = Native.GitExecutableLocator.FindBundledGit();
@@ -793,18 +794,20 @@ namespace SourceGit.ViewModels
                 if (!UseBundledGit)
                 {
                     UseBundledGit = true;
-                    Avalonia.Threading.Dispatcher.UIThread.Post(SaveDetectedGit);
+                    BundledGitFallbackThisSession = !forceBundled && !string.IsNullOrEmpty(configured);
+                    if (Native.TreeGitUpdateInstaller.BootstrapPlan == null) Avalonia.Threading.Dispatcher.UIThread.Post(SaveDetectedGit);
                 }
             }
             else if (path != null)
                 GitInstallPath = path;
 
-            if (windows) Native.GitExecutableLocator.FinishExpandedUpgrade();
+            if (windows && Native.GitExecutableLocator.IsBundled(path)) Native.GitExecutableLocator.FinishExpandedUpgrade();
             Native.OS.MonitorGitInstallation(() => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
             {
                 if (!UseBundledGit && Native.OS.IsUsingBundledGit)
                 {
                     UseBundledGit = true;
+                    BundledGitFallbackThisSession = true;
                     SaveDetectedGit();
                 }
             }));

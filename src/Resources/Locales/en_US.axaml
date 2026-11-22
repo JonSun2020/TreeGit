@@ -1574,7 +1574,7 @@ Configure SSH keys in the remote settings.</x:String>
   <x:String x:Key="Text.TreeGit.Settings.Automatic" xml:space="preserve">Automatic</x:String>
   <x:String x:Key="Text.TreeGit.Settings.DefaultRemote" xml:space="preserve">Default remote:</x:String>
   <x:String x:Key="Text.TreeGit.Settings.MergeMode" xml:space="preserve">Merge mode:</x:String>
-  <x:String x:Key="Text.TreeGit.Settings.ProxyHint" xml:space="preserve">Leave empty to inherit the global proxy</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.ProxyHint" xml:space="preserve">Leave empty to use Git or Windows proxy settings</x:String>
   <x:String x:Key="Text.TreeGit.Settings.HttpProxy" xml:space="preserve">HTTP proxy:</x:String>
   <x:String x:Key="Text.TreeGit.Settings.Prune" xml:space="preserve">Prune deleted remote-branch references when fetching</x:String>
   <x:String x:Key="Text.TreeGit.Settings.AutoRefresh" xml:space="preserve">Refresh file status automatically</x:String>
@@ -1876,4 +1876,7 @@ Configure SSH keys in the remote settings.</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Cancelling">Cancelling…</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Cancelled">Cancelled. Completed steps are kept.</x:String>
   <x:String x:Key="Text.TreeGit.Operation.ShowFullOutput">Show full output</x:String>
+  <x:String x:Key="Text.TreeGit.Git.MissingRepair">No usable Git was found. Install Git or download the BundledGit edition of TreeGit. Download the latest BundledGit edition and repair now?</x:String>
+  <x:String x:Key="Text.TreeGit.Git.Unavailable">No usable Git was found.</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.RepairAvailable">Preparing the complete update with bundled Git.</x:String>
 </ResourceDictionary>

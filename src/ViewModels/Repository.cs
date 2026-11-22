@@ -174,6 +174,43 @@ namespace SourceGit.ViewModels
             _histories.ShowWorkingCopyOverview();
         }
 
+        internal void ActivateHistorySelection()
+        {
+            _selectHistoryOnActivation = true;
+            TrySelectHistoryOnActivation();
+        }
+
+        private void TrySelectHistoryOnActivation()
+        {
+            if (!_selectHistoryOnActivation || App.GetLauncher()?.ActivePage?.Data != this)
+                return;
+
+            if (!IsHistoryTabSelected || _histories.SelectedCommits.Count != 0 ||
+                _histories.DetailContext is not (Models.Null or WorkingCopy) ||
+                !string.IsNullOrEmpty(_navigateToCommitDelayed))
+            {
+                _selectHistoryOnActivation = false;
+                return;
+            }
+
+            if (!IsBare && !WorkingCopyStatusKnown)
+                return;
+
+            if (_histories.HasPendingChanges)
+            {
+                _selectHistoryOnActivation = false;
+                if (!_histories.IsWorkingCopySelected)
+                    _histories.ShowWorkingCopyOverview();
+                else
+                    _workingCopy.SelectInitialUnstaged();
+            }
+            else if (_historySnapshotReady && !_histories.IsLoading)
+            {
+                _selectHistoryOnActivation = false;
+                _histories.SelectLatestCommit();
+            }
+        }
+
         public void ShowReflog()
         {
             ShowHistoryPage();
@@ -626,7 +663,6 @@ namespace SourceGit.ViewModels
             else if (_settings.LoadRecovery == 1 || _uiStates.LoadRecovery == 1)
                 SendNotification(App.Text("Repository.ConfigRecovery.Backup"), true);
             _selectedViewIndex = 0;
-            if (!IsBare && Preferences.Instance.ShowLocalChangesByDefault) _histories.ShowWorkingCopyOverview();
             _lastFetchTime = DateTime.Now;
             _autoFetchTimer = new Timer(AutoFetchByTimer, null, 5000, 5000);
             RefreshAll();
@@ -681,13 +717,13 @@ namespace SourceGit.ViewModels
             Models.Notification.Send(FullPath, message, isError);
         }
 
-        public bool CanCreatePopup()
+        public bool CanCreatePopup(bool userInitiated = true)
         {
             var page = GetOwnerPage();
             if (page == null)
                 return false;
 
-            return !_isAutoFetching && page.CanCreatePopup();
+            return !_isAutoFetching && page.CanCreatePopup() && (!userInitiated || App.RequireGitForOperation());
         }
 
         public void ShowPopup(Popup popup)
@@ -1726,6 +1762,7 @@ namespace SourceGit.ViewModels
                         SetRefreshFailure("history", false);
                         _histories.IsLoading = false;
                         _histories.SetGraphCommits(commits, preferredHead);
+                        _historySnapshotReady = true;
                         BisectState = _histories.UpdateBisectInfo();
 
                         if (!string.IsNullOrEmpty(graphView.NavigationCommit) && _historyNavigationCommit == graphView.NavigationCommit &&
@@ -1740,6 +1777,8 @@ namespace SourceGit.ViewModels
                             HistoryBranchSelectionRequested?.Invoke(FindHistoryBranch(graphView.NavigationCommit, containingBranches));
                         if (!string.IsNullOrEmpty(_navigateToCommitDelayed) && !_histories.IsSearchingCommits)
                             NavigateToCommit(_navigateToCommitDelayed);
+
+                        TrySelectHistoryOnActivation();
                     }
 
                     _navigateToCommitDelayed = string.Empty;
@@ -1851,6 +1890,7 @@ namespace SourceGit.ViewModels
                     var countChanged = LocalChangesCount != changes.Count;
                     LocalChangesCount = changes.Count;
                     if (!countChanged) _histories?.NotifyWorkingCopyChanged();
+                    TrySelectHistoryOnActivation();
                     OnPropertyChanged(nameof(InProgressContext));
                     GetOwnerPage()?.ChangeDirtyState(Models.DirtyState.HasLocalChanges, changes.Count == 0);
                 });
@@ -2357,7 +2397,7 @@ namespace SourceGit.ViewModels
 
             try
             {
-                if (!_settings.BackgroundFetchEnabled || !Preferences.Instance.EnableAutoFetch || !CanCreatePopup() || GetOwnerPage()?.Popup != null)
+                if (!_settings.BackgroundFetchEnabled || !Preferences.Instance.EnableAutoFetch || !CanCreatePopup(userInitiated: false) || GetOwnerPage()?.Popup != null)
                 {
                     _lastFetchTime = DateTime.Now;
                     return;
@@ -2422,6 +2462,8 @@ namespace SourceGit.ViewModels
         private List<Models.Remote> _remotes = [];
         private List<Models.Branch> _branches = [];
         private bool _hasBranchSnapshot;
+        private bool _historySnapshotReady;
+        private bool _selectHistoryOnActivation;
         private bool _hasTagSnapshot;
         private Models.Branch _currentBranch = null;
         private List<BranchTreeNode> _localBranchTrees = [];

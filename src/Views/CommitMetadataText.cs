@@ -33,7 +33,7 @@ namespace SourceGit.Views
         public IBrush LinkBrush { get => GetValue(LinkBrushProperty); set => SetValue(LinkBrushProperty, value); }
         public string PlainText => _plainText;
         public IReadOnlyList<CommitMetadataSpan> Spans => _spans;
-        public IBrush SelectedGlyphBrush => this.FindResource("Brush.TreeGit.SelectionSecondaryForeground") as IBrush;
+        public IBrush SelectedGlyphBrush => this.FindResource("Brush.TreeGit.SelectionForeground") as IBrush;
 
 #if INTEGRATION_TESTS
         public int MaxRenderedParentLength { get; private set; }

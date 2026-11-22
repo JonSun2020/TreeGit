@@ -781,7 +781,19 @@ namespace SourceGit
                 }
                 if (!main.IsVisible) return;
                 pref.SetCanModify();
-                if (savedGitMode != pref.UseBundledGit || savedGitPath != pref.GitInstallPath) pref.SaveDetectedGit();
+                var updatePlan = Native.TreeGitUpdateInstaller.BootstrapPlan;
+                if (updatePlan != null)
+                {
+                    var useBundled = Native.OS.IsUsingBundledGit;
+                    var gitAvailable = !string.IsNullOrEmpty(Native.OS.GitVersionString);
+                    if ((updatePlan.EnableBundledGit && (!gitAvailable || !useBundled)) ||
+                        (updatePlan.RequiresSystemGit && (!gitAvailable || useBundled)))
+                    {
+                        desktop.Shutdown(1);
+                        return;
+                    }
+                }
+                else if (savedGitMode != pref.UseBundledGit || savedGitPath != pref.GitInstallPath) pref.SaveDetectedGit();
                 ready = true;
                 main.FinishStartup();
                 Native.StartupTrace.Mark("startup-ready", true);
@@ -881,13 +893,67 @@ namespace SourceGit
             });
         }
 
-        private void OpenUpdater(bool bootstrap = false, Models.Version release = null)
+        internal static bool RequireGitForOperation()
+        {
+            if (TryFindUsableGit()) return true;
+            NotifyGitUnavailable();
+            return false;
+        }
+
+        private static bool TryFindUsableGit()
+        {
+            var preferences = ViewModels.Preferences.Instance;
+            if (preferences.IsGitConfigured()) return true;
+            if (!OperatingSystem.IsWindows()) return false;
+
+            // Git may have been installed after TreeGit started or while the
+            // repair prompt was open. Discover it before requesting a download.
+            var installed = Native.GitExecutableLocator.FindInstalledWindowsGit();
+            if (installed == null) return false;
+            Native.OS.GitExecutable = installed;
+            if (!preferences.UseBundledGit)
+            {
+                preferences.GitInstallPath = installed;
+                Dispatcher.UIThread.Post(preferences.SaveDetectedGit);
+            }
+            return preferences.IsGitConfigured();
+        }
+
+        internal static void NotifyGitUnavailable()
+        {
+            if (Current is not App app) return;
+            if (!OperatingSystem.IsWindows())
+            {
+                Models.Notification.Send(string.Empty, Text("NotConfigured"), true);
+                return;
+            }
+            Dispatcher.UIThread.Post(async () =>
+            {
+                if (app._repairPromptOpen || Native.TreeGitUpdateInstaller.IsApplying || TryFindUsableGit()) return;
+                app._repairPromptOpen = true;
+                try
+                {
+                    if (await AskConfirmAsync(Text("TreeGit.Git.MissingRepair"), Models.ConfirmButtonType.YesNo) &&
+                        !TryFindUsableGit())
+                        app.OpenUpdater(repairGit: true);
+                }
+                finally { app._repairPromptOpen = false; }
+            });
+        }
+
+        private void OpenUpdater(bool bootstrap = false, Models.Version release = null, bool repairGit = false)
         {
             Dispatcher.UIThread.Post(async () =>
             {
                 if (release != null && _startupUpdateCancellation.IsCancellationRequested) return;
                 if (ApplicationLifetime is not IClassicDesktopStyleApplicationLifetime { MainWindow: { } owner }) return;
-                if (_updateWindow != null) { _updateWindow.Present(owner); return; }
+                if (_updateWindow != null)
+                {
+                    _updateWindow.Present(owner);
+                    if (repairGit && _updateWindow.DataContext is ViewModels.SelfUpdate openModel)
+                        await openModel.RepairGitAsync();
+                    return;
+                }
                 foreach (var existing in ((IClassicDesktopStyleApplicationLifetime)ApplicationLifetime).Windows)
                     if (existing is Views.SelfUpdate { IsVisible: true } existingUpdate) { existingUpdate.Activate(); return; }
                 var model = new ViewModels.SelfUpdate();
@@ -895,7 +961,7 @@ namespace SourceGit
                 _updateWindow = window;
                 window.Closed += (_, _) => { if (_updateWindow == window) _updateWindow = null; };
                 window.Present(owner);
-                await (bootstrap ? model.FinishBootstrapAsync() : model.CheckAsync(release));
+                await (bootstrap ? model.FinishBootstrapAsync() : repairGit ? model.RepairGitAsync() : model.CheckAsync(release));
                 if (bootstrap) await ReportUpdateResultAsync();
             });
         }
@@ -905,7 +971,14 @@ namespace SourceGit
             await Task.Delay(500);
             var result = await Task.Run(() => Native.TreeGitUpdateInstaller.TakeResult(AppContext.BaseDirectory));
             if (result is { } status && status.Version == Models.TreeGitRelease.Version)
+            {
+                if (status.State == "Committed" && Native.TreeGitUpdateInstaller.BootstrapPlan?.EnableBundledGit == true)
+                {
+                    ViewModels.Preferences.Instance.UseBundledGit = true;
+                    ViewModels.Preferences.Instance.SaveDetectedGit();
+                }
                 Models.Notification.Send(string.Empty, App.Text(status.State == "Committed" ? "SelfUpdate.Flow.Updated" : "SelfUpdate.Flow.Restored", status.Version), status.State != "Committed");
+            }
             _ = Task.Run(async () =>
             {
                 await Task.Delay(5000);
@@ -925,6 +998,7 @@ namespace SourceGit
 
         private Models.IpcChannel _ipcChannel = null;
         private Views.SelfUpdate _updateWindow;
+        private bool _repairPromptOpen;
         internal Views.SelfUpdate UpdateWindow => _updateWindow;
         private readonly System.Threading.CancellationTokenSource _startupUpdateCancellation = new();
         private ViewModels.Launcher _launcher = null;

@@ -122,11 +122,7 @@ namespace SourceGit.ViewModels
 
         public void Clone()
         {
-            if (!Preferences.Instance.IsGitConfigured())
-            {
-                Models.Notification.Send(null, App.Text("NotConfigured"), true);
-                return;
-            }
+            if (!App.RequireGitForOperation()) return;
 
             var activePage = App.GetLauncher().ActivePage;
             if (activePage != null && activePage.CanCreatePopup())
@@ -135,11 +131,7 @@ namespace SourceGit.ViewModels
 
         public void OpenLocalRepository()
         {
-            if (!Preferences.Instance.IsGitConfigured())
-            {
-                Models.Notification.Send(null, App.Text("NotConfigured"), true);
-                return;
-            }
+            if (!App.RequireGitForOperation()) return;
 
             var activePage = App.GetLauncher().ActivePage;
             if (activePage != null && activePage.CanCreatePopup())
@@ -148,11 +140,7 @@ namespace SourceGit.ViewModels
 
         public void CreateRepository()
         {
-            if (!Preferences.Instance.IsGitConfigured())
-            {
-                Models.Notification.Send(null, App.Text("NotConfigured"), true);
-                return;
-            }
+            if (!App.RequireGitForOperation()) return;
 
             var activePage = App.GetLauncher().ActivePage;
             if (activePage != null && activePage.CanCreatePopup())
@@ -161,19 +149,13 @@ namespace SourceGit.ViewModels
 
         public void OpenTerminal()
         {
-            if (!Preferences.Instance.IsGitConfigured())
-                Models.Notification.Send(null, App.Text("NotConfigured"), true);
-            else
+            if (App.RequireGitForOperation())
                 Native.OS.OpenTerminal(null);
         }
 
         public void ScanDefaultCloneDir()
         {
-            if (!Preferences.Instance.IsGitConfigured())
-            {
-                Models.Notification.Send(null, App.Text("NotConfigured"), true);
-                return;
-            }
+            if (!App.RequireGitForOperation()) return;
 
             var activePage = App.GetLauncher().ActivePage;
             if (activePage != null && activePage.CanCreatePopup())

@@ -19,9 +19,11 @@ namespace SourceGit.Commands
 
         public async Task<bool> AddAsync(string url, string relativePath, bool recursive)
         {
+            HttpProxyTarget = url;
             Args = $"--literal-pathspecs -c protocol.file.allow=always submodule add --progress -- {NormalizeURL(url).Quoted()} {relativePath.Quoted()}";
 
             var succ = await ExecAsync().ConfigureAwait(false);
+            HttpProxyTarget = null;
             if (!succ)
                 return false;
 

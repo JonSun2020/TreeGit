@@ -44,7 +44,7 @@ jobs:
           PACKAGE_RUN: ${{ inputs.package_run }}
         shell: pwsh
         run: |
-          $archive = (Get-ChildItem package/TreeGit-*-Windows-x64.zip | Select-Object -First 1).FullName
+          $archive = (Get-ChildItem package/TreeGit-*-Windows-x64-BundledGit.zip | Select-Object -First 1).FullName
           $sum = (Get-Content package/SHA256SUMS.txt -Raw).Trim() -split '\s+'
           $actual = (Get-FileHash $archive -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($actual -ne $sum[0]) { throw 'Archive checksum mismatch' }

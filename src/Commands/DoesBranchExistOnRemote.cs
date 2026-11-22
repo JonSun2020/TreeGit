@@ -12,6 +12,7 @@ namespace SourceGit.Commands
         public DoesBranchExistOnRemote(string repo, Models.Remote remote, Models.Branch branch)
         {
             WorkingDirectory = repo;
+            HttpProxyTarget = remote.URL;
             SSHKey = remote.PrivateSSHKey;
             RaiseError = false;
             _reference = $"refs/heads/{branch.Name}";

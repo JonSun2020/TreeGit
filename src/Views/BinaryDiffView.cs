@@ -364,8 +364,8 @@ namespace SourceGit.Views
                 var fg = this.FindResource("Brush.FG1") as IBrush ?? Brushes.Black;
                 var dim = this.FindResource("Brush.FG2") as IBrush ?? Brushes.Gray;
                 var changed = new SolidColorBrush(old ? Color.FromArgb(75, 240, 90, 90) : Color.FromArgb(75, 50, 190, 100));
-                var selection = this.FindResource("Brush.TreeGit.SelectionSecondary") as IBrush;
-                var selectionForeground = this.FindResource("Brush.TreeGit.SelectionSecondaryForeground") as IBrush ?? fg;
+                var selection = this.FindResource("Brush.TreeGit.Selection") as IBrush;
+                var selectionForeground = this.FindResource("Brush.TreeGit.SelectionForeground") as IBrush ?? fg;
                 var typeface = new Typeface("fonts:SourceGit#JetBrains Mono NL");
                 void Text(string value, double x, double y, IBrush brush) => context.DrawText(new FormattedText(value,
                     CultureInfo.InvariantCulture, FlowDirection.LeftToRight, typeface, 12, brush), new Point(x, y));

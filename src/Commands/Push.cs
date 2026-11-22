@@ -13,6 +13,7 @@ namespace SourceGit.Commands
         {
             WorkingDirectory = repo;
             Context = repo;
+            HttpProxyTarget = remote.PushURL ?? remote.URL;
             SSHKey = remote.PrivateSSHKey;
 
             var builder = new StringBuilder(1024);
@@ -36,6 +37,7 @@ namespace SourceGit.Commands
         {
             WorkingDirectory = repo;
             Context = repo;
+            HttpProxyTarget = remote.PushURL ?? remote.URL;
             SSHKey = remote.PrivateSSHKey;
 
             var builder = new StringBuilder(1024);
@@ -51,6 +53,7 @@ namespace SourceGit.Commands
         {
             WorkingDirectory = repo;
             Context = repo;
+            HttpProxyTarget = remote.PushURL ?? remote.URL;
             SSHKey = remote.PrivateSSHKey;
 
             var builder = new StringBuilder(512);

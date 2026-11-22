@@ -56,7 +56,12 @@ namespace SourceGit.Native
             var plan = JsonSerializer.Deserialize<Models.UpdatePlan>(ReadText(path));
             if (plan == null || plan.Format != 1 || plan.Product != "TreeGit" || !Guid.TryParseExact(plan.Id, "N", out _) ||
                 !TreeGitUpdater.TryVersion("treegit-v" + plan.BeforeVersion, out _) || !TreeGitUpdater.TryVersion("treegit-v" + plan.TargetVersion, out _) ||
-                new System.Version(plan.TargetVersion) <= new System.Version(plan.BeforeVersion) || !TreeGitUpdater.IsHash(plan.BeforeExeSha256) ||
+                new System.Version(plan.TargetVersion) < new System.Version(plan.BeforeVersion) ||
+                (plan.TargetVersion == plan.BeforeVersion && !plan.RepairBundledGit) ||
+                (plan.RepairBundledGit && !plan.EnableBundledGit) ||
+                (plan.RequiresSystemGit && (plan.EnableBundledGit || plan.BundledGitIdentity != null)) ||
+                (plan.EnableBundledGit && plan.BundledGitIdentity != null) ||
+                !TreeGitUpdater.IsHash(plan.BeforeExeSha256) ||
                 (plan.BundledGitIdentity != null && !TreeGitUpdater.IsHash(plan.BundledGitIdentity)) ||
                 !Path.GetFullPath(path).Equals(PlanPath(plan), StringComparison.OrdinalIgnoreCase) || plan.Files.Count is < 1 or > 6000 ||
                 !File.Exists(Path.Combine(plan.InstallRoot, "TreeGit.exe")))
@@ -66,7 +71,7 @@ namespace SourceGit.Native
             {
                 if (!TreeGitUpdater.AllowedFile(file.Path) || !TreeGitUpdater.IsHash(file.Sha256) ||
                     (file.BeforeSha256 != null && !TreeGitUpdater.IsHash(file.BeforeSha256)) || !unique.Add(file.Path) ||
-                    (plan.BundledGitIdentity != null && file.Path.StartsWith("git/", StringComparison.OrdinalIgnoreCase)))
+                    ((plan.BundledGitIdentity != null || plan.RequiresSystemGit) && file.Path.StartsWith("git/", StringComparison.OrdinalIgnoreCase)))
                     throw new Models.UpdateProblem("invalid");
                 _ = TreeGitUpdater.SafeChild(plan.InstallRoot, file.Path);
             }

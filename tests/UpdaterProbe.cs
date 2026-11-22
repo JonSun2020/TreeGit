@@ -82,7 +82,7 @@ namespace SourceGit.Tests
         {
             Check("path traversal and user-data writes are not program files", !Native.TreeGitUpdater.AllowedFile("../TreeGit.exe") && !Native.TreeGitUpdater.AllowedFile("data/preference.json") && !Native.TreeGitUpdater.AllowedFile("log/a.txt") && !Native.TreeGitUpdater.AllowedFile("git/../../data/a") && !Native.TreeGitUpdater.AllowedFile("data\\private.dll") && !Native.TreeGitUpdater.AllowedFile("git/../data/a.dll"));
             Check("version tags are exact and do not accept paths", Native.TreeGitUpdater.TryVersion("treegit-v2026.23.12", out _) && !Native.TreeGitUpdater.TryVersion("treegit-v2026.23.12\n", out _) && !Native.TreeGitUpdater.TryVersion("treegit-v../../escape", out _));
-            await Reject("release URLs must belong to this repository", () => { Native.TreeGitUpdater.ValidateAssetUrl("https://github.com/other/repo/releases/download/treegit-v2026.23.11/TreeGit-2026.23.11-Windows-x64.zip", "treegit-v2026.23.11", "TreeGit-2026.23.11-Windows-x64.zip"); return Task.CompletedTask; });
+            await Reject("release URLs must belong to this repository", () => { Native.TreeGitUpdater.ValidateAssetUrl("https://github.com/other/repo/releases/download/treegit-v2026.23.11/TreeGit-2026.23.11-Windows-x64-BundledGit.zip", "treegit-v2026.23.11", "TreeGit-2026.23.11-Windows-x64-BundledGit.zip"); return Task.CompletedTask; });
 
             using (var updater = new Native.TreeGitUpdater(NewRoot(), new HttpClient(new MetadataHandler(HttpStatusCode.TooManyRequests, ""))))
                 await Reject("rate limiting has a distinct retryable result", () => updater.CheckAsync(CancellationToken.None), "busy-service");
@@ -101,7 +101,7 @@ namespace SourceGit.Tests
                 using var zip = ZipFile.OpenRead(archive);
                 using var info = JsonDocument.Parse(zip.GetEntry("TreeGit/build-info.json")!.Open());
                 var version = info.RootElement.GetProperty("version").GetString();
-                var release = new Models.Version { TagName = "treegit-v" + version, Assets = [new() { Name = "TreeGit-" + version + "-Windows-x64.zip", DownloadUrl = "https://github.com/JonSun2020/TreeGit/releases/download/treegit-v" + version + "/TreeGit-" + version + "-Windows-x64.zip", Size = new FileInfo(archive).Length, Digest = "sha256:" + Native.TreeGitUpdater.Hash(archive) }] };
+                var release = new Models.Version { TagName = "treegit-v" + version, Assets = [new() { Name = "TreeGit-" + version + "-Windows-x64-BundledGit.zip", DownloadUrl = "https://github.com/JonSun2020/TreeGit/releases/download/treegit-v" + version + "/TreeGit-" + version + "-Windows-x64-BundledGit.zip", Size = new FileInfo(archive).Length, Digest = "sha256:" + Native.TreeGitUpdater.Hash(archive) }] };
                 using var updater = new Native.TreeGitUpdater(root, new HttpClient(new FixtureHandler(archive, release)));
                 var plan = await updater.PrepareAsync(release, null, CancellationToken.None);
                 File.WriteAllText(args[3], JsonSerializer.Serialize(new { planPath = Native.TreeGitUpdateInstaller.PlanPath(plan), id = plan.Id }));
@@ -199,7 +199,7 @@ namespace SourceGit.Tests
                     using (var zip = ZipFile.OpenRead(archive))
                     using (var info = JsonDocument.Parse(zip.GetEntry("TreeGit/build-info.json")!.Open())) fixtureVersion = info.RootElement.GetProperty("version").GetString();
                     var hash = Native.TreeGitUpdater.Hash(archive);
-                    var release = new Models.Version { TagName = "treegit-v" + fixtureVersion, Assets = [new() { Name = "TreeGit-" + fixtureVersion + "-Windows-x64.zip", DownloadUrl = "https://github.com/JonSun2020/TreeGit/releases/download/treegit-v" + fixtureVersion + "/TreeGit-" + fixtureVersion + "-Windows-x64.zip", Size = new FileInfo(archive).Length, Digest = "sha256:" + hash }] };
+                    var release = new Models.Version { TagName = "treegit-v" + fixtureVersion, Assets = [new() { Name = "TreeGit-" + fixtureVersion + "-Windows-x64-BundledGit.zip", DownloadUrl = "https://github.com/JonSun2020/TreeGit/releases/download/treegit-v" + fixtureVersion + "/TreeGit-" + fixtureVersion + "-Windows-x64-BundledGit.zip", Size = new FileInfo(archive).Length, Digest = "sha256:" + hash }] };
                     root = NewRoot();
                     using (var updater = new Native.TreeGitUpdater(root, new HttpClient(new FixtureHandler(archive, release))))
                     {
@@ -246,14 +246,18 @@ namespace SourceGit.Tests
 
         private static async Task VerifyAppUpdateAsync(string full, string app, string version)
         {
-            var release = FixtureRelease(full, version);
-            var appName = Path.GetFileName(app);
-            release.Assets.Add(new()
+            const string identityName = "BundledGit-Identity.txt";
+            var identityPath = Path.Combine(Path.GetDirectoryName(app)!, identityName);
+            var identity = File.ReadAllLines(identityPath).Last();
+            Check("detached Git identity is present and shaped as SHA-256", Native.TreeGitUpdater.IsHash(identity));
+            var tag = "treegit-v" + version;
+            var release = new Models.Version
             {
-                Name = appName, Size = new FileInfo(app).Length, Digest = "sha256:" + Native.TreeGitUpdater.Hash(app),
-                DownloadUrl = "https://github.com/JonSun2020/TreeGit/releases/download/" + release.TagName + "/" + appName,
-            });
-            foreach (var scenario in new[] { "compact", "expanded", "damaged-compact", "missing", "modified", "newer-release-git", "changed-after-prepare" })
+                TagName = tag,
+                Assets = [ReleaseAsset(full, tag), ReleaseAsset(app, tag), ReleaseAsset(identityPath, tag)],
+            };
+            foreach (var scenario in new[] { "compact", "expanded", "damaged-compact", "missing", "modified",
+                "newer-release-git", "newer-local-git", "changed-after-prepare", "system-healthy", "system-unavailable", "system-auto-fallback", "system-recovers-after-download", "repair-same-version" })
             {
                 var root = NewRoot();
                 try
@@ -280,36 +284,65 @@ namespace SourceGit.Tests
                     if (scenario == "damaged-compact") File.AppendAllText(packed, "changed");
                     if (scenario == "missing") File.Delete(ssh);
                     if (scenario == "modified") File.AppendAllText(config, "\n# modified stock file\n");
-                    if (scenario == "newer-release-git")
+                    if (scenario is "newer-release-git" or "newer-local-git")
                     {
                         var manifest = Path.Combine(git, "runtime-manifest.json");
                         var state = JsonNode.Parse(File.ReadAllText(manifest))!;
-                        state["gitVersion"] = "2.45.0.windows.1";
+                        state["gitVersion"] = scenario == "newer-release-git" ? "2.45.0.windows.1" : "99.1.0.windows.1";
                         File.WriteAllText(manifest, state.ToJsonString());
                     }
-                    var handler = new FixtureHandler(full, release, app);
+                    var useSystemGit = scenario is "system-healthy" or "system-unavailable" or "system-recovers-after-download";
+                    var repair = scenario == "repair-same-version";
+                    var fellBack = scenario == "system-auto-fallback";
+                    if (useSystemGit || repair) File.Delete(launcher);
+                    if (repair)
+                    {
+                        using (var zip = ZipFile.OpenRead(full))
+                            zip.GetEntry("TreeGit/TreeGit.exe")!.ExtractToFile(Path.Combine(root, "TreeGit.exe"), overwrite: true);
+                        var info = Path.Combine(root, "build-info.json");
+                        var state = JsonNode.Parse(File.ReadAllText(info))!;
+                        state["version"] = version;
+                        File.WriteAllText(info, state.ToJsonString());
+                    }
+                    var preference = new Native.TreeGitUpdater.GitPreference(!useSystemGit && !repair, () => scenario == "system-healthy", fellBack);
+                    var handler = new FixtureHandler(full, release, app, identityPath);
                     using var updater = new Native.TreeGitUpdater(root, new HttpClient(handler));
                     _ = await updater.CheckAsync(CancellationToken.None);
                     Check(scenario + " initial version check does not download a package", handler.RequestedAssets.Count == 0);
-                    var plan = await updater.PrepareAsync(release, null, CancellationToken.None);
-                    var light = scenario is "compact" or "expanded" or "changed-after-prepare";
-                    Check(scenario + " selects the expected package", handler.RequestedAssets.SequenceEqual([release.Assets[light ? 1 : 0].Name]) &&
-                        (plan.BundledGitIdentity != null) == light);
-                    Check(scenario + " detects its prepared package after reopening", updater.FindPrepared(release)?.Id == plan.Id);
+                    var plan = await updater.PrepareAsync(release, null, CancellationToken.None, preference: preference, repair: repair);
+                    var light = scenario is "compact" or "expanded" or "newer-local-git" or "changed-after-prepare";
+                    var systemOnly = scenario == "system-healthy";
+                    var expectedPackage = release.Assets[light || systemOnly ? 1 : 0].Name;
+                    Check(scenario + " selects the expected package", handler.RequestedAssets[^1] == expectedPackage &&
+                        handler.RequestedAssets.Count(name => name.EndsWith(".zip", StringComparison.Ordinal)) == 1 &&
+                        (plan.BundledGitIdentity != null) == light && plan.RequiresSystemGit == systemOnly &&
+                        plan.EnableBundledGit == (!light && !systemOnly) && plan.RepairBundledGit == repair);
+                    Check(scenario + " detects its prepared package after reopening", updater.FindPrepared(release, preference, repair)?.Id == plan.Id);
+                    if (useSystemGit || repair || fellBack)
+                        Check(scenario + " does not request the bundled runtime fingerprint", !handler.RequestedAssets.Contains(identityName));
                     if (scenario == "changed-after-prepare")
                     {
                         File.AppendAllText(config, "\n# changed after download\n");
                         Check("prepared lightweight update rejects Git that changed while waiting", updater.FindPrepared(release) == null);
                         await Reject("the installation worker rechecks unused Git before replacing the program",
                             () => { Native.TreeGitUpdateInstaller.Apply(plan); return Task.CompletedTask; }, "changed");
-                        plan = await updater.PrepareAsync(release, null, CancellationToken.None);
+                        plan = await updater.PrepareAsync(release, null, CancellationToken.None, preference: preference);
                         Check("a changed runtime can be repaired with the full package", plan.BundledGitIdentity == null && handler.RequestedAssets[^1] == release.Assets[0].Name);
+                    }
+                    if (scenario == "system-recovers-after-download")
+                    {
+                        Native.TreeGitUpdater.ReusePreparedProgramOnly(plan);
+                        Check("a recovered system Git can reuse the staged program without another download",
+                            updater.FindPrepared(release, new(false, () => true))?.Id == plan.Id &&
+                            handler.RequestedAssets.Count == 1 && plan.RequiresSystemGit && !plan.EnableBundledGit);
+                        systemOnly = true;
                     }
                     var verifiedIdentity = Native.GitRuntimeArchive.ReadUpdateIdentity(root);
                     Native.TreeGitUpdateInstaller.Apply(plan);
                     Check(scenario + " preserves files added by the user", File.ReadAllText(extra) == "my extra file");
                     Check(scenario + " installs the program and a valid runtime", Native.TreeGitUpdater.ReadInstalledVersion(root) == version &&
-                        Native.GitRuntimeArchive.VerifyForUpdate(root, appName[(appName.LastIndexOf('-') + 1)..^4]));
+                        (systemOnly ? !File.Exists(launcher) && !plan.Files.Any(f => f.Path.StartsWith("git/", StringComparison.Ordinal)) :
+                            Native.GitRuntimeArchive.VerifyForUpdate(root, scenario == "newer-local-git" ? verifiedIdentity : identity)));
                     if (light && scenario != "changed-after-prepare")
                         Check(scenario + " app-only update does not touch the Git layout", verifiedIdentity == Native.GitRuntimeArchive.ReadUpdateIdentity(root) &&
                             !plan.Files.Any(file => file.Path.StartsWith("git/", StringComparison.OrdinalIgnoreCase)) && File.Exists(packed) == (scenario == "compact"));
@@ -320,10 +353,20 @@ namespace SourceGit.Tests
             }
         }
 
+        private static Models.ReleaseAsset ReleaseAsset(string path, string tag)
+        {
+            var name = Path.GetFileName(path);
+            return new()
+            {
+                Name = name, Size = new FileInfo(path).Length, Digest = "sha256:" + Native.TreeGitUpdater.Hash(path),
+                DownloadUrl = "https://github.com/JonSun2020/TreeGit/releases/download/" + tag + "/" + name,
+            };
+        }
+
         private static Models.Version FixtureRelease(string archive, string version) => new()
         {
             TagName = "treegit-v" + version,
-            Assets = [new() { Name = "TreeGit-" + version + "-Windows-x64.zip", DownloadUrl = "https://github.com/JonSun2020/TreeGit/releases/download/treegit-v" + version + "/TreeGit-" + version + "-Windows-x64.zip", Size = new FileInfo(archive).Length, Digest = "sha256:" + Native.TreeGitUpdater.Hash(archive) }],
+            Assets = [new() { Name = "TreeGit-" + version + "-Windows-x64-BundledGit.zip", DownloadUrl = "https://github.com/JonSun2020/TreeGit/releases/download/treegit-v" + version + "/TreeGit-" + version + "-Windows-x64-BundledGit.zip", Size = new FileInfo(archive).Length, Digest = "sha256:" + Native.TreeGitUpdater.Hash(archive) }],
         };
 
         private sealed class MetadataHandler(HttpStatusCode status, string body) : HttpMessageHandler
@@ -332,7 +375,7 @@ namespace SourceGit.Tests
                 Task.FromResult(new HttpResponseMessage(status) { Content = new StringContent(body, Encoding.UTF8, "application/json") });
         }
 
-        private sealed class FixtureHandler(string archive, Models.Version release, string appArchive = null) : HttpMessageHandler
+        private sealed class FixtureHandler(string archive, Models.Version release, string appArchive = null, string identityPath = null) : HttpMessageHandler
         {
             public long? RequestedOffset { get; private set; }
             public bool IgnoreRange { get; init; }
@@ -343,7 +386,9 @@ namespace SourceGit.Tests
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(release), Encoding.UTF8, "application/json") });
                 var name = Path.GetFileName(request.RequestUri.LocalPath);
                 RequestedAssets.Add(name);
-                var stream = File.OpenRead(appArchive != null && name == Path.GetFileName(appArchive) ? appArchive : archive);
+                var asset = identityPath != null && name == Path.GetFileName(identityPath) ? identityPath :
+                    appArchive != null && name == Path.GetFileName(appArchive) ? appArchive : archive;
+                var stream = File.OpenRead(asset);
                 var offset = request.Headers.Range?.Ranges.Single().From;
                 RequestedOffset = offset;
                 if (IgnoreRange) offset = null;

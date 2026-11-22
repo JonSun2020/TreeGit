@@ -29,13 +29,20 @@ namespace SourceGit.Native
             return RequiredFiles.Skip(1).Any(name => File.Exists(CheckedUpdatePath(root, name)));
         }
 
-        internal static string ReadUpdateIdentity(string app) => InspectUpdateRuntime(app, null, default);
+        internal static string ReadUpdateIdentity(string app) => ReadUpdateRuntime(app).Identity;
+
+        internal static (string Identity, string Version) ReadUpdateRuntime(string app)
+        {
+            var identity = InspectUpdateRuntime(app, null, default, out var version);
+            return (identity, version);
+        }
 
         internal static bool VerifyForUpdate(string app, string identity, CancellationToken token = default)
-            => identity != null && InspectUpdateRuntime(app, identity, token) == identity;
+            => identity != null && InspectUpdateRuntime(app, identity, token, out _) == identity;
 
-        private static string InspectUpdateRuntime(string app, string expected, CancellationToken token)
+        private static string InspectUpdateRuntime(string app, string expected, CancellationToken token, out string runtimeVersion)
         {
+            runtimeVersion = null;
             try
             {
                 var root = CheckedUpdatePath(app, "git");
@@ -49,7 +56,7 @@ namespace SourceGit.Native
                 // Ignore JSON formatting and component enumeration order across builds.
                 var entries = files.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => pair.Key + "\t" + pair.Value);
                 var identity = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(version + "\n" + string.Join('\n', entries))));
-                if (expected == null) return identity;
+                if (expected == null) { runtimeVersion = version; return identity; }
                 if (identity != expected) return null;
 
                 if (!compact) return Complete(root, files, verifyConfig: true, token: token) ? identity : null;

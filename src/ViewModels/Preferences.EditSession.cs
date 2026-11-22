@@ -44,7 +44,6 @@ namespace SourceGit.ViewModels
                 Track(nameof(UseFixedTabWidth), () => owner.UseFixedTabWidth, v => owner.UseFixedTabWidth = v);
                 Track(nameof(UseAutoHideScrollBars), () => owner.UseAutoHideScrollBars, v => owner.UseAutoHideScrollBars = v);
                 Track(nameof(Check4UpdatesOnStartup), () => owner.Check4UpdatesOnStartup, v => owner.Check4UpdatesOnStartup = v);
-                Track(nameof(ShowLocalChangesByDefault), () => owner.ShowLocalChangesByDefault, v => owner.ShowLocalChangesByDefault = v);
                 Track(nameof(ShowChangesInCommitDetailByDefault), () => owner.ShowChangesInCommitDetailByDefault, v => owner.ShowChangesInCommitDetailByDefault = v);
                 Track(nameof(MaxHistoryCommits), () => owner.MaxHistoryCommits, v => owner.MaxHistoryCommits = v);
                 Track(nameof(SubjectGuideLength), () => owner.SubjectGuideLength, v => owner.SubjectGuideLength = v);

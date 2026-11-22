@@ -1557,7 +1557,7 @@ SSH 金鑰仍在遠端設定中設定。</x:String>
   <x:String x:Key="Text.TreeGit.Settings.Automatic" xml:space="preserve">自動選擇</x:String>
   <x:String x:Key="Text.TreeGit.Settings.DefaultRemote" xml:space="preserve">預設遠端：</x:String>
   <x:String x:Key="Text.TreeGit.Settings.MergeMode" xml:space="preserve">合併方式：</x:String>
-  <x:String x:Key="Text.TreeGit.Settings.ProxyHint" xml:space="preserve">留空以繼承全域代理設定</x:String>
+  <x:String x:Key="Text.TreeGit.Settings.ProxyHint" xml:space="preserve">留空時使用 Git 或 Windows 系統代理</x:String>
   <x:String x:Key="Text.TreeGit.Settings.HttpProxy" xml:space="preserve">HTTP 代理伺服器：</x:String>
   <x:String x:Key="Text.TreeGit.Settings.Prune" xml:space="preserve">擷取時清理已刪除的遠端分支參照</x:String>
   <x:String x:Key="Text.TreeGit.Settings.AutoRefresh" xml:space="preserve">自動重新整理檔案狀態</x:String>
@@ -1935,4 +1935,7 @@ SSH 金鑰仍在遠端設定中設定。</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Cancelling">正在取消…</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Cancelled">已取消，已完成的步驟保留。</x:String>
   <x:String x:Key="Text.TreeGit.Operation.ShowFullOutput">顯示完整輸出</x:String>
+  <x:String x:Key="Text.TreeGit.Git.MissingRepair">找不到可用的 Git。請安裝 Git，或下載 TreeGit 的 BundledGit 版本。要立即下載最新版 BundledGit 並自動修復嗎？</x:String>
+  <x:String x:Key="Text.TreeGit.Git.Unavailable">找不到可用的 Git。</x:String>
+  <x:String x:Key="Text.SelfUpdate.Flow.RepairAvailable">正在準備包含 Git 的完整更新。</x:String>
 </ResourceDictionary>

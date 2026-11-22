@@ -11,6 +11,7 @@ namespace SourceGit.Commands
         {
             WorkingDirectory = repo;
             Context = repo;
+            HttpProxyTarget = remote.URL;
             SSHKey = remote.PrivateSSHKey;
 
             var builder = new StringBuilder(512);
@@ -27,6 +28,7 @@ namespace SourceGit.Commands
         {
             WorkingDirectory = repo;
             Context = repo;
+            HttpProxyTarget = remote.URL;
             SSHKey = remote.PrivateSSHKey;
             RaiseError = false;
             Args = $"fetch --progress --verbose {remote.Name.Quoted()}";
@@ -36,6 +38,7 @@ namespace SourceGit.Commands
         {
             WorkingDirectory = repo;
             Context = repo;
+            HttpProxyTarget = remote.URL;
             SSHKey = remote.PrivateSSHKey;
             Args = $"fetch --progress --verbose {remote.Name} {remoteBranch.Name}:{local.Name}";
         }

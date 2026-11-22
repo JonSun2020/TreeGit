@@ -102,12 +102,17 @@ try:
     remote=root/'remote.git';git('init','--bare',str(remote));git('remote','add','origin',str(remote));git('push','-u','origin','main')
     (repo/'.git/sourcegit.uistates').write_text(json.dumps({'EnableSignOffForCommit':False}),encoding='utf-8')
     (repo / 'staged.txt').write_text('ready change\n', encoding='utf-8'); (repo / 'draft.txt').write_text('keep unstaged\n', encoding='utf-8')
+    earlier_untracked = repo / 'a-untracked.txt'
+    earlier_untracked.write_text('untracked before the tracked file\n', encoding='utf-8')
     process = subprocess.Popen([str(exe), '--mcp'], env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
         stderr=(out / 'mcp.log').open('w', encoding='utf-8'), text=True, encoding='utf-8', creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0))
     threading.Thread(target=lambda: [responses.put(v) for v in process.stdout], daemon=True).start()
     rpc('initialize', {'protocolVersion': '2025-11-25'}); pid = tool('ui_state')['processId']; verify_process(pid, exe)
     tool('ui_open_repository', repo=str(repo)); tool('ui_select_view', repo=str(repo), view='history')
-    wait(lambda: not state()['graphLoading'])
+    wait(lambda: state()['workingCopyStatusKnown'] and state()['workingCopySelected'] and not state()['graphLoading'])
+    check('a dirty repository tab selects the first tracked unstaged file before an untracked file',
+          state()['workingCopyState']['selectedUnstaged'] == ['draft.txt'])
+    earlier_untracked.unlink()
     def composition(): return (state().get('workingCopyState') or {}).get('composition')
     def composer_visible(): return bool(composition() and composition()['visible'])
     def commit_page(): tool('ui_select_view', repo=str(repo), view='commit'); wait(composer_visible)
@@ -259,11 +264,45 @@ try:
     check('sign-off checkbox adds the configured repository identity', 'Signed-off-by: TreeGit Demo <demo@example.invalid>' in git('log','-1','--format=%B'))
     probe('commit_push_after',0);probe('commit_signoff',0)
     repo=root/'new-repository';repo.mkdir();git('init','-b','main');git('config','user.name','TreeGit Demo');git('config','user.email','demo@example.invalid')
-    (repo/'first.txt').write_text('first commit content\n',encoding='utf-8');tool('ui_open_repository',repo=str(repo));commit_page()
+    (repo/'first.txt').write_text('first commit content\n',encoding='utf-8')
+    tool('ui_open_repository',repo=str(repo))
+    wait(lambda: state()['workingCopyStatusKnown'] and state()['workingCopySelected'])
+    check('an untracked-only repository tab selects the first untracked file',
+          state()['workingCopyState']['selectedUnstaged'] == ['first.txt'])
+    commit_page()
     wait(lambda: composition() and composition()['maskVisible']);check('new repositories also disable the empty-index composer',not composition()['inputEnabled'] and not composition()['commitEnabled'])
     git('add','first.txt');tool('ui_refresh',repo=str(repo));draft('First UI commit 中文');wait(lambda: composition() and composition()['commitEnabled']);probe('commit_staged')
     wait(lambda: composition() and not state()['workingCopyState']['committing'] and composition()['maskVisible'])
     check('complete commit page creates the first commit',git('rev-list','--count','HEAD')=='1' and git('log','-1','--format=%s')=='First UI commit 中文')
+    untracked_repo = repo
+    for current_only in (False, True):
+        repo = root / ('clean-current' if current_only else 'clean-all')
+        repo.mkdir()
+        git('init', '-b', 'main')
+        git('config', 'user.name', 'TreeGit Demo')
+        git('config', 'user.email', 'demo@example.invalid')
+        def dated_commit(label, date):
+            subprocess.run([shutil.which('git'), '-C', str(repo), 'commit', '--allow-empty', '-m', label],
+                           env={**env, 'GIT_AUTHOR_DATE': date, 'GIT_COMMITTER_DATE': date},
+                           capture_output=True, check=True)
+            return git('rev-parse', 'HEAD')
+        main = dated_commit('Main tip', '2025-01-01T12:00:00Z')
+        git('checkout', '-b', 'side')
+        side = dated_commit('Newer other branch tip', '2025-01-02T12:00:00Z')
+        git('checkout', 'main')
+        (repo / '.git/sourcegit.uistates').write_text(json.dumps({'ShowOnlyGraphBranch': current_only}), encoding='utf-8')
+        tool('ui_open_repository', repo=str(repo))
+        expected = main if current_only else side
+        wait(lambda: state()['workingCopyStatusKnown'] and state()['historySelectedCommits'] == [expected])
+        check('a clean tab selects the current tip' if current_only else 'a clean all-branches tab selects the newest commit',
+              git('branch', '--show-current') == 'main' and git('rev-parse', 'HEAD') == main)
+        if not current_only:
+            tool('ui_select_commit', repo=str(repo), revision=main)
+            wait(lambda: state()['historySelectedCommits'] == [main])
+            tool('ui_open_repository', repo=str(untracked_repo))
+            tool('ui_open_repository', repo=str(repo))
+            check('switching repository tabs keeps a previously selected commit',
+                  state()['historySelectedCommits'] == [main])
 except BaseException:
     failure = traceback.format_exc()
     if pid:

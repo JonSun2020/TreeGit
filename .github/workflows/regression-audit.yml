@@ -100,7 +100,7 @@ jobs:
           dotnet build src/SourceGit.csproj -c Debug -p:EnableIntegrationTests=true -p:UseSharedCompilation=false -m:1 -v:q
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           New-Item -ItemType Directory -Path src/bin/Debug/net10.0/data -Force | Out-Null
-          $archive = (Get-ChildItem update-fixture/TreeGit-*-Windows-x64.zip | Select-Object -First 1).FullName
+          $archive = (Get-ChildItem update-fixture/TreeGit-*-Windows-x64-BundledGit.zip | Select-Object -First 1).FullName
           python "$env:RUNNER_TEMP/update_ui.py" src/bin/Debug/net10.0/SourceGit.exe $archive "$env:RUNNER_TEMP/strict-update-results"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python "$env:RUNNER_TEMP/ui_models.py" src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/strict-model-results/fixture" "$env:RUNNER_TEMP/strict-model-results/logic-report.json"

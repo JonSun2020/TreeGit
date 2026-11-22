@@ -140,7 +140,7 @@ namespace SourceGit.Automation
             var args = request.GetProperty("arguments");
             if (args.ValueKind != JsonValueKind.Object)
                 throw new ArgumentException("arguments must be an object.");
-            if (name.StartsWith("git_", StringComparison.Ordinal) && !ViewModels.Preferences.Instance.IsGitConfigured())
+            if (name.StartsWith("git_", StringComparison.Ordinal) && !App.RequireGitForOperation())
                 throw new InvalidOperationException(App.Text("NotConfigured"));
             if (name == "ui_state")
                 return await Dispatcher.UIThread.InvokeAsync(() =>
@@ -679,7 +679,7 @@ namespace SourceGit.Automation
             var path = Path.GetFullPath(Text(args, "repo")).TrimEnd('\\', '/');
             if (name == "ui_open_repository")
             {
-                if (!ViewModels.Preferences.Instance.IsGitConfigured())
+                if (!App.RequireGitForOperation())
                     throw new InvalidOperationException(App.Text("NotConfigured"));
                 if (!Directory.Exists(path))
                     throw new ArgumentException("Repository directory does not exist.");
@@ -1181,6 +1181,7 @@ namespace SourceGit.Automation
             var activity = name == "git_action" ? Text(args, "action") : name;
             string remote = null;
             Models.Remote selectedRemote = null;
+            string httpProxyTarget = null;
             string tempMessage = null;
             var preserveSubmoduleArguments = false;
             var credentialScope = path;
@@ -1249,6 +1250,9 @@ namespace SourceGit.Automation
                                 configuredRemotes.FirstOrDefault(r => string.Equals(credentialScope, path, pathComparison) && r.Name == repo.Settings.DefaultRemote) ??
                                 configuredRemotes.FirstOrDefault(r => r.Name == "origin");
                         }
+                        if (allowAuthenticationRetry)
+                            httpProxyTarget = arguments.Skip(commandIndex + 1).FirstOrDefault(Native.GitSystemProxy.IsHttpUrl) ??
+                                (subcommand == "push" ? selectedRemote?.PushURL : null) ?? selectedRemote?.URL;
                         break;
                     case "git_action":
                         if (!request.TryGetProperty("allowWrite", out var allow) || !allow.GetBoolean())
@@ -1297,6 +1301,7 @@ namespace SourceGit.Automation
                                 selectedRemote = remotes.FirstOrDefault(r => r.Name == remote);
                                 if (selectedRemote == null || remote.StartsWith('-'))
                                     throw new ArgumentException("remote must name a configured remote (default origin).");
+                                httpProxyTarget = (action == "push" ? selectedRemote.PushURL : null) ?? selectedRemote.URL;
                                 command = action == "fetch" ? Join("fetch", "--", remote) : action == "pull" ? Join("pull", "--ff-only", "--", remote) : Join("push", "--", remote);
                                 break;
                             case "stash":
@@ -1371,7 +1376,11 @@ namespace SourceGit.Automation
                     default:
                         throw new ArgumentException("Unknown tool.");
                 }
-                var query = new Query(path, command) { PreserveSubmoduleArguments = preserveSubmoduleArguments, CredentialScope = credentialScope, UseCredentialManager = useCredentialManager };
+                var query = new Query(path, command)
+                {
+                    PreserveSubmoduleArguments = preserveSubmoduleArguments, CredentialScope = credentialScope,
+                    UseCredentialManager = useCredentialManager, HttpProxyTarget = httpProxyTarget,
+                };
                 if (selectedRemote != null)
                     query.SSHKey = selectedRemote.PrivateSSHKey;
                 ViewModels.CommandLog log = null;
@@ -1528,7 +1537,7 @@ namespace SourceGit.Automation
                 {
                 while (true)
                 {
-                    using var process = new System.Diagnostics.Process { StartInfo = CreateGitStartInfo(true) };
+                    using var process = new System.Diagnostics.Process { StartInfo = await CreateGitStartInfoAsync().ConfigureAwait(false) };
 #if INTEGRATION_TESTS
                     var trace = Environment.GetEnvironmentVariable("TREEGIT_TEST_QUERY_TRACE");
                     if (!string.IsNullOrEmpty(trace))

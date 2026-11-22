@@ -31,10 +31,11 @@ namespace SourceGit.Commands
             return await ExecAsync();
         }
 
-        public async Task<bool> PruneAsync(string name, string sshKey)
+        public async Task<bool> PruneAsync(Models.Remote remote)
         {
-            SSHKey = sshKey;
-            Args = $"remote prune {name}";
+            HttpProxyTarget = remote.URL;
+            SSHKey = remote.PrivateSSHKey;
+            Args = $"remote prune {remote.Name.Quoted()}";
             return await ExecAsync();
         }
 

@@ -9,14 +9,36 @@ namespace SourceGit.ViewModels
 {
     public class SelfUpdate : ObservableObject
     {
-        public SelfUpdate() : this(AppContext.BaseDirectory, Models.TreeGitRelease.Version, null) { }
+        public SelfUpdate() : this(AppContext.BaseDirectory, Models.TreeGitRelease.Version, null, ReadGitPreference) { }
 
-        internal SelfUpdate(string root, string currentVersion, Func<Native.TreeGitUpdater> factory)
+        internal SelfUpdate(string root, string currentVersion, Func<Native.TreeGitUpdater> factory,
+            Func<Native.TreeGitUpdater.GitPreference> gitPreference = null)
         {
             _root = root;
             _currentVersion = currentVersion;
             _factory = factory ?? (() => new Native.TreeGitUpdater(root));
+            _gitPreference = gitPreference;
         }
+        private static Native.TreeGitUpdater.GitPreference ReadGitPreference()
+        {
+            var preferences = Preferences.Instance;
+            var path = preferences.GitInstallPath;
+            return new(preferences.UseBundledGit, () => OperatingSystem.IsWindows() &&
+                (string.IsNullOrWhiteSpace(path) ? Native.GitExecutableLocator.FindInstalledWindowsGit() != null :
+                    !Native.GitExecutableLocator.IsManagedBundle(path) && Native.GitExecutableLocator.IsUsable(path)),
+                preferences.BundledGitFallbackThisSession);
+        }
+
+        internal async Task RepairGitAsync()
+        {
+            if (_taskActive || IsApplying) return;
+            _repairBundledGit = true;
+            await CheckAsync();
+            if (_closed) return;
+            if (CanDownload) await DownloadAsync();
+            else if (CanRestart) await InstallAsync();
+        }
+
         public object Data
         {
             get => _release;
@@ -89,7 +111,8 @@ namespace SourceGit.ViewModels
                     SetRelease(release);
                     if (_newAvailable)
                     {
-                        var prepared = await Task.Run(() => updater.FindPrepared(release));
+                        var preference = _gitPreference?.Invoke();
+                        var prepared = await Task.Run(() => updater.FindPrepared(release, preference, _repairBundledGit));
                         if (!_closed && prepared != null) { _plan = prepared; SetState("ready", App.Text("SelfUpdate.Flow.ReadyHint")); }
                     }
                 }
@@ -105,15 +128,19 @@ namespace SourceGit.ViewModels
             if (_taskActive || IsApplying) return;
             if (_state == "ready" || (_state == "failed" && _plan != null && !_retryDownload)) { await InstallAsync(); return; }
             if (_state == "available" || (_release != null && (_retryDownload || _state == "cancelled"))) { await DownloadAsync(); return; }
-            if (_state == "failed") await CheckAsync();
+            if (_state == "failed")
+            {
+                if (_repairBundledGit) await RepairGitAsync();
+                else await CheckAsync();
+            }
         }
 
         private void SetRelease(Models.Version release)
         {
             _release = release;
             _retryDownload = false;
-            _newAvailable = Native.TreeGitUpdater.TryVersion(release.TagName, out var version) && new System.Version(version) > new System.Version(_currentVersion);
-            SetState(_newAvailable ? "available" : "current", _newAvailable ? App.Text("SelfUpdate.Flow.AvailableHint") : string.Empty);
+            _newAvailable = Native.TreeGitUpdater.TryVersion(release.TagName, out var version) && (new System.Version(version) > new System.Version(_currentVersion) || _repairBundledGit && version == _currentVersion);
+            SetState(_newAvailable ? "available" : "current", _newAvailable ? App.Text(_repairBundledGit ? "SelfUpdate.Flow.RepairAvailable" : "SelfUpdate.Flow.AvailableHint") : string.Empty);
         }
 
         private async Task DownloadAsync(bool preferAppPackage = true)
@@ -132,7 +159,8 @@ namespace SourceGit.ViewModels
             try
             {
                 using var updater = _factory();
-                _plan = await Task.Run(() => updater.PrepareAsync(_release, progress, cancellation.Token, preferAppPackage));
+                var preference = _gitPreference?.Invoke();
+                _plan = await Task.Run(() => updater.PrepareAsync(_release, progress, cancellation.Token, preferAppPackage, preference, _repairBundledGit));
                 if (!_closed) SetState("ready", App.Text("SelfUpdate.Flow.ReadyHint"));
             }
             catch (OperationCanceledException) when (cancellation.IsCancellationRequested)
@@ -149,6 +177,8 @@ namespace SourceGit.ViewModels
                     ForegroundRequested?.Invoke();
                 }
             }
+
+            if (!_closed && _repairBundledGit && _state == "ready") await InstallAsync();
         }
 
         private async Task InstallAsync()
@@ -172,13 +202,21 @@ namespace SourceGit.ViewModels
             try
             {
                 var pending = _plan;
-                if (pending.BundledGitIdentity != null &&
-                    !await Task.Run(() => Native.GitRuntimeArchive.VerifyForUpdate(pending.InstallRoot, pending.BundledGitIdentity)))
+                var preference = _gitPreference?.Invoke();
+                var usingSystem = preference != null && !pending.RepairBundledGit &&
+                    await Task.Run(preference.HasUsableSystemGit);
+                if (usingSystem && pending.EnableBundledGit)
+                    Native.TreeGitUpdater.ReusePreparedProgramOnly(pending);
+                var modeChanged = preference != null && !pending.RepairBundledGit && pending.RequiresSystemGit != usingSystem;
+                var bundleChanged = pending.BundledGitIdentity != null &&
+                    (preference?.ForceBundledUpdate == true ||
+                        !await Task.Run(() => Native.GitRuntimeArchive.VerifyForUpdate(pending.InstallRoot, pending.BundledGitIdentity)));
+                if (modeChanged || bundleChanged)
                 {
                     _plan = null;
                     Native.TreeGitUpdateInstaller.IsApplying = false;
                     Automation.GuiBridge.EndUpdate();
-                    await DownloadAsync(preferAppPackage: false);
+                    await DownloadAsync(preferAppPackage: !bundleChanged);
                     return;
                 }
                 try
@@ -275,6 +313,8 @@ namespace SourceGit.ViewModels
         private readonly string _root;
         private readonly string _currentVersion;
         private readonly Func<Native.TreeGitUpdater> _factory;
+        private readonly Func<Native.TreeGitUpdater.GitPreference> _gitPreference;
+        private bool _repairBundledGit;
         private bool _newAvailable;
         private Models.UpdatePlan _plan;
         private CancellationTokenSource _cancellation = new();

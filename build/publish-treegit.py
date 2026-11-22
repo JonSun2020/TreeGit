@@ -57,18 +57,25 @@ assert len(run["jobs"]) == 3 and all(j["conclusion"] == "success" for j in run["
 with tempfile.TemporaryDirectory(prefix="TreeGit-publish-") as temporary:
     folder = Path(temporary)
     gh("run", "download", run_id, "-n", "TreeGit-Windows-x64", "-D", str(folder))
-    archive_name = f"TreeGit-{version}-Windows-x64.zip"
+    archive_name = f"TreeGit-{version}-Windows-x64-BundledGit.zip"
     checksum_file = folder / "SHA256SUMS.txt"
     rows = checksum_file.read_text("utf-8-sig").splitlines()
-    assert len(rows) == 2, "Expected checksums for the full and app-only packages"
+    assert len(rows) == 3, "Expected both package checksums and the runtime identity checksum"
     checksums = {}
     for row in rows:
         digest, name = row.split()
         assert re.fullmatch(r"[0-9a-f]{64}", digest) and name not in checksums
         checksums[name] = digest
-    assert archive_name in checksums
-    app_name = next(name for name in checksums if name != archive_name)
-    assert re.fullmatch(rf"TreeGit-{re.escape(version)}-Windows-x64-App-[0-9a-f]{{64}}\.zip", app_name)
+    app_name = f"TreeGit-{version}-Windows-x64-SystemGit.zip"
+    identity_name = "BundledGit-Identity.txt"
+    assert set(checksums) == {archive_name, app_name, identity_name}
+    git_version, identity = (folder / identity_name).read_text("ascii").splitlines()
+    assert re.fullmatch(r"[0-9a-f]{64}", identity)
+    with zipfile.ZipFile(folder / archive_name) as package:
+        manifest = json.loads(package.read("TreeGit/git/payload-manifest.json"))
+        files = sorted((item["path"], item["sha256"].lower()) for item in manifest["files"])
+    fingerprint = manifest["gitVersion"] + "\n" + "\n".join(path + "\t" + digest for path, digest in files)
+    assert git_version == manifest["gitVersion"] and hashlib.sha256(fingerprint.encode()).hexdigest() == identity
     assert {p.name for p in folder.iterdir()} == {*checksums, checksum_file.name}
     for name, digest in checksums.items():
         assert sha(folder / name) == digest, f"Checksum mismatch: {name}"
@@ -86,7 +93,7 @@ with tempfile.TemporaryDirectory(prefix="TreeGit-publish-") as temporary:
         f"完整包 SHA-256：`{checksums[archive_name]}`。\n\n"
         f"轻量更新包 SHA-256：`{checksums[app_name]}`。\n", encoding="utf-8")
     assets = {p.name: p for p in folder.iterdir()}
-    assert len(assets) == 7
+    assert len(assets) == 8
     tag = "treegit-v" + version
     existing = subprocess.run(["gh", "release", "view", tag, "--json", "isDraft,targetCommitish,assets"],
                               capture_output=True, text=True, encoding="utf-8")

@@ -7,6 +7,7 @@ namespace SourceGit.Commands
         internal VerifyRemoteCredentials(string repo, Models.Remote remote, string scope = null)
         {
             WorkingDirectory = Context = repo; CredentialScope = scope;
+            HttpProxyTarget = remote.URL;
             SSHKey = remote.PrivateSSHKey; RaiseError = false; Editor = EditorType.None;
             Args = "ls-remote -- " + (remote.Name ?? remote.URL).Quoted() + " HEAD";
         }

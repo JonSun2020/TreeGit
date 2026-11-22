@@ -11,6 +11,7 @@ namespace SourceGit.Commands
         {
             WorkingDirectory = repo;
             Context = repo;
+            HttpProxyTarget = remote.URL;
             SSHKey = remote.PrivateSSHKey;
 
             var builder = new StringBuilder(512);

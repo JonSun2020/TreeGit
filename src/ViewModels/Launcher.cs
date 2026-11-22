@@ -99,7 +99,7 @@ namespace SourceGit.ViewModels
 
         public bool TryOpenRepositoryFromPath(string repo)
         {
-            if (string.IsNullOrEmpty(repo) || !Directory.Exists(repo)) return false;
+            if (string.IsNullOrEmpty(repo) || !Directory.Exists(repo) || !App.RequireGitForOperation()) return false;
             var inspected = InspectLaunchPath(repo);
             return OpenLaunchPath(repo, inspected.IsBare, inspected.Result, defer: false);
         }
@@ -585,7 +585,10 @@ namespace SourceGit.ViewModels
             if (_ignoreIndexChange)
                 return;
 
-            _ = LoadPageAsync(_activePage, "active-repository-loaded");
+            if (_activePage?.Data is Repository repository)
+                repository.ActivateHistorySelection();
+            else
+                _ = LoadPageAsync(_activePage, "active-repository-loaded");
             if (_activePage?.Node.IsRepository == true)
                 _activeWorkspace.ActiveIdx = _activeWorkspace.Repositories.IndexOf(_activePage.Node.Id);
 
@@ -624,6 +627,8 @@ namespace SourceGit.ViewModels
             var repo = new Repository(details.IsBare, page.Node.Id, details.GitDir);
             repo.Open();
             page.Data = repo;
+            if (page == ActivePage)
+                repo.ActivateHistorySelection();
         }
 
         private void FailRepositoryLoad(LauncherPage page, RepositoryLoading pending, Exception error)

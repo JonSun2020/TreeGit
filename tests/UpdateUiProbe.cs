@@ -355,7 +355,7 @@ namespace SourceGit.Tests
                 using var zip = System.IO.Compression.ZipFile.OpenRead(archive);
                 using var info = JsonDocument.Parse(zip.GetEntry("TreeGit/build-info.json")!.Open());
                 Version = info.RootElement.GetProperty("version").GetString();
-                _release = new Models.Version { TagName = "treegit-v" + Version, Body = "更快打开仓库\n可选择本机字体\n内置二进制对比，无需外部工具", Assets = [new() { Name = "TreeGit-" + Version + "-Windows-x64.zip", DownloadUrl = "https://github.com/JonSun2020/TreeGit/releases/download/treegit-v" + Version + "/TreeGit-" + Version + "-Windows-x64.zip", Size = new FileInfo(archive).Length, Digest = "sha256:" + Native.TreeGitUpdater.Hash(archive) }] };
+                _release = new Models.Version { TagName = "treegit-v" + Version, Body = "更快打开仓库\n可选择本机字体\n内置二进制对比，无需外部工具", Assets = [new() { Name = "TreeGit-" + Version + "-Windows-x64-BundledGit.zip", DownloadUrl = "https://github.com/JonSun2020/TreeGit/releases/download/treegit-v" + Version + "/TreeGit-" + Version + "-Windows-x64-BundledGit.zip", Size = new FileInfo(archive).Length, Digest = "sha256:" + Native.TreeGitUpdater.Hash(archive) }] };
             }
 
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken token)

@@ -29,6 +29,9 @@ namespace SourceGit.Models
         public string BeforeExeSha256 { get; set; }
         public string PackageSha256 { get; set; }
         public string BundledGitIdentity { get; set; }
+        public bool RequiresSystemGit { get; set; }
+        public bool EnableBundledGit { get; set; }
+        public bool RepairBundledGit { get; set; }
         public int ParentPid { get; set; }
         public long ParentStartTicks { get; set; }
         public int WorkerPid { get; set; }

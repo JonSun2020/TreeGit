@@ -246,7 +246,7 @@ jobs:
         run: |
           dotnet build tests/GitDiscoveryProbe.csproj -c Release -o "$env:RUNNER_TEMP/discovery-probe" -v:q
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $archive = (Get-ChildItem TreeGit-*-Windows-x64.zip | Select-Object -First 1).FullName
+          $archive = (Get-ChildItem TreeGit-*-Windows-x64-BundledGit.zip | Select-Object -First 1).FullName
           & "$env:RUNNER_TEMP/discovery-probe/GitDiscoveryProbe.exe" "$env:RUNNER_TEMP/discovery-results" "$env:RUNNER_TEMP/TreeGit/git/cmd/git.exe" $archive
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify update validation and recovery
@@ -255,8 +255,8 @@ jobs:
         run: |
           dotnet build tests/UpdaterProbe.csproj -c Release -o "$env:RUNNER_TEMP/updater-probe" -v:q
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $archive = (Get-ChildItem TreeGit-*-Windows-x64.zip | Select-Object -First 1).FullName
-          $appArchive = (Get-ChildItem TreeGit-*-Windows-x64-App-*.zip | Select-Object -First 1).FullName
+          $archive = (Get-ChildItem TreeGit-*-Windows-x64-BundledGit.zip | Select-Object -First 1).FullName
+          $appArchive = (Get-ChildItem TreeGit-*-Windows-x64-SystemGit.zip | Select-Object -First 1).FullName
           & "$env:RUNNER_TEMP/updater-probe/UpdaterProbe.exe" "$env:RUNNER_TEMP/updater-results" $archive $appArchive
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Verify MCP protocol and portable packaging
@@ -347,9 +347,10 @@ jobs:
         with:
           name: TreeGit-Windows-x64
           path: |
-            TreeGit-*-Windows-x64.zip
-            TreeGit-*-Windows-x64-App-*.zip
+            TreeGit-*-Windows-x64-BundledGit.zip
+            TreeGit-*-Windows-x64-SystemGit.zip
             SHA256SUMS.txt
+            BundledGit-Identity.txt
   updater-ui:
     if: ${{ !inputs.preview }}
     needs: portable
@@ -368,7 +369,7 @@ jobs:
         run: |
           dotnet build src/SourceGit.csproj -c Debug -p:EnableIntegrationTests=true -v:q
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          $archive = (Get-ChildItem update-fixture/TreeGit-*-Windows-x64.zip | Select-Object -First 1).FullName
+          $archive = (Get-ChildItem update-fixture/TreeGit-*-Windows-x64-BundledGit.zip | Select-Object -First 1).FullName
           New-Item -ItemType Directory -Path src/bin/Debug/net10.0/data -Force | Out-Null
           python tests/update_ui.py src/bin/Debug/net10.0/SourceGit.exe $archive "$env:RUNNER_TEMP/updater-ui-results"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

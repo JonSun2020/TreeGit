@@ -23,7 +23,12 @@
 
 ## 下载与使用
 
-下载 [TreeGit 2026.24.12 · Windows x64](https://github.com/JonSun2020/TreeGit/releases/download/treegit-v2026.24.12/TreeGit-2026.24.12-Windows-x64.zip)，解压后运行 `TreeGit/TreeGit.exe`。便携包包含 Git 和运行时，优先使用本机 Git。校验值见 [Releases](https://github.com/JonSun2020/TreeGit/releases/latest)。现有用户可通过“帮助 → 检查更新”升级。
+在 [GitHub Releases](https://github.com/JonSun2020/TreeGit/releases/latest) 选择 Windows x64 便携包，解压后运行 TreeGit/TreeGit.exe。
+
+- **SystemGit** 适合已有可用 Git 的电脑。体积较小，使用电脑已安装的 Git。
+- **BundledGit** 随包提供 Git，以及 OpenSSH 和 Git LFS 等组件。适合没有 Git、离线部署或需要修复内置 Git 的电脑。
+
+两个压缩包的 SHA-256 均列在同一发行页的 SHA256SUMS.txt。新版可在“帮助 → 检查更新”自动选择需要的包。
 
 AI 连接：在“工具 → MCP · AI 连接”复制配置。详见 [MCP 使用说明](docs/MCP.md)。
 

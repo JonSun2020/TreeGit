@@ -13,6 +13,7 @@ namespace SourceGit.Commands
         internal VerifyPushCredentials(string repo, Models.Remote remote)
         {
             WorkingDirectory = Context = repo;
+            HttpProxyTarget = remote.PushURL ?? remote.URL;
             SSHKey = remote.PrivateSSHKey;
             RaiseError = false;
             Editor = EditorType.None;

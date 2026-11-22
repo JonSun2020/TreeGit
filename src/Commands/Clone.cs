@@ -10,6 +10,7 @@ namespace SourceGit.Commands
         {
             Context = ctx;
             WorkingDirectory = path;
+            HttpProxyTarget = url;
             SSHKey = sshKey;
 
             // Keep credentials for a new clone scoped to its destination, rather than

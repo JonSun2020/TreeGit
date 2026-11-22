@@ -24,8 +24,8 @@ def check(name,condition):
     assert condition,name;checks.append(name);print('PASS',name,flush=True)
 first=root/'assets';r=pack(first, app=True)
 if r.returncode!=0:raise RuntimeError(r.stdout.decode('utf-8',errors='replace')+r.stderr.decode('utf-8',errors='replace'))
-check('a normal build creates a versioned archive',(first/'TreeGit-0.0.1-Windows-x64.zip').is_file())
-archive=first/'TreeGit-0.0.1-Windows-x64.zip'
+check('a normal build creates a versioned archive',(first/'TreeGit-0.0.1-Windows-x64-BundledGit.zip').is_file())
+archive=first/'TreeGit-0.0.1-Windows-x64-BundledGit.zip'
 with zipfile.ZipFile(archive) as z:
     wrappers={'cmd/git.exe','runtime.zip','runtime-manifest.json','payload-manifest.json','COMPONENTS.md','LICENSE.txt','licenses/Git-LFS-LICENSE.md','licenses/Git-Flow-LICENSE'}
     check('the portable package keeps Git compressed',set(z.namelist())=={'TreeGit/'+name for name in files}|{'TreeGit/data/'}|{'TreeGit/git/'+n for n in wrappers})
@@ -39,8 +39,10 @@ check('packaging leaves both personal MCP configurations unchanged',all((source/
 check('the published SHA256 matches the complete archive',hashlib.sha256(archive.read_bytes()).hexdigest()==(first/'SHA256SUMS.txt').read_text().split()[0])
 entries=sorted((entry['path'],entry['sha256']) for entry in manifest['files'])
 identity=hashlib.sha256('\n'.join([manifest['gitVersion']]+[f'{path}\t{sha}' for path,sha in entries]).encode()).hexdigest()
-app=first/f'TreeGit-0.0.1-Windows-x64-App-{identity}.zip'
-check('the lightweight update identifies the exact shipped Git version and component files',app.is_file())
+app=first/'TreeGit-0.0.1-Windows-x64-SystemGit.zip'
+record=first/'BundledGit-Identity.txt'
+check('both variant names omit checksums and the runtime identity is detached',app.is_file() and record.read_text().splitlines()==[manifest["gitVersion"],identity])
+check('the detached identity file also has a published SHA256', hashlib.sha256(record.read_bytes()).hexdigest()+'  '+record.name in (first/'SHA256SUMS.txt').read_text())
 with zipfile.ZipFile(archive) as full,zipfile.ZipFile(app) as program:
     program_names=[name for name in full.namelist() if not name.startswith('TreeGit/git/')]
     check('the lightweight package has the same program and no Git files',set(program.namelist())==set(program_names) and all(program.read(name)==full.read(name) for name in program_names))

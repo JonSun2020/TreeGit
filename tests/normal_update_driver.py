@@ -22,7 +22,7 @@ try:
  pack=subprocess.run(['powershell','-NoProfile','-ExecutionPolicy','Bypass','-File',str(source/'package-treegit.ps1'),'-Source',str(exe.parent),'-Destination',str(assets)],capture_output=True,creationflags=subprocess.CREATE_NO_WINDOW,timeout=120)
  assert pack.returncode==0,(pack.stdout+pack.stderr).decode('utf-8',errors='replace')[-3000:]
  version=json.loads((exe.parent/'build-info.json').read_text('utf-8-sig'))['version']
- new_archive=assets/f'TreeGit-{version}-Windows-x64.zip';assert new_archive.is_file()
+ new_archive=assets/f'TreeGit-{version}-Windows-x64-BundledGit.zip';assert new_archive.is_file()
  broken=fixture/'startup-failure-fixture.zip'
  with zipfile.ZipFile(new_archive) as original,zipfile.ZipFile(broken,'w') as target:
   for entry in original.infolist():target.writestr(entry,b'' if entry.filename=='TreeGit/av_libglesv2.dll' else original.read(entry))

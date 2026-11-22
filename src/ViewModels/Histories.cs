@@ -292,6 +292,19 @@ namespace SourceGit.ViewModels
             IsWorkingCopySelected = true;
             IsCollapseDetails = false;
             DetailContext = _repo.WorkingCopy;
+            _repo.WorkingCopy.SelectInitialUnstaged();
+        }
+
+        internal void SelectLatestCommit()
+        {
+            var latest = BranchDisplayMode == 0
+                ? _commits.MaxBy(commit => commit.CommitterTime)
+                : _commits.Find(commit => commit.SHA == _preferredGraphHead);
+            if (latest == null)
+                return;
+
+            _repo.RequestCommitBranchSelection(latest);
+            NavigateTo(latest.SHA);
         }
 
         private bool _isWorkingCopySelected;

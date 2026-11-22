@@ -573,13 +573,13 @@
   </Style>
 
   <Style Selector=":is(TextBox)">
-    <Setter Property="SelectionBrush" Value="{DynamicResource Brush.TreeGit.SelectionSecondary}"/>
-    <Setter Property="SelectionForegroundBrush" Value="{DynamicResource Brush.TreeGit.SelectionSecondaryForeground}"/>
+    <Setter Property="SelectionBrush" Value="{DynamicResource Brush.TreeGit.Selection}"/>
+    <Setter Property="SelectionForegroundBrush" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
   </Style>
 
   <Style Selector=":is(SelectableTextBlock)">
-    <Setter Property="SelectionBrush" Value="{DynamicResource Brush.TreeGit.SelectionSecondary}"/>
-    <Setter Property="SelectionForegroundBrush" Value="{DynamicResource Brush.TreeGit.SelectionSecondaryForeground}"/>
+    <Setter Property="SelectionBrush" Value="{DynamicResource Brush.TreeGit.Selection}"/>
+    <Setter Property="SelectionForegroundBrush" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
   </Style>
 
   <Style Selector="TextBox">
@@ -1682,8 +1682,8 @@
       </FocusAdornerTemplate>
     </Setter>
     <Setter Property="SelectionBorder" Value="{x:Null}"/>
-    <Setter Property="SelectionBrush" Value="{DynamicResource Brush.TreeGit.SelectionSecondary}"/>
-    <Setter Property="SelectionForeground" Value="{DynamicResource Brush.TreeGit.SelectionSecondaryForeground}"/>
+    <Setter Property="SelectionBrush" Value="{DynamicResource Brush.TreeGit.Selection}"/>
+    <Setter Property="SelectionForeground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
   </Style>
 
   <Style Selector="aes|SearchPanel">

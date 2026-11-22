@@ -460,6 +460,15 @@ namespace SourceGit.ViewModels
             UpdateDetail();
         }
 
+        internal void SelectInitialUnstaged()
+        {
+            if (_visibleUnstaged.Count == 0 || _selectedUnstaged is { Count: > 0 } || _selectedStaged is { Count: > 0 })
+                return;
+
+            var first = _visibleUnstaged.Find(change => change.WorkTree != Models.ChangeState.Untracked) ?? _visibleUnstaged[0];
+            SelectedUnstaged = new(new[] { first });
+        }
+
         public bool CanChangeIndex => !IsStaging && !IsUnstaging && !IsCommitting;
 
         public void RequestConflictSelection()
@@ -486,7 +495,7 @@ namespace SourceGit.ViewModels
 
         private async Task<bool> StageAsync(List<Models.Change> changes, Models.Change next, bool allVisible)
         {
-            if (IsStaging || IsUnstaging) return false;
+            if (IsStaging || IsUnstaging || !App.RequireGitForOperation()) return false;
             var filter = _filter;
             var statusFilter = _changeStatusFilter;
             var sortOrder = _changeSortOrder;
@@ -542,7 +551,7 @@ namespace SourceGit.ViewModels
 
         private async Task UnstageAsync(List<Models.Change> changes, Models.Change next, bool allVisible)
         {
-            if (IsStaging || IsUnstaging || IsCommitting) return;
+            if (IsStaging || IsUnstaging || IsCommitting || !App.RequireGitForOperation()) return;
             var filter = _filter;
             var statusFilter = _changeStatusFilter;
             var sortOrder = _changeSortOrder;
@@ -806,7 +815,7 @@ namespace SourceGit.ViewModels
         public async Task CommitAsync(bool autoStage, bool autoPush, bool requireStagedFiles = false)
         {
             var stageSelectedAfterAuthentication = false;
-            if (!CanChangeIndex || string.IsNullOrWhiteSpace(_commitMessage))
+            if (!CanChangeIndex || string.IsNullOrWhiteSpace(_commitMessage) || !App.RequireGitForOperation())
                 return;
 
             if (!_repo.CanCreatePopup())
