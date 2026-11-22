@@ -642,7 +642,10 @@ try:
  def sidebar(group,action=0,folder=None):
   return client.probe('sidebar_reveal',action,group+('|' + folder if folder else ''))
  def visible_in(group,item):
-  return wait(lambda:s if (s:=sidebar(group))['open'] and s['offset']>0 and item in s['visible'] else None)
+  try:
+   return wait(lambda:s if (s:=sidebar(group))['open'] and s['offset']>0 and item in s['visible'] else None)
+  except AssertionError:
+   raise AssertionError((group, item, sidebar(group))) from None
  def select_sidebar_commit(sha):
   client.tool('ui_select_commit',repo=str(scroll_repo),revision=sha)
   return wait(lambda:s if (s:=scroll_state())['detailCommit']==sha and

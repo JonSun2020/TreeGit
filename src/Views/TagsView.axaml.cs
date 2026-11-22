@@ -166,6 +166,9 @@ namespace SourceGit.Views
                     this.FindDescendantOfType<ListBox>() is not { } list)
                     return;
 
+                // The sidebar can resize all its sections when Tags opens.
+                // Resolve the virtual row after the new viewport has been laid out.
+                list.UpdateLayout();
                 bool Matches(object row) => row switch
                 {
                     ViewModels.TagListItem item => item.IsCommitTag && prefix == null,
@@ -179,7 +182,7 @@ namespace SourceGit.Views
                 var target = Matches(list.SelectedItem) ? list.SelectedItem : list.Items.FirstOrDefault(Matches);
                 if (target != null)
                     list.ScrollIntoView(target);
-            }, DispatcherPriority.Loaded);
+            }, DispatcherPriority.ContextIdle);
         }
 
         public void ToggleNodeIsExpanded(ViewModels.TagTreeNode node)
