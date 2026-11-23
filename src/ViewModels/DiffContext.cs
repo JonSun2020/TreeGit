@@ -138,7 +138,7 @@ namespace SourceGit.ViewModels
 
         public void OpenReadOnlyComparison() => App.OpenInternalComparison(_repo, _option, allowChanges: false);
 
-        internal void Reload() => LoadContent();
+        internal void Reload() => LoadContent(force: true);
 
         public void RefreshLocalizedText()
         {
@@ -150,34 +150,32 @@ namespace SourceGit.ViewModels
         public void CheckSettings()
         {
             if (RefreshContextOption()) return;
-            var pref = Settings;
-            if (_info == null || _info.CodePage != Models.DisplayEncoding.CodePage(DisplayEncodingIndex))
+            var options = GetReadOptions();
+            var reading = Volatile.Read(ref _loadCancellation) != null;
+            if (_info == null || _info.Options.CodePage != options.CodePage ||
+                (reading && _requestedOptions != options) ||
+                ((Content is TextDiffContext or Models.NoOrEOLChange) && _info.Options != options))
             {
-                LoadContent();
+                LoadContent(options);
                 return;
             }
 
-            if (Content is TextDiffContext ctx)
-            {
-                if (_info.UnifiedLines != ContextLines ||
-                    (pref.IgnoreWhitespaceChangesInDiff != _info.IgnoreWhitespace))
-                {
-                    LoadContent();
-                    return;
-                }
-
-                if (ctx.IsSideBySide() != pref.UseSideBySideDiff && !ctx.Data.IsNewOrDeletedFile)
-                    Content = ctx.SwitchMode();
-            }
-            else if (Content is Models.NoOrEOLChange)
-            {
-                if (pref.IgnoreWhitespaceChangesInDiff != _info.IgnoreWhitespace)
-                    LoadContent();
-            }
+            if (Content is TextDiffContext ctx && ctx.IsSideBySide() != Settings.UseSideBySideDiff && !ctx.Data.IsNewOrDeletedFile)
+                Content = ctx.SwitchMode();
         }
 
-        private void LoadContent()
+        private ReadOptions GetReadOptions() => new(ContextLines, Models.DisplayEncoding.CodePage(DisplayEncodingIndex),
+            Settings.IgnoreWhitespaceChangesInDiff, Settings.IgnoreCRAtEOLInDiff);
+
+        private void LoadContent(bool force = false) => LoadContent(GetReadOptions(), force);
+
+        private void LoadContent(ReadOptions options, bool force = false)
         {
+            // Opening the panel and applying settings can both ask for the
+            // same diff before its first result has reached the UI thread.
+            if (!force && _requestedOptions == options && Volatile.Read(ref _loadCancellation) != null)
+                return;
+
             CancelLoad();
             var loadVersion = Volatile.Read(ref _loadVersion);
             if (_option.Path.EndsWith('/'))
@@ -194,12 +192,11 @@ namespace SourceGit.ViewModels
 
             var load = new CancellationTokenSource();
             var token = load.Token;
-            var encoding = Models.DisplayEncoding.CodePage(DisplayEncodingIndex);
-            var numLines = ContextLines;
+            _requestedOptions = options;
             _loadCancellation = load;
             LoadCompletion = Task.Run(async () =>
             {
-                try { await ReadContentAsync(loadVersion, encoding, numLines, token).ConfigureAwait(false); }
+                try { await ReadContentAsync(loadVersion, options, token).ConfigureAwait(false); }
                 catch (OperationCanceledException) when (token.IsCancellationRequested) { }
                 catch (Exception error) { Native.OS.LogException(error); }
                 finally
@@ -224,19 +221,17 @@ namespace SourceGit.ViewModels
             finally { source.Dispose(); }
         }
 
-        private async Task ReadContentAsync(int loadVersion, int codePage, int numLines, CancellationToken token)
+        private async Task ReadContentAsync(int loadVersion, ReadOptions options, CancellationToken token)
         {
             token.ThrowIfCancellationRequested();
-            var pref = Settings;
-            var ignoreWhitespace = pref.IgnoreWhitespaceChangesInDiff;
-            var ignoreCRAtEOL = pref.IgnoreCRAtEOLInDiff;
+            var (numLines, codePage, ignoreWhitespace, ignoreCRAtEOL) = options;
 
             var command = new Commands.Diff(_repo, _option, numLines, ignoreWhitespace, ignoreCRAtEOL, codePage) { CancellationToken = token };
             var latest = await command.ReadAsync()
                 .ConfigureAwait(false);
 
-            var info = new Info(_option, numLines, ignoreWhitespace, codePage, latest);
-            if (_info != null && info.IsSame(_info))
+            var info = new Info(_option.ToString(), options, latest.OldHash, latest.NewHash, latest.OldMode, latest.NewMode);
+            if (info == _info)
                 return;
 
             object rs = null;
@@ -457,34 +452,9 @@ namespace SourceGit.ViewModels
             return false;
         }
 
-        private class Info
-        {
-            public string Argument { get; }
-            public int UnifiedLines { get; }
-            public bool IgnoreWhitespace { get; }
-            public int CodePage { get; }
-            public string OldHash { get; }
-            public string NewHash { get; }
+        private readonly record struct ReadOptions(int ContextLines, int CodePage, bool IgnoreWhitespace, bool IgnoreCRAtEOL);
 
-            public Info(Models.DiffOption option, int unifiedLines, bool ignoreWhitespace, int codePage, Models.DiffResult result)
-            {
-                Argument = option.ToString();
-                UnifiedLines = unifiedLines;
-                IgnoreWhitespace = ignoreWhitespace;
-                CodePage = codePage;
-                OldHash = result.OldHash;
-                NewHash = result.NewHash;
-            }
-
-            public bool IsSame(Info other)
-            {
-                return Argument.Equals(other.Argument, StringComparison.Ordinal) &&
-                    UnifiedLines == other.UnifiedLines && CodePage == other.CodePage &&
-                    IgnoreWhitespace == other.IgnoreWhitespace &&
-                    OldHash.Equals(other.OldHash, StringComparison.Ordinal) &&
-                    NewHash.Equals(other.NewHash, StringComparison.Ordinal);
-            }
-        }
+        private sealed record Info(string Argument, ReadOptions Options, string OldHash, string NewHash, int OldMode, int NewMode);
 
         private const int EntireFileLines = 999999999;
         private readonly string _repo;
@@ -499,6 +469,7 @@ namespace SourceGit.ViewModels
         private Info _info = null;
         private int _loadVersion;
         private int _displayEncodingIndex;
+        private ReadOptions _requestedOptions;
         private CancellationTokenSource _loadCancellation;
     }
 }

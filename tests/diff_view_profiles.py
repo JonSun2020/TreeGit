@@ -12,7 +12,7 @@ profile=isolated.data/'preference.json'
 profile.write_text(json.dumps({'Locale':'en_US','Theme':'Light','Check4UpdatesOnStartup':False,'EnableAutoFetch':False,'ExternalMergeToolType':0,
  'ShowTagsInGraph':False,'DisplayTimeAsPeriodInHistories':True,'ShowChangesInCommitDetailByDefault':False}),'utf-8')
 env={**os.environ,'TREEGIT_TEST_MENU_PROBE':'1','GIT_CONFIG_GLOBAL':str(root/'gitconfig'),'GIT_CONFIG_NOSYSTEM':'1'}
-checks=[];failure=None;client=None;filename='example.c'
+checks=[];failure=None;client=None;filename='example.c';performance=None
 def git(*args):return subprocess.check_output(['git','-C',str(repo),*args],env=env,stderr=subprocess.DEVNULL).decode('utf-8').strip()
 class Client:
  def __init__(self,read_only=False):
@@ -69,18 +69,32 @@ def check_label_alignment(name, result, details=False):
 def check_edges(name, result):
  check(name+' expands with both borders aligned',
        abs(result['left'])<=1 and abs(result['right']-result['boxed'])<=1,result)
+def diff_calls(trace, file):
+ if not trace.is_file():return 0
+ count=0
+ for line in trace.read_text(encoding='utf-8').splitlines():
+  try: event=json.loads(line)
+  except ValueError: continue
+  args=event.get('argv',[])
+  if event.get('event')=='start' and 'diff' in args and '--full-index' in args and file in args:count+=1
+ return count
 try:
  for args in [('init','-b','main'),('config','user.name','TreeGit Demo'),('config','user.email','demo@example.invalid')]:git(*args)
  lines=[f'int value_{i} = {i}; /* \u4e2d\u6587 English */\n' for i in range(120)]
  lines[5]='/* '+('long wrapped comparison text '*24)+'*/\n'
  other_file='second.c'
  for name in (filename,other_file):(repo/name).write_text(''.join(lines),'utf-8')
+ if '--tab-lifetime-only' in sys.argv[3:]:
+  binary_path=repo/'zz-example.bin'
+  binary_path.write_bytes(bytes(32768))
  git('add','.');git('commit','-m','Initial example')
  tagged_commit=git('rev-parse','HEAD')
  git('tag','sidebar-demo')
  git('tag','-a','releases/sidebar-demo','-m','Anonymous annotated tag')
  lines[5]='// Short replacement\n';lines[60]='int value_60 = 999; /* \u4e2d\u6587 English */\n';lines[90]='/* '+('long replacement on the other side '*22)+'*/\n'
  for name in (filename,other_file):(repo/name).write_text(''.join(lines),'utf-8')
+ if '--tab-lifetime-only' in sys.argv[3:]:
+  binary_path.write_bytes(b'AB'+bytes(32766))
  git('add','.');git('commit','-m','Change example values')
  side_commit=git('commit-tree',git('rev-parse','HEAD^{tree}'),'-p',tagged_commit,'-m','Tagged side revision')
  git('branch','tagged-side',side_commit);git('tag','side-only',side_commit)
@@ -88,6 +102,9 @@ try:
  git('update-ref','refs/remotes/origin/main','HEAD')
  git('config','branch.main.remote','origin');git('config','branch.main.merge','refs/heads/main')
  before=(git('rev-parse','HEAD'),git('ls-files','--stage'),git('status','--porcelain'))
+ if '--tab-lifetime-only' in sys.argv[3:]:
+  trace=root/'git-performance.jsonl'
+  env['GIT_TRACE2_EVENT']=str(trace)
  client=Client()
  client.tool('ui_open_repository',repo=str(repo))
  if '--tab-lifetime-only' in sys.argv[3:]:
@@ -95,6 +112,38 @@ try:
   client.tool('ui_select_commit',repo=str(repo),revision='HEAD')
   first_tab=wait(lambda: t if (t:=client.probe('diff_commit_tab'))['selectedTab'] is not None else None)
   check('a new commit detail opens on Changes even with the legacy preference set to false',first_tab['selectedTab']==1,first_tab)
+  select_file(repo,filename)
+  calls_before=diff_calls(trace,other_file)
+  started=time.perf_counter()
+  select_file(repo,other_file)
+  file_ready_ms=round((time.perf_counter()-started)*1000,1)
+  selected_file_calls=diff_calls(trace,other_file)-calls_before
+  check('selecting a fresh file starts one Git patch query',selected_file_calls==1,selected_file_calls)
+  reuse=wait(lambda: value if (value:=client.probe('diff_read_reuse'))['ready'] else None)
+  check('four settings checks reuse the current pending query',reuse['repeatedChecks']==4 and reuse['readRequests']==1,reuse)
+  check('changed options and explicit refresh still start a new query',
+        reuse['optionChange'] and reuse['optionRevert'] and reuse['explicitRefresh'],reuse)
+  performance={'fileReadyMs':file_ready_ms,'gitPatchProcesses':selected_file_calls,**reuse}
+  client.tool('ui_diff',repo=str(repo),action='select',source='history',file=binary_path.name)
+  def binary_state():return client.tool('ui_diff',repo=str(repo),action='state')
+  wait(lambda: (s:=binary_state())['status']=='ready' and s['selectedOffset']==0)
+  client.tool('ui_screenshot')
+  initial=binary_state()
+  client.tool('ui_diff',repo=str(repo),action='next')
+  client.tool('ui_screenshot')
+  same_view=binary_state()
+  check('binary selection redraw shares the visible snapshot without reading it again',
+        initial['visiblePairReads']>0 and same_view['selectedOffset']==1 and same_view['topOffset']==initial['topOffset'] and
+        same_view['visiblePairReads']==initial['visiblePairReads'],(initial,same_view))
+  client.tool('ui_diff',repo=str(repo),action='goto',offset=128)
+  client.tool('ui_screenshot')
+  scrolled=binary_state()
+  check('both binary panes share one snapshot read when the viewport moves',
+        scrolled['topOffset']>initial['topOffset'] and scrolled['visiblePairReads']==initial['visiblePairReads']+1 and
+        set(scrolled['newHex'])=={'0'},scrolled)
+  performance['binarySelectionReads']=same_view['visiblePairReads']-initial['visiblePairReads']
+  performance['binaryViewportReads']=scrolled['visiblePairReads']-initial['visiblePairReads']
+  print('PERFORMANCE',json.dumps(performance),flush=True)
   select_file(repo,filename)
   retired=wait(lambda: value if (value:=client.probe('diff_retired_line'))['ready'] else None)
   check('a queued draw for a removed document line is safe',retired['retired'] and retired['deleted'],retired)
@@ -738,5 +787,5 @@ finally:
  if profile.exists():profile.unlink()
  isolated.close()
  remove_fixture(root,out,'TreeGit comparison profiles ')
- (out/'results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'failure':failure},indent=2),'utf-8')
+ (out/'results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'failure':failure,'performance':performance},indent=2),'utf-8')
 if failure:raise SystemExit(1)

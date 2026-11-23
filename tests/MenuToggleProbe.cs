@@ -607,6 +607,41 @@ namespace SourceGit.Automation
                     var repo = App.GetLauncher().ActivePage.LoadedRepository;
                     return new { selectedTab = (repo?.Histories.DetailContext as ViewModels.CommitDetail)?.ActiveTabIndex };
                 }
+                else if (action == "diff_read_reuse")
+                {
+                    var repo = App.GetLauncher().ActivePage.LoadedRepository;
+                    var detail = repo?.Histories.DetailContext as ViewModels.CommitDetail;
+                    if (detail?.DiffContext == null)
+                        return new { ready = false };
+
+                    var context = new ViewModels.DiffContext(repo.FullPath, detail.DiffContext.Option, standalone: true);
+                    var settings = context.Settings;
+                    var originalCR = settings.IgnoreCRAtEOLInDiff;
+                    try
+                    {
+                        var initial = context.LoadCompletion;
+                        var requests = new HashSet<System.Threading.Tasks.Task> { initial };
+                        for (var i = 0; i < 4; i++)
+                        {
+                            context.CheckSettings();
+                            requests.Add(context.LoadCompletion);
+                        }
+                        settings.IgnoreCRAtEOLInDiff = !originalCR;
+                        context.CheckSettings();
+                        var changed = context.LoadCompletion;
+                        settings.IgnoreCRAtEOLInDiff = originalCR;
+                        context.CheckSettings();
+                        var reverted = context.LoadCompletion;
+                        context.Reload();
+                        return new { ready = true, repeatedChecks = 4, readRequests = requests.Count,
+                            optionChange = initial != changed, optionRevert = changed != reverted, explicitRefresh = reverted != context.LoadCompletion };
+                    }
+                    finally
+                    {
+                        settings.IgnoreCRAtEOLInDiff = originalCR;
+                        context.CancelLoad();
+                    }
+                }
                 else if (action == "diff_preferences_bounds")
                 {
                     var preferences = profileLifetime.Windows.OfType<Views.Preferences>().FirstOrDefault(w => w.IsVisible);

@@ -28,6 +28,13 @@ namespace SourceGit.Views
         private ComparisonSession _session;
         private ComparisonSession _sharedSession;
         private Models.BinaryComparison _comparison;
+        private byte[] _visibleOldBytes;
+        private byte[] _visibleNewBytes;
+        private long _visibleOffset;
+        private int _visibleCount;
+#if INTEGRATION_TESTS
+        private int _visiblePairReads;
+#endif
         private Task _navigation = Task.CompletedTask;
         private int _navigationVersion;
         private long _selected = -1;
@@ -46,6 +53,7 @@ namespace SourceGit.Views
         public object Inspect() => new { status = Status, file = (DataContext as Models.BinaryDiff)?.FilePath,
 #if INTEGRATION_TESTS
             snapshotDirectory = _comparison?.SnapshotDirectory,
+            visiblePairReads = _visiblePairReads,
 #endif
             oldRevision = (DataContext as Models.BinaryDiff)?.OldRevision, newRevision = (DataContext as Models.BinaryDiff)?.NewRevision,
             oldTitle = _oldTitle.Text, newTitle = _newTitle.Text,
@@ -156,6 +164,7 @@ namespace SourceGit.Views
         {
             var cancellation = _cancel; _cancel = null; cancellation?.Cancel();
             var session = _session; _session = null; _comparison = null;
+            _visibleOldBytes = _visibleNewBytes = null;
             var navigation = _navigation; _navigation = Task.CompletedTask;
             _selected = -1; _address.Text = string.Empty; ResizeRows();
             _navigationVersion = 0;
@@ -279,6 +288,26 @@ namespace SourceGit.Views
             _scroll.Value = Math.Clamp(top / _bytesPerRow, 0, _scroll.Maximum); Redraw();
         }
         private void Redraw() { _left.InvalidateVisual(); _right.InvalidateVisual(); }
+
+        private (byte[] Old, byte[] New) ReadVisibleBytes(Models.BinaryComparison comparison, long offset, int count)
+        {
+            // Both panes draw the same immutable snapshots. Reuse just the
+            // visible window when selecting a byte or repainting a theme.
+            if (_visibleOldBytes == null || offset != _visibleOffset || count != _visibleCount)
+            {
+                var oldBytes = comparison.Read(true, offset, count);
+                var newBytes = comparison.Read(false, offset, count);
+#if INTEGRATION_TESTS
+                _visiblePairReads++;
+#endif
+                _visibleOldBytes = oldBytes;
+                _visibleNewBytes = newBytes;
+                _visibleOffset = offset;
+                _visibleCount = count;
+            }
+            return (_visibleOldBytes, _visibleNewBytes);
+        }
+
         public void OpenComparisonWindow()
         {
             if (!_allowSeparateWindow || DataContext is not Models.BinaryDiff diff || TopLevel.GetTopLevel(this) is not Window owner || owner is InternalDiffWindow) return;
@@ -387,7 +416,8 @@ namespace SourceGit.Views
                 var columns = owner._bytesPerRow; var offset = owner.TopOffset;
                 var rows = Math.Max(0, (int)Math.Ceiling((Bounds.Height - 24) / 20));
                 var count = rows * columns;
-                var a = comparison.Read(old, offset, count); var b = comparison.Read(!old, offset, count);
+                var (oldBytes, newBytes) = owner.ReadVisibleBytes(comparison, offset, count);
+                var (a, b) = old ? (oldBytes, newBytes) : (newBytes, oldBytes);
                 Text(App.Text("TreeGit.Binary.Offset"), 6, 3, dim);
                 var addressWidth = comparison.Length > uint.MaxValue ? 102 : 74;
                 for (var c = 0; c < columns; c++) Text(c.ToString("X2"), addressWidth + c * hexPitch, 3, dim);
