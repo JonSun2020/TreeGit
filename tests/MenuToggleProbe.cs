@@ -800,15 +800,15 @@ namespace SourceGit.Automation
                         var before = Positions(line);
                         var linesBefore = line.TextLines.Count;
                         var colors = line.Elements.Select(e => e.TextRunProperties.ForegroundBrush?.ToString()).ToArray();
-                        var lineVisual = FindDiffLineDrawing(view, line);
-                        if (lineVisual == null)
-                            return new { ready = false };
-
-                        int KeywordBrightness()
+                        int KeywordBrightness(AvaloniaEdit.Rendering.VisualLine currentLine)
                         {
+                            var lineVisual = FindDiffLineDrawing(view, currentLine);
+                            if (lineVisual == null)
+                                return -1;
+
                             const int scale = 2;
                             var width = (int)Math.Ceiling(before[3] * scale);
-                            var height = (int)Math.Ceiling(line.TextLines[0].Height * scale);
+                            var height = (int)Math.Ceiling(currentLine.TextLines[0].Height * scale);
                             using var bitmap = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96 * scale, 96 * scale));
                             using (var drawing = bitmap.CreateDrawingContext())
                                 lineVisual.Render(drawing);
@@ -821,13 +821,18 @@ namespace SourceGit.Automation
                                 value = Math.Max(value, Math.Min(pixels.Data[i], Math.Min(pixels.Data[i + 1], pixels.Data[i + 2])));
                             return value;
                         }
-                        var brightnessBefore = KeywordBrightness();
+                        var brightnessBefore = KeywordBrightness(line);
+                        if (brightnessBefore < 0)
+                            return new { ready = false };
+
                         pane.Select(documentLine.Offset, 3);
                         try
                         {
                             view.EnsureVisualLines();
                             var after = view.GetOrConstructVisualLine(documentLine);
-                            var brightnessSelected = KeywordBrightness();
+                            var brightnessSelected = KeywordBrightness(after);
+                            if (brightnessSelected < 0)
+                                return new { ready = false };
                             var copiedText = pane.SelectedText;
                             var unchangedSyntax = colors.SequenceEqual(after.Elements.Select(e => e.TextRunProperties.ForegroundBrush?.ToString()));
                             pane.Select(documentLine.Offset + space, 1);
