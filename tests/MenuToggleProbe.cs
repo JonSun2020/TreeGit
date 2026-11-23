@@ -615,8 +615,8 @@ namespace SourceGit.Automation
                         return new { ready = false };
 
                     var context = new ViewModels.DiffContext(repo.FullPath, detail.DiffContext.Option, standalone: true);
-                    var settings = context.Settings;
-                    var originalCR = settings.IgnoreCRAtEOLInDiff;
+                    var comparisonSettings = context.Settings;
+                    var originalCR = comparisonSettings.IgnoreCRAtEOLInDiff;
                     try
                     {
                         var initial = context.LoadCompletion;
@@ -626,10 +626,10 @@ namespace SourceGit.Automation
                             context.CheckSettings();
                             requests.Add(context.LoadCompletion);
                         }
-                        settings.IgnoreCRAtEOLInDiff = !originalCR;
+                        comparisonSettings.IgnoreCRAtEOLInDiff = !originalCR;
                         context.CheckSettings();
                         var changed = context.LoadCompletion;
-                        settings.IgnoreCRAtEOLInDiff = originalCR;
+                        comparisonSettings.IgnoreCRAtEOLInDiff = originalCR;
                         context.CheckSettings();
                         var reverted = context.LoadCompletion;
                         context.Reload();
@@ -638,7 +638,7 @@ namespace SourceGit.Automation
                     }
                     finally
                     {
-                        settings.IgnoreCRAtEOLInDiff = originalCR;
+                        comparisonSettings.IgnoreCRAtEOLInDiff = originalCR;
                         context.CancelLoad();
                     }
                 }
