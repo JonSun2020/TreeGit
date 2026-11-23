@@ -679,8 +679,10 @@ namespace SourceGit.Automation
                 }
                 else if (action == "diff_decoded_text")
                 {
-                    var view = profileViews.First(v => v.Settings is ViewModels.Preferences);
-                    var model = (ViewModels.DiffContext)view.DataContext;
+                    var view = profileViews.FirstOrDefault(v => v.Settings is ViewModels.Preferences);
+                    if (view?.DataContext is not ViewModels.DiffContext model)
+                        return new { file = (string)null, kind = (string)null };
+
                     var decoded = model.Content as ViewModels.TextDiffContext;
                     return new { file = model.Title, encoding = model.DisplayEncodingIndex, kind = model.Content?.GetType().Name,
                         encodingVisible = view.FindControl<Views.DisplayEncodingPicker>("DiffEncodingPicker").IsEffectivelyVisible,
