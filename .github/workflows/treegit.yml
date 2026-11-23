@@ -37,6 +37,9 @@ jobs:
       - name: Verify credential dropdown scroll anchoring
         shell: pwsh
         run: python tests/modal_bounds.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/credential-dropdown-results" --credential-dropdown-only
+      - name: Verify text diff tab lifetime and compact preferences
+        shell: pwsh
+        run: python tests/diff_view_profiles.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/text-diff-lifetime-results" --tab-lifetime-only
       - name: Verify menu header toggling and outlines with routed and native input
         shell: pwsh
         run: python tests/menu_toggle.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/menu-toggle-results"
@@ -171,6 +174,7 @@ jobs:
         with:
           name: TreeGit-cancellation-results
           path: |
+            ${{ runner.temp }}/text-diff-lifetime-results/*.json
             ${{ runner.temp }}/credential-dropdown-results/*.json
             ${{ runner.temp }}/cancellation-results
             ${{ runner.temp }}/remote-query-results/*.json

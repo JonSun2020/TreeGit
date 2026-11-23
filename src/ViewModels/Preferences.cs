@@ -138,12 +138,6 @@ namespace SourceGit.ViewModels
             set => SetProperty(ref _layout, value);
         }
 
-        public bool ShowChangesInCommitDetailByDefault
-        {
-            get;
-            set;
-        } = true;
-
         public int MaxHistoryCommits
         {
             get => _maxHistoryCommits;

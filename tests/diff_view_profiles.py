@@ -10,7 +10,7 @@ root=new_fixture(out,'TreeGit comparison profiles ');repo=root/'Demo';repo.mkdir
 isolated=IsolatedProfile(exe,out)
 profile=isolated.data/'preference.json'
 profile.write_text(json.dumps({'Locale':'en_US','Theme':'Light','Check4UpdatesOnStartup':False,'EnableAutoFetch':False,'ExternalMergeToolType':0,
- 'ShowTagsInGraph':False,'DisplayTimeAsPeriodInHistories':True}),'utf-8')
+ 'ShowTagsInGraph':False,'DisplayTimeAsPeriodInHistories':True,'ShowChangesInCommitDetailByDefault':False}),'utf-8')
 env={**os.environ,'TREEGIT_TEST_MENU_PROBE':'1','GIT_CONFIG_GLOBAL':str(root/'gitconfig'),'GIT_CONFIG_NOSYSTEM':'1'}
 checks=[];failure=None;client=None;filename='example.c'
 def git(*args):return subprocess.check_output(['git','-C',str(repo),*args],env=env,stderr=subprocess.DEVNULL).decode('utf-8').strip()
@@ -90,6 +90,36 @@ try:
  before=(git('rev-parse','HEAD'),git('ls-files','--stage'),git('status','--porcelain'))
  client=Client()
  client.tool('ui_open_repository',repo=str(repo))
+ if '--tab-lifetime-only' in sys.argv[3:]:
+  client.tool('ui_window',width=1024,height=720,state='normal',zoom=1)
+  client.tool('ui_select_commit',repo=str(repo),revision='HEAD')
+  first_tab=wait(lambda: t if (t:=client.probe('diff_commit_tab'))['selectedTab'] is not None else None)
+  check('a new commit detail opens on Changes even with the legacy preference set to false',first_tab['selectedTab']==1,first_tab)
+  select_file(repo,filename)
+  retired=wait(lambda: value if (value:=client.probe('diff_retired_line'))['ready'] else None)
+  check('a queued draw for a removed document line is safe',retired['retired'] and retired['deleted'],retired)
+  second_repo=root/'Another Demo'
+  subprocess.run(['git','clone','--quiet','--no-hardlinks',str(repo),str(second_repo)],env=env,check=True,capture_output=True)
+  client.tool('ui_open_repository',repo=str(second_repo))
+  client.tool('ui_select_commit',repo=str(second_repo),revision='HEAD')
+  select_file(second_repo,other_file)
+  indexes={Path(tab['repo']).resolve():tab['index'] for tab in client.tool('ui_tabs',action='list')['tabs'] if tab['repo']}
+  for _ in range(5):
+   for path,file in ((repo,filename),(second_repo,other_file)):
+    client.tool('ui_tabs',action='select',index=indexes[path.resolve()])
+    wait(lambda: (v:=ready('main')) and v['file']==file)
+  check('switching two tabs with loaded text comparisons preserves each displayed file',True)
+  for locale in ('zh_CN','zh_TW','en_US'):
+   client.tool('ui_window',locale=locale)
+   for tab in ('general','appearance','signing'):
+    client.tool('ui_command',command='preferences',page=tab)
+    size=wait(lambda: result if (result:=client.probe('diff_preferences_bounds'))['ready'] else None)
+    check(f'{locale} {tab} fits inside the compact preferences window',
+          size['width']==620 and size['height']==380 and size['contentHeight']<=size['visibleHeight']+1,size)
+    if tab=='general':check(f'{locale} general preferences omit the default Changes checkbox',size['checkboxes']==4,size)
+    client.tool('ui_command',command='close_dialog')
+    wait(lambda:not client.tool('ui_state')['dialogs'])
+  raise SystemExit(0)
  def tag_sidebar(action=0,name='sidebar-demo'):
   return client.probe('tag_sidebar',action,name)
  def tag_row(state,name):
@@ -688,6 +718,8 @@ try:
  select_sidebar_commit(target)
  for section,item in zip(groups,(local,remote,tag)):
   check('selecting a commit scrolls its '+section+' list to the matching row',visible_in(section,item)['offset']>0)
+except SystemExit:
+ raise
 except BaseException:
  failure=traceback.format_exc();traceback.print_exc()
  if client:

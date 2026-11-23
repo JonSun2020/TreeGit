@@ -31,6 +31,11 @@ namespace SourceGit.Automation
         private static (int Type, string Executable, string Merge, string Diff)? _externalSettings;
         private static bool? _autoHideBeforeDropdownAudit;
 
+        private static Control FindDiffLineDrawing(AvaloniaEdit.Rendering.TextView view, AvaloniaEdit.Rendering.VisualLine line) =>
+            line == null ? null : view.GetVisualDescendants().OfType<Control>().FirstOrDefault(visual =>
+                visual.GetType().Name == "VisualLineDrawingVisual" &&
+                ReferenceEquals(visual.GetType().GetProperty("VisualLine")?.GetValue(visual), line));
+
         [DllImport("user32.dll", EntryPoint = "SendMessageW")]
         private static extern IntPtr SendCaptionMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
 
@@ -597,6 +602,52 @@ namespace SourceGit.Automation
                     var profileRepo = (ViewModels.Repository)((ViewModels.Launcher)window.DataContext).ActivePage.Data;
                     App.OpenInternalComparison(profileRepo.FullPath, new Models.DiffOption("HEAD~1", "HEAD", new Models.Change { Path = args.GetProperty("button").GetString() }));
                 }
+                else if (action == "diff_commit_tab")
+                {
+                    var repo = App.GetLauncher().ActivePage.LoadedRepository;
+                    return new { selectedTab = (repo?.Histories.DetailContext as ViewModels.CommitDetail)?.ActiveTabIndex };
+                }
+                else if (action == "diff_preferences_bounds")
+                {
+                    var preferences = profileLifetime.Windows.OfType<Views.Preferences>().FirstOrDefault(w => w.IsVisible);
+                    var body = preferences?.FindControl<Grid>("SettingsBody");
+                    var scroll = body?.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault(v => v.IsEffectivelyVisible);
+                    if (scroll == null || scroll.Viewport.Height <= 0)
+                        return new { ready = false };
+
+                    return new { ready = true, width = preferences.Bounds.Width, height = preferences.Bounds.Height,
+                        contentHeight = scroll.Extent.Height, visibleHeight = scroll.Viewport.Height,
+                        checkboxes = scroll.GetVisualDescendants().OfType<CheckBox>().Count(box => box.IsEffectivelyVisible) };
+                }
+                else if (action == "diff_retired_line")
+                {
+                    var pane = profileViews.Where(v => v.Settings is ViewModels.Preferences)
+                        .SelectMany(v => v.GetVisualDescendants().OfType<Views.ThemedTextDiffPresenter>())
+                        .FirstOrDefault(v => v.IsEffectivelyVisible);
+                    if (pane == null) return new { ready = false };
+                    var view = pane.TextArea.TextView;
+                    view.EnsureVisualLines();
+                    var line = view.VisualLines.FirstOrDefault(v => v.FirstDocumentLine.LineNumber > 1 && v.FirstDocumentLine.Length > 0);
+                    var visual = FindDiffLineDrawing(view, line);
+                    if (visual == null) return new { ready = false };
+
+                    var document = pane.Document;
+                    var original = document.Text;
+                    pane.Select(line.FirstDocumentLine.Offset, 1);
+                    try
+                    {
+                        document.Remove(0, document.TextLength);
+                        using var bitmap = new RenderTargetBitmap(new PixelSize(128, 32), new Vector(96, 96));
+                        using var drawing = bitmap.CreateDrawingContext();
+                        visual.Render(drawing);
+                        return new { ready = true, retired = line.IsDisposed, deleted = line.FirstDocumentLine.IsDeleted };
+                    }
+                    finally
+                    {
+                        document.Text = original;
+                        pane.Select(0, 0);
+                    }
+                }
                 else if (action is "diff_encoding" or "diff_encoding_state")
                 {
                     var view = profileViews.First(v => v.Settings is ViewModels.Preferences);
@@ -736,9 +787,7 @@ namespace SourceGit.Automation
                         var before = Positions(line);
                         var linesBefore = line.TextLines.Count;
                         var colors = line.Elements.Select(e => e.TextRunProperties.ForegroundBrush?.ToString()).ToArray();
-                        var lineVisual = view.GetVisualDescendants().FirstOrDefault(v =>
-                            v.GetType().Name == "VisualLineDrawingVisual" &&
-                            ReferenceEquals(v.GetType().GetProperty("VisualLine")?.GetValue(v), line));
+                        var lineVisual = FindDiffLineDrawing(view, line);
                         if (lineVisual == null)
                             return new { ready = false };
 
@@ -748,7 +797,8 @@ namespace SourceGit.Automation
                             var width = (int)Math.Ceiling(before[3] * scale);
                             var height = (int)Math.Ceiling(line.TextLines[0].Height * scale);
                             using var bitmap = new RenderTargetBitmap(new PixelSize(width, height), new Vector(96 * scale, 96 * scale));
-                            bitmap.Render(lineVisual);
+                            using (var drawing = bitmap.CreateDrawingContext())
+                                lineVisual.Render(drawing);
                             using var png = new MemoryStream();
                             bitmap.Save(png);
                             png.Position = 0;

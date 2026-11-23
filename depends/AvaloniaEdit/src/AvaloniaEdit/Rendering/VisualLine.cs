@@ -828,14 +828,18 @@ namespace AvaloniaEdit.Rendering
 
         public override void Render(DrawingContext context)
         {
+            // A tab or document change can retire a line before the compositor
+            // processes the last redraw that was queued for it.
+            if (VisualLine.IsDisposed || VisualLine.FirstDocumentLine.IsDeleted || VisualLine.LastDocumentLine.IsDeleted)
+                return;
+
             var area = VisualLine.TextView.Services.GetService<TextArea>();
             var selection = area?.PreserveSelectionLayout == true && area.SelectionForeground != null
                 ? area.Selection
                 : null;
             var range = selection?.SurroundingSegment;
-            var first = VisualLine.FirstDocumentLine.Offset;
-            var last = VisualLine.LastDocumentLine.EndOffset;
-            if (range == null || range.EndOffset <= first || range.Offset >= last)
+            if (range == null || range.EndOffset <= VisualLine.FirstDocumentLine.Offset ||
+                range.Offset >= VisualLine.LastDocumentLine.EndOffset)
                 selection = null;
 
             double pos = 0;

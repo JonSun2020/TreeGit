@@ -710,7 +710,6 @@
   <x:String x:Key="Text.Preferences.General.Locale" xml:space="preserve">顯示語言</x:String>
   <x:String x:Key="Text.Preferences.General.MaxHistoryCommits" xml:space="preserve">最大歷史提交數：</x:String>
   <x:String x:Key="Text.Preferences.General.ShowChangesPageByDefault" xml:space="preserve">預設顯示 [本機變更] 頁面</x:String>
-  <x:String x:Key="Text.Preferences.General.ShowChangesTabInCommitDetailByDefault" xml:space="preserve">在提交詳細資訊頁面預設顯示 [變更對比]</x:String>
   <x:String x:Key="Text.Preferences.General.SubjectGuideLength" xml:space="preserve">提交標題字數偵測：</x:String>
   <x:String x:Key="Text.Preferences.General.Use24Hours" xml:space="preserve">24 小時制</x:String>
   <x:String x:Key="Text.Preferences.General.UseCompactBranchNames" xml:space="preserve">在提交圖譜中使用簡潔的分支標籤</x:String>

@@ -220,6 +220,7 @@ namespace SourceGit.Views
                 "general" => 0, "appearance" => 1, "signing" => 2,
                 _ => throw new ArgumentException("Unknown preferences page."),
             };
+            if (_integrationOnly != wasIntegrationOnly) FitToScreen();
         }
 
         private void OnPreferencesChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -231,7 +232,13 @@ namespace SourceGit.Views
 
         private void FitToScreen()
         {
-            if (!IsVisible) return;
+            var (width, height) = _integrationOnly ? (680, 570) : (620, 380);
+            if (!IsVisible)
+            {
+                Width = width;
+                Height = height;
+                return;
+            }
             var screen = Screens.ScreenFromWindow(this);
             if (screen == null) return;
             var area = screen.WorkingArea;
@@ -240,8 +247,8 @@ namespace SourceGit.Views
             var centerY = Position.Y + Bounds.Height * scale / 2;
             MaxWidth = Math.Max(1, area.Width / scale - 32);
             MaxHeight = Math.Max(1, area.Height / scale - 32);
-            Width = Math.Min(680 * ViewModels.Preferences.Instance.Zoom, MaxWidth);
-            Height = Math.Min(570 * ViewModels.Preferences.Instance.Zoom, MaxHeight);
+            Width = Math.Min(width * ViewModels.Preferences.Instance.Zoom, MaxWidth);
+            Height = Math.Min(height * ViewModels.Preferences.Instance.Zoom, MaxHeight);
             Position = new PixelPoint((int)Math.Clamp(centerX - Width * scale / 2, area.X + 8, Math.Max(area.X + 8, area.Right - Width * scale - 8)),
                 (int)Math.Clamp(centerY - Height * scale / 2, area.Y + 8, Math.Max(area.Y + 8, area.Bottom - Height * scale - 8)));
         }

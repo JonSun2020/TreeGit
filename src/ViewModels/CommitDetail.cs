@@ -17,12 +17,7 @@ namespace SourceGit.ViewModels
         {
             get;
             set;
-        }
-
-        public CommitDetailSharedData()
-        {
-            ActiveTabIndex = Preferences.Instance.ShowChangesInCommitDetailByDefault ? 1 : 0;
-        }
+        } = 1;
     }
 
     public partial class CommitDetail : ObservableObject
