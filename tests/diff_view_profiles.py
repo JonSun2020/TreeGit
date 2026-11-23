@@ -98,6 +98,9 @@ try:
   select_file(repo,filename)
   retired=wait(lambda: value if (value:=client.probe('diff_retired_line'))['ready'] else None)
   check('a queued draw for a removed document line is safe',retired['retired'] and retired['deleted'],retired)
+  check('outdated selection and missing navigation survive a document reset',
+        retired['missingNavigationSafe'] and retired['staleBounds']<=1,retired)
+  check('a stale patch range is rejected safely',retired['rejectedInvalidPatch'],retired)
   second_repo=root/'Another Demo'
   subprocess.run(['git','clone','--quiet','--no-hardlinks',str(repo),str(second_repo)],env=env,check=True,capture_output=True)
   client.tool('ui_open_repository',repo=str(second_repo))
@@ -105,11 +108,15 @@ try:
   wait(lambda:any(Path(r['repo'])==second_repo and other_file in (r['detailChanges'] or []) for r in client.tool('ui_state')['repositories']))
   select_file(second_repo,other_file)
   indexes={Path(tab['repo']).resolve():tab['index'] for tab in client.tool('ui_tabs',action='list')['tabs'] if tab['repo']}
-  for _ in range(5):
+  for turn in range(5):
    for path,file in ((repo,filename),(second_repo,other_file)):
     client.tool('ui_tabs',action='select',index=indexes[path.resolve()])
     wait(lambda: (v:=ready('main')) and v['file']==file)
+    if turn==2:client.tool('ui_refresh',repo=str(path))
   check('switching two tabs with loaded text comparisons preserves each displayed file',True)
+  client.tool('ui_tabs',action='close',index=indexes[second_repo.resolve()])
+  check('closing a tab with a text comparison restores the other tab',
+        wait(lambda: (v:=ready('main')) and v['file']==filename))
   for locale in ('zh_CN','zh_TW','en_US'):
    client.tool('ui_window',locale=locale)
    for tab in ('general','appearance','signing'):

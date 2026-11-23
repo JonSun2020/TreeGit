@@ -16,9 +16,10 @@ namespace SourceGit.Models
             _diff = diff;
             _isCombined = isCombined;
             _isOldSide = isOldSide;
-            if (diff.IsDisplayOnly) return;
-
             var lines = _diff.Lines;
+            if (diff.IsDisplayOnly || startLine < 0 || endLine < startLine || endLine >= lines.Count)
+                return;
+
             var hasChanges = false;
 
             var selection = new Selection();

@@ -633,17 +633,30 @@ namespace SourceGit.Automation
 
                     var document = pane.Document;
                     var original = document.Text;
-                    pane.Select(line.FirstDocumentLine.Offset, 1);
+                    var offset = line.FirstDocumentLine.Offset;
+                    var staleSelection = new AvaloniaEdit.Editing.SelectionSegment(offset, offset + 1);
+                    var navigation = pane.BlockNavigation;
+                    pane.Select(offset, 1);
                     try
                     {
                         document.Remove(0, document.TextLength);
                         using var bitmap = new RenderTargetBitmap(new PixelSize(128, 32), new Vector(96, 96));
                         using var drawing = bitmap.CreateDrawingContext();
                         visual.Render(drawing);
-                        return new { ready = true, retired = line.IsDisposed, deleted = line.FirstDocumentLine.IsDeleted };
+                        view.EnsureVisualLines();
+                        var staleBounds = AvaloniaEdit.Rendering.BackgroundGeometryBuilder.GetRectsForSegment(view, staleSelection).ToArray();
+                        pane.BlockNavigation = null;
+                        pane.GotoChange(ViewModels.BlockNavigationDirection.First);
+                        view.EnsureVisualLines();
+                        view.Render(drawing);
+                        var diff = (ViewModels.TextDiffContext)pane.DataContext;
+                        var invalidPatch = new Models.PatchGenerator(diff.Option, diff.Data, -1, 1, true, false);
+                        return new { ready = true, retired = line.IsDisposed, deleted = line.FirstDocumentLine.IsDeleted,
+                            staleBounds = staleBounds.Length, missingNavigationSafe = true, rejectedInvalidPatch = !invalidPatch.IsValid };
                     }
                     finally
                     {
+                        pane.BlockNavigation = navigation;
                         document.Text = original;
                         pane.Select(0, 0);
                     }

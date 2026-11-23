@@ -100,7 +100,7 @@ namespace SourceGit.Views
 
             protected override Size MeasureOverride(Size availableSize)
             {
-                if (DataContext is not ViewModels.TextDiffContext ctx)
+                if (DataContext is not ViewModels.TextDiffContext ctx || TextArea == null)
                     return new Size(0, 0);
 
                 var typeface = new Typeface(TextArea.FontFamily);
@@ -180,7 +180,7 @@ namespace SourceGit.Views
             protected override Size MeasureOverride(Size availableSize)
             {
                 var presenter = this.FindAncestorOfType<ThemedTextDiffPresenter>();
-                if (presenter == null)
+                if (presenter == null || TextView == null)
                     return new Size(0, 0);
 
                 var typeface = TextView.CreateTypeface();
@@ -215,7 +215,7 @@ namespace SourceGit.Views
                 if (_presenter.Document == null || !textView.VisualLinesValid)
                     return;
 
-                var changeBlock = _presenter.BlockNavigation.GetCurrentBlock();
+                var changeBlock = _presenter.BlockNavigation?.GetCurrentBlock();
                 var changeBlockBorder = new Pen(_presenter.BlockBorderHighlightBrush);
 
                 var lines = _presenter.GetLines();
@@ -536,7 +536,7 @@ namespace SourceGit.Views
             if (DataContext is not ViewModels.TextDiffContext)
                 return;
 
-            var block = BlockNavigation.Goto(direction);
+            var block = BlockNavigation?.Goto(direction);
             if (block != null)
             {
                 TextArea.Caret.Line = block.Start;
@@ -652,7 +652,11 @@ namespace SourceGit.Views
             if (line == 0)
                 return;
 
-            Dispatcher.UIThread.Post(() => ScrollToLine(line), DispatcherPriority.Background);
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (IsLoaded && ReferenceEquals(DataContext, ctx))
+                    ScrollToLine(line);
+            }, DispatcherPriority.Background);
         }
 
         protected virtual void UpdateSelectedChunk(double y)
@@ -678,7 +682,7 @@ namespace SourceGit.Views
 
         private void OnTextAreaCaretPositionChanged(object sender, EventArgs e)
         {
-            BlockNavigation.UpdateByCaretPosition(TextArea?.Caret?.Line ?? 0);
+            BlockNavigation?.UpdateByCaretPosition(TextArea.Caret.Line);
         }
 
         private void OnTextViewContextRequested(object sender, ContextRequestedEventArgs e)
@@ -757,14 +761,18 @@ namespace SourceGit.Views
 
         private void OnTextViewPointerWheelChanged(object sender, PointerWheelEventArgs e)
         {
-            if (DataContext is not ViewModels.TextDiffContext { Option: { IsLocalChange: true } })
+            if (DataContext is not ViewModels.TextDiffContext { Option: { IsLocalChange: true } } ctx)
                 return;
 
             if (sender is not TextView view)
                 return;
 
             var viewportY = e.GetPosition(view).Y;
-            Dispatcher.UIThread.Post(() => UpdateSelectedChunk(viewportY + view.VerticalOffset));
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (IsLoaded && ReferenceEquals(DataContext, ctx))
+                    UpdateSelectedChunk(viewportY + view.VerticalOffset);
+            });
         }
 
         private void OnTextViewVisualLinesChanged(object sender, EventArgs e)
@@ -801,7 +809,7 @@ namespace SourceGit.Views
                     start = index;
             }
 
-            ctx.DisplayRange = new ViewModels.TextLineRange(start, start + count);
+            ctx.DisplayRange = count > 0 ? new ViewModels.TextLineRange(start, start + count) : null;
         }
 
         protected void TrySetChunk(ViewModels.TextDiffSelectedChunk chunk)
@@ -853,14 +861,14 @@ namespace SourceGit.Views
 
             var startPosition = selection.StartPosition;
             var endPosition = selection.EndPosition;
+            var lines = GetLines();
+            var firstLine = Math.Min(startPosition.Line, endPosition.Line);
+            if (firstLine < 1 || firstLine > lines.Count)
+                return false;
+
             if (startPosition.Line == endPosition.Line)
             {
-                var lines = GetLines();
-                var idx = startPosition.Line - 1;
-                if (idx >= lines.Count)
-                    return false;
-
-                var line = lines[idx];
+                var line = lines[firstLine - 1];
                 return line.Type != Models.TextDiffLineType.Indicator && line.Type != Models.TextDiffLineType.None;
             }
 
@@ -869,6 +877,9 @@ namespace SourceGit.Views
 
         private async Task CopyWithoutIndicatorsAsync()
         {
+            if (!CanCopyText())
+                return;
+
             var selection = TextArea.Selection;
             var startPosition = selection.StartPosition;
             var endPosition = selection.EndPosition;
@@ -896,7 +907,7 @@ namespace SourceGit.Views
                 // The first selected line (partial selection)
                 if (i == startIdx && startPosition.Column > 1)
                 {
-                    builder.Append(line.Content.AsSpan(startPosition.Column - 1)).Append('\n');
+                    builder.Append(line.Content.AsSpan(Math.Min(startPosition.Column - 1, line.Content.Length))).Append('\n');
                     continue;
                 }
 
@@ -927,7 +938,7 @@ namespace SourceGit.Views
 
         private async Task CopyAsPatchAsync()
         {
-            if (DataContext is not ViewModels.TextDiffContext { Data: { } diff, Option: { } option } ctx)
+            if (DataContext is not ViewModels.TextDiffContext { Data: { } diff, Option: { } option } ctx || !CanCopyText())
                 return;
 
             var selection = TextArea.Selection;
@@ -954,11 +965,27 @@ namespace SourceGit.Views
                 return;
             }
 
-            var tmpFile = Path.GetTempFileName();
-            patch.Generate(tmpFile, false);
-
-            var patchText = File.ReadAllText(tmpFile);
-            File.Delete(tmpFile);
+            string tmpFile = null;
+            string patchText;
+            try
+            {
+                tmpFile = Path.GetTempFileName();
+                patch.Generate(tmpFile, false);
+                patchText = File.ReadAllText(tmpFile);
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            {
+                Models.Notification.Send(null, App.Text("TreeGit.Message.CopyFailed", error.Message), true);
+                return;
+            }
+            finally
+            {
+                if (tmpFile != null)
+                {
+                    try { File.Delete(tmpFile); }
+                    catch (Exception error) when (error is IOException or UnauthorizedAccessException) { Native.OS.LogException(error); }
+                }
+            }
             await this.CopyTextAsync(patchText);
         }
 
@@ -1048,8 +1075,11 @@ namespace SourceGit.Views
                 return;
 
             var view = TextArea.TextView;
-            if (!view.VisualLinesValid)
+            if (!view.VisualLinesValid || view.VisualLines.Count == 0 || diff.Lines.Count == 0)
+            {
+                TrySetChunk(null);
                 return;
+            }
 
             var selection = TextArea.Selection;
             if (!selection.IsEmpty)
@@ -1237,10 +1267,12 @@ namespace SourceGit.Views
                 return;
 
             var view = TextArea.TextView;
-            if (!view.VisualLinesValid)
-                return;
-
             var lines = IsOld ? diff.Old : diff.New;
+            if (!view.VisualLinesValid || view.VisualLines.Count == 0 || lines.Count == 0)
+            {
+                TrySetChunk(null);
+                return;
+            }
             var selection = TextArea.Selection;
             if (!selection.IsEmpty)
             {

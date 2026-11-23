@@ -128,7 +128,7 @@ namespace AvaloniaEdit.Rendering
 			if (segment == null)
 				throw new ArgumentNullException("segment");
 
-            if (!textView.VisualLinesValid)
+            if (textView.Document == null || !textView.VisualLinesValid)
                 return Enumerable.Empty<Rect>();
 
 			return GetRectsForSegmentImpl(textView, segment, extendToFullWidthAtLineEnd);
@@ -147,14 +147,16 @@ namespace AvaloniaEdit.Rendering
 
 			if (segment is SelectionSegment) {
 				SelectionSegment sel = (SelectionSegment)segment;
-				start = new TextViewPosition(textView.Document.GetLocation(sel.StartOffset), sel.StartVisualColumn);
-				end = new TextViewPosition(textView.Document.GetLocation(sel.EndOffset), sel.EndVisualColumn);
+				start = new TextViewPosition(textView.Document.GetLocation(segmentStart), segmentStart == sel.StartOffset ? sel.StartVisualColumn : -1);
+				end = new TextViewPosition(textView.Document.GetLocation(segmentEnd), segmentEnd == sel.EndOffset ? sel.EndVisualColumn : -1);
 			} else {
 				start = new TextViewPosition(textView.Document.GetLocation(segmentStart));
 				end = new TextViewPosition(textView.Document.GetLocation(segmentEnd));
 			}
 
 			foreach (VisualLine vl in textView.VisualLines) {
+				if (vl.IsDisposed || vl.FirstDocumentLine.IsDeleted || vl.LastDocumentLine.IsDeleted)
+					continue;
 				int vlStartOffset = vl.FirstDocumentLine.Offset;
 				if (vlStartOffset > segmentEnd)
 					break;
