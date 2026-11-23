@@ -132,6 +132,7 @@ namespace SourceGit.Views
                 _historySelectionSource.PropertyChanged -= OnNavigationPropertyChanged;
             }
             _historySelectionSource = null;
+            _restoreSidebarSelection = false;
             base.OnUnloaded(e);
         }
 
@@ -150,11 +151,27 @@ namespace SourceGit.Views
                 _historySelectionSource.HistoryBranchSelectionRequested += OnHistoryBranchSelection;
                 _historySelectionSource.CommitBranchHighlightsRequested += OnCommitBranchHighlights;
                 _historySelectionSource.PropertyChanged += OnNavigationPropertyChanged;
-                if (_historySelectionSource.Histories?.DetailContext is ViewModels.CommitDetail { BranchDetails: { } details } detail)
-                    _historySelectionSource.SynchronizeCommitBranchSelection(detail.Commit, details);
-                OnCommitBranchHighlights(_historySelectionSource.SidebarCommitBranches);
-                TagsList.RevealCommitTag();
+                UpdateBranchGroupHighlights(_historySelectionSource.SidebarCommitBranches);
+                _restoreSidebarSelection = true;
+                Dispatcher.UIThread.Post(RestoreSidebarSelection, DispatcherPriority.Background);
             }
+        }
+
+        private void RestoreSidebarSelection()
+        {
+            if (!_restoreSidebarSelection || _historySelectionSource is not { } repository)
+                return;
+            _restoreSidebarSelection = false;
+
+            // Let the tab and its existing graph/diff render before walking
+            // the sidebar tree and requesting scroll-to-selection.
+            if (repository.Histories?.DetailContext is ViewModels.CommitDetail { BranchDetails: { } details } detail &&
+                repository.SynchronizeCommitBranchSelection(detail.Commit, details))
+                return;
+
+            var highlights = repository.SidebarCommitBranches;
+            OnCommitBranchHighlights(highlights);
+            if (highlights == null) TagsList.RevealCommitTag();
         }
 
         private void OnNavigationPropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -208,10 +225,16 @@ namespace SourceGit.Views
             finally { _preserveTagSelection = false; }
         }
 
-        private void OnCommitBranchHighlights(Models.CommitBranchDetails details)
+        private void UpdateBranchGroupHighlights(Models.CommitBranchDetails details)
         {
             LocalBranchGroup.Classes.Set("commit_covered", details?.Coverage.Branches.Exists(b => b.IsLocal) == true);
             RemoteBranchGroup.Classes.Set("commit_covered", details?.Coverage.Branches.Exists(b => !b.IsLocal) == true);
+        }
+
+        private void OnCommitBranchHighlights(Models.CommitBranchDetails details)
+        {
+            _restoreSidebarSelection = false;
+            UpdateBranchGroupHighlights(details);
             LocalBranchTree.SetCommitHighlights(details);
             RemoteBranchTree.SetCommitHighlights(details);
             if (details != null)
@@ -223,6 +246,7 @@ namespace SourceGit.Views
         }
 
         private ViewModels.Repository _historySelectionSource;
+        private bool _restoreSidebarSelection;
         private bool _preserveTagSelection;
 
         private void OnShowCommit(object sender, RoutedEventArgs e)

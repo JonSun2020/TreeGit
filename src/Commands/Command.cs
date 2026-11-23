@@ -81,6 +81,10 @@ namespace SourceGit.Commands
                  error.Contains("Connection timed out", StringComparison.OrdinalIgnoreCase));
             if (!allowed || !OperatingSystem.IsWindows() ||
                 !(timedOut || (!requireTransportExit || exitCode == 128) && (rejected || connectionFailure))) return false;
+            // A server can refuse access without requesting credentials (for
+            // example, a read-only HTTP remote). One silent retry can bypass
+            // cached credentials, but repeated attempts need user input.
+            if (IsAuthenticationRetry && AuthenticationSession?.HasPrompt != true) return false;
             if (AuthenticationSession != null)
             {
                 Log?.ReportAuthenticationState(timedOut ? "VerificationTimeout" : rejected ? "AuthenticationFailed" : "ConnectionFailed");

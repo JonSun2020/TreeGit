@@ -100,8 +100,8 @@
       </v:DealWithLocalChangesMethod>
 
       <TextBlock x:Name="BranchAdvancedOptions" Grid.Row="3" Grid.Column="0" Text="{DynamicResource Text.UI.AdvancedOptionsLabel}"
-                 HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,8,8,4"/>
-      <CheckBox x:Name="BranchAllowOverwrite" Grid.Row="3" Grid.Column="1" Margin="0,8,0,4"
+                 HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,8,8,0"/>
+      <CheckBox x:Name="BranchAllowOverwrite" Grid.Row="3" Grid.Column="1" Margin="0,8,0,0"
                 IsChecked="{Binding AllowOverwrite, Mode=TwoWay}" ToolTip.Tip="{Binding OverrideTip}">
         <TextBlock Text="{DynamicResource Text.CreateBranch.OverwriteExisting}" TextWrapping="Wrap"/>
       </CheckBox>

@@ -58,7 +58,6 @@
     </Border>
 
     <CheckBox Margin="4,6,0,0"
-              Height="32"
               Content="{DynamicResource Text.DeleteMultiTags.DeleteFromRemotes}"
               IsChecked="{Binding DeleteFromRemote, Mode=TwoWay}"/>
 

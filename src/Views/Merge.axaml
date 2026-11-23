@@ -69,12 +69,12 @@
         </ComboBox.SelectionBoxItemTemplate>
       </ComboBox>
 
-      <CheckBox Grid.Row="3" Grid.Column="1" Height="32" Content="{DynamicResource Text.Merge.Edit}" IsChecked="{Binding Edit, Mode=TwoWay}" IsVisible="{Binding CanEditMessage, Mode=OneWay}" ToolTip.Tip="--edit"/>
+      <CheckBox Grid.Row="3" Grid.Column="1" Content="{DynamicResource Text.Merge.Edit}" IsChecked="{Binding Edit, Mode=TwoWay}" IsVisible="{Binding CanEditMessage, Mode=OneWay}" ToolTip.Tip="--edit"/>
 
-      <CheckBox Grid.Row="4" Grid.Column="1" Height="32" IsVisible="{Binding AutoStashAvailable}"
+      <CheckBox Grid.Row="4" Grid.Column="1" IsVisible="{Binding AutoStashAvailable}"
                 Content="{DynamicResource Text.Merge.KeepLocal}" IsChecked="{Binding AutoStash, Mode=TwoWay}"
                 ToolTip.Tip="{DynamicResource Text.Merge.KeepLocalHint}"/>
-      <CheckBox Grid.Row="5" Grid.Column="1" Height="32" IsVisible="{Binding ShowAllowUnrelated}"
+      <CheckBox Grid.Row="5" Grid.Column="1" IsVisible="{Binding ShowAllowUnrelated}"
                 Content="{DynamicResource Text.Merge.AllowUnrelated}" IsChecked="{Binding AllowUnrelated, Mode=TwoWay}"/>
       <Grid Grid.Row="6" Grid.Column="1" Height="32" IsVisible="{Binding TestingState, Converter={x:Static ObjectConverters.NotEqual}, ConverterParameter={x:Static vm:MergeTestingState.Disabled}}">
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center" IsVisible="{Binding TestingState, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:MergeTestingState.Testing}}">

@@ -14,6 +14,22 @@ for name in files:
         # Formatting a path for display preserves the upstream data source and binding mode.
         actual = new.replace(', Converter={x:Static c:PathConverters.Local}', '') if label == 'data bindings' else new
         missing=Counter(re.findall(pattern,old))-Counter(re.findall(pattern,actual))
+        if name == 'src/Views/WorkingCopy.axaml':
+            # The user removed the file-name filter from this toolbar.
+            removed_search = {
+                'named controls': ('x:Name="LocalChangesSearchBox"',),
+                'actions': ('Command="{Binding ClearFilter}"',),
+                'data bindings': ('{Binding Filter, Mode=TwoWay}', '{Binding ClearFilter}',
+                                  '{Binding Filter, Converter={x:Static StringConverters.IsNotNullOrEmpty}'),
+            }
+            for entry in removed_search[label]:
+                missing.pop(entry, None)
+        if name == 'src/Views/WorkingCopy.axaml' and label == 'actions':
+            # Discard moved out of the local changes strip. Keep its main toolbar entry.
+            toolbar = (root/'src/Views/RepositoryToolbar.axaml').read_text(encoding='utf-8-sig')
+            handler = (root/'src/Views/RepositoryToolbar.axaml.cs').read_text(encoding='utf-8-sig')
+            assert 'Click="OpenDiscard"' in toolbar and 'repo.WorkingCopy.DiscardAllChanges();' in handler
+            missing.pop('Command="{Binding DiscardAllChanges}"', None)
         if name == 'src/Views/LauncherPage.axaml' and label == 'data bindings':
             operation = (root/'src/ViewModels/Popup.Operation.cs').read_text(encoding='utf-8-sig')
             assert 'Description="{Binding StatusDescription}"' in new and 'IsVisible="{Binding ShowStatus}"' in new
@@ -47,9 +63,13 @@ for name in files:
             # former global preference; the actual persisted width is GUI-tested.
             assert '{Binding Repository.ChangesPanelWidth, Mode=TwoWay}' in new
             former = '{Binding Source={x:Static vm:Preferences.Instance}'
-            if missing[former] == 1:
+            replaced = 2 if name == 'src/Views/WorkingCopy.axaml' else 1
+            if missing[former] == replaced:
                 del missing[former]
             if name == 'src/Views/WorkingCopy.axaml':
+                # This strip no longer changes the sidebar or duplicates Discard.
+                assert 'Path=Layout.IsSidebarCollapsedInLocalChanges' not in new
+                missing.pop('{Binding DiscardAllChanges}', None)
                 # The confirmed composer removes the options dropdown; these
                 # commands remain available in the advanced operation menu.
                 menu = (root/'src/Views/Launcher.axaml').read_text(encoding='utf-8-sig')
@@ -66,6 +86,8 @@ for p in (root/'src/Resources/Locales').glob('*.axaml'):
     old=subprocess.check_output(['git','show','upstream-c0f40a2:'+p.relative_to(root).as_posix()],cwd=root).decode('utf-8-sig')
     removed = {
         'Text.ScanRepositories.UseCustomDir',
+        'Text.WorkingCopy.DiscardAll',
+        'Text.WorkingCopy.FilterChanges',
         'Text.Preferences.General.ShowRelativeTimeInGraph',
         'Text.Preferences.General.ShowTagsInGraph',
         'Text.Preferences.General.ShowChangesTabInCommitDetailByDefault',

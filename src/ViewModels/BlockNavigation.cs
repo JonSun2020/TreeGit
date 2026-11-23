@@ -36,6 +36,8 @@ namespace SourceGit.ViewModels
             }
         }
 
+        public string IndicatorWidthGuide => $"{new string('0', _blocks.Count.ToString().Length)}/{_blocks.Count}";
+
         public BlockNavigation(List<Models.TextDiffLine> lines, int cur)
         {
             _blocks.Clear();

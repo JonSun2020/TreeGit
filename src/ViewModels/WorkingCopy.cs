@@ -638,11 +638,6 @@ namespace SourceGit.ViewModels
                 _repo.ShowPopup(new Discard(_repo, changes, next));
         }
 
-        public void ClearFilter()
-        {
-            Filter = string.Empty;
-        }
-
         public Task UseTheirsAsync(List<Models.Change> changes) => UseConflictSideAsync(changes, true);
 
         public Task UseMineAsync(List<Models.Change> changes) => UseConflictSideAsync(changes, false);
@@ -878,7 +873,8 @@ namespace SourceGit.ViewModels
                     if (pushBranch == null)
                         pushBranch = new Models.Branch() { Name = await new Commands.QueryCurrentBranch(_repo.FullPath).GetResultAsync() };
                     var push = new Push(_repo, pushBranch);
-                    var verification = new Commands.VerifyPushCredentials(_repo.FullPath, push.SelectedRemote);
+                    var verification = new Commands.VerifyPushCredentials(_repo.FullPath, push.SelectedRemote,
+                        push.GetCredentialRefspec(hasLocalCommit: !string.IsNullOrEmpty(pushBranch.Head)));
                     if (!await verification.VerifyAsync())
                     {
                         if (!verification.WasAuthenticationCancelled) _repo.SendNotification(App.Text("TreeGit.Credentials.PushUnavailable"), true);

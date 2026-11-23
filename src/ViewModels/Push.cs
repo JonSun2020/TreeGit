@@ -170,7 +170,16 @@ namespace SourceGit.ViewModels
             return !string.IsNullOrEmpty(_selectedRemoteBranch?.Head);
         }
 
-        public override Task<bool> VerifyCredentialsAsync() => VerifyRemoteAsync(_repo.FullPath, _selectedRemote, push: true);
+        internal string GetCredentialRefspec(bool hasLocalCommit = true)
+        {
+            // No local ref exists before the first commit. The dry run can
+            // still contact receive-pack using only the intended destination.
+            var source = hasLocalCommit ? $"refs/heads/{_selectedLocalBranch.Name}" : string.Empty;
+            return Commands.Push.BranchRefspec(source, _selectedRemoteBranch.Name);
+        }
+
+        public override Task<bool> VerifyCredentialsAsync() =>
+            VerifyRemoteAsync(_repo.FullPath, _selectedRemote, push: true, pushRefspec: GetCredentialRefspec());
 
         public override async Task<bool> Sure()
         {

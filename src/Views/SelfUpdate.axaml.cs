@@ -27,6 +27,7 @@ namespace SourceGit.Views
                 _model.PropertyChanged -= OnUpdateStateChanged;
             }
             _model = DataContext as ViewModels.SelfUpdate;
+            _displayedState = _model?.State;
             if (_model != null)
             {
                 _model.CloseRequested += CloseExplicitly;
@@ -88,7 +89,16 @@ namespace SourceGit.Views
 
         private void OnUpdateStateChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (string.IsNullOrEmpty(e.PropertyName) && _closeChoice is { IsVisible: true } && _model?.State is "ready" or "failed" or "cancelled")
+            if (!string.IsNullOrEmpty(e.PropertyName) || _model == null)
+                return;
+
+            if (_displayedState != _model.State)
+            {
+                _displayedState = _model.State;
+                UpdateBodyScroll.Offset = default;
+            }
+
+            if (_closeChoice is { IsVisible: true } && _model.State is "ready" or "failed" or "cancelled")
                 _closeChoice.Close();
         }
 
@@ -143,6 +153,7 @@ namespace SourceGit.Views
         }
 
         private ViewModels.SelfUpdate _model;
+        private string _displayedState;
         private Window _presentationOwner;
         private UpdateCloseChoice _closeChoice;
         private bool _allowClose;

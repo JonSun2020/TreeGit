@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.Versioning;
 using System.Runtime.InteropServices;
-using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -67,24 +66,10 @@ namespace SourceGit.Native
             });
         }
 
-        internal static string ReadBundledVersion()
+        internal static string ReadBundledVersion(string root)
         {
-            var directory = Path.GetDirectoryName(Path.GetDirectoryName(BundledPath));
-            // The full manifest moves into place after on-demand extraction.
-            foreach (var name in new[] { "payload-manifest.json", "runtime-manifest.json" })
-            {
-                try
-                {
-                    using var stream = File.OpenRead(Path.Combine(directory, name));
-                    using var manifest = JsonDocument.Parse(stream);
-                    if (manifest.RootElement.TryGetProperty("gitVersion", out var property) &&
-                        property.ValueKind == JsonValueKind.String && property.GetString() is { Length: > 0 } release)
-                        return release;
-                }
-                catch (Exception error) when (error is IOException or UnauthorizedAccessException or JsonException or InvalidOperationException) { }
-            }
-
-            return TryReadVersion(BundledPath, out var version, out _) ? version : string.Empty;
+            var (identity, version) = GitRuntimeArchive.ReadUpdateRuntime(root);
+            return GitRuntimeArchive.VerifyForUpdate(root, identity) ? version : null;
         }
 
         internal static string FindBundledGit()

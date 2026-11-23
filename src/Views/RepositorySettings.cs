@@ -56,14 +56,15 @@ namespace SourceGit.Views
             if (area.Width <= 0 || area.Height <= 0)
                 area = screen.WorkingArea;
 
-            var desiredHeight = (_advanced ? 620 : 420) * zoom;
+            const double advancedPageHeight = 580;
+            var desiredHeight = (_advanced ? advancedPageHeight : 420) * zoom;
             if (place)
             {
                 MaxWidth = Math.Max(1, (area.Width - 16) / scale);
                 MaxHeight = Math.Max(1, (area.Height - 16) / scale);
                 Width = Math.Min(640 * zoom, MaxWidth);
                 Height = Math.Min(desiredHeight, MaxHeight);
-                var advancedHeight = Math.Min(620 * zoom, MaxHeight);
+                var advancedHeight = Math.Min(advancedPageHeight * zoom, MaxHeight);
                 var x = area.X + (area.Width - Width * scale) / 2;
                 var y = Math.Min(area.Y + (area.Height - Height * scale) / 2, area.Bottom - advancedHeight * scale - 8);
                 Position = new PixelPoint((int)x, (int)Math.Max(area.Y + 8, y));
@@ -182,22 +183,34 @@ namespace SourceGit.Views
             var proxy = new TextBox { Name = "HttpProxy", Height = 28, Text = _configuration.HttpProxy, [!Avalonia.Controls.TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Settings.ProxyHint") };
             proxy.TextChanged += (_, _) => _configuration.HttpProxy = proxy.Text ?? string.Empty;
             sync.Children.Add(Field("TreeGit.Settings.HttpProxy", proxy));
-            sync.Children.Add(Option("PruneOnFetch", "TreeGit.Settings.Prune", _configuration.EnablePruneOnFetch, value => _configuration.EnablePruneOnFetch = value));
             _autoRefresh = Option("AutoRefresh", "TreeGit.Settings.AutoRefresh", _configuration.AutoRefreshEnabled, value => _configuration.AutoRefreshEnabled = value);
             _backgroundFetch = Option("BackgroundFetch", "TreeGit.Settings.BackgroundFetch", _configuration.BackgroundFetchEnabled, value => _configuration.BackgroundFetchEnabled = value);
-            sync.Children.Add(_autoRefresh); sync.Children.Add(_backgroundFetch);
-            advancedPage.Children.Add(Optional("TreeGit.Settings.SyncMerge", sync));
+            sync.Children.Add(new StackPanel
+            {
+                Children =
+                {
+                    Option("PruneOnFetch", "TreeGit.Settings.Prune", _configuration.EnablePruneOnFetch, value => _configuration.EnablePruneOnFetch = value),
+                    _autoRefresh, _backgroundFetch,
+                },
+            });
+            advancedPage.Children.Add(Optional("TreeGit.Settings.SyncMerge", sync, endsWithOptions: true));
             var signing = new StackPanel { Spacing = 4 };
             var signingKey = new TextBox { Name = "SigningKey", Height = 28, Text = _configuration.GPGUserSigningKey, [!Avalonia.Controls.TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Settings.SigningKeyHint") };
             signingKey.TextChanged += (_, _) => _configuration.GPGUserSigningKey = signingKey.Text ?? string.Empty;
             signing.Children.Add(Field("TreeGit.Settings.SigningKey", signingKey));
-            signing.Children.Add(Option("SignCommits", "TreeGit.Settings.SignCommits", _configuration.GPGCommitSigningEnabled, value => _configuration.GPGCommitSigningEnabled = value));
-            signing.Children.Add(Option("SignTags", "TreeGit.Settings.SignTags", _configuration.GPGTagSigningEnabled, value => _configuration.GPGTagSigningEnabled = value));
-            advancedPage.Children.Add(Optional("TreeGit.Settings.Signing", signing));
-            var submodules = new StackPanel { Spacing = 4 };
+            signing.Children.Add(new StackPanel
+            {
+                Children =
+                {
+                    Option("SignCommits", "TreeGit.Settings.SignCommits", _configuration.GPGCommitSigningEnabled, value => _configuration.GPGCommitSigningEnabled = value),
+                    Option("SignTags", "TreeGit.Settings.SignTags", _configuration.GPGTagSigningEnabled, value => _configuration.GPGTagSigningEnabled = value),
+                },
+            });
+            advancedPage.Children.Add(Optional("TreeGit.Settings.Signing", signing, endsWithOptions: true));
+            var submodules = new StackPanel();
             submodules.Children.Add(Option("AskSubmodules", "TreeGit.Settings.ConfirmSubmodule", _configuration.AskBeforeAutoUpdatingSubmodules, value => _configuration.AskBeforeAutoUpdatingSubmodules = value));
             submodules.Children.Add(Option("RecursiveSubmodules", "TreeGit.Settings.RecursiveSubmodule", _configuration.EnableRecursiveWhenAutoUpdatingSubmodules, value => _configuration.EnableRecursiveWhenAutoUpdatingSubmodules = value));
-            advancedPage.Children.Add(Optional("TreeGit.Settings.SubmoduleUpdate", submodules));
+            advancedPage.Children.Add(Optional("TreeGit.Settings.SubmoduleUpdate", submodules, endsWithOptions: true));
             // Preserve existing template data, while removing its orphaned editor:
             // the current commit page uses branch history rather than this picker.
             var scroll = new ScrollViewer { Name = "RepositorySettingsScroll", Content = remotePage, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto };
@@ -395,10 +408,13 @@ namespace SourceGit.Views
             return option;
         }
 
-        private static Control Optional(string title, Control content) => new Expander
+        private static Control Optional(string title, StackPanel content, bool endsWithOptions = false) => new Expander
         {
             Name = title.Replace(".", string.Empty), Classes = { "settings_expander" }, [!Expander.HeaderProperty] = App.TextBinding(title), IsExpanded = false, HorizontalAlignment = HorizontalAlignment.Stretch,
-            Content = new Border { Padding = new Thickness(6), Child = content },
+            // Preserve the visible bottom gap after counting the checkbox hit area.
+            Padding = new Thickness(16, 9.5, 16, endsWithOptions ? 2.1 : 8.5),
+            UseLayoutRounding = false,
+            Content = new Border { Padding = new Thickness(6, 0), UseLayoutRounding = true, Child = content },
         };
 
         private static Control Group(string title, Control content)

@@ -177,6 +177,7 @@ namespace SourceGit.Views
             UseBundledGitChoice.IsChecked = OperatingSystem.IsWindows() && pref.UseBundledGit;
             UseBundledGitChoice.IsCheckedChanged += async (_, _) =>
             {
+                if (!UseBundledGitChoice.IsEnabled) return;
                 if (UseBundledGitChoice.IsChecked == false)
                     await DetectGitAsync();
                 else if (_noSystemGitFound)
@@ -227,12 +228,12 @@ namespace SourceGit.Views
         {
             if (e.PropertyName == nameof(ViewModels.Preferences.Zoom)) FitToScreen();
             if (!_saving && e.PropertyName == nameof(ViewModels.Preferences.UseBundledGit))
-                UseBundledGitChoice.IsChecked = ViewModels.Preferences.Instance.UseBundledGit;
+                UseBundledGitChoice.IsChecked = UseBundledGitChoice.IsEnabled && ViewModels.Preferences.Instance.UseBundledGit;
         }
 
         private void FitToScreen()
         {
-            var (width, height) = _integrationOnly ? (680, 570) : (620, 380);
+            var (width, height) = _integrationOnly ? (680, 464) : (620, 370);
             if (!IsVisible)
             {
                 Width = width;
@@ -337,7 +338,14 @@ namespace SourceGit.Views
                         return OperatingSystem.IsWindows() ? Native.GitExecutableLocator.FindBundledGit() : Native.OS.FindGitExecutable();
                     });
                     if (string.IsNullOrEmpty(selected))
+                    {
+                        if (forceBundled)
+                        {
+                            ApplyBundledGitAvailability(null);
+                            return false;
+                        }
                         throw new InvalidOperationException(App.Text(OperatingSystem.IsWindows() ? "TreeGit.Operation.GitUnavailable" : "Preferences.Git.Invalid"));
+                    }
                 }
                 var changes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var (key, value) in GetGitValues())
@@ -624,11 +632,24 @@ namespace SourceGit.Views
             var local = RefreshGitVersionAsync();
             if (OperatingSystem.IsWindows())
             {
-                var bundled = await Task.Run(Native.GitExecutableLocator.ReadBundledVersion);
-                if (IsVisible && !string.IsNullOrEmpty(bundled)) BundledGitVersionLabel.Text = $"- {bundled}";
+                var bundled = await Task.Run(() => Native.GitExecutableLocator.ReadBundledVersion(AppContext.BaseDirectory));
+                if (IsVisible) ApplyBundledGitAvailability(bundled);
             }
             await local;
         }
+
+        private void ApplyBundledGitAvailability(string version)
+        {
+            var available = !string.IsNullOrEmpty(version);
+            UseBundledGitChoice.IsEnabled = false;
+            UseBundledGitChoice.IsChecked = available && ViewModels.Preferences.Instance.UseBundledGit;
+            BundledGitVersionLabel.Text = available ? $"- {version}" : string.Empty;
+            MissingBundledGitHint.IsVisible = !available;
+            UseBundledGitChoice.IsEnabled = available;
+        }
+
+        private void OnDownloadBundledGit(object sender, RoutedEventArgs e) =>
+            Native.OS.OpenBrowser(Native.TreeGitUpdater.DownloadPage);
 
         private async void OnGitInstallPathChanged(object sender, TextChangedEventArgs e)
         {

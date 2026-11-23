@@ -173,7 +173,7 @@
                                Classes="bold"
                                Text="{DynamicResource Text.SSHKeyHelper.Generator}"/>
 
-                    <Grid Margin="0,16,0,0" RowDefinitions="32,32,32,Auto,Auto,32" ColumnDefinitions="160,*">
+                    <Grid Margin="0,16,0,0" RowDefinitions="32,32,32,Auto,Auto,Auto" ColumnDefinitions="160,*">
                       <TextBlock Grid.Row="0" Grid.Column="0"
                                  HorizontalAlignment="Right" VerticalAlignment="Center"
                                  Margin="0,0,8,0"

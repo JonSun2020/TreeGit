@@ -9,6 +9,10 @@ namespace SourceGit.Commands
         // failure from a nested command. Only retry Git's transport failure (128).
         protected override bool RequiresAuthenticationTransportExitCode => true;
 
+        internal static string BranchRefspec(string source, string target) => $"{source}:refs/heads/{target}";
+
+        internal static string DisableMirror(string remoteName) => "-c " + $"remote.{remoteName}.mirror=false".Quoted();
+
         public Push(string repo, Models.Branch local, Models.Remote remote, Models.Branch remoteBranch, bool withTags, bool checkSubmodules, bool track, bool force, bool noVerify)
         {
             WorkingDirectory = repo;
@@ -17,11 +21,10 @@ namespace SourceGit.Commands
             SSHKey = remote.PrivateSSHKey;
 
             var builder = new StringBuilder(1024);
-            builder.Append("push --progress --verbose ");
+            builder.Append(DisableMirror(remote.Name)).Append(" push --progress --verbose --no-follow-tags ");
             if (withTags)
                 builder.Append("--tags ");
-            if (checkSubmodules)
-                builder.Append("--recurse-submodules=check ");
+            builder.Append(checkSubmodules ? "--recurse-submodules=check " : "--recurse-submodules=no ");
             if (track)
                 builder.Append("-u ");
             if (force)
@@ -29,7 +32,8 @@ namespace SourceGit.Commands
             if (noVerify)
                 builder.Append("--no-verify ");
 
-            builder.Append(remote.Name).Append(" refs/heads/").Append(local.Name).Append(":refs/heads/").Append(remoteBranch.Name);
+            builder.Append("-- ").Append(remote.Name.Quoted()).Append(' ')
+                .Append(BranchRefspec($"refs/heads/{local.Name}", remoteBranch.Name).Quoted());
             Args = builder.ToString();
         }
 
@@ -41,11 +45,12 @@ namespace SourceGit.Commands
             SSHKey = remote.PrivateSSHKey;
 
             var builder = new StringBuilder(1024);
-            builder.Append("push --progress --verbose ");
+            builder.Append(DisableMirror(remote.Name)).Append(" push --progress --verbose --no-follow-tags --recurse-submodules=no ");
             if (force)
                 builder.Append("--force-with-lease ");
 
-            builder.Append(remote.Name).Append(' ').Append(revision.SHA).Append(":refs/heads/").Append(remoteBranch.Name);
+            builder.Append("-- ").Append(remote.Name.Quoted()).Append(' ')
+                .Append(BranchRefspec(revision.SHA, remoteBranch.Name).Quoted());
             Args = builder.ToString();
         }
 

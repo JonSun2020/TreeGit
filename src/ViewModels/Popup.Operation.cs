@@ -15,7 +15,7 @@ namespace SourceGit.ViewModels
             "LFSFetch" or "LFSPull" or "LFSPush";
         public bool OperationPanelVisible { get => _operationPanelVisible; private set => SetProperty(ref _operationPanelVisible, value); }
         public bool ShowFullOutput { get => _showFullOutput; set => SetProperty(ref _showFullOutput, value); }
-        public bool OperationPhaseFailed => _operationStage is "AuthenticationFailed" or "ConnectionFailed" or "GitUnavailable" or "VerificationTimeout" or "Failed";
+        public bool OperationPhaseFailed => _operationStage is "AuthenticationFailed" or "ConnectionFailed" or "PushRejected" or "GitUnavailable" or "VerificationTimeout" or "Failed";
         public string OperationStage => _operationStage == "Running" ? App.Text("TreeGit.Operation.Running", DialogTitle) : App.Text("TreeGit.Operation." + _operationStage);
         public string StatusDescription => UsesOperationPanel ? OperationStage : ProgressDescription;
         public bool ShowStatus => InProgress || UsesOperationPanel && OperationPhaseFailed;
@@ -147,20 +147,23 @@ namespace SourceGit.ViewModels
             OnPropertyChanged(nameof(OperationOutput));
         }
 
-        protected async Task<bool> VerifyRemoteAsync(string repo, Models.Remote remote, bool push = false, string scope = null, bool? useManager = null)
+        protected async Task<bool> VerifyRemoteAsync(string repo, Models.Remote remote, bool push = false, string scope = null, bool? useManager = null, string pushRefspec = null)
         {
             if (remote == null) return false;
             var owner = App.GetLauncher()?.Pages.Select(p => p.Data).OfType<Repository>().FirstOrDefault(r => string.Equals(r.FullPath, repo, StringComparison.OrdinalIgnoreCase));
             var log = owner?.CreateLog("Connection") ?? new CommandLog("Connection"); Use(log);
             try
             {
-                Commands.Command command = push ? new Commands.VerifyPushCredentials(repo, remote) : new Commands.VerifyRemoteCredentials(repo, remote, scope);
+                Commands.Command command = push ? new Commands.VerifyPushCredentials(repo, remote, pushRefspec) : new Commands.VerifyRemoteCredentials(repo, remote, scope);
                 command.Log = log;
                 command.UseCredentialManager = useManager;
                 var success = command is Commands.VerifyPushCredentials write ? await write.VerifyAsync() : await command.ExecAsync();
                 if (!success && !command.WasAuthenticationCancelled)
                 {
                     var stage = command.LastExitCode.HasValue ? "ConnectionFailed" : "Failed";
+                    if (push && (command.FailureMessage.Contains("returned error: 403", StringComparison.OrdinalIgnoreCase) ||
+                                 command.FailureMessage.Contains("write access to repository not granted", StringComparison.OrdinalIgnoreCase)))
+                        stage = "PushRejected";
                     if (!command.LastExitCode.HasValue && OperatingSystem.IsWindows() && string.IsNullOrEmpty(Native.OS.GitExecutable))
                         stage = "GitUnavailable";
                     OnAuthenticationState(_operationCancelRequested ? "Cancelled" : stage);

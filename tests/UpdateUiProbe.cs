@@ -174,12 +174,36 @@ namespace SourceGit.Tests
                     window.Close();
 
                     server.Offline = true;
-                    model = NewModel(); window = new Views.SelfUpdate { DataContext = model };
-                    window.Present(desktop.MainWindow);
-                    await model.CheckAsync();
-                    Check("offline checking offers a retry and manual download", model.State == "failed" && model.CanAct && model.ShowManualDownload);
-                    Check("the error contains no stack trace URL or checksum", !model.Message.Contains("https:") && !model.Message.Contains("sha256", StringComparison.OrdinalIgnoreCase) && !model.Message.Contains("Exception"));
-                    await Capture(window, "offline"); window.Close();
+                    var initialLocale = App.ActiveLocale;
+                    try
+                    {
+                        foreach (var locale in new[] { "zh_CN", "zh_TW", "en_US" })
+                        {
+                            App.SetLocale(locale);
+                            model = NewModel(); window = new Views.SelfUpdate { DataContext = model };
+                            window.Present(desktop.MainWindow);
+                            await Task.Delay(100);
+                            var checkingBounds = window.Bounds.Size;
+                            var checkingPosition = window.Position;
+                            await model.CheckAsync();
+                            await Capture(window, "offline-" + locale);
+                            Check(locale + " offline checking offers a retry and manual download", model.State == "failed" && model.CanAct && model.ShowManualDownload);
+                            Check(locale + " the error contains no stack trace URL or checksum", !model.Message.Contains("https:") && !model.Message.Contains("sha256", StringComparison.OrdinalIgnoreCase) && !model.Message.Contains("Exception"));
+                            Check(locale + " changing from checking to failed keeps the same compact frame",
+                                window.Bounds.Size == checkingBounds && window.Position == checkingPosition);
+                            var manual = window.FindControl<Button>("ManualDownload");
+                            var retry = window.FindControl<Button>("UpdateAction");
+                            var manualPosition = manual.TranslatePoint(default, window);
+                            var retryPosition = retry.TranslatePoint(default, window);
+                            Check(locale + " manual download matches retry size and sits to its left on the same row",
+                                manual.IsEffectivelyVisible && manualPosition is { } left && retryPosition is { } right &&
+                                left.X + manual.Bounds.Width < right.X && Math.Abs(left.Y - right.Y) <= .5 &&
+                                Math.Abs(manual.Bounds.Width - retry.Bounds.Width) <= .5 && manual.Bounds.Height == retry.Bounds.Height);
+                            await CheckThemes(manual, locale + " manual download button");
+                            window.Close();
+                        }
+                    }
+                    finally { App.SetLocale(initialLocale); }
 
                     server.Offline = false;
                     model = NewModel(server.Version); window = new Views.SelfUpdate { DataContext = model };

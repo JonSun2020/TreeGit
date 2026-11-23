@@ -38,7 +38,6 @@
       </StackPanel>
 
       <CheckBox Grid.Row="1" Grid.Column="1"
-                Height="32"
                 IsChecked="{Binding DeleteUpstream, Mode=TwoWay}"
                 IsVisible="{Binding Upstream, Mode=OneWay, Converter={x:Static ObjectConverters.IsNotNull}}">
         <v:NameHighlightedTextBlock Foreground="{DynamicResource Brush.FG1}"
@@ -52,7 +51,6 @@
                 Content="{DynamicResource Text.DeleteBranch.DeleteAttachedWorktree}"/>
 
       <CheckBox Grid.Row="3" Grid.Column="1"
-                Height="32"
                 Content="{DynamicResource Text.DeleteBranch.Force}"
                 IsChecked="{Binding Force, Mode=TwoWay}"
                 ToolTip.Tip="--force"

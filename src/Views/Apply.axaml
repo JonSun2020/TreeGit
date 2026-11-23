@@ -8,7 +8,7 @@
       <TextBlock FontSize="18" Margin="8,0,0,0" Classes="bold" Text="{DynamicResource Text.Apply.Title}"/>
     </StackPanel>
 
-    <Grid Margin="0,16,0,0" RowDefinitions="32,Auto,32,32,32,Auto" ColumnDefinitions="120,*">
+    <Grid Margin="0,16,0,0" RowDefinitions="32,Auto,32,Auto,Auto,Auto" ColumnDefinitions="120,*">
       <TextBlock Grid.Row="0" Grid.Column="0"
                  HorizontalAlignment="Right" VerticalAlignment="Center"
                  Margin="0,0,8,0"
@@ -79,7 +79,6 @@
 
       <CheckBox Grid.Row="5" Grid.Column="1"
                 x:Name="CommitPatchChanges"
-                Height="32"
                 Content="{DynamicResource Text.Apply.CommitChanges}"
                 IsChecked="{Binding CommitChanges, Mode=TwoWay}"
                 ToolTip.Tip="{DynamicResource Text.Apply.CommitChanges.Tip}">

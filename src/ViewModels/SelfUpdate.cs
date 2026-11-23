@@ -51,7 +51,6 @@ namespace SourceGit.ViewModels
         }
 
         public string State => _state;
-        public double DesiredHeight => ShowNotes ? 400 : _state == "failed" ? 320 : 260;
         public string Heading => App.Text("SelfUpdate.Flow." + _state);
         public string Message => _message;
         public string CurrentVersion => App.Text("SelfUpdate.Flow.CurrentVersion", _currentVersion);

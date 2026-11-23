@@ -42,13 +42,17 @@
       <TextBox Grid.Row="1" Grid.Column="1" x:Name="CreateRepositoryName" MinHeight="30"
                IsEnabled="{Binding CanEditName}" Text="{Binding Name, Mode=TwoWay}"/>
     </Grid>
-    <CheckBox x:Name="CreateRepositoryGitHub" IsEnabled="{Binding CanChangeRemoteChoice}" IsChecked="{Binding CreateOnGitHub, Mode=TwoWay}">
-      <TextBlock Text="{DynamicResource Text.TreeGit.CreateRepository.GitHub}" TextWrapping="Wrap"/>
-    </CheckBox>
-    <StackPanel IsEnabled="{Binding CreateOnGitHub}" Spacing="8">
-      <CheckBox x:Name="CreateRepositoryPrivate" IsEnabled="{Binding CanChangeRemoteChoice}" IsChecked="{Binding IsPrivate, Mode=TwoWay}">
-        <TextBlock Text="{DynamicResource Text.TreeGit.CreateRepository.Private}" TextWrapping="Wrap"/>
+    <StackPanel>
+      <CheckBox x:Name="CreateRepositoryGitHub" IsEnabled="{Binding CanChangeRemoteChoice}" IsChecked="{Binding CreateOnGitHub, Mode=TwoWay}">
+        <TextBlock Text="{DynamicResource Text.TreeGit.CreateRepository.GitHub}" TextWrapping="Wrap"/>
       </CheckBox>
+      <StackPanel IsEnabled="{Binding CreateOnGitHub}">
+        <CheckBox x:Name="CreateRepositoryPrivate" IsEnabled="{Binding CanChangeRemoteChoice}" IsChecked="{Binding IsPrivate, Mode=TwoWay}">
+          <TextBlock Text="{DynamicResource Text.TreeGit.CreateRepository.Private}" TextWrapping="Wrap"/>
+        </CheckBox>
+      </StackPanel>
+    </StackPanel>
+    <StackPanel IsEnabled="{Binding CreateOnGitHub}" Spacing="8">
       <TextBlock Classes="option_dependent" Text="{DynamicResource Text.TreeGit.CreateRepository.TokenHint}" Foreground="{DynamicResource Brush.FG2}" TextWrapping="Wrap"/>
       <Grid ColumnDefinitions="*,Auto">
         <v:PasswordTextBox x:Name="CreateRepositoryToken" Height="32" PasswordChar="*" IsEnabled="{Binding CanEditGitHub}"

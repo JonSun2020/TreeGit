@@ -318,11 +318,6 @@ namespace SourceGit.Views
                     }
                 }
             }
-            else if (e.Key is Key.F && e.KeyModifiers == cmdKey)
-            {
-                LocalChangesSearchBox.Focus();
-                e.Handled = true;
-            }
         }
 
         private async void OnStagedKeyDown(object _, KeyEventArgs e)
@@ -373,11 +368,6 @@ namespace SourceGit.Views
                         e.Handled = true;
                     }
                 }
-            }
-            else if (e.Key is Key.F && e.KeyModifiers == cmdKey)
-            {
-                LocalChangesSearchBox.Focus();
-                e.Handled = true;
             }
         }
 

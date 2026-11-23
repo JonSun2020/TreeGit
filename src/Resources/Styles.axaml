@@ -1138,6 +1138,13 @@
   <Style Selector="ComboBoxItem">
     <Setter Property="CornerRadius" Value="3"/>
   </Style>
+  <Style Selector="ComboBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter, ComboBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter, ComboBoxItem:selected:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.Selection}"/>
+    <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
+  </Style>
+  <Style Selector="ComboBoxItem:selected TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
+  </Style>
   <Style Selector="ComboBox ComboBoxItem">
     <Setter Property="HorizontalContentAlignment" Value="{Binding $parent[ComboBox].HorizontalContentAlignment}"/>
     <Setter Property="Padding">
@@ -1165,11 +1172,11 @@
   </Style>
 
   <Style Selector=":is(Control).dialog_selections">
-    <Style Selector="^ ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter, ^ ComboBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter, ^ ToggleButton:checked /template/ ContentPresenter#PART_ContentPresenter">
+    <Style Selector="^ ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter, ^ ToggleButton:checked /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="{DynamicResource Brush.TreeGit.Selection}"/>
       <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
     </Style>
-    <Style Selector="^ ListBoxItem:selected TextBlock, ^ ComboBoxItem:selected TextBlock">
+    <Style Selector="^ ListBoxItem:selected TextBlock">
       <Setter Property="Foreground" Value="{DynamicResource Brush.TreeGit.SelectionForeground}"/>
     </Style>
     <Style Selector="^ CheckBox:checked /template/ Border#Border">
@@ -1186,6 +1193,7 @@
   </Style>
 
   <Style Selector="CheckBox">
+    <Setter Property="MinHeight" Value="28.8"/>
     <Setter Property="FocusAdorner">
       <FocusAdornerTemplate>
         <Border/>

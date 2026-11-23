@@ -28,71 +28,103 @@
         <RowDefinition Height="*" MinHeight="100"/>
       </Grid.RowDefinitions>
 
-      <!-- Search Filter -->
+      <!-- Change list controls -->
       <Border Grid.Row="0" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Brush.Border0}">
-        <StackPanel>
-        <Grid ColumnDefinitions="*,*" Margin="4,4,4,0"><ComboBox x:Name="ChangeStatusFilterBox" Grid.Column="0" Margin="0,0,3,0" Height="28" MinHeight="28" Padding="6,0" VerticalContentAlignment="Center" HorizontalAlignment="Stretch" SelectedIndex="{Binding ChangeStatusFilter, Mode=TwoWay}" ToolTip.Tip="{DynamicResource Text.UI.FilterStatus}" ItemsSource="{x:Static m:ChangeListOptions.StatusFilters}"><ComboBox.ItemTemplate><DataTemplate x:DataType="m:ChangeListOption"><TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/></DataTemplate></ComboBox.ItemTemplate></ComboBox><ComboBox x:Name="ChangeSortOrderBox" Grid.Column="1" Margin="3,0,0,0" Height="28" MinHeight="28" Padding="6,0" VerticalContentAlignment="Center" HorizontalAlignment="Stretch" SelectedIndex="{Binding ChangeSortOrder, Mode=TwoWay}" ToolTip.Tip="{DynamicResource Text.UI.SortOrder}" ItemsSource="{x:Static m:ChangeListOptions.SortOrders}"><ComboBox.ItemTemplate><DataTemplate x:DataType="m:ChangeListOption"><TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center"/></DataTemplate></ComboBox.ItemTemplate></ComboBox></Grid>
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto" Height="32">
-          <ToggleButton Grid.Column="0" Classes="sidebar_expander" Width="32" VerticalAlignment="Center" IsChecked="{Binding Source={x:Static vm:Preferences.Instance}, Path=Layout.IsSidebarCollapsedInLocalChanges, Mode=TwoWay}"/>
-          
-          <TextBox Grid.Column="1" x:Name="LocalChangesSearchBox" Height="24" Margin="4,0" BorderThickness="1" CornerRadius="2" Text="{Binding Filter, Mode=TwoWay}" BorderBrush="{DynamicResource Brush.Border2}" Watermark="{DynamicResource Text.WorkingCopy.FilterChanges}" VerticalContentAlignment="Center">
-            <TextBox.InnerLeftContent>
-              <Path Width="14" Height="14" Margin="6,0,0,0" Fill="{DynamicResource Brush.FG2}" Data="{StaticResource Icons.Search}"/>
-            </TextBox.InnerLeftContent>
-
-            <TextBox.InnerRightContent>
-              <Button Classes="icon_button" Focusable="False" Width="16" Margin="0,0,6,0" Command="{Binding ClearFilter}" IsVisible="{Binding Filter, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" HorizontalAlignment="Right">
-                <Path Width="14" Height="14" Margin="0,1,0,0" Fill="{DynamicResource Brush.FG1}" Data="{StaticResource Icons.Clear}"/>
-              </Button>
-            </TextBox.InnerRightContent>
-          </TextBox>
-
-          <Button Grid.Column="2" Classes="icon_button" VerticalAlignment="Center" Command="{Binding DiscardAllChanges}" ToolTip.Tip="{DynamicResource Text.WorkingCopy.DiscardAll}">
-            <Path Width="14" Height="14" Data="{StaticResource Icons.Undo}"/>
-          </Button>
-          
-          <v:ChangeViewModeSwitcher Grid.Column="3" Width="26" VerticalAlignment="Center" ViewMode="{Binding Source={x:Static vm:Preferences.Instance}, Path=ChangeViewMode, Mode=TwoWay}"/>
+        <Grid x:Name="LocalChangesToolbar" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="2" Margin="2,1,0,1">
+          <ComboBox x:Name="ChangeStatusFilterBox" Grid.Column="0" Height="24" MinHeight="24" MinWidth="0" Padding="3,0"
+                    VerticalContentAlignment="Center" HorizontalAlignment="Stretch"
+                    SelectedIndex="{Binding ChangeStatusFilter, Mode=TwoWay}" ToolTip.Tip="{DynamicResource Text.UI.FilterStatus}"
+                    ItemsSource="{x:Static m:ChangeListOptions.StatusFilters}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="m:ChangeListOption">
+                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+            <ComboBox.SelectionBoxItemTemplate>
+              <DataTemplate x:DataType="m:ChangeListOption">
+                <Panel>
+                  <Panel Margin="2,0" Opacity="0" IsHitTestVisible="False">
+                    <TextBlock Text="{DynamicResource Text.UI.AllChanges}"/>
+                    <TextBlock Text="{DynamicResource Text.UI.Conflicts}"/>
+                    <TextBlock Text="{DynamicResource Text.UI.Modified}"/>
+                    <TextBlock Text="{DynamicResource Text.UI.Untracked}"/>
+                  </Panel>
+                  <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                </Panel>
+              </DataTemplate>
+            </ComboBox.SelectionBoxItemTemplate>
+          </ComboBox>
+          <ComboBox x:Name="ChangeSortOrderBox" Grid.Column="1" Height="24" MinHeight="24" MinWidth="0" Padding="3,0"
+                    VerticalContentAlignment="Center" HorizontalAlignment="Stretch"
+                    SelectedIndex="{Binding ChangeSortOrder, Mode=TwoWay}" ToolTip.Tip="{DynamicResource Text.UI.SortOrder}"
+                    ItemsSource="{x:Static m:ChangeListOptions.SortOrders}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate x:DataType="m:ChangeListOption">
+                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+            <ComboBox.SelectionBoxItemTemplate>
+              <DataTemplate x:DataType="m:ChangeListOption">
+                <Panel>
+                  <Panel Margin="2,0" Opacity="0" IsHitTestVisible="False">
+                    <TextBlock Text="{DynamicResource Text.UI.SortPath}"/>
+                    <TextBlock Text="{DynamicResource Text.UI.SortName}"/>
+                    <TextBlock Text="{DynamicResource Text.UI.SortStatus}"/>
+                  </Panel>
+                  <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                </Panel>
+              </DataTemplate>
+            </ComboBox.SelectionBoxItemTemplate>
+          </ComboBox>
+          <v:ChangeViewModeSwitcher Grid.Column="2" Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                    ViewMode="{Binding Source={x:Static vm:Preferences.Instance}, Path=ChangeViewMode, Mode=TwoWay}"/>
         </Grid>
-        </StackPanel>
       </Border>
 
       <!-- Unstaged -->
       <Grid Grid.Row="3" RowDefinitions="Auto,*">
         <!-- Unstaged Toolbar -->
         <Border Grid.Row="0" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Brush.Border0}" MinHeight="28">
-          <DockPanel LastChildFill="True"><StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center"><Path Margin="8,0,0,0" Width="14" Height="14" Fill="{DynamicResource Brush.FG2}" Data="{StaticResource Icons.Changes}"/>
-            <TextBlock Foreground="{DynamicResource Brush.FG2}" FontWeight="Bold" Margin="4,0,0,0">
-              <Run Text="{DynamicResource Text.TreeGit.Changes.Unstaged}"/>
-              <Run Text="{Binding UnstagedCountInfo, Mode=OneWay}"/>
-            </TextBlock>
-            <v:LoadingIcon Width="14" Height="14" Margin="8,0,0,0" IsVisible="{Binding IsStaging}"/>
-
-            </StackPanel><v:RightAlignedWrapPanel HorizontalAlignment="Stretch" VerticalAlignment="Center"><Button Classes="icon_button" Width="26" Height="14" Padding="0" ToolTip.Tip="{DynamicResource Text.WorkingCopy.Unstaged.ViewAssumeUnchanged}" Click="OnOpenAssumeUnchanged" Margin="3,2">
+          <v:RightAlignedWrapPanel HorizontalAlignment="Stretch" VerticalAlignment="Center">
+            <StackPanel HorizontalAlignment="Left" Orientation="Horizontal" VerticalAlignment="Center">
+              <Path Margin="8,0,0,0" Width="14" Height="14" Fill="{DynamicResource Brush.FG2}" Data="{StaticResource Icons.Changes}"/>
+              <TextBlock Foreground="{DynamicResource Brush.FG2}" FontWeight="Bold" Margin="4,0,0,0">
+                <Run Text="{DynamicResource Text.TreeGit.Changes.Unstaged}"/>
+                <Run Text="{Binding UnstagedCountInfo, Mode=OneWay}"/>
+              </TextBlock>
+              <v:LoadingIcon Width="14" Height="14" Margin="8,0,0,0" IsVisible="{Binding IsStaging}"/>
+            </StackPanel>
+            <Button Classes="icon_button" Width="26" Height="14" Padding="0" ToolTip.Tip="{DynamicResource Text.WorkingCopy.Unstaged.ViewAssumeUnchanged}" Click="OnOpenAssumeUnchanged" Margin="3,2">
               <Path Width="14" Height="14" Data="{StaticResource Icons.File.Ignore}"/>
             </Button>
             <ToggleButton Classes="toggle_untracked" Width="26" Height="14" ToolTip.Tip="{DynamicResource Text.WorkingCopy.IncludeUntracked}" IsChecked="{Binding IncludeUntracked, Mode=TwoWay}" Margin="3,2"/>
             <Button Classes="icon_button" Width="26" Height="14" Padding="0" IsVisible="{Binding HasUnsolvedConflicts}" ToolTip.Tip="{DynamicResource Text.WorkingCopy.Conflicts.OpenExternalMergeToolAllConflicts}" Click="OnOpenExternalMergeToolAllConflicts" Margin="3,2">
               <Path Width="14" Height="14" Data="{StaticResource Icons.Conflict}"/>
             </Button>
-            <Button Classes="flat treegit_stage_action" Width="110" Height="20" Padding="4,0" HotKey="{OnPlatform Ctrl+Shift+S, macOS=⌘+Shift+S}" x:Name="StageAllChanges" Click="OnStageAllButtonClicked" Margin="3,2" FontSize="11">
-              <Button.IsEnabled><MultiBinding Converter="{x:Static BoolConverters.And}"><Binding Path="CanChangeIndex"/><Binding Path="VisibleUnstaged.Count" Converter="{x:Static c:IntConverters.IsGreaterThanZero}"/></MultiBinding></Button.IsEnabled>
-              <ToolTip.Tip>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                  <TextBlock Text="{DynamicResource Text.WorkingCopy.Unstaged.StageAll}" VerticalAlignment="Center"/>
-                  <TextBlock Margin="16,0,0,0" Text="{OnPlatform Ctrl+Shift+S, macOS=⌘+⇧+S}" Foreground="{DynamicResource MenuFlyoutItemKeyboardAcceleratorTextForeground}" FontSize="11" VerticalAlignment="Center"/>
-                </StackPanel>
-              </ToolTip.Tip>
-              <TextBlock Text="{DynamicResource Text.TreeGit.Changes.StageAll}"/></Button>
-          <Button Classes="flat treegit_stage_action" Width="110" Height="20" Padding="4,0" x:Name="StageSelectedChanges" Click="OnStageSelectedButtonClicked" Margin="3,2" FontSize="11">
-              <Button.IsEnabled><MultiBinding Converter="{x:Static BoolConverters.And}"><Binding Path="CanChangeIndex"/><Binding Path="SelectedUnstaged.Count" Converter="{x:Static c:IntConverters.IsGreaterThanZero}"/></MultiBinding></Button.IsEnabled>
-              <ToolTip.Tip>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                  <TextBlock Text="{DynamicResource Text.WorkingCopy.Unstaged.Stage}" VerticalAlignment="Center"/>
-                  <TextBlock Margin="16,0,0,0" Text="{OnPlatform Space/Enter, macOS=␣/Enter}" Foreground="{DynamicResource MenuFlyoutItemKeyboardAcceleratorTextForeground}" FontSize="11" VerticalAlignment="Center"/>
-                </StackPanel>
-              </ToolTip.Tip>
-              <TextBlock Text="{DynamicResource Text.TreeGit.Changes.StageSelected}"/></Button>
-            </v:RightAlignedWrapPanel></DockPanel></Border>
+            <StackPanel Orientation="Horizontal" Spacing="3" Margin="3,2">
+              <Button Classes="flat treegit_stage_action" Width="110" Height="20" Padding="4,0" HotKey="{OnPlatform Ctrl+Shift+S, macOS=⌘+Shift+S}" x:Name="StageAllChanges" Click="OnStageAllButtonClicked" FontSize="11">
+                <Button.IsEnabled><MultiBinding Converter="{x:Static BoolConverters.And}"><Binding Path="CanChangeIndex"/><Binding Path="VisibleUnstaged.Count" Converter="{x:Static c:IntConverters.IsGreaterThanZero}"/></MultiBinding></Button.IsEnabled>
+                <ToolTip.Tip>
+                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{DynamicResource Text.WorkingCopy.Unstaged.StageAll}" VerticalAlignment="Center"/>
+                    <TextBlock Margin="16,0,0,0" Text="{OnPlatform Ctrl+Shift+S, macOS=⌘+⇧+S}" Foreground="{DynamicResource MenuFlyoutItemKeyboardAcceleratorTextForeground}" FontSize="11" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </ToolTip.Tip>
+                <TextBlock Text="{DynamicResource Text.TreeGit.Changes.StageAll}"/>
+              </Button>
+              <Button Classes="flat treegit_stage_action" Width="110" Height="20" Padding="4,0" x:Name="StageSelectedChanges" Click="OnStageSelectedButtonClicked" FontSize="11">
+                <Button.IsEnabled><MultiBinding Converter="{x:Static BoolConverters.And}"><Binding Path="CanChangeIndex"/><Binding Path="SelectedUnstaged.Count" Converter="{x:Static c:IntConverters.IsGreaterThanZero}"/></MultiBinding></Button.IsEnabled>
+                <ToolTip.Tip>
+                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{DynamicResource Text.WorkingCopy.Unstaged.Stage}" VerticalAlignment="Center"/>
+                    <TextBlock Margin="16,0,0,0" Text="{OnPlatform Space/Enter, macOS=␣/Enter}" Foreground="{DynamicResource MenuFlyoutItemKeyboardAcceleratorTextForeground}" FontSize="11" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </ToolTip.Tip>
+                <TextBlock Text="{DynamicResource Text.TreeGit.Changes.StageSelected}"/>
+              </Button>
+            </StackPanel>
+          </v:RightAlignedWrapPanel>
+        </Border>
 
         <!-- Unstaged Changes -->
         <v:ChangeCollectionView Grid.Row="1" x:Name="UnstagedChangesView" PreserveChangeOrder="True" IsUnstagedChange="True" Background="{DynamicResource Brush.Contents}" ViewMode="{Binding Source={x:Static vm:Preferences.Instance}, Path=ChangeViewMode}" EnableCompactFolders="{Binding Source={x:Static vm:Preferences.Instance}, Path=EnableCompactFoldersInChangesTree}" Changes="{Binding VisibleUnstaged}" Selection="{Binding SelectedUnstaged, Mode=TwoWay}" ContextRequested="OnUnstagedContextRequested" ChangeDoubleTapped="OnUnstagedChangeDoubleTapped" KeyDown="OnUnstagedKeyDown"/>
@@ -105,31 +137,39 @@
       <Grid Grid.Row="1" RowDefinitions="Auto,*">
         <!-- Staged Toolbar -->
         <Border Grid.Row="0" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Brush.Border0}" MinHeight="28">
-          <DockPanel LastChildFill="True"><StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center"><Path Margin="8,0,0,0" Width="14" Height="14" Fill="{DynamicResource Brush.FG2}" Data="{StaticResource Icons.Changes}"/>
-            <TextBlock Foreground="{DynamicResource Brush.FG2}" FontWeight="Bold" Margin="4,0,0,0">
-              <Run Text="{DynamicResource Text.TreeGit.Changes.Staged}"/>
-              <Run Text="{Binding StagedCountInfo, Mode=OneWay}"/>
-            </TextBlock>
-            <v:LoadingIcon Width="14" Height="14" Margin="8,0,0,0" IsVisible="{Binding IsUnstaging}"/>
-            </StackPanel><v:RightAlignedWrapPanel HorizontalAlignment="Stretch" VerticalAlignment="Center"><Button Classes="flat treegit_stage_action" Width="110" Height="20" Padding="4,0" HotKey="{OnPlatform Ctrl+Shift+U, macOS=⌘+Shift+U}" x:Name="UnstageAllChanges" Click="OnUnstageAllButtonClicked" Margin="3,2" FontSize="11">
-              <Button.IsEnabled><MultiBinding Converter="{x:Static BoolConverters.And}"><Binding Path="CanChangeIndex"/><Binding Path="VisibleStaged.Count" Converter="{x:Static c:IntConverters.IsGreaterThanZero}"/></MultiBinding></Button.IsEnabled>
-              <ToolTip.Tip>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                  <TextBlock Text="{DynamicResource Text.WorkingCopy.Staged.UnstageAll}" VerticalAlignment="Center"/>
-                  <TextBlock Margin="16,0,0,0" Text="{OnPlatform Ctrl+Shift+U, macOS=⌘+⇧+U}" FontSize="11" VerticalAlignment="Center" Foreground="{DynamicResource MenuFlyoutItemKeyboardAcceleratorTextForeground}"/>
-                </StackPanel>
-              </ToolTip.Tip>
-              <TextBlock Text="{DynamicResource Text.TreeGit.Changes.UnstageAll}"/></Button>
-          <Button Classes="flat treegit_stage_action" Width="110" Height="20" Padding="4,0" x:Name="UnstageSelectedChanges" Click="OnUnstageSelectedButtonClicked" Margin="3,2" FontSize="11">
-              <Button.IsEnabled><MultiBinding Converter="{x:Static BoolConverters.And}"><Binding Path="CanChangeIndex"/><Binding Path="SelectedStaged.Count" Converter="{x:Static c:IntConverters.IsGreaterThanZero}"/></MultiBinding></Button.IsEnabled>
-              <ToolTip.Tip>
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                  <TextBlock Text="{DynamicResource Text.WorkingCopy.Staged.Unstage}" VerticalAlignment="Center"/>
-                  <TextBlock Margin="16,0,0,0" Text="{OnPlatform Space/Enter, macOS=␣/Enter}" FontSize="11" VerticalAlignment="Center" Foreground="{DynamicResource MenuFlyoutItemKeyboardAcceleratorTextForeground}"/>
-                </StackPanel>
-              </ToolTip.Tip>
-              <TextBlock Text="{DynamicResource Text.TreeGit.Changes.UnstageSelected}"/></Button>
-            </v:RightAlignedWrapPanel></DockPanel></Border>
+          <v:RightAlignedWrapPanel HorizontalAlignment="Stretch" VerticalAlignment="Center">
+            <StackPanel HorizontalAlignment="Left" Orientation="Horizontal" VerticalAlignment="Center">
+              <Path Margin="8,0,0,0" Width="14" Height="14" Fill="{DynamicResource Brush.FG2}" Data="{StaticResource Icons.Changes}"/>
+              <TextBlock Foreground="{DynamicResource Brush.FG2}" FontWeight="Bold" Margin="4,0,0,0">
+                <Run Text="{DynamicResource Text.TreeGit.Changes.Staged}"/>
+                <Run Text="{Binding StagedCountInfo, Mode=OneWay}"/>
+              </TextBlock>
+              <v:LoadingIcon Width="14" Height="14" Margin="8,0,0,0" IsVisible="{Binding IsUnstaging}"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="3" Margin="3,2">
+              <Button Classes="flat treegit_stage_action" Width="110" Height="20" Padding="4,0" HotKey="{OnPlatform Ctrl+Shift+U, macOS=⌘+Shift+U}" x:Name="UnstageAllChanges" Click="OnUnstageAllButtonClicked" FontSize="11">
+                <Button.IsEnabled><MultiBinding Converter="{x:Static BoolConverters.And}"><Binding Path="CanChangeIndex"/><Binding Path="VisibleStaged.Count" Converter="{x:Static c:IntConverters.IsGreaterThanZero}"/></MultiBinding></Button.IsEnabled>
+                <ToolTip.Tip>
+                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{DynamicResource Text.WorkingCopy.Staged.UnstageAll}" VerticalAlignment="Center"/>
+                    <TextBlock Margin="16,0,0,0" Text="{OnPlatform Ctrl+Shift+U, macOS=⌘+⇧+U}" FontSize="11" VerticalAlignment="Center" Foreground="{DynamicResource MenuFlyoutItemKeyboardAcceleratorTextForeground}"/>
+                  </StackPanel>
+                </ToolTip.Tip>
+                <TextBlock Text="{DynamicResource Text.TreeGit.Changes.UnstageAll}"/>
+              </Button>
+              <Button Classes="flat treegit_stage_action" Width="110" Height="20" Padding="4,0" x:Name="UnstageSelectedChanges" Click="OnUnstageSelectedButtonClicked" FontSize="11">
+                <Button.IsEnabled><MultiBinding Converter="{x:Static BoolConverters.And}"><Binding Path="CanChangeIndex"/><Binding Path="SelectedStaged.Count" Converter="{x:Static c:IntConverters.IsGreaterThanZero}"/></MultiBinding></Button.IsEnabled>
+                <ToolTip.Tip>
+                  <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{DynamicResource Text.WorkingCopy.Staged.Unstage}" VerticalAlignment="Center"/>
+                    <TextBlock Margin="16,0,0,0" Text="{OnPlatform Space/Enter, macOS=␣/Enter}" FontSize="11" VerticalAlignment="Center" Foreground="{DynamicResource MenuFlyoutItemKeyboardAcceleratorTextForeground}"/>
+                  </StackPanel>
+                </ToolTip.Tip>
+                <TextBlock Text="{DynamicResource Text.TreeGit.Changes.UnstageSelected}"/>
+              </Button>
+            </StackPanel>
+          </v:RightAlignedWrapPanel>
+        </Border>
 
         <!-- Staged Changes -->
         <v:ChangeCollectionView Grid.Row="1" x:Name="StagedChangesView" PreserveChangeOrder="True" IsUnstagedChange="False" Background="{DynamicResource Brush.Contents}" ViewMode="{Binding Source={x:Static vm:Preferences.Instance}, Path=ChangeViewMode}" EnableCompactFolders="{Binding Source={x:Static vm:Preferences.Instance}, Path=EnableCompactFoldersInChangesTree}" Changes="{Binding VisibleStaged}" Selection="{Binding SelectedStaged, Mode=TwoWay}" ContextRequested="OnStagedContextRequested" ChangeDoubleTapped="OnStagedChangeDoubleTapped" KeyDown="OnStagedKeyDown"/>

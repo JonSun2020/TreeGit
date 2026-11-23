@@ -107,7 +107,7 @@
   <x:String x:Key="Text.ChangeCM.Merge" xml:space="preserve">解決衝突 (內建工具)</x:String>
   <x:String x:Key="Text.ChangeCM.MergeExternal" xml:space="preserve">解決衝突 (外部工具)</x:String>
   <x:String x:Key="Text.ChangeCM.ResetFileTo" xml:space="preserve">重設檔案到 ${0}$</x:String>
-  <x:String x:Key="Text.ChangeDisplayMode" xml:space="preserve">切換變更顯示模式</x:String>
+  <x:String x:Key="Text.ChangeDisplayMode" xml:space="preserve">顯示模式</x:String>
   <x:String x:Key="Text.ChangeDisplayMode.Grid" xml:space="preserve">檔案名稱 + 路徑列表模式</x:String>
   <x:String x:Key="Text.ChangeDisplayMode.List" xml:space="preserve">全路徑列表模式</x:String>
   <x:String x:Key="Text.ChangeDisplayMode.Tree" xml:space="preserve">檔案目錄樹狀結構模式</x:String>
@@ -1109,9 +1109,7 @@
   <x:String x:Key="Text.WorkingCopy.Conflicts.Resolved" xml:space="preserve">檔案衝突已解決</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.UseMine" xml:space="preserve">使用 Local</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.UseTheirs" xml:space="preserve">使用 Remote</x:String>
-  <x:String x:Key="Text.WorkingCopy.DiscardAll" xml:space="preserve">捨棄所有變更</x:String>
   <x:String x:Key="Text.WorkingCopy.ExpandSidebar" xml:space="preserve">展開側邊欄</x:String>
-  <x:String x:Key="Text.WorkingCopy.FilterChanges" xml:space="preserve">篩選變更...</x:String>
   <x:String x:Key="Text.WorkingCopy.IncludeUntracked" xml:space="preserve">顯示未追蹤檔案</x:String>
   <x:String x:Key="Text.WorkingCopy.NoCommitHistories" xml:space="preserve">沒有提交訊息記錄</x:String>
   <x:String x:Key="Text.WorkingCopy.NoCommitTemplates" xml:space="preserve">沒有可套用的提交訊息範本</x:String>
@@ -1923,9 +1921,12 @@
   <x:String x:Key="Text.TreeGit.Startup.Repositories">正在開啟目前的儲存庫…</x:String>
   <x:String x:Key="Text.TreeGit.Git.Detect">自動偵測</x:String>
   <x:String x:Key="Text.TreeGit.Git.UseBundledOption">使用內建Git</x:String>
+  <x:String x:Key="Text.TreeGit.Git.BundledMissingPrefix">（找不到內建Git，請下載</x:String>
+  <x:String x:Key="Text.TreeGit.Git.BundledMissingSuffix">版本）</x:String>
   <x:String x:Key="Text.TreeGit.Git.UseBundled">未偵測到本機 Git，將使用內建 Git。</x:String>
   <x:String x:Key="Text.TreeGit.Operation.GitUnavailable">無法啟動內建 Git，請重新解壓縮完整的 TreeGit 套件。</x:String>
   <x:String x:Key="Text.TreeGit.Operation.ConnectionFailed">連線失敗，請檢查網路與遠端位址。</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.PushRejected">遠端拒絕推送，請檢查推送位址和寫入權限。</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Authenticated">驗證成功</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Running">正在{0}…</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Succeeded">操作成功</x:String>

@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Layout;
 
 namespace SourceGit.Views
 {
     // Every wrapped row ends on the same right edge, so equal-width stage actions
     // remain vertically aligned when the file pane becomes narrow.
+    // An explicitly left-aligned leading action uses the other edge.
     public sealed class RightAlignedWrapPanel : Panel
     {
         protected override Size MeasureOverride(Size availableSize)
@@ -32,7 +34,8 @@ namespace SourceGit.Views
                 foreach (var child in line.Children)
                 {
                     var size = child.DesiredSize;
-                    child.Arrange(new Rect(x, y + (line.Height - size.Height) / 2, size.Width, size.Height));
+                    var left = child == line.Children[0] && child.HorizontalAlignment == HorizontalAlignment.Left;
+                    child.Arrange(new Rect(left ? 0 : x, y + (line.Height - size.Height) / 2, size.Width, size.Height));
                     x += size.Width;
                 }
                 y += line.Height;

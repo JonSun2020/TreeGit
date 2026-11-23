@@ -1265,17 +1265,17 @@ namespace SourceGit.ViewModels
                 SynchronizeCommitBranchSelection(detail.Commit, details);
         }
 
-        public void SynchronizeCommitBranchSelection(Models.Commit commit, Models.CommitBranchDetails details)
+        public bool SynchronizeCommitBranchSelection(Models.Commit commit, Models.CommitBranchDetails details)
         {
             if (commit == null || details == null ||
                 (_historySidebarSelectionCommit != commit.SHA && _historyNavigationCommit != commit.SHA && SidebarCommitBranches?.Commit.SHA != commit.SHA) || SelectedViewIndex != 0 ||
                 _histories == null || _histories.IsWorkingCopySelected)
-                return;
+                return false;
 
             var selected = _histories.IsSearchingCommits
                 ? _histories.SearchCommitContext.Selected?.SHA
                 : _histories.SelectedCommits is { Count: 1 } commits ? commits[0].SHA : GetSelectedCommitInHistory()?.SHA;
-            if (selected != commit.SHA) return;
+            if (selected != commit.SHA) return false;
 
             var containing = new HashSet<string>(StringComparer.Ordinal);
             foreach (var branch in details.Coverage.Branches) containing.Add(branch.FullName);
@@ -1287,6 +1287,7 @@ namespace SourceGit.ViewModels
             HistoryBranchSelectionRequested?.Invoke(focus);
             SidebarCommitBranches = details;
             CommitBranchHighlightsRequested?.Invoke(details);
+            return true;
         }
 
         private Models.Branch FindHistoryBranch(string sha, HashSet<string> containing)

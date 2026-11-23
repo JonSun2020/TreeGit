@@ -172,7 +172,7 @@ try:
     client.tool('ui_command',command='preferences',page=tab)
     size=wait(lambda: result if (result:=client.probe('diff_preferences_bounds'))['ready'] else None)
     check(f'{locale} {tab} fits inside the compact preferences window',
-          size['width']==620 and size['height']==380 and size['contentHeight']<=size['visibleHeight']+1,size)
+          size['width']==620 and size['height']==370 and size['contentHeight']<=size['visibleHeight']+1,size)
     if tab=='general':check(f'{locale} general preferences omit the default Changes checkbox',size['checkboxes']==4,size)
     client.tool('ui_command',command='close_dialog')
     wait(lambda:not client.tool('ui_state')['dialogs'])

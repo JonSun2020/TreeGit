@@ -108,7 +108,7 @@
   <x:String x:Key="Text.ChangeCM.Merge" xml:space="preserve">Merge (Built-in)</x:String>
   <x:String x:Key="Text.ChangeCM.MergeExternal" xml:space="preserve">Merge (External)</x:String>
   <x:String x:Key="Text.ChangeCM.ResetFileTo" xml:space="preserve">Reset File(s) to ${0}$</x:String>
-  <x:String x:Key="Text.ChangeDisplayMode" xml:space="preserve">CHANGE DISPLAY MODE</x:String>
+  <x:String x:Key="Text.ChangeDisplayMode" xml:space="preserve">Display mode</x:String>
   <x:String x:Key="Text.ChangeDisplayMode.Grid" xml:space="preserve">Show as File and Dir List</x:String>
   <x:String x:Key="Text.ChangeDisplayMode.List" xml:space="preserve">Show as Path List</x:String>
   <x:String x:Key="Text.ChangeDisplayMode.Tree" xml:space="preserve">Show as Filesystem Tree</x:String>
@@ -1128,9 +1128,7 @@ Manually add a branch/tag history filter will disable this feature automatically
   <x:String x:Key="Text.WorkingCopy.Conflicts.Resolved" xml:space="preserve">FILE CONFLICTS ARE RESOLVED</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.UseMine" xml:space="preserve">Use Local</x:String>
   <x:String x:Key="Text.WorkingCopy.Conflicts.UseTheirs" xml:space="preserve">Use Remote</x:String>
-  <x:String x:Key="Text.WorkingCopy.DiscardAll" xml:space="preserve">DISCARD ALL</x:String>
   <x:String x:Key="Text.WorkingCopy.ExpandSidebar" xml:space="preserve">Show Sidebar</x:String>
-  <x:String x:Key="Text.WorkingCopy.FilterChanges" xml:space="preserve">Filter Changes...</x:String>
   <x:String x:Key="Text.WorkingCopy.IncludeUntracked" xml:space="preserve">INCLUDE UNTRACKED FILES</x:String>
   <x:String x:Key="Text.WorkingCopy.NoCommitHistories" xml:space="preserve">NO RECENT INPUT MESSAGES</x:String>
   <x:String x:Key="Text.WorkingCopy.NoCommitTemplates" xml:space="preserve">NO COMMIT TEMPLATES</x:String>
@@ -1864,9 +1862,12 @@ Server: {1}</x:String>
   <x:String x:Key="Text.TreeGit.Startup.Repositories">Opening the current repository…</x:String>
   <x:String x:Key="Text.TreeGit.Git.Detect">Auto-detect</x:String>
   <x:String x:Key="Text.TreeGit.Git.UseBundledOption">Use bundled Git</x:String>
+  <x:String x:Key="Text.TreeGit.Git.BundledMissingPrefix" xml:space="preserve">(Bundled Git not found. Download the </x:String>
+  <x:String x:Key="Text.TreeGit.Git.BundledMissingSuffix" xml:space="preserve"> edition.)</x:String>
   <x:String x:Key="Text.TreeGit.Git.UseBundled">No system Git found. TreeGit will use its bundled Git.</x:String>
   <x:String x:Key="Text.TreeGit.Operation.GitUnavailable">Bundled Git could not start. Extract the complete TreeGit package and try again.</x:String>
   <x:String x:Key="Text.TreeGit.Operation.ConnectionFailed">Connection failed. Check the network and remote address.</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.PushRejected">Push access denied. Check the push address and your write permissions.</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Authenticated">Verified successfully</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Running">{0} in progress…</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Succeeded">Operation completed</x:String>

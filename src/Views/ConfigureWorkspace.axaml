@@ -118,7 +118,7 @@
       <ContentControl Grid.Column="2" Content="{Binding Selected}">
         <ContentControl.DataTemplates>
           <DataTemplate DataType="vm:Workspace">
-            <Grid RowDefinitions="30,32,30,32,30,Auto,32">
+            <Grid RowDefinitions="30,32,30,32,30,Auto,Auto">
               <TextBlock Grid.Row="0" Margin="0,0,0,4" Text="{DynamicResource Text.ConfigureWorkspace.Name}" VerticalAlignment="Bottom"/>
               <TextBox Grid.Row="1" CornerRadius="3" Height="28" Text="{Binding Name, Mode=TwoWay}"/>
 

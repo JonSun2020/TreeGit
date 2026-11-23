@@ -13,7 +13,7 @@
                     x:Name="ThisControl"
                     Icon="/App.ico"
                     Title="{DynamicResource Text.Preferences}"
-                    Width="620" Height="380" SizeToContent="Manual"
+                    Width="620" Height="370" SizeToContent="Manual"
                     CanResize="False"
                     WindowStartupLocation="CenterScreen">
   <Grid RowDefinitions="Auto,*,Auto" MinWidth="0">
@@ -47,7 +47,7 @@
             <TextBlock Classes="tab_header" Text="{DynamicResource Text.Preferences.General}"/>
           </TabItem.Header>
           <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-          <Grid Margin="8" RowDefinitions="0,32,32,32,32,32,32,Auto" ColumnDefinitions="Auto,*">
+          <Grid Margin="8" RowDefinitions="0,32,32,32,32,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
             <TextBlock Grid.Row="1" Grid.Column="0"
                        Text="{DynamicResource Text.Preferences.General.DateFormat}"
                        HorizontalAlignment="Right"
@@ -70,7 +70,6 @@
               </ComboBox>
 
               <CheckBox Grid.Column="1"
-                        Height="32"
                         Margin="8,0,0,0"
                         Content="{DynamicResource Text.Preferences.General.Use24Hours}"
                         IsChecked="{Binding Use24Hours, Mode=TwoWay}"/>
@@ -130,17 +129,14 @@
             </Grid>
 
             <CheckBox Grid.Row="5" Grid.Column="1"
-                      Height="32"
                       Content="{DynamicResource Text.Preferences.General.UseCompactBranchNames}"
                       IsChecked="{Binding UseCompactBranchNamesInGraph, Mode=TwoWay}"/>
 
             <CheckBox Grid.Row="6" Grid.Column="1"
-                      Height="32"
                       Content="{DynamicResource Text.Preferences.General.EnableCompactFolders}"
                       IsChecked="{Binding EnableCompactFoldersInChangesTree, Mode=TwoWay}"/>
 
             <CheckBox Grid.Row="7" Grid.Column="1"
-                      Height="32"
                       Content="{DynamicResource Text.Preferences.General.Check4UpdatesOnStartup}"
                       IsVisible="{x:Static s:App.IsCheckForUpdateCommandVisible}"
                       IsChecked="{Binding Check4UpdatesOnStartup, Mode=TwoWay}"/>
@@ -153,7 +149,7 @@
             <TextBlock Classes="tab_header" Text="{DynamicResource Text.Preferences.Appearance}"/>
           </TabItem.Header>
           <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-          <Grid Margin="8" RowDefinitions="32,32,32,32,32,32,32,Auto" ColumnDefinitions="Auto,*">
+          <Grid Margin="8" RowDefinitions="32,32,32,32,32,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
             <TextBlock Grid.Row="0" Grid.Column="0"
                        Text="{DynamicResource Text.Preferences.Appearance.Theme}"
                        HorizontalAlignment="Right"
@@ -260,17 +256,14 @@
 
 
             <CheckBox Grid.Row="5" Grid.Column="1"
-                      Height="32"
                       Content="{DynamicResource Text.Preferences.Appearance.UseFixedTabWidth}"
                       IsChecked="{Binding UseFixedTabWidth, Mode=TwoWay}"/>
 
             <CheckBox Grid.Row="6" Grid.Column="1"
-                      Height="32"
                       Content="{DynamicResource Text.Preferences.Appearance.UseAutoHideScrollBars}"
                       IsChecked="{Binding UseAutoHideScrollBars, Mode=TwoWay}"/>
 
             <CheckBox Grid.Row="7" Grid.Column="1"
-                      Height="32"
                       Content="{DynamicResource Text.Preferences.Appearance.UseNativeWindowFrame}"
                       x:Name="UseSystemFrameOption" IsChecked="{Binding UseSystemWindowFrame, Mode=OneTime}"
                       IsVisible="{OnPlatform False, Linux=True}"
@@ -286,7 +279,7 @@
           </TabItem.Header>
           <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
 
-          <Grid Margin="8" RowDefinitions="32,Auto,32,32,32" ColumnDefinitions="Auto,*">
+          <Grid Margin="8" RowDefinitions="32,Auto,32,Auto,Auto" ColumnDefinitions="Auto,*">
             <TextBlock Grid.Row="0" Grid.Column="0"
                        Text="{DynamicResource Text.Preferences.GPG.Format}"
                        HorizontalAlignment="Right"
@@ -361,14 +354,27 @@
                 <Setter Property="Opacity" Value="0.68"/>
               </Style>
             </StackPanel.Styles>
-            <CheckBox x:Name="UseBundledGitChoice" Margin="8,2,0,4"
+            <WrapPanel Margin="8,2,0,0">
+            <CheckBox x:Name="UseBundledGitChoice" IsEnabled="False" VerticalAlignment="Center"
                       AutomationProperties.Name="{DynamicResource Text.TreeGit.Git.UseBundledOption}">
               <WrapPanel Orientation="Horizontal">
                 <TextBlock Text="{DynamicResource Text.TreeGit.Git.UseBundledOption}"/>
                 <TextBlock x:Name="BundledGitVersionLabel" Margin="8,0,0,0"/>
               </WrapPanel>
             </CheckBox>
-          <Grid Margin="8" RowDefinitions="32,32,32,32,32,32,32,32,Auto,32,32" ColumnDefinitions="Auto,*">
+            <StackPanel x:Name="MissingBundledGitHint" IsVisible="False" Orientation="Horizontal" Margin="6,0,0,0" VerticalAlignment="Center">
+              <TextBlock Text="{DynamicResource Text.TreeGit.Git.BundledMissingPrefix}" VerticalAlignment="Center"/>
+              <Button Classes="icon_button" Cursor="Hand" Padding="0" VerticalAlignment="Center"
+                      AutomationProperties.Name="BundledGit" Click="OnDownloadBundledGit">
+                <StackPanel Spacing="1.5" UseLayoutRounding="False">
+                  <TextBlock Foreground="{DynamicResource Brush.ExternalLink}" Text="BundledGit"/>
+                  <Border Height="0.5" Background="{DynamicResource Brush.ExternalLink}" UseLayoutRounding="False"/>
+                </StackPanel>
+              </Button>
+              <TextBlock Text="{DynamicResource Text.TreeGit.Git.BundledMissingSuffix}" VerticalAlignment="Center"/>
+            </StackPanel>
+            </WrapPanel>
+          <Grid Margin="8,1,8,8" RowDefinitions="32,32,32,32,32,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
             <TextBlock Classes.git_install_inactive="{Binding #UseBundledGitChoice.IsChecked}" Grid.Row="0" IsEnabled="{Binding !#UseBundledGitChoice.IsChecked}" Grid.Column="0"
                        Text="{DynamicResource Text.Preferences.Git.Path}"
                        HorizontalAlignment="Right"
@@ -445,31 +451,26 @@
             </ComboBox>
 
             <CheckBox Grid.Row="5" Grid.Column="1"
-                      Height="32"
                       Content="{DynamicResource Text.Preferences.Git.EnablePruneOnFetch}"
                       IsChecked="{Binding #ThisControl.EnablePruneOnFetch, Mode=TwoWay}"
                       ToolTip.Tip="fetch.prune=true"/>
 
             <CheckBox Grid.Row="6" Grid.Column="1"
-                      Height="32"
                       Content="{DynamicResource Text.Preferences.Git.IgnoreCRAtEOLInDiff}"
                       IsChecked="{Binding IgnoreCRAtEOLInDiff, Mode=TwoWay}"
                       ToolTip.Tip="--ignore-cr-at-eol"/>
 
             <CheckBox Grid.Row="7" Grid.Column="1"
-                      Height="32"
                       Content="{DynamicResource Text.Preferences.Git.SSLVerify}"
                       IsChecked="{Binding #ThisControl.EnableHTTPSSLVerify, Mode=TwoWay}"
                       ToolTip.Tip="http.sslverify=true"/>
 
             <CheckBox Grid.Row="8" Grid.Column="1"
-                      Height="32"
                       Content="{DynamicResource Text.Preferences.Git.UseLibsecret}"
                       IsChecked="{Binding UseLibsecretInsteadOfGCM, Mode=TwoWay}"
                       IsVisible="{OnPlatform False, Linux=True}"/>
 
             <CheckBox Grid.Row="9" Grid.Column="1"
-                      Height="32"
                       Content="{DynamicResource Text.Preferences.Git.UseStashAndReapplyByDefault}"
                       IsChecked="{Binding UseStashAndReapplyByDefault, Mode=TwoWay}"/>
 

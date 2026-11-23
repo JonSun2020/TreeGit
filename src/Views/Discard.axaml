@@ -21,7 +21,7 @@
     <ContentControl Margin="0,16,0,8" Content="{Binding Mode}">
       <ContentControl.DataTemplates>
         <DataTemplate DataType="vm:DiscardAllMode">
-          <Grid RowDefinitions="32,32,32,32,Auto" ColumnDefinitions="120,*">
+          <Grid RowDefinitions="32,Auto,Auto,Auto,Auto" ColumnDefinitions="120,*">
             <TextBlock Grid.Row="0" Grid.Column="0"
                        Margin="0,0,8,0"
                        HorizontalAlignment="Right"

@@ -7,7 +7,7 @@
                     x:Name="ThisControl"
                     Title="{DynamicResource Text.SelfUpdate.Title}"
                     Icon="/App.ico"
-                    Width="600" Height="{Binding DesiredHeight}" MinWidth="440" MinHeight="240"
+                    Width="600" Height="260" SizeToContent="Manual" MinWidth="440" MinHeight="240"
                     CanResize="True"
                     WindowStartupLocation="CenterOwner">
   <Grid RowDefinitions="Auto,*,Auto">
@@ -18,7 +18,7 @@
       <TextBlock Text="{DynamicResource Text.SelfUpdate.Title}" Classes="bold" HorizontalAlignment="Center" VerticalAlignment="Center" IsHitTestVisible="False"/>
       <v:CaptionButtons HorizontalAlignment="Right" IsCloseButtonOnly="True" IsEnabled="{Binding CanDismiss}"/>
     </Grid>
-    <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+    <ScrollViewer x:Name="UpdateBodyScroll" Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
       <StackPanel Margin="20,18,20,12" Spacing="12">
         <TextBlock Text="{Binding Heading}" FontSize="18" FontWeight="Bold" TextWrapping="Wrap"/>
         <StackPanel Spacing="4">
@@ -35,13 +35,21 @@
         </Border>
       </StackPanel>
     </ScrollViewer>
-    <Grid Grid.Row="2" RowDefinitions="Auto,Auto" Margin="20,10,20,16">
-      <Button Grid.Row="0" HorizontalAlignment="Left" Margin="0,0,0,8" Classes="flat" Content="{DynamicResource Text.SelfUpdate.Flow.Manual}" IsVisible="{Binding ShowManualDownload}" Click="GotoDownload"/>
-      <WrapPanel Grid.Row="1" HorizontalAlignment="Right">
-        <Button x:Name="UpdateAction" Classes="flat primary dialog_action dialog_confirm" Margin="0,0,0,4" Content="{Binding ActionText}" IsVisible="{Binding CanAct}" Click="OnAction"/>
-        <Button x:Name="BackgroundUpdate" Classes="flat dialog_action" Margin="8,0,0,4" Content="{DynamicResource Text.SelfUpdate.Flow.Background}" IsVisible="{Binding CanBackground}" Click="OnBackground"/>
-        <Button x:Name="UpdateDismiss" Classes="flat dialog_action" Margin="8,0,0,4" Content="{Binding DismissText}" IsEnabled="{Binding CanDismiss}" Click="OnDismiss"/>
-      </WrapPanel>
-    </Grid>
+    <v:RightAlignedWrapPanel Grid.Row="2" Margin="20,10,20,16" Grid.IsSharedSizeScope="True">
+      <Grid HorizontalAlignment="Left" Margin="0,0,8,4" IsVisible="{Binding ShowManualDownload}">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" SharedSizeGroup="UpdatePrimaryAction"/>
+        </Grid.ColumnDefinitions>
+        <Button x:Name="ManualDownload" HorizontalAlignment="Stretch" Classes="flat primary dialog_action dialog_confirm" Content="{DynamicResource Text.SelfUpdate.Flow.Manual}" Click="GotoDownload"/>
+      </Grid>
+      <Grid Margin="0,0,0,4" IsVisible="{Binding CanAct}">
+        <Grid.ColumnDefinitions>
+          <ColumnDefinition Width="Auto" SharedSizeGroup="UpdatePrimaryAction"/>
+        </Grid.ColumnDefinitions>
+        <Button x:Name="UpdateAction" HorizontalAlignment="Stretch" Classes="flat primary dialog_action dialog_confirm" Content="{Binding ActionText}" Click="OnAction"/>
+      </Grid>
+      <Button x:Name="BackgroundUpdate" Classes="flat dialog_action" Margin="8,0,0,4" Content="{DynamicResource Text.SelfUpdate.Flow.Background}" IsVisible="{Binding CanBackground}" Click="OnBackground"/>
+      <Button x:Name="UpdateDismiss" Classes="flat dialog_action" Margin="8,0,0,4" Content="{Binding DismissText}" IsEnabled="{Binding CanDismiss}" Click="OnDismiss"/>
+    </v:RightAlignedWrapPanel>
   </Grid>
 </v:ChromelessWindow>
