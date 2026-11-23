@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media.Imaging;
 using Avalonia.LogicalTree;
@@ -469,6 +470,9 @@ namespace SourceGit.Tests
                                     dropdown.IsDropDownOpen = false;
                                 }
                                 operationDetails = scrollChecks; operationResult = true; break;
+                            case "credential_dropdown_scroll":
+                                operationDetails = await InspectCredentialDropdown(window, repo);
+                                operationResult = true; break;
                             case "credential_save":
                                 operationDetails = await EditCredential(window, repo, data.GetProperty("case").GetString()); operationResult = true; break;
                             default: throw new ArgumentException("Unknown audit operation");
@@ -587,6 +591,70 @@ namespace SourceGit.Tests
             };
             await dialog.ShowDialog(owner);
             return await result.Task;
+        }
+
+        private static async Task<object> InspectCredentialDropdown(Window owner, ViewModels.Repository repo)
+        {
+            var dialog = new Views.RepositoryCredentials(repo);
+            var showing = dialog.ShowDialog(owner);
+            try
+            {
+                var dropdown = dialog.GetLogicalDescendants().OfType<ComboBox>().Single(c => c.Name == "CredentialRemote");
+                var confirm = dialog.GetLogicalDescendants().OfType<Button>().Single(b => b.Name == "ConfirmCredentials");
+                for (var attempt = 0; attempt < 160 && !confirm.IsEnabled; attempt++)
+                    await Task.Delay(25);
+                dialog.UpdateLayout();
+                var scroll = dropdown.FindAncestorOfType<ScrollViewer>() ?? throw new InvalidOperationException("Credential viewport is unavailable.");
+                if (!confirm.IsEnabled || dropdown.ItemCount < 2)
+                    throw new InvalidOperationException("Credential fixture did not load both remotes.");
+
+                const double clippedHeight = 8;
+                var pickerTop = dropdown.TranslatePoint(default, scroll).Value.Y + scroll.Offset.Y;
+                scroll.Height = scroll.Extent.Height - pickerTop - clippedHeight;
+                dialog.UpdateLayout();
+                scroll.ScrollToEnd();
+                await Task.Delay(75);
+                var offset = scroll.Offset.Y;
+                var bottom = scroll.Extent.Height - scroll.Viewport.Height;
+                var relativeTop = dropdown.TranslatePoint(default, scroll).Value.Y;
+                var clippedAtBottom = bottom > 0 && Math.Abs(offset - bottom) < 1 &&
+                    relativeTop < -1 && relativeTop + dropdown.Bounds.Height > 1;
+                var anchor = dropdown.TranslatePoint(default, dialog).Value.Y;
+
+                dropdown.Focus(NavigationMethod.Pointer);
+                dropdown.BringIntoView();
+                await Task.Delay(50);
+                var afterFocus = scroll.Offset.Y;
+                dropdown.IsDropDownOpen = true;
+                await Task.Delay(75);
+                var popup = dropdown.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.Popup>().Single(p => p.Name == "PART_Popup");
+                var popupOffset = popup.Child?.TranslatePoint(default, dropdown)?.X;
+                var afterOpen = scroll.Offset.Y;
+                var anchorAfter = dropdown.TranslatePoint(default, dialog).Value.Y;
+                var popupAligned = popup.IsOpen && popupOffset.HasValue && Math.Abs(popupOffset.Value) <= 1;
+                dropdown.IsDropDownOpen = false;
+                await Task.Delay(50);
+                var afterClose = scroll.Offset.Y;
+                var textBlocks = dialog.GetLogicalDescendants().OfType<TextBlock>().ToArray();
+                var description = textBlocks.Single(c => c.Name == "CredentialDescription");
+                var status = textBlocks.Single(c => c.Name == "CredentialStatus");
+                var hint = textBlocks.Single(c => c.Name == "CredentialIdentityHint");
+                var hintGap = hint.Bounds.Top - status.Bounds.Bottom;
+                return new
+                {
+                    clippedAtBottom, popupAligned, offset, afterFocus, afterOpen, afterClose, anchor, anchorAfter,
+                    pathTopInset = ((Control)scroll.Content).Margin.Top,
+                    hintGap,
+                    descriptionFlows = description.Text.Contains("SSH", StringComparison.Ordinal) && !description.Text.Contains('\n') && !description.Text.Contains('\r'),
+                    stable = Math.Abs(offset - afterFocus) < .5 && Math.Abs(offset - afterOpen) < .5 &&
+                        Math.Abs(offset - afterClose) < .5 && Math.Abs(anchor - anchorAfter) < .5,
+                };
+            }
+            finally
+            {
+                dialog.Close();
+                await showing;
+            }
         }
 
         private static async Task<object> EditCredential(Window owner, ViewModels.Repository repo, string scenario)

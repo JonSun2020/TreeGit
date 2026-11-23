@@ -27,10 +27,10 @@ namespace SourceGit.Views
             ShowActivated = true;
             Opened += (_, _) => Activate();
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
-            var panel = new StackPanel { Margin = new Thickness(24), Spacing = 12 };
+            var panel = new StackPanel { Margin = new Thickness(24, 12, 24, 24), Spacing = 12 };
             panel.Children.Add(new TextBlock { [!Avalonia.Controls.TextBlock.TextProperty] = App.TextBinding("TreeGit.Credentials.Authentication"), FontSize = 20 });
             panel.Children.Add(new TextBlock { Text = Native.OS.FormatLocalPath(repo.FullPath), TextWrapping = Avalonia.Media.TextWrapping.Wrap });
-            panel.Children.Add(new TextBlock { [!Avalonia.Controls.TextBlock.TextProperty] = App.TextBinding("TreeGit.Credentials.Description"), TextWrapping = Avalonia.Media.TextWrapping.Wrap });
+            panel.Children.Add(new TextBlock { Name = "CredentialDescription", [!TextBlock.TextProperty] = App.TextBinding("TreeGit.Credentials.Description"), TextWrapping = Avalonia.Media.TextWrapping.Wrap });
             var query = new Commands.QueryRemotes(repo.FullPath);
             var remoteList = query.GetResult();
             var targets = new List<Target>();
@@ -41,6 +41,7 @@ namespace SourceGit.Views
                 if (separatePush) targets.Add(new Target(remote.Name, remote.PushURL, "TreeGit.Menu.Push"));
             }
             var remotes = new ComboBox { Name = "CredentialRemote", Height = 32, ItemsSource = targets, DisplayMemberBinding = new Avalonia.Data.Binding("DisplayName"), HorizontalAlignment = HorizontalAlignment.Stretch };
+            KeepDropdownAnchor(remotes);
             var remoteLabel = RepositoryDialogLayout.FieldLabel("TreeGit.Credentials.RemoteLabel");
             remoteLabel.Name = "CredentialRemoteLabel";
             var username = new TextBox { Name = "CredentialUsername", Height = 32, [!Avalonia.Controls.TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Credentials.UsernameHint") };
@@ -276,8 +277,10 @@ namespace SourceGit.Views
             confirmation.Children.Add(close);
             buttons.Children.Add(confirmation);
             panel.Children.Add(fields);
-            panel.Children.Add(message);
-            panel.Children.Add(new TextBlock { [!TextBlock.TextProperty] = App.TextBinding("TreeGit.Credentials.IdentityHint"), TextWrapping = Avalonia.Media.TextWrapping.Wrap, FontSize = 12 });
+            var notices = new StackPanel { Spacing = 6 };
+            notices.Children.Add(message);
+            notices.Children.Add(new TextBlock { Name = "CredentialIdentityHint", [!TextBlock.TextProperty] = App.TextBinding("TreeGit.Credentials.IdentityHint"), TextWrapping = Avalonia.Media.TextWrapping.Wrap, FontSize = 12 });
+            panel.Children.Add(notices);
             RepositoryDialogLayout.Apply(this, panel, buttons, 520);
             UpdateEnabled();
             if (remotes.ItemCount > 0)

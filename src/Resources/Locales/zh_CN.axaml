@@ -1522,8 +1522,7 @@
   <x:String x:Key="Text.TreeGit.Tabs.FileStatus" xml:space="preserve">文件状态</x:String>
   <x:String x:Key="Text.TreeGit.Tabs.History" xml:space="preserve">日志 / 历史</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Title" xml:space="preserve">仓库账号与密码</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.Description" xml:space="preserve">HTTPS 账号只用于当前仓库和所选远程。密码/令牌保存到 Windows 凭据管理器。
-SSH 密钥仍在原有远程配置中设置。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Description" xml:space="preserve">HTTPS 账号只用于当前仓库和所选远程。密码/令牌保存到 Windows 凭据管理器。SSH 密钥仍在原有远程配置中设置。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.OptionalToken" xml:space="preserve">密码或访问令牌（可留空）</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.SystemAuth" xml:space="preserve">使用原有系统认证 / OAuth（Git Credential Manager）</x:String>
   <x:String x:Key="Text.TreeGit.Save" xml:space="preserve">保存</x:String>

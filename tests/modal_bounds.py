@@ -10,15 +10,20 @@ import tempfile
 import threading
 import time
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
+from qa_cleanup import new_fixture, verify_process
+from qa_process import close_owned_gui
+from qa_profile import IsolatedProfile
 
 exe=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
-root=Path(tempfile.mkdtemp(prefix='TreeGit nested dialog audit '));repo=root/'repo';repo.mkdir();fixture=root/'fixture.json'
+root=new_fixture(Path(tempfile.gettempdir()),'TreeGit nested dialog audit ');repo=root/'repo';repo.mkdir();fixture=root/'fixture.json'
 env=os.environ.copy();env.update(GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'),GIT_CONFIG_NOSYSTEM='1',TREEGIT_TEST_SETTINGS_FIXTURE=str(fixture))
 def git(*args):
     r=subprocess.run(['git','-C',str(repo),*args],env=env,capture_output=True,text=True,encoding='utf-8');assert r.returncode==0,r.stderr
 git('init','-b','main');git('config','user.name','Modal QA');git('config','user.email','modal@example.invalid')
 redirect_only='--redirect-only' in sys.argv[3:]
 input_only='--input-errors-only' in sys.argv[3:]
+credential_dropdown_only='--credential-dropdown-only' in sys.argv[3:]
+isolated=IsolatedProfile(exe,out) if credential_dropdown_only else None
 server=None
 if redirect_only:
     class Redirect(BaseHTTPRequestHandler):
@@ -34,6 +39,9 @@ if redirect_only:
     server=ThreadingHTTPServer(('127.0.0.1',0),Redirect);server.credentials_sent=False
     threading.Thread(target=server.serve_forever,daemon=True).start()
     git('remote','add','origin','http://127.0.0.1:'+str(server.server_port)+'/owned-audit')
+elif credential_dropdown_only:
+    git('remote','add','origin','http://127.0.0.1:1/owned-audit')
+    git('remote','add','backup','http://127.0.0.1:1/owned-backup')
 else:git('remote','add','origin','https://example.invalid/owned-audit.git')
 p=subprocess.Popen([str(exe),'--mcp'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',env=env,creationflags=subprocess.CREATE_NO_WINDOW)
 messages=queue.Queue();threading.Thread(target=lambda:[messages.put(line) for line in p.stdout],daemon=True).start();seq=0;pid=None;records=[];failures=[]
@@ -50,6 +58,24 @@ def check(name,condition):
     if not condition:failures.append(name)
 try:
     rpc('initialize',{'protocolVersion':'2025-11-25'});tool('ui_open_repository',{'repo':str(repo)});pid=tool('ui_state')['processId']
+    if credential_dropdown_only:
+        verify_process(pid,exe)
+        for locale,theme in [('zh_CN','Light'),('zh_TW','Dark'),('en_US','Blue')]:
+            tool('ui_window',{'zoom':1.5,'locale':locale,'theme':theme})
+            result_file=Path(str(fixture)+'.result');result_file.unlink(missing_ok=True)
+            fixture.write_text(json.dumps({'action':'cancel','operation':'credential_dropdown_scroll'}),'utf-8')
+            tool('ui_command',{'repo':str(repo),'command':'repository_settings'})
+            deadline=time.monotonic()+30
+            while not result_file.exists() and time.monotonic()<deadline:time.sleep(.05)
+            assert result_file.exists(),'Credential dropdown probe timed out'
+            result=json.loads(result_file.read_text('utf-8'));assert 'exception' not in result,result
+            details=result['operationDetails'];records.append({'locale':locale,'theme':theme,'credentialDropdown':details})
+            check(locale+' credential dropdown opens from a clipped position without scrolling',details['clippedAtBottom'] and details['popupAligned'] and details['stable'])
+            check(locale+' repository path has a 12 DIP top inset',details['pathTopInset']==12)
+            check(locale+' SSH description flows into the preceding paragraph',details['descriptionFlows'])
+            check(locale+' identity hint follows the status with a 6 DIP gap',abs(details['hintGap']-6)<.5)
+        assert not failures,records
+        raise SystemExit(0)
     for locale,zoom,theme in ([] if input_only or redirect_only or '--dropdown-only' in sys.argv[3:] else [(language,scale,theme) for language in ['zh_CN','zh_TW','en_US'] for scale in [1,1.5,2,2.5] for theme in ['Light','Dark','Blue']]):
         tool('ui_window',{'width':1280,'height':800,'zoom':zoom,'theme':theme,'locale':locale})
         for dialog in ['remote','credentials']:
@@ -142,4 +168,6 @@ finally:
     p.stdin.close()
     try:p.wait(timeout=10)
     except subprocess.TimeoutExpired:p.kill()
-    if pid:subprocess.run(['taskkill','/PID',str(pid),'/F'],capture_output=True)
+    if pid and credential_dropdown_only:close_owned_gui(exe,pid)
+    elif pid:subprocess.run(['taskkill','/PID',str(pid),'/F'],capture_output=True)
+    if isolated:isolated.close()

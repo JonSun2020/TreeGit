@@ -1518,8 +1518,7 @@ Server: {1}</x:String>
   <x:String x:Key="Text.TreeGit.Tabs.FileStatus" xml:space="preserve">File status</x:String>
   <x:String x:Key="Text.TreeGit.Tabs.History" xml:space="preserve">Log / History</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Title" xml:space="preserve">Repository credentials</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.Description" xml:space="preserve">HTTPS credentials apply only to this repository and the selected remote. Passwords and tokens are stored in Windows Credential Manager.
-Configure SSH keys in the remote settings.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Description" xml:space="preserve">HTTPS credentials apply only to this repository and the selected remote. Passwords and tokens are stored in Windows Credential Manager. Configure SSH keys in the remote settings.</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.OptionalToken" xml:space="preserve">Password or access token (optional)</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.SystemAuth" xml:space="preserve">Use system authentication / OAuth (Git Credential Manager)</x:String>
   <x:String x:Key="Text.TreeGit.Save" xml:space="preserve">Save</x:String>

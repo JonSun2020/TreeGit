@@ -1501,8 +1501,7 @@
   <x:String x:Key="Text.TreeGit.Tabs.FileStatus" xml:space="preserve">檔案狀態</x:String>
   <x:String x:Key="Text.TreeGit.Tabs.History" xml:space="preserve">記錄／歷史</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Title" xml:space="preserve">儲存庫帳號與密碼</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.Description" xml:space="preserve">HTTPS 帳號僅用於此儲存庫與所選遠端。密碼或權杖儲存於 Windows 認證管理員。
-SSH 金鑰仍在遠端設定中設定。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Description" xml:space="preserve">HTTPS 帳號僅用於此儲存庫與所選遠端。密碼或權杖儲存於 Windows 認證管理員。SSH 金鑰仍在遠端設定中設定。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.OptionalToken" xml:space="preserve">密碼或存取權杖（可留空）</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.SystemAuth" xml:space="preserve">使用系統驗證／OAuth（Git Credential Manager）</x:String>
   <x:String x:Key="Text.TreeGit.Save" xml:space="preserve">儲存</x:String>
