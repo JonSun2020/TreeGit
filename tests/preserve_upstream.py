@@ -68,6 +68,7 @@ for p in (root/'src/Resources/Locales').glob('*.axaml'):
         'Text.ScanRepositories.UseCustomDir',
         'Text.Preferences.General.ShowRelativeTimeInGraph',
         'Text.Preferences.General.ShowTagsInGraph',
+        'Text.Preferences.General.ShowChangesTabInCommitDetailByDefault',
         *(f'Text.Period.{name}' for name in (
             'DaysAgo', 'HourAgo', 'HoursAgo', 'JustNow', 'LastMonth',
             'LastYear', 'MinutesAgo', 'MonthsAgo', 'YearsAgo', 'Yesterday',
@@ -76,5 +77,5 @@ for p in (root/'src/Resources/Locales').glob('*.axaml'):
     current = set(re.findall(r'x:Key="([^"]+)"',p.read_text(encoding='utf-8-sig')))
     assert set(re.findall(r'x:Key="([^"]+)"',old)) - removed <= current
     assert not (current & removed) and 'Text.ScanRepositories.NoRoot' in current
-checks.append('upstream localization resource keys retained outside the removed scan and history display options')
+checks.append('upstream localization resource keys retained outside the removed scan and display preferences')
 print(json.dumps({'passed':len(checks),'checks':checks},ensure_ascii=False,indent=2))

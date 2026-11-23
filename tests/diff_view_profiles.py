@@ -102,6 +102,7 @@ try:
   subprocess.run(['git','clone','--quiet','--no-hardlinks',str(repo),str(second_repo)],env=env,check=True,capture_output=True)
   client.tool('ui_open_repository',repo=str(second_repo))
   client.tool('ui_select_commit',repo=str(second_repo),revision='HEAD')
+  wait(lambda:any(Path(r['repo'])==second_repo and other_file in (r['detailChanges'] or []) for r in client.tool('ui_state')['repositories']))
   select_file(second_repo,other_file)
   indexes={Path(tab['repo']).resolve():tab['index'] for tab in client.tool('ui_tabs',action='list')['tabs'] if tab['repo']}
   for _ in range(5):
