@@ -707,16 +707,18 @@ try:
  client.tool('ui_command',command='close_dialog');wait(lambda:not views().get('standalone'))
  scroll_repo=root/'Sidebar Scroll Demo'
  scroll_repo.mkdir()
- def scroll_git(*args,input_text=None):
-  result=subprocess.run(['git','-C',str(scroll_repo),*args],env=env,input=input_text.encode('utf-8') if input_text else None,capture_output=True)
+ def scroll_git(*args,input_text=None,date=None):
+  fixture_env=env if date is None else {**env,'GIT_AUTHOR_DATE':date,'GIT_COMMITTER_DATE':date}
+  result=subprocess.run(['git','-C',str(scroll_repo),*args],env=fixture_env,input=input_text.encode('utf-8') if input_text else None,capture_output=True)
   if result.returncode:raise RuntimeError(result.stderr.decode('utf-8',errors='replace').strip())
   return result.stdout.decode('utf-8').strip()
  scroll_git('init','-b','main');scroll_git('config','user.name','TreeGit Sidebar Demo')
  scroll_git('config','user.email','sidebar@example.invalid')
  scroll_git('remote','add','origin','https://example.invalid/sidebar.git')
- scroll_git('commit','--allow-empty','-m','Before sidebar anchor')
+ scroll_git('commit','--allow-empty','-m','Before sidebar anchor',date='2024-01-02T00:00:00+00:00')
  base=scroll_git('rev-parse','HEAD')
- target=scroll_git('commit-tree',scroll_git('rev-parse','HEAD^{tree}'),'-p',base,'-m','Sidebar anchor')
+ # The matching tag must start off screen with the default creator-date sort.
+ target=scroll_git('commit-tree',scroll_git('rev-parse','HEAD^{tree}'),'-p',base,'-m','Sidebar anchor',date='2024-01-01T00:00:00+00:00')
  local='refs/heads/group/z-primary'
  remote='refs/remotes/origin/group/z-primary'
  tag='group/z-position'
