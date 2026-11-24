@@ -168,9 +168,13 @@ try:
     probe('page_tab',2);wait(composer_visible)
     for locale in ['zh_CN', 'zh_TW', 'en_US']:
         tool('ui_window', locale=locale, width=1024, height=720, zoom=1)
-        layout=tool('ui_layout'); records.append({'locale':locale,'dropdownText':[t for t in layout['localizedTexts'] if t['context']=='ChangeListOption' and t['text'] in ['All changes','Sort by path','全部变更','按路径排序','所有變更','依路徑排序']]}); button=next(b for b in layout['buttons'] if b['name'] == 'CommitStagedButton')['bounds']
+        layout = tool('ui_layout')
+        # The compact pickers also render transparent labels to measure the longest option.
+        choice_texts = [t for t in layout['localizedTexts']
+                        if t['context'] == 'ChangeListOption' and t['trimming'] == 'CharacterEllipsis']
+        records.append({'locale': locale, 'dropdownText': choice_texts})
+        button = next(b for b in layout['buttons'] if b['name'] == 'CommitStagedButton')['bounds']
         check(locale+' recessed separators keep equal nonzero side spacing',len(layout['commitSeparators'])==2 and all(c['columns'][0]>0 and abs(c['columns'][0]-c['columns'][2])<.1 and c['columns'][1]==3 for c in layout['commitSeparators']))
-        choice_texts=[t for t in layout['localizedTexts'] if t['context']=='ChangeListOption']
         check(locale + ' dropdown labels fit their actual rendered bounds', len(choice_texts)==2 and all(t['textWidth'] <= t['width']+.75 and t['textHeight'] <= t['height']+.75 for t in choice_texts), choice_texts)
         check(locale+' footer keeps sign-off visible', any(t['text'] == next(e.text for e in __import__('xml.etree.ElementTree',fromlist=['parse']).parse(Path(__file__).resolve().parents[1]/('src/Resources/Locales/'+locale+'.axaml')).getroot() if e.attrib.get('{http://schemas.microsoft.com/winfx/2006/xaml}Key')=='Text.WorkingCopy.SignOff') for t in layout['localizedTexts']))
         check(locale + ' commit button fits above the bottom tabs', button['x'] >= 0 and button['x']+button['width'] <= layout['window']['width'] and button['y']+button['height'] <= min(t['bounds']['y'] for t in layout['bottomTabs']), button)
