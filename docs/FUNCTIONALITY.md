@@ -1,5 +1,7 @@
 # SourceGit 功能入口对照
 
+二进制对比、分支联动、三方合并和提交页的实际界面见 [TreeGit 界面示例](../README.md#界面)。
+
 TreeGit 调整页面与入口，保留 SourceGit 的 Git 命令、工作流及配置能力。移除重复的工具栏按钮时，功能移到顶部菜单或对应的右键菜单。MCP 是额外控制入口。
 
 | SourceGit 功能 | TreeGit 的界面入口 |

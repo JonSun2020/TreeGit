@@ -17,3 +17,9 @@
 - 打开仓库和完整刷新共用一次全量 Git 配置读取。连续刷新时只应用最新的配置结果。
 - 减少读取提交历史和滚动图谱时的重复处理，并加快大批文件选中时的工作区筛选和排序。
 - 排除废弃的工具图标，合并字节相同的 JetBrains 图标资源。
+
+## 界面示例
+
+下面是内置固件对比的实机截图。完整图集还展示了分支联动、搜索、三方合并、混合编码和提交区。[查看 2026.24.15 图集](https://github.com/JonSun2020/TreeGit/tree/master/docs/images/ui-2026.24.15)
+
+![内置固件对比标出 24 个变化字节，并支持按偏移跳转](https://raw.githubusercontent.com/JonSun2020/TreeGit/master/docs/images/ui-2026.24.15/binary-diff.png)

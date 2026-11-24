@@ -1,0 +1,17 @@
+{
+  "version": "2026.24.15",
+  "source": "87843e7a9e315e8d7663a9f7909da22ae5136ee9",
+  "galleryRun": 45389157668,
+  "galleryRunAttempt": 1,
+  "integrationTests": false,
+  "fictionalDataOnly": true,
+  "privacyReviewed": true,
+  "files": {
+    "binary-diff.png": "7debc3887834d962e1ae3fdd64c6c81d4068f75e04528cb1d98aedf747d01c63",
+    "branch-highlights.png": "3a4ba66e10620ccea392d9ddda57813b7dfc20f3bcc16c340448ad3a4687f2e2",
+    "branch-search.png": "3a0bbd5d8c11a04a9d80c4e933154310e9a3a14189b438990a7363915d93d902",
+    "merge-editor.png": "f028dddf96bea1322b2ed3125aa8e37c02e8cd5b898646023be58bd21112b9d3",
+    "text-comparison.png": "964b5d76c6dab69bec304785fc79ab7ccbf73fea161071d1f021868c92261490",
+    "commit-page.png": "33432e3691bbcd4cff33f3ed5d1b61c8a49473388d9fc750d184fbcc03c6a749"
+  }
+}
