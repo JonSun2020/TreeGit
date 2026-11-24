@@ -164,8 +164,8 @@ namespace SourceGit.ViewModels
             if (_isLoadingData) return;
             VisibleUnstaged = GetVisibleChanges(_unstaged);
             VisibleStaged = GetVisibleChanges(_staged, true);
-            var unstagedSelection = _selectedUnstaged?.Changes.FindAll(c => _visibleUnstaged.Exists(v => v.Path == c.Path));
-            var stagedSelection = _selectedStaged?.Changes.FindAll(c => _visibleStaged.Exists(v => v.Path == c.Path));
+            var unstagedSelection = _selectedUnstaged?.GetVisibleChanges(_visibleUnstaged);
+            var stagedSelection = _selectedStaged?.GetVisibleChanges(_visibleStaged);
             SelectedUnstaged = new(unstagedSelection);
             SelectedStaged = new(stagedSelection);
             OnPropertyChanged(nameof(UnstagedCountInfo));
@@ -388,9 +388,6 @@ namespace SourceGit.ViewModels
             }
 
             var unstaged = new List<Models.Change>();
-            var visibleUnstaged = new List<Models.Change>();
-            var selectedUnstaged = new List<Models.Change>();
-            var noFilter = string.IsNullOrEmpty(_filter);
             var conflicts = new List<Models.Change>();
             var canSwitchDirectly = true;
             foreach (var c in changes)
@@ -401,13 +398,6 @@ namespace SourceGit.ViewModels
 
                     if (c.IsConflicted)
                         conflicts.Add(c);
-
-                    if (noFilter || c.Path.Contains(_filter, StringComparison.OrdinalIgnoreCase))
-                    {
-                        visibleUnstaged.Add(c);
-                        if (lastSelectedUnstaged.Contains(c.Path))
-                            selectedUnstaged.Add(c);
-                    }
                 }
 
                 if (!canSwitchDirectly)
@@ -419,8 +409,8 @@ namespace SourceGit.ViewModels
                 canSwitchDirectly = false;
             }
 
-            visibleUnstaged = GetVisibleChanges(unstaged);
-            selectedUnstaged = visibleUnstaged.FindAll(c => lastSelectedUnstaged.Contains(c.Path));
+            var visibleUnstaged = GetVisibleChanges(unstaged);
+            var selectedUnstaged = visibleUnstaged.FindAll(c => lastSelectedUnstaged.Contains(c.Path));
             var staged = GetStagedChanges(changes);
             var visibleStaged = GetVisibleChanges(staged, true);
             var selectedStaged = new List<Models.Change>();

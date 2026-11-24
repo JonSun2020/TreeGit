@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 
 namespace SourceGit.ViewModels
@@ -63,6 +64,41 @@ namespace SourceGit.ViewModels
             }
 
             return false;
+        }
+
+        internal List<Models.Change> GetVisibleChanges(List<Models.Change> visible)
+        {
+            if (visible.Count == 0 || Count == 0)
+                return [];
+
+            if (Count == 1)
+            {
+                var selected = Changes[0];
+                foreach (var change in visible)
+                    if (change.Path == selected.Path)
+                        return [selected];
+                return [];
+            }
+
+            // A few selections can be checked without allocating a path set.
+            if (Count <= 4)
+                return Changes.FindAll(change => visible.Exists(item => item.Path == change.Path));
+
+            var missing = new HashSet<string>(Count, StringComparer.Ordinal);
+            foreach (var change in Changes)
+                missing.Add(change.Path);
+
+            foreach (var change in visible)
+            {
+                if (missing.Remove(change.Path) && missing.Count == 0)
+                    return Changes;
+            }
+
+            var remaining = new List<Models.Change>(Count - missing.Count);
+            foreach (var change in Changes)
+                if (!missing.Contains(change.Path))
+                    remaining.Add(change);
+            return remaining;
         }
 
         private static void CollectChangesInNode(List<Models.Change> outs, ChangeTreeNode node)

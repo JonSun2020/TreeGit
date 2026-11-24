@@ -200,9 +200,15 @@ namespace SourceGit.Models
                         if (!supported.Contains(tool.ProductCode))
                             continue;
 
+                        var icon = tool.ProductCode switch
+                        {
+                            "IU" => "IC",
+                            "PY" => "PC",
+                            _ => tool.ProductCode,
+                        };
                         Tools.Add(new ExternalTool(
                             $"{tool.DisplayName} {tool.DisplayVersion}",
-                            $"JetBrains/{tool.ProductCode}",
+                            $"JetBrains/{icon}",
                             Path.Combine(tool.InstallLocation, tool.LaunchCommand),
                             null,
                             true));

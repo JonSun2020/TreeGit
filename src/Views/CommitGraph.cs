@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
@@ -124,16 +127,15 @@ namespace SourceGit.Views
         {
             var grayedPen = new Pen(new SolidColorBrush(Colors.Gray, 0.4), Models.CommitGraph.Pens[0].Thickness);
 
-            foreach (var link in graph.Links)
+            var links = graph.Links;
+            for (var i = FindFirstVisible(links, top, rowHeight, static link => link.End.Y); i < links.Count; ++i)
             {
+                var link = links[i];
                 var startY = link.Start.Y * rowHeight;
-                var endY = link.End.Y * rowHeight;
-
-                if (endY < top)
-                    continue;
                 if (startY > bottom)
                     break;
 
+                var endY = link.End.Y * rowHeight;
                 var geo = new StreamGeometry();
                 using (var ctx = geo.Open())
                 {
@@ -202,18 +204,37 @@ namespace SourceGit.Views
             var nodeOutline = new Pen(Brushes.White, 1);
             var grayedPen = new Pen(Brushes.Gray, Models.CommitGraph.Pens[0].Thickness);
 
-            foreach (var dot in graph.Dots)
+            var dots = graph.Dots;
+            for (var i = FindFirstVisible(dots, top, rowHeight, static dot => dot.Center.Y); i < dots.Count; ++i)
             {
+                var dot = dots[i];
                 var center = new Point(dot.Center.X, dot.Center.Y * rowHeight);
-
-                if (center.Y < top)
-                    continue;
                 if (center.Y > bottom)
                     break;
 
                 var pen = dot.IsHighlighted ? Models.CommitGraph.Pens[dot.Color] : grayedPen;
                 context.DrawEllipse(pen.Brush, nodeOutline, center, 4, 4);
             }
+        }
+
+        // Both graph builders append nodes and links in row order.
+        internal static int FindFirstVisible<T>(List<T> items, double top, double rowHeight, Func<T, double> getY)
+        {
+            if (items.Count == 0 || getY(items[0]) * rowHeight >= top)
+                return 0;
+
+            var first = 1;
+            var end = items.Count;
+            while (first < end)
+            {
+                var middle = first + (end - first) / 2;
+                if (getY(items[middle]) * rowHeight < top)
+                    first = middle + 1;
+                else
+                    end = middle;
+            }
+
+            return first;
         }
 
         private Models.CommitGraph _graph = null;

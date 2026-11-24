@@ -73,9 +73,13 @@
     <AvaloniaResource Include="Resources/Grammars/*" />
     <AvaloniaResource Include="Resources/Images/*" />
     <AvaloniaResource Include="Resources/Images/ExternalToolIcons/*" />
+    <!-- Toolbox now supplies the JetBrains product codes used by the tool menu. -->
+    <AvaloniaResource Remove="Resources/Images/ExternalToolIcons/fleet.png;Resources/Images/ExternalToolIcons/rider.png" />
     <AvaloniaResource Remove="Resources/Images/ExternalToolIcons/xcode.png"
                       Condition="$(RuntimeIdentifier.StartsWith('win-'))" />
     <AvaloniaResource Include="Resources/Images/ExternalToolIcons/JetBrains/*" />
+    <!-- IU and PY use the byte-identical IC and PC resources. -->
+    <AvaloniaResource Remove="Resources/Images/ExternalToolIcons/JetBrains/IU.png;Resources/Images/ExternalToolIcons/JetBrains/PY.png" />
     <AvaloniaResource Include="Resources/Images/ShellIcons/*" Condition="!$(RuntimeIdentifier.StartsWith('win-'))" />
     <AvaloniaResource Include="Resources/Images/ShellIcons/cmd.png;Resources/Images/ShellIcons/git-bash.png;Resources/Images/ShellIcons/pwsh.png;Resources/Images/ShellIcons/wt.png"
                       Condition="$(RuntimeIdentifier.StartsWith('win-'))" />
