@@ -148,6 +148,10 @@ try:
     time.sleep(.6)
     tool('ui_graph', repo=str(repo), mode='all', showRemotes=True)
     until(lambda: not state()['graphLoading'] and state()['historyRows'])
+    # The narrow desktop has a horizontal viewport. Fit the four text columns
+    # so this check still tests the foreground and opacity of every column.
+    if not gallery:
+        tool('ui_history_columns', repo=str(repo), graph=60, description=240, date=160, author=100, commit=100)
     for theme, foreground in [('Light', '#ff123e34'), ('Dark', '#ffffffff'), ('Blue', '#ffffffff')]:
         tool('ui_window', theme=theme)
         select(target)
