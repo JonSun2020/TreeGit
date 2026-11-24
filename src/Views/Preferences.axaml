@@ -364,12 +364,13 @@
             </CheckBox>
             <StackPanel x:Name="MissingBundledGitHint" IsVisible="False" Orientation="Horizontal" Margin="6,0,0,0" VerticalAlignment="Center">
               <TextBlock Text="{DynamicResource Text.TreeGit.Git.BundledMissingPrefix}" VerticalAlignment="Center"/>
-              <Button Classes="icon_button" Cursor="Hand" Padding="0" VerticalAlignment="Center"
+              <Button Classes="icon_button" Cursor="Hand" Padding="0" VerticalAlignment="Center" VerticalContentAlignment="Center"
                       AutomationProperties.Name="BundledGit" Click="OnDownloadBundledGit">
-                <StackPanel Spacing="1.5" UseLayoutRounding="False">
-                  <TextBlock Foreground="{DynamicResource Brush.ExternalLink}" Text="BundledGit"/>
-                  <Border Height="0.5" Background="{DynamicResource Brush.ExternalLink}" UseLayoutRounding="False"/>
-                </StackPanel>
+                <Grid>
+                  <TextBlock Foreground="{DynamicResource Brush.ExternalLink}" xml:space="preserve" Text="&#x20;BundledGit&#x20;"/>
+                  <Border Height="1" Margin="0,0,0,1" VerticalAlignment="Bottom" UseLayoutRounding="False" IsHitTestVisible="False"
+                          Background="{DynamicResource Brush.ExternalLink}"/>
+                </Grid>
               </Button>
               <TextBlock Text="{DynamicResource Text.TreeGit.Git.BundledMissingSuffix}" VerticalAlignment="Center"/>
             </StackPanel>

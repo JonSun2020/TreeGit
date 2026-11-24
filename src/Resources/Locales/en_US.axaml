@@ -1862,8 +1862,8 @@ Server: {1}</x:String>
   <x:String x:Key="Text.TreeGit.Startup.Repositories">Opening the current repository…</x:String>
   <x:String x:Key="Text.TreeGit.Git.Detect">Auto-detect</x:String>
   <x:String x:Key="Text.TreeGit.Git.UseBundledOption">Use bundled Git</x:String>
-  <x:String x:Key="Text.TreeGit.Git.BundledMissingPrefix" xml:space="preserve">(Bundled Git not found. Download the </x:String>
-  <x:String x:Key="Text.TreeGit.Git.BundledMissingSuffix" xml:space="preserve"> edition.)</x:String>
+  <x:String x:Key="Text.TreeGit.Git.BundledMissingPrefix">(Bundled Git not found. Download the</x:String>
+  <x:String x:Key="Text.TreeGit.Git.BundledMissingSuffix">edition.)</x:String>
   <x:String x:Key="Text.TreeGit.Git.UseBundled">No system Git found. TreeGit will use its bundled Git.</x:String>
   <x:String x:Key="Text.TreeGit.Operation.GitUnavailable">Bundled Git could not start. Extract the complete TreeGit package and try again.</x:String>
   <x:String x:Key="Text.TreeGit.Operation.ConnectionFailed">Connection failed. Check the network and remote address.</x:String>
