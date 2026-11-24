@@ -71,18 +71,10 @@ namespace SourceGit.Commands
                 var findHead = false;
                 while (await proc.StandardOutput.ReadLineAsync().ConfigureAwait(false) is { } line)
                 {
-                    var parts = line.Split('\0');
-                    if (parts.Length != 8)
+                    var commit = ParseCommitLine(line);
+                    if (commit == null)
                         continue;
 
-                    var commit = new Models.Commit() { SHA = parts[0] };
-                    commit.ParseParents(parts[1]);
-                    commit.ParseDecorators(parts[2]);
-                    commit.Author = Models.User.FindOrAdd(parts[3]);
-                    commit.AuthorTime = ulong.Parse(parts[4]);
-                    commit.Committer = Models.User.FindOrAdd(parts[5]);
-                    commit.CommitterTime = ulong.Parse(parts[6]);
-                    commit.Subject = parts[7];
                     commits.Add(commit);
 
                     if (!findHead && commit.IsMerged)
@@ -115,6 +107,36 @@ namespace SourceGit.Commands
             }
 
             return Succeeded ? commits : [];
+        }
+
+        internal static Models.Commit ParseCommitLine(string line)
+        {
+            var data = line.AsSpan();
+            Span<Range> fields = stackalloc Range[7];
+            var start = 0;
+            for (var i = 0; i < fields.Length; i++)
+            {
+                var end = data[start..].IndexOf('\0');
+                if (end < 0)
+                    return null;
+                end += start;
+                fields[i] = start..end;
+                start = end + 1;
+            }
+
+            var subject = data[start..];
+            if (subject.Contains('\0'))
+                return null;
+
+            var commit = new Models.Commit() { SHA = data[fields[0]].ToString() };
+            commit.ParseParents(data[fields[1]].ToString());
+            commit.ParseDecorators(data[fields[2]].ToString());
+            commit.Author = Models.User.FindOrAdd(data[fields[3]].ToString());
+            commit.AuthorTime = ulong.Parse(data[fields[4]]);
+            commit.Committer = Models.User.FindOrAdd(data[fields[5]].ToString());
+            commit.CommitterTime = ulong.Parse(data[fields[6]]);
+            commit.Subject = subject.ToString();
+            return commit;
         }
 
         private bool _markMerged = false;

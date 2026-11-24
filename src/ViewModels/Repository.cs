@@ -679,6 +679,7 @@ namespace SourceGit.ViewModels
 
         public void Close()
         {
+            Interlocked.Increment(ref _configurationRefreshVersion);
             _changesLayoutSave?.Dispose();
             SaveUIState();
             _histories?.SearchCommitContext.EndSearch();
@@ -861,7 +862,13 @@ namespace SourceGit.ViewModels
 
         public void RefreshAll()
         {
-            RefreshBranches();
+            var configurationVersion = Interlocked.Increment(ref _configurationRefreshVersion);
+            var configuration = Task.Run(() =>
+            {
+                Native.RepositoryCredentials.InvalidateMode(FullPath);
+                return ReadRepositoryConfigAsync();
+            });
+            RefreshBranches(configuration);
             RefreshTags();
             RefreshSubmodules();
             RefreshWorktrees();
@@ -870,12 +877,16 @@ namespace SourceGit.ViewModels
 
             Task.Run(async () =>
             {
-                Native.RepositoryCredentials.InvalidateMode(FullPath);
-                var configQuery = new Commands.Config(FullPath);
-                var config = await configQuery.ReadAllAsync().ConfigureAwait(false);
-                if (!configQuery.ReadSucceeded)
+                var config = await configuration.ConfigureAwait(false);
+                if (configurationVersion != Volatile.Read(ref _configurationRefreshVersion))
+                    return;
+                if (config == null)
                 {
-                    Dispatcher.UIThread.Post(() => SetRefreshFailure("config", true));
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (configurationVersion == Volatile.Read(ref _configurationRefreshVersion))
+                            SetRefreshFailure("config", true);
+                    });
                     return;
                 }
                 var issuetrackers = new List<Models.IssueTracker>();
@@ -883,6 +894,8 @@ namespace SourceGit.ViewModels
                 await new Commands.IssueTracker(FullPath, false).ReadAllAsync(issuetrackers, false).ConfigureAwait(false);
                 Dispatcher.UIThread.Post(() =>
                 {
+                    if (configurationVersion != Volatile.Read(ref _configurationRefreshVersion))
+                        return;
                     SetRefreshFailure("config", false);
                     IssueTrackers.Clear();
                     IssueTrackers.AddRange(issuetrackers);
@@ -890,6 +903,13 @@ namespace SourceGit.ViewModels
                     GitFlow.Parse(config);
                 });
             });
+        }
+
+        private async Task<Dictionary<string, string>> ReadRepositoryConfigAsync(CancellationToken cancellationToken = default)
+        {
+            var query = new Commands.Config(FullPath) { CancellationToken = cancellationToken };
+            var config = await query.ReadAllAsync().ConfigureAwait(false);
+            return query.ReadSucceeded ? config : null;
         }
 
         private async Task<bool> WaitForRemoteMetadataAsync()
@@ -1530,7 +1550,9 @@ namespace SourceGit.ViewModels
             return info.Exists && info.Length > 20;
         }
 
-        public void RefreshBranches()
+        public void RefreshBranches() => RefreshBranches(null);
+
+        private void RefreshBranches(Task<Dictionary<string, string>> configuration)
         {
             if (_cancellationRefreshBranches is { IsCancellationRequested: false })
                 _cancellationRefreshBranches.Cancel();
@@ -1544,9 +1566,10 @@ namespace SourceGit.ViewModels
                 var branches = await branchQuery.GetResultAsync().ConfigureAwait(false);
                 if (token.IsCancellationRequested)
                     return;
-                var remoteQuery = new Commands.QueryRemotes(FullPath) { CancellationToken = token };
-                var remotes = await remoteQuery.GetResultAsync().ConfigureAwait(false);
-                if (!branchQuery.Succeeded || !remoteQuery.Succeeded)
+                var config = await (configuration?.WaitAsync(token) ?? ReadRepositoryConfigAsync(token)).ConfigureAwait(false);
+                if (token.IsCancellationRequested)
+                    return;
+                if (!branchQuery.Succeeded || config == null)
                 {
                     Dispatcher.UIThread.Invoke(() =>
                     {
@@ -1558,6 +1581,8 @@ namespace SourceGit.ViewModels
                     });
                     return;
                 }
+
+                var remotes = Commands.QueryRemotes.Parse(config);
                 Dispatcher.UIThread.Invoke(() =>
                 {
                     if (token.IsCancellationRequested)
@@ -2487,6 +2512,7 @@ namespace SourceGit.ViewModels
         private Models.BisectState _bisectState = Models.BisectState.None;
         private bool _isBisectCommandRunning = false;
 
+        private int _configurationRefreshVersion;
         private CancellationTokenSource _cancellationRefreshBranches = null;
         private Task _refreshBranchesTask = Task.CompletedTask;
         private bool _preparingRemoteAction;
