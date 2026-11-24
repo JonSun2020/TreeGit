@@ -342,20 +342,31 @@ namespace SourceGit.Commands
             var useSetSid = CancellationToken.CanBeCanceled && Native.OS.SupportSetSid();
             var selfExecFile = Environment.ProcessPath;
             var builder = new StringBuilder(2048);
+            var isWindows = OperatingSystem.IsWindows();
+            var useSystemCredentials = isWindows &&
+                (UseCredentialManager ?? Native.RepositoryCredentials.UsesCredentialManager(CredentialScope ?? WorkingDirectory));
+            var systemHttpAuth = useSystemCredentials && Native.GitSystemProxy.IsHttpUrl(HttpProxyTarget);
 
             if (useSetSid)
                 builder.Append(Native.OS.GitExecutable.Quoted()).Append(' ');
 
             builder.Append("--no-pager -c core.quotepath=off ");
-            if (OperatingSystem.IsWindows())
+            if (isWindows)
             {
-                builder.Append("-c credential.helper= -c credential.useHttpPath=true -c http.sslBackend=openssl ");
-                if (UseCredentialManager ?? Native.RepositoryCredentials.UsesCredentialManager(CredentialScope ?? WorkingDirectory))
-                    builder.Append("-c ").Append(("credential.helper=" + Native.OS.CredentialHelper).Quoted()).Append(' ');
-                else
+                builder.Append("-c http.sslBackend=openssl ");
+                // System authentication uses Git's configured helpers and credential scope.
+                if (!useSystemCredentials)
                 {
-                    var helper = "!'" + selfExecFile.Replace('\\', '/').Replace("'", "'\\''", StringComparison.Ordinal) + "' --credential-helper";
-                    builder.Append("-c ").Append(("credential.helper=" + helper).Quoted()).Append(' ');
+                    builder.Append("-c credential.helper= -c credential.useHttpPath=true ");
+                    AppendCredentialHelper("--credential-helper");
+                }
+                else if (systemHttpAuth &&
+                         Environment.GetEnvironmentVariable("GIT_TERMINAL_PROMPT") != "0" &&
+                         string.IsNullOrEmpty(Environment.GetEnvironmentVariable("GIT_ASKPASS")))
+                {
+                    // Git stops calling helpers once it has both fields. Add
+                    // a prompt after the existing helpers without clearing them.
+                    AppendCredentialHelper("--credential-fallback");
                 }
             }
             else
@@ -403,12 +414,17 @@ namespace SourceGit.Commands
             // locks for explicit writes are unaffected by this setting.
             start.Environment["GIT_OPTIONAL_LOCKS"] = "0";
 
-            // Force using this app as SSH askpass program
-            start.Environment["SSH_ASKPASS"] = selfExecFile; // Raw executable path, including spaces, is required by exec.
-            start.Environment["SSH_ASKPASS_REQUIRE"] = "prefer";
+            // Git also consults SSH_ASKPASS for HTTP. Leave system HTTP
+            // prompts alone here, including when automation forbids interaction.
+            if (!systemHttpAuth)
+            {
+                start.Environment["SSH_ASKPASS"] = selfExecFile; // Raw executable path, including spaces, is required by exec.
+                start.Environment["SSH_ASKPASS_REQUIRE"] = "prefer";
+            }
             start.Environment["SOURCEGIT_LAUNCH_AS_ASKPASS"] = "TRUE";
             start.Environment["SOURCEGIT_AUTHENTICATION_RETRY"] = IsAuthenticationRetry ? "TRUE" : "FALSE";
-            start.Environment["GIT_ASKPASS"] = selfExecFile;
+            if (!useSystemCredentials)
+                start.Environment["GIT_ASKPASS"] = selfExecFile;
             if (!string.IsNullOrEmpty(EditorMessageFile))
             {
                 start.Environment["TREEGIT_REBASE_MESSAGE_FILE"] = EditorMessageFile;
@@ -451,6 +467,12 @@ namespace SourceGit.Commands
                 start.WorkingDirectory = WorkingDirectory;
 
             return start;
+
+            void AppendCredentialHelper(string entryPoint)
+            {
+                var helper = "!'" + selfExecFile.Replace('\\', '/').Replace("'", "'\\''", StringComparison.Ordinal) + "' " + entryPoint;
+                builder.Append("-c ").Append(("credential.helper=" + helper).Quoted()).Append(' ');
+            }
         }
 
         protected void RaiseException(string error)

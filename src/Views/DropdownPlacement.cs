@@ -6,9 +6,30 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Primitives.PopupPositioning;
 using Avalonia.Data.Converters;
+using Avalonia.Layout;
+using Avalonia.VisualTree;
 
 namespace SourceGit.Views
 {
+    public class CompactComboBox : ComboBox
+    {
+        private const double ArrowColumnWidth = 18;
+
+        protected override Type StyleKeyOverride => typeof(ComboBox);
+
+        protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
+        {
+            base.OnApplyTemplate(e);
+            if (e.NameScope.Find("DropDownGlyph") is not PathIcon glyph ||
+                glyph.GetVisualParent() is not Grid grid)
+                return;
+
+            grid.ColumnDefinitions[Grid.GetColumn(glyph)].Width = new GridLength(ArrowColumnWidth);
+            glyph.Margin = default;
+            glyph.HorizontalAlignment = HorizontalAlignment.Center;
+        }
+    }
+
     public static class DropdownPlacement
     {
         public static readonly IMultiValueConverter OptionPadding = new ComboBoxOptionPadding();
@@ -20,10 +41,10 @@ namespace SourceGit.Views
                 if (values[0] is not Thickness padding)
                     return new Thickness(6, 4);
 
-                // Fluent measures the closed caption before its 32 DIP arrow column.
-                // The list can also lose width to a permanently visible scrollbar.
+                // Compact selectors use the arrow space for their left-aligned
+                // popup captions.
                 const double popupBorder = 1;
-                const double arrowColumn = 32;
+                var arrowColumn = values[3] is CompactComboBox ? 0 : 32;
                 var left = Math.Max(0, padding.Left - popupBorder);
                 var rightInset = values[1] is double boxWidth && values[2] is double itemWidth && itemWidth > 0
                     ? Math.Max(popupBorder, boxWidth - itemWidth - popupBorder)

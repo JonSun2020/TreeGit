@@ -561,14 +561,15 @@ namespace SourceGit.Automation
                     var caption = parts.OfType<Panel>().FirstOrDefault(c => c.Name == "HistoryPickerCaption")?
                         .GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.IsEffectivelyVisible);
                     var guide = parts.OfType<Panel>().FirstOrDefault(c => c.Name == "HistoryPickerWidthGuide");
-                    var center = area?.TranslatePoint(new Point(area.Bounds.Width / 2, 0), dropdown)?.X;
+                    var areaStart = area?.TranslatePoint(default, dropdown)?.X;
+                    var captionStart = TextStart(caption, dropdown);
                     var items = (frame?.GetVisualDescendants().OfType<ComboBoxItem>() ?? [])
                         .Select(item => (item, text: item.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.IsEffectivelyVisible)))
                         .Where(entry => entry.text != null);
                     return new { boxed = dropdown.Bounds.Width, left, right, popupOpen = popup?.IsOpen,
-                        selected = historyPicker.SelectedIndex, text = caption?.Text, centerOffset = TextCenter(caption, dropdown) - center,
+                        selected = historyPicker.SelectedIndex, text = caption?.Text, leftOffset = captionStart - areaStart,
                         fits = CaptionFits(caption, area, default), longest = guide?.DesiredSize.Width,
-                        items = items.Select(entry => new { text = entry.text.Text, centerOffset = TextCenter(entry.text, frame) - center,
+                        items = items.Select(entry => new { text = entry.text.Text, leftOffset = left + TextStart(entry.text, frame) - captionStart,
                             fits = CaptionFits(entry.text, entry.item, entry.item.Padding) }).ToArray() };
                 }
                 var layer = OverlayLayer.GetOverlayLayer(dropdown);
@@ -784,8 +785,11 @@ namespace SourceGit.Automation
                     var encodingBackground = profileView.FindControl<ComboBox>("DiffEncodingPicker")
                         .GetVisualDescendants().OfType<Border>().FirstOrDefault(b => b.Name == "Background")?.Background;
                     var areaCenter = selectionArea?.TranslatePoint(new Point(selectionArea.Bounds.Width / 2, 0), picker)?.X;
+                    var areaStart = selectionArea?.TranslatePoint(default, picker)?.X;
+                    var captionStart = TextStart(caption, picker);
                     return new { width = picker.Bounds.Width, longest = guide?.DesiredSize.Width,
                         text = caption?.Text, centerOffset = TextCenter(caption, picker) - areaCenter,
+                        leftOffset = captionStart - areaStart,
                         fits = CaptionFits(caption, selectionArea, default),
                         background = background?.Background?.ToString(), syntaxBackground = syntaxSurface?.Background?.ToString(),
                         contextLabelBackground = contextLabel.Background?.ToString(),
@@ -797,6 +801,7 @@ namespace SourceGit.Automation
                         staticScrollbar = scroll is { AllowAutoHide: false } && scroll.Extent.Height > scroll.Viewport.Height,
                         dropdown = items.Select(entry => new { entry.caption.Text,
                             centerOffset = TextCenter(entry.caption, popup.Child) - areaCenter,
+                            leftOffset = TextStart(entry.caption, picker) - captionStart,
                             fits = CaptionFits(entry.caption, entry.item, entry.item.Padding) }).ToArray() };
                 }
                 else if (action == "diff_selection_colors")

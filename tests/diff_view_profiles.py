@@ -442,34 +442,34 @@ try:
    width=None
    for index,caption in enumerate(choices):
     geometry(3+index)
-    closed=wait(lambda:p if (p:=geometry())['text']==caption and p['centerOffset'] is not None else None)
-    check(f'{locale} {zoom} {caption} fits and centers in a compact selector',
-          34<=closed['boxed']-closed['longest']<=42 and closed['fits'] and abs(closed['centerOffset'])<=1,closed)
+    closed=wait(lambda:p if (p:=geometry())['text']==caption and p['leftOffset'] is not None else None)
+    check(f'{locale} {zoom} {caption} fits and starts at the left inset of the selector',
+          20<=closed['boxed']-closed['longest']<=28 and closed['fits'] and abs(closed['leftOffset']-2)<=1,closed)
     if width is None:width=closed['boxed']
     else:check(f'{locale} {picker} keeps its width when switching options',abs(width-closed['boxed'])<=.5,closed)
    geometry(1)
    opened=wait(lambda:p if len((p:=geometry())['items'])==2 and p['left'] is not None and
-                  all(item['centerOffset'] is not None for item in p['items']) else None)
+                  all(item['leftOffset'] is not None for item in p['items']) else None)
    check_edges(f'{locale} {picker}',opened)
-   check(f'{locale} {picker} options use the same text center as the closed box',
+   check(f'{locale} {picker} options start at the same left edge as the closed box',
          [item['text'] for item in opened['items']]==list(choices) and
-         all(item['fits'] and abs(item['centerOffset'])<=1 for item in opened['items']),opened)
+         all(item['fits'] and abs(item['leftOffset'])<=1 for item in opened['items']),opened)
    geometry(0)
    geometry(3)
  for zoom in [1,1.25,1.5]:
   client.tool('ui_window',zoom=zoom,locale='zh_CN',width=1180,height=760)
   check_edges(f'{zoom} file encoding',dropdown_geometry('DiffEncodingPicker'))
-  encoding=wait(lambda:p if (p:=client.probe('diff_encoding_style'))['centerOffset'] is not None else None)
-  check(f'{zoom} file encoding centers the closed text inside its text area',abs(encoding['centerOffset'])<=1,encoding)
+  encoding=wait(lambda:p if (p:=client.probe('diff_encoding_style'))['leftOffset'] is not None else None)
+  check(f'{zoom} file encoding starts at the left inset of its text area',abs(encoding['leftOffset']-1)<=1,encoding)
   encoding=wait(lambda:p if len((p:=client.probe('diff_encoding_style',1))['dropdown'])==11
-                and all(e['centerOffset'] is not None for e in p['dropdown']) else None)
-  check(f'{zoom} encodings stay on the closed text center line',
-        encoding['popupAligned'] and all(abs(e['centerOffset'])<=1 for e in encoding['dropdown']),encoding)
+                and all(e['leftOffset'] is not None for e in p['dropdown']) else None)
+  check(f'{zoom} encodings align to the left edge of the closed text',
+        encoding['popupAligned'] and all(abs(e['leftOffset'])<=1 for e in encoding['dropdown']),encoding)
   client.probe('diff_encoding_style')
   encoding=wait(lambda:p if (p:=client.probe('diff_encoding_style',2))['staticScrollbar'] and
-                p['dropdown'] and all(e['centerOffset'] is not None for e in p['dropdown']) else None)
-  check(f'{zoom} centered encoding options keep their center line with a permanent scrollbar',
-        all(abs(e['centerOffset'])<=1 for e in encoding['dropdown']),encoding)
+                p['dropdown'] and all(e['leftOffset'] is not None for e in p['dropdown']) else None)
+  check(f'{zoom} left-aligned encoding options keep their left edge with a permanent scrollbar',
+        all(abs(e['leftOffset'])<=1 for e in encoding['dropdown']),encoding)
   client.probe('diff_encoding_style')
   client.probe('diff_context_menu_main',1)
   check_edges(f'{zoom} context',dropdown_geometry('DiffContextPicker'))

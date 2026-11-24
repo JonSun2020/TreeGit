@@ -36,9 +36,9 @@ namespace SourceGit
                 return;
             }
             Native.StartupTrace.Mark("main");
-            if (args.Length > 1 && args[0] == "--credential-helper")
+            if (args.Length > 1 && args[0] is "--credential-helper" or "--credential-fallback")
             {
-                Environment.Exit(Native.RepositoryCredentials.RunHelper(args[1]));
+                Environment.Exit(Native.RepositoryCredentials.RunHelper(args[1], promptOnly: args[0] == "--credential-fallback"));
                 return;
             }
             if (OperatingSystem.IsWindows() && Environment.GetEnvironmentVariable("SOURCEGIT_LAUNCH_AS_ASKPASS") == "TRUE" &&

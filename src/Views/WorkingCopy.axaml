@@ -31,51 +31,51 @@
       <!-- Change list controls -->
       <Border Grid.Row="0" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource Brush.Border0}">
         <Grid x:Name="LocalChangesToolbar" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="2" Margin="2,1,0,1">
-          <ComboBox x:Name="ChangeStatusFilterBox" Grid.Column="0" Height="24" MinHeight="24" MinWidth="0" Padding="3,0"
+          <v:CompactComboBox x:Name="ChangeStatusFilterBox" Grid.Column="0" Height="24" MinHeight="24" MinWidth="0" Padding="3,0"
                     VerticalContentAlignment="Center" HorizontalAlignment="Stretch"
                     SelectedIndex="{Binding ChangeStatusFilter, Mode=TwoWay}" ToolTip.Tip="{DynamicResource Text.UI.FilterStatus}"
                     ItemsSource="{x:Static m:ChangeListOptions.StatusFilters}">
-            <ComboBox.ItemTemplate>
+            <v:CompactComboBox.ItemTemplate>
               <DataTemplate x:DataType="m:ChangeListOption">
-                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Text="{Binding DisplayName}" Margin="1,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
               </DataTemplate>
-            </ComboBox.ItemTemplate>
-            <ComboBox.SelectionBoxItemTemplate>
+            </v:CompactComboBox.ItemTemplate>
+            <v:CompactComboBox.SelectionBoxItemTemplate>
               <DataTemplate x:DataType="m:ChangeListOption">
                 <Panel>
-                  <Panel Margin="2,0" Opacity="0" IsHitTestVisible="False">
+                  <Panel Margin="1,0" Opacity="0" IsHitTestVisible="False">
                     <TextBlock Text="{DynamicResource Text.UI.AllChanges}"/>
                     <TextBlock Text="{DynamicResource Text.UI.Conflicts}"/>
                     <TextBlock Text="{DynamicResource Text.UI.Modified}"/>
                     <TextBlock Text="{DynamicResource Text.UI.Untracked}"/>
                   </Panel>
-                  <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                  <TextBlock Text="{Binding DisplayName}" Margin="1,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                 </Panel>
               </DataTemplate>
-            </ComboBox.SelectionBoxItemTemplate>
-          </ComboBox>
-          <ComboBox x:Name="ChangeSortOrderBox" Grid.Column="1" Height="24" MinHeight="24" MinWidth="0" Padding="3,0"
+            </v:CompactComboBox.SelectionBoxItemTemplate>
+          </v:CompactComboBox>
+          <v:CompactComboBox x:Name="ChangeSortOrderBox" Grid.Column="1" Height="24" MinHeight="24" MinWidth="0" Padding="3,0"
                     VerticalContentAlignment="Center" HorizontalAlignment="Stretch"
                     SelectedIndex="{Binding ChangeSortOrder, Mode=TwoWay}" ToolTip.Tip="{DynamicResource Text.UI.SortOrder}"
                     ItemsSource="{x:Static m:ChangeListOptions.SortOrders}">
-            <ComboBox.ItemTemplate>
+            <v:CompactComboBox.ItemTemplate>
               <DataTemplate x:DataType="m:ChangeListOption">
-                <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                <TextBlock Text="{Binding DisplayName}" Margin="1,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
               </DataTemplate>
-            </ComboBox.ItemTemplate>
-            <ComboBox.SelectionBoxItemTemplate>
+            </v:CompactComboBox.ItemTemplate>
+            <v:CompactComboBox.SelectionBoxItemTemplate>
               <DataTemplate x:DataType="m:ChangeListOption">
                 <Panel>
-                  <Panel Margin="2,0" Opacity="0" IsHitTestVisible="False">
+                  <Panel Margin="1,0" Opacity="0" IsHitTestVisible="False">
                     <TextBlock Text="{DynamicResource Text.UI.SortPath}"/>
                     <TextBlock Text="{DynamicResource Text.UI.SortName}"/>
                     <TextBlock Text="{DynamicResource Text.UI.SortStatus}"/>
                   </Panel>
-                  <TextBlock Text="{Binding DisplayName}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                  <TextBlock Text="{Binding DisplayName}" Margin="1,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
                 </Panel>
               </DataTemplate>
-            </ComboBox.SelectionBoxItemTemplate>
-          </ComboBox>
+            </v:CompactComboBox.SelectionBoxItemTemplate>
+          </v:CompactComboBox>
           <v:ChangeViewModeSwitcher Grid.Column="2" Width="24" Height="24" HorizontalAlignment="Right" VerticalAlignment="Center"
                                     ViewMode="{Binding Source={x:Static vm:Preferences.Instance}, Path=ChangeViewMode, Mode=TwoWay}"/>
         </Grid>

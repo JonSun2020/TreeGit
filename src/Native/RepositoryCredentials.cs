@@ -270,7 +270,7 @@ namespace SourceGit.Native
             Remove(target.Replace("TreeGit.Repository/", "SourceGit.Repository/", StringComparison.Ordinal));
         }
 
-        public static int RunHelper(string operation)
+        public static int RunHelper(string operation, bool promptOnly = false)
         {
             try
             {
@@ -290,7 +290,8 @@ namespace SourceGit.Native
                 var remote = new Uri($"{protocol}://{host}/{path?.TrimStart('/')}");
                 if (operation == "get")
                 {
-                    var stored = Environment.GetEnvironmentVariable("SOURCEGIT_AUTHENTICATION_RETRY") == "TRUE" ? null : Get(repo, remote);
+                    var stored = promptOnly || Environment.GetEnvironmentVariable("SOURCEGIT_AUTHENTICATION_RETRY") == "TRUE"
+                        ? null : Get(repo, remote);
                     input.TryGetValue("username", out var requested);
                     if (stored.HasValue && (requested == null || requested == stored.Value.Username))
                     {
@@ -323,12 +324,12 @@ namespace SourceGit.Native
                 }
                 else if (operation == "store" && input.TryGetValue("username", out var username) && input.TryGetValue("password", out var password))
                 {
-                    Save(repo, remote, username, password);
+                    if (!promptOnly) Save(repo, remote, username, password);
                     CredentialSession.Publish("accepted");
                 }
                 else if (operation == "erase")
                 {
-                    Forget(repo, remote);
+                    if (!promptOnly) Forget(repo, remote);
                     Console.Error.WriteLine(CredentialSession.RejectedMarker);
                     CredentialSession.Publish("rejected");
                 }

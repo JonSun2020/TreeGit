@@ -1,11 +1,7 @@
-using System;
-using Avalonia.Controls;
-
 namespace SourceGit.Views
 {
-    public partial class DisplayEncodingPicker : ComboBox
+    public partial class DisplayEncodingPicker : CompactComboBox
     {
-        protected override Type StyleKeyOverride => typeof(ComboBox);
         public DisplayEncodingPicker() => InitializeComponent();
     }
 }

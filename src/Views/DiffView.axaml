@@ -31,7 +31,7 @@
             <StackPanel Orientation="Horizontal" Spacing="4" Margin="0,0,4,0" IsVisible="{Binding CanChooseEncoding}">
               <TextBlock x:Name="DiffEncodingLabel" Text="{DynamicResource Text.UI.DisplayEncoding}"
                          VerticalAlignment="Center"/>
-              <v:DisplayEncodingPicker x:Name="DiffEncodingPicker" Classes="dialog_selections center_dropdown_labels" Height="24" MinHeight="24"
+              <v:DisplayEncodingPicker x:Name="DiffEncodingPicker" Classes="dialog_selections" Height="24" MinHeight="24"
                                        VerticalAlignment="Center"
                                        SelectedIndex="{Binding DisplayEncodingIndex, Mode=TwoWay}"/>
             </StackPanel>

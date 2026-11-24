@@ -24,7 +24,6 @@ namespace SourceGit.Models
             new("Windows-1252", 1252),
         ];
 
-        public static DisplayEncodingOption WidthGuide => Supported[^1];
     }
 
     // These decoders produce display text only. Git patches keep their original bytes.

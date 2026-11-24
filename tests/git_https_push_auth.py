@@ -35,6 +35,7 @@ bare.mkdir(parents=True)
 fixture = root/'askpass.json'
 settings = root/'settings.json'
 env = dict(os.environ,GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'),GIT_CONFIG_NOSYSTEM='1',
+    GIT_TERMINAL_PROMPT='1',GIT_ASKPASS='',
     SOURCEGIT_TEST_ASKPASS_FIXTURE=str(fixture),TREEGIT_TEST_SETTINGS_FIXTURE=str(settings),TREEGIT_TEST_MENU_PROBE='1')
 
 def git(*args,cwd=repo):
@@ -184,6 +185,48 @@ try:
         assert git('rev-parse','HEAD')==head and git('write-tree')==index and (repo/'file.txt').read_bytes()==worktree
         checks.append(mode+' HTTPS push preserves real authentication retries and local state' if mode!='cancel' else 'Cancelling HTTPS push leaves the remote and local staged/worktree data unchanged')
         print('PASS',checks[-1],flush=True)
+
+    # System mode must leave Git's configured HTTP helper and scoping intact.
+    helper = root/'system-helper.sh'
+    helper.write_bytes(
+        b'#!/bin/sh\n'
+        b'[ "$1" = get ] || exit 0\n'
+        b'while IFS= read -r line; do\n'
+        b'    case "$line" in path=*) exit 1;; esac\n'
+        b'done\n'
+        b"printf 'username=alice\\npassword=correct-git-test\\n\\n'\n"
+    )
+    git('config','credential.useHttpPath','false')
+    git('config','credential.helper',"!sh '"+helper.as_posix()+"'")
+    system_push = ['-c','sourcegit.credentialmanager=true','push','--','origin','refs/heads/main:refs/heads/system-auth']
+    result = tool('git_run',{'repo':str(repo),'arguments':system_push},True)
+    assert result.get('isSuccess'),result
+    assert git('rev-parse','refs/heads/system-auth',cwd=bare)==head
+    assert git('rev-parse','HEAD')==head and git('write-tree')==index and (repo/'file.txt').read_bytes()==worktree
+    checks.append('MCP system-auth HTTPS push uses the configured helper and host scope')
+    print('PASS',checks[-1],flush=True)
+
+    git('config','--unset','credential.helper')
+    git('config','--unset','credential.useHttpPath')
+    fixture.write_text(json.dumps({'attempts':[
+        {'username':'alice','password':'bad-fallback'},
+        {'username':'alice','password':'correct-git-test'}]}),'utf-8')
+    system_push[-1] = 'refs/heads/main:refs/heads/system-prompt'
+    result = tool('git_run',{'repo':str(repo),'arguments':system_push},True)
+    assert result.get('isSuccess'),result
+    assert git('rev-parse','refs/heads/system-prompt',cwd=bare)==head and not credential('get')
+    checks.append('MCP system authentication prompts for missing credentials, retries, and keeps manual storage separate')
+    print('PASS',checks[-1],flush=True)
+
+    fixture.write_text(json.dumps({'username':'cancelled','password':'','cancel':True}),'utf-8')
+    system_push[-1] = 'refs/heads/main:refs/heads/system-cancel'
+    refs = git('show-ref',cwd=bare)
+    result = tool('git_run',{'repo':str(repo),'arguments':system_push},True)
+    assert result.get('isError') or result.get('isSuccess') is False,result
+    assert git('show-ref',cwd=bare)==refs
+    assert git('rev-parse','HEAD')==head and git('write-tree')==index and (repo/'file.txt').read_bytes()==worktree
+    checks.append('Cancelling an MCP system authentication prompt preserves local and remote state')
+    print('PASS',checks[-1],flush=True)
     assert not backend_errors,backend_errors
     if '--operation-panels' in sys.argv[3:]:
         settings.unlink(missing_ok=True)

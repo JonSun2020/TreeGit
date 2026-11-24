@@ -1152,6 +1152,7 @@
         <Binding Path="$parent[ComboBox].Padding"/>
         <Binding Path="$parent[ComboBox].Bounds.Width"/>
         <Binding Path="Bounds.Width" RelativeSource="{RelativeSource Self}"/>
+        <Binding Path="$parent[ComboBox]"/>
       </MultiBinding>
     </Setter>
   </Style>

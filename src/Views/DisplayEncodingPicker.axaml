@@ -1,19 +1,27 @@
-<ComboBox xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-          xmlns:m="using:SourceGit.Models"
-          x:Class="SourceGit.Views.DisplayEncodingPicker" Classes="center_dropdown_labels"
+<v:CompactComboBox xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+          xmlns:m="using:SourceGit.Models" xmlns:v="using:SourceGit.Views"
+          x:Class="SourceGit.Views.DisplayEncodingPicker" Padding="3,0"
           ItemsSource="{x:Static m:DisplayEncodingOption.Supported}"
           AutomationProperties.Name="{DynamicResource Text.UI.DisplayEncoding}">
-  <ComboBox.ItemTemplate>
-    <DataTemplate x:DataType="m:DisplayEncodingOption">
-      <TextBlock Text="{Binding Name}" HorizontalAlignment="Center" TextAlignment="Center"/>
+  <v:CompactComboBox.Resources>
+    <DataTemplate x:Key="EncodingCaption" x:DataType="m:DisplayEncodingOption">
+      <TextBlock Text="{Binding Name}" Margin="1,0" HorizontalAlignment="Left" TextAlignment="Left"/>
     </DataTemplate>
-  </ComboBox.ItemTemplate>
-  <ComboBox.SelectionBoxItemTemplate>
+  </v:CompactComboBox.Resources>
+  <v:CompactComboBox.ItemTemplate>
+    <StaticResource ResourceKey="EncodingCaption"/>
+  </v:CompactComboBox.ItemTemplate>
+  <v:CompactComboBox.SelectionBoxItemTemplate>
     <DataTemplate x:DataType="m:DisplayEncodingOption">
       <Panel>
-        <TextBlock Text="{Binding Name, Source={x:Static m:DisplayEncodingOption.WidthGuide}}" Opacity="0" IsHitTestVisible="False"/>
-        <TextBlock x:Name="SelectedEncodingText" Text="{Binding Name}" HorizontalAlignment="Center" TextAlignment="Center"/>
+        <ItemsControl ItemsSource="{x:Static m:DisplayEncodingOption.Supported}" ItemTemplate="{StaticResource EncodingCaption}"
+                      Opacity="0" IsHitTestVisible="False">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate><Panel/></ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+        </ItemsControl>
+        <TextBlock x:Name="SelectedEncodingText" Text="{Binding Name}" Margin="1,0" HorizontalAlignment="Left" TextAlignment="Left"/>
       </Panel>
     </DataTemplate>
-  </ComboBox.SelectionBoxItemTemplate>
-</ComboBox>
+  </v:CompactComboBox.SelectionBoxItemTemplate>
+</v:CompactComboBox>
