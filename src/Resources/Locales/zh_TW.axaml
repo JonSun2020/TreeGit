@@ -1599,8 +1599,8 @@
   <x:String x:Key="Text.TreeGit.Changes.StageAll" xml:space="preserve">暫存全部</x:String>
   <x:String x:Key="Text.TreeGit.Changes.StageSelected" xml:space="preserve">暫存所選</x:String>
   <x:String x:Key="Text.TreeGit.Changes.Staged" xml:space="preserve">已暫存的檔案</x:String>
-  <x:String x:Key="Text.TreeGit.Changes.UnstageAll" xml:space="preserve">取消全部暫存</x:String>
-  <x:String x:Key="Text.TreeGit.Changes.UnstageSelected" xml:space="preserve">取消所選暫存</x:String>
+  <x:String x:Key="Text.TreeGit.Changes.UnstageAll" xml:space="preserve">取消全部</x:String>
+  <x:String x:Key="Text.TreeGit.Changes.UnstageSelected" xml:space="preserve">取消所選</x:String>
   <x:String x:Key="Text.About.Mcp" xml:space="preserve">內置 MCP 服務，支援 AI 讀取和寫入儲存庫、控制 TreeGit 並執行全部 Git 操作。通過“工具 → MCP · AI 連線”複製連線配置。</x:String>
   <x:String x:Key="Text.About.BasedOnSourceGit" xml:space="preserve">基於 SourceGit 開發，修改了主介面風格。保留原專案版權聲明與 MIT 許可證。</x:String>
   <x:String x:Key="Text.Apply.CommitChanges" xml:space="preserve">套用並提交修改</x:String>
@@ -1921,8 +1921,8 @@
   <x:String x:Key="Text.TreeGit.Startup.Repositories">正在開啟目前的儲存庫…</x:String>
   <x:String x:Key="Text.TreeGit.Git.Detect">自動偵測</x:String>
   <x:String x:Key="Text.TreeGit.Git.UseBundledOption">使用內建Git</x:String>
-  <x:String x:Key="Text.TreeGit.Git.BundledMissingPrefix">（找不到內建Git，請下載</x:String>
-  <x:String x:Key="Text.TreeGit.Git.BundledMissingSuffix">版本）</x:String>
+  <x:String x:Key="Text.TreeGit.Git.BundledMissingPrefix">找不到內建Git，請下載</x:String>
+  <x:String x:Key="Text.TreeGit.Git.BundledMissingSuffix">版本</x:String>
   <x:String x:Key="Text.TreeGit.Git.UseBundled">未偵測到本機 Git，將使用內建 Git。</x:String>
   <x:String x:Key="Text.TreeGit.Operation.GitUnavailable">無法啟動內建 Git，請重新解壓縮完整的 TreeGit 套件。</x:String>
   <x:String x:Key="Text.TreeGit.Operation.ConnectionFailed">連線失敗，請檢查網路與遠端位址。</x:String>

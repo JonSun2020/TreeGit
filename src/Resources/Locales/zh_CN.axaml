@@ -1620,8 +1620,8 @@
   <x:String x:Key="Text.TreeGit.Changes.StageAll" xml:space="preserve">暂存所有</x:String>
   <x:String x:Key="Text.TreeGit.Changes.StageSelected" xml:space="preserve">暂存选定</x:String>
   <x:String x:Key="Text.TreeGit.Changes.Staged" xml:space="preserve">已暂存文件</x:String>
-  <x:String x:Key="Text.TreeGit.Changes.UnstageAll" xml:space="preserve">取消所有暂存</x:String>
-  <x:String x:Key="Text.TreeGit.Changes.UnstageSelected" xml:space="preserve">取消选定暂存</x:String>
+  <x:String x:Key="Text.TreeGit.Changes.UnstageAll" xml:space="preserve">取消所有</x:String>
+  <x:String x:Key="Text.TreeGit.Changes.UnstageSelected" xml:space="preserve">取消选定</x:String>
   <x:String x:Key="Text.TreeGit.Menu.Language" xml:space="preserve">语言/Language</x:String>
   <x:String x:Key="Text.TreeGit.Branches.Group" xml:space="preserve">{0}（{1}）</x:String>
   <x:String x:Key="Text.TreeGit.Language.SaveFailed" xml:space="preserve">语言设置未保存，已恢复原来的语言。请检查软件目录的写入权限和可用空间后重试。</x:String>
@@ -1866,8 +1866,8 @@
   <x:String x:Key="Text.TreeGit.Startup.Repositories">正在打开当前仓库…</x:String>
   <x:String x:Key="Text.TreeGit.Git.Detect">自动检测</x:String>
   <x:String x:Key="Text.TreeGit.Git.UseBundledOption">使用内置Git</x:String>
-  <x:String x:Key="Text.TreeGit.Git.BundledMissingPrefix">（未找到内置Git，请下载</x:String>
-  <x:String x:Key="Text.TreeGit.Git.BundledMissingSuffix">版本）</x:String>
+  <x:String x:Key="Text.TreeGit.Git.BundledMissingPrefix">未找到内置Git，请下载</x:String>
+  <x:String x:Key="Text.TreeGit.Git.BundledMissingSuffix">版本</x:String>
   <x:String x:Key="Text.TreeGit.Git.UseBundled">未检测到本机 Git，将使用内置 Git。</x:String>
   <x:String x:Key="Text.TreeGit.Operation.GitUnavailable">内置 Git 无法启动，请重新解压完整的 TreeGit 软件包。</x:String>
   <x:String x:Key="Text.TreeGit.Operation.ConnectionFailed">连接失败，请检查网络和远端地址。</x:String>

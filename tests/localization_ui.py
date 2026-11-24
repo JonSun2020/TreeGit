@@ -114,6 +114,11 @@ def header_geometry(label):
                   for point in header['textCenters'] if point))
         check(label + ' separator joins and stays inside its header: ' + header['text'],
               all(abs(line['y']) < 1 and abs(line['height'] - height) < 1 for line in header['separators']))
+    description = next(header for header in headers if header['text'] in ('Description', '描述'))
+    check(label + ' description separator reaches the date column',
+          len(description['separators']) == 1 and all(
+              line['width'] >= .9 and abs(line['x'] + line['width'] - description['bounds']['width']) < 1
+              for line in description['separators']))
     backgrounds = [header['backgrounds'] for header in headers]
     for action in ['header_hover', 'header_press']:
         changed = menu(action)
@@ -126,6 +131,43 @@ def header_geometry(label):
     resized = [header for header in menu('inspect')['tableHeaders'] if header['text']][0]['bounds']['width']
     check(label + ' column still resizes through its normal pointer handlers', abs(resized - original - 18) < 2)
     records.append({'headers': label, 'values': headers})
+
+
+def history_column_resizing():
+    def widths(**arguments):
+        return tool('ui_history_columns', repo=str(repo), **arguments)
+
+    def horizontal_bar():
+        return next((bar for bar in tool('ui_layout')['scrollBars']
+                     if bar['name'] == 'PART_HorizontalScrollbar' and bar['owner'] == 'Histories'
+                     and bar['visible'] and bar['maximum'] > 0), None)
+
+    tool('ui_window', width=1450, height=820)
+    widths(reset=True)
+    wait(lambda: not horizontal_bar())
+    check('wide history fits default columns without a fractional scrollbar', not horizontal_bar())
+    for index, column in [(1, 'description'), (2, 'date'), (3, 'author')]:
+        for distance in [26, -14]:
+            before = widths()
+            menu('column_drag', index, dx=distance)
+            after = widths()
+            check(f'dragging the {column} boundary only resizes that column by {distance}',
+                  abs(after[column] - before[column] - distance) < 1.5 and all(
+                      abs(after[name] - before[name]) < 1 for name in before if name != column))
+
+    tool('ui_window', width=1024, height=720)
+    widths(reset=True)
+    bar = wait(horizontal_bar)
+    original = menu('inspect')['tableHeaders']
+    tool('ui_layout', action='scroll', scrollbar=bar['index'], value=bar['maximum'])
+    scrolled = menu('inspect')['tableHeaders']
+    for text, moves in [('图谱', False), ('提交', True)]:
+        start = next(header['bounds']['x'] for header in original if header['text'] == text)
+        end = next(header['bounds']['x'] for header in scrolled if header['text'] == text)
+        check(f'narrow history scrolls to the last column with {text} in its expected position',
+              end < start - 10 if moves else abs(end - start) < 1)
+    tool('ui_window', width=1280, height=820)
+    widths(reset=True)
 
 
 def close_owned():
@@ -190,6 +232,7 @@ try:
               any(branch['reference'] == 'refs/heads/main' and branch['level'] == 2
                   for branch in state()['commitBranchHighlights']['local']))
     wait(lambda: state()['detailChanges'])
+    history_column_resizing()
     tool('ui_diff', repo=str(repo), action='select', file='demo.bin', source='history')
     wait(lambda: tool('ui_diff', repo=str(repo), action='state').get('status') == 'ready')
     choose(0)

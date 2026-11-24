@@ -921,6 +921,7 @@ namespace SourceGit.Views
             if (rowsPresenter == null)
                 return;
 
+            FitDefaultDescriptionColumn(rowsPresenter.Bounds.Width);
             double rowHeight = dataGrid.RowHeight;
             double startY = 0;
             foreach (var child in rowsPresenter.Children)

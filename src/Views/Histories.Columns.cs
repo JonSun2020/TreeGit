@@ -6,7 +6,6 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
-using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 namespace SourceGit.Views
@@ -14,6 +13,8 @@ namespace SourceGit.Views
     public partial class Histories
     {
         private static readonly string[] ColumnNames = ["graph", "description", "date", "author", "commit", "authorDate"];
+        private const int DescriptionColumnIndex = 1;
+        private const double DefaultDescriptionWidth = 480;
         private bool _columnGesture;
         private bool _columnChanged;
 
@@ -54,10 +55,34 @@ namespace SourceGit.Views
                 column.MinWidth = i == 0 ? 60 : i == 1 ? 100 : 60;
                 column.Width = width.HasValue ? new(width.Value) : i switch
                 {
-                    0 => new(vm.GraphWidth), 1 => new(1, DataGridLengthUnitType.Star),
+                    0 => new(vm.GraphWidth), DescriptionColumnIndex => new(DefaultDescriptionWidth),
                     2 or 5 => new(160), 3 => new(vm.AuthorColumnWidth), _ => new(100),
                 };
             }
+        }
+
+        private void FitDefaultDescriptionColumn(double viewportWidth)
+        {
+            if (_columnGesture || viewportWidth <= 0 || DataContext is not ViewModels.Histories vm ||
+                vm.GetHistoryColumnWidth("description").HasValue)
+                return;
+
+            // Keep columns in pixels so a header drag can't redistribute widths.
+            // Only the default description fills spare space; below its default width, scroll.
+            var columns = CommitListContainer.Columns;
+            double otherWidth = 0;
+            for (int i = 0; i < columns.Count; i++)
+            {
+                var column = columns[i];
+                if (i != DescriptionColumnIndex && column.IsVisible)
+                    otherWidth += Math.Max(column.MinWidth, column.Width.Value);
+            }
+
+            var description = columns[DescriptionColumnIndex];
+            // Leave room for the rounded viewport edge at fractional DPI.
+            var width = Math.Max(DefaultDescriptionWidth, viewportWidth - otherWidth - 1);
+            if (Math.Abs(width - description.Width.Value) > 0.5)
+                description.Width = new(width);
         }
 
         public Dictionary<string, double> GetColumnWidths()
@@ -77,6 +102,7 @@ namespace SourceGit.Views
         public Dictionary<string, double> ConfigureColumns(Dictionary<string, double> widths, bool reset)
         {
             if (DataContext is not ViewModels.Histories vm) throw new InvalidOperationException("History is not loaded.");
+            if (!reset && widths.Count == 0) return GetColumnWidths();
             foreach (var pair in widths)
                 if (!ColumnNames.Contains(pair.Key) || !double.IsFinite(pair.Value) || pair.Value < (pair.Key == "description" ? 100 : 60) || pair.Value > 8192)
                     throw new ArgumentException("Invalid history column width: " + pair.Key);

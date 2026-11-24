@@ -644,6 +644,7 @@ namespace SourceGit.Views
             UseBundledGitChoice.IsEnabled = false;
             UseBundledGitChoice.IsChecked = available && ViewModels.Preferences.Instance.UseBundledGit;
             BundledGitVersionLabel.Text = available ? $"- {version}" : string.Empty;
+            BundledGitVersionLabel.IsVisible = available;
             MissingBundledGitHint.IsVisible = !available;
             UseBundledGitChoice.IsEnabled = available;
         }

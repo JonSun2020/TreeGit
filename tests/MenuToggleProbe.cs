@@ -1485,7 +1485,11 @@ namespace SourceGit.Automation
                             .Select(t => t.TranslatePoint(new Point(t.Bounds.Width / 2, t.Bounds.Height / 2), h))
                             .Select(p => new { x = p?.X, y = p?.Y }).ToArray(),
                         separators = h.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Rectangle>().Where(r => r.Name == "VerticalSeparator" && r.IsEffectivelyVisible)
-                            .Select(r => new { y = r.TranslatePoint(default, h)?.Y, height = r.Bounds.Height }).ToArray(),
+                            .Select(r =>
+                            {
+                                var origin = r.TranslatePoint(default, h);
+                                return new { x = origin?.X, y = origin?.Y, width = r.Bounds.Width, height = r.Bounds.Height };
+                            }).ToArray(),
                     }).ToArray(),
                 searchClick,
                 searchSessions = window.GetVisualDescendants().OfType<Views.Repository>().Where(v => v.IsEffectivelyVisible && v.DataContext is ViewModels.Repository)

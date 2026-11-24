@@ -359,11 +359,12 @@
                       AutomationProperties.Name="{DynamicResource Text.TreeGit.Git.UseBundledOption}">
               <WrapPanel Orientation="Horizontal">
                 <TextBlock Text="{DynamicResource Text.TreeGit.Git.UseBundledOption}"/>
-                <TextBlock x:Name="BundledGitVersionLabel" Margin="8,0,0,0"/>
+                <TextBlock x:Name="BundledGitVersionLabel" Margin="8,0,0,0" IsVisible="False"/>
               </WrapPanel>
             </CheckBox>
-            <StackPanel x:Name="MissingBundledGitHint" IsVisible="False" Orientation="Horizontal" Margin="6,0,0,0" VerticalAlignment="Center">
-              <TextBlock Text="{DynamicResource Text.TreeGit.Git.BundledMissingPrefix}" VerticalAlignment="Center"/>
+            <StackPanel x:Name="MissingBundledGitHint" IsVisible="False" Orientation="Horizontal" Margin="1,0,0,0" VerticalAlignment="Center">
+              <TextBlock Classes="git_install_inactive" Text="(" Margin="0,-1,0,1"/>
+              <TextBlock Classes="git_install_inactive" Text="{DynamicResource Text.TreeGit.Git.BundledMissingPrefix}" VerticalAlignment="Center"/>
               <Button Classes="icon_button" Cursor="Hand" Padding="0" VerticalAlignment="Center" VerticalContentAlignment="Center"
                       AutomationProperties.Name="BundledGit" Click="OnDownloadBundledGit">
                 <Grid>
@@ -372,7 +373,8 @@
                           Background="{DynamicResource Brush.ExternalLink}"/>
                 </Grid>
               </Button>
-              <TextBlock Text="{DynamicResource Text.TreeGit.Git.BundledMissingSuffix}" VerticalAlignment="Center"/>
+              <TextBlock Classes="git_install_inactive" Text="{DynamicResource Text.TreeGit.Git.BundledMissingSuffix}" VerticalAlignment="Center"/>
+              <TextBlock Classes="git_install_inactive" Text=")" Margin="0,-1,0,1"/>
             </StackPanel>
             </WrapPanel>
           <Grid Margin="8,1,8,8" RowDefinitions="32,32,32,32,32,Auto,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*">

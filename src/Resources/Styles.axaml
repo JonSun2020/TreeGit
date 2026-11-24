@@ -17,7 +17,9 @@
       <Setter Property="Height" Value="24"/>
       <Setter Property="MaxHeight" Value="24"/>
       <Setter Property="Padding" Value="0"/>
+      <Setter Property="UseLayoutRounding" Value="False"/>
       <Setter Property="Foreground" Value="{DynamicResource Brush.FG1}"/>
+      <Setter Property="SeparatorBrush" Value="{DynamicResource Brush.Border1}"/>
       <Setter Property="FocusAdorner" Value="{x:Null}"/>
       <Setter Property="Template">
         <ControlTemplate>
@@ -28,7 +30,7 @@
                               HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                               Foreground="{TemplateBinding Foreground}"/>
             <Rectangle Name="VerticalSeparator" Width="1" HorizontalAlignment="Right" VerticalAlignment="Stretch"
-                       Fill="{DynamicResource Brush.Border0}" IsHitTestVisible="False" IsVisible="{TemplateBinding AreSeparatorsVisible}"/>
+                       Fill="{TemplateBinding SeparatorBrush}" IsHitTestVisible="False" IsVisible="{TemplateBinding AreSeparatorsVisible}"/>
           </Grid>
         </ControlTemplate>
       </Setter>
