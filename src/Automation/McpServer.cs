@@ -47,6 +47,7 @@ namespace SourceGit.Automation
 #if INTEGRATION_TESTS
             actions.Add("test_click");
             actions.Add("test_set");
+            actions.Add("test_dropdowns");
             actions.Add("test_reveal");
             actions.Add("test_metadata");
             actions.Add("test_menu");

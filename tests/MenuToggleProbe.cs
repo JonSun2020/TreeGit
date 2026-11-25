@@ -73,7 +73,7 @@ namespace SourceGit.Automation
             window.IsHitTestVisible = true;
             _phase = action;
             var index = args.TryGetProperty("value", out var value) ? value.GetInt32() : 0;
-            if (index < 0 || index >= headers.Length && !action.StartsWith("recent_", StringComparison.Ordinal) && !action.StartsWith("welcome_", StringComparison.Ordinal) && !action.StartsWith("diff_", StringComparison.Ordinal) && action is not ("operation_probe" or "tab_guard" or "tag_sidebar")) throw new ArgumentOutOfRangeException(nameof(index));
+            if (index < 0 || index >= headers.Length && !action.StartsWith("recent_", StringComparison.Ordinal) && !action.StartsWith("welcome_", StringComparison.Ordinal) && !action.StartsWith("diff_", StringComparison.Ordinal) && action is not ("operation_probe" or "tab_guard" or "tag_sidebar" or "dropdown_geometry")) throw new ArgumentOutOfRangeException(nameof(index));
             var selected = headers[Math.Min(index, headers.Length - 1)];
             object Bounds(Control control)
             {
@@ -540,7 +540,7 @@ namespace SourceGit.Automation
                     .First(c => c.IsEffectivelyVisible && (c.Name == name || name == "PullBranch" && c is Views.BranchSelector && c.FindAncestorOfType<Views.Pull>() != null));
                 if (dropdown is ComboBox combo)
                 {
-                    if (index is 3 or 4)
+                    if (index >= 3)
                         combo.SetCurrentValue(SelectingItemsControl.SelectedIndexProperty, index - 3);
                     else if (index != 2)
                         combo.IsDropDownOpen = index == 1;
@@ -554,13 +554,16 @@ namespace SourceGit.Automation
                 var frame = popup?.Child;
                 var left = frame?.TranslatePoint(default, dropdown)?.X;
                 var right = frame?.TranslatePoint(new Point(frame.Bounds.Width, 0), dropdown)?.X;
-                if (dropdown is ComboBox historyPicker && name is "HistoryBranchPicker" or "HistoryOrderPicker")
+                if (dropdown is Views.CompactComboBox compact && name is "HistoryBranchPicker" or "HistoryOrderPicker" or "SearchMethodPicker")
                 {
                     var parts = dropdown.GetVisualDescendants().ToArray();
                     var area = parts.OfType<ContentControl>().FirstOrDefault(c => c.Name == "ContentPresenter");
-                    var caption = parts.OfType<Panel>().FirstOrDefault(c => c.Name == "HistoryPickerCaption")?
+                    var search = name == "SearchMethodPicker";
+                    var captionHost = parts.OfType<Control>().FirstOrDefault(c => c.Name == (search ? "SearchMethodCaption" : "HistoryPickerCaption"));
+                    var caption = captionHost?
                         .GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.IsEffectivelyVisible);
-                    var guide = parts.OfType<Panel>().FirstOrDefault(c => c.Name == "HistoryPickerWidthGuide");
+                    var guide = parts.OfType<Panel>().FirstOrDefault(c => c.Name == (search ? "SearchMethodWidthGuide" : "HistoryPickerWidthGuide"));
+                    var glyph = parts.OfType<PathIcon>().First(c => c.Name == "DropDownGlyph");
                     var areaStart = area?.TranslatePoint(default, dropdown)?.X;
                     var captionStart = TextStart(caption, dropdown);
                     var popupPositioned = left is double popupX && Math.Abs(popupX) <= 1;
@@ -568,7 +571,8 @@ namespace SourceGit.Automation
                         .Select(item => (item, text: item.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.IsEffectivelyVisible)))
                         .Where(entry => entry.text != null);
                     return new { boxed = dropdown.Bounds.Width, left, right, popupOpen = popup?.IsOpen,
-                        selected = historyPicker.SelectedIndex, text = caption?.Text, leftOffset = captionStart - areaStart,
+                        selected = compact.SelectedIndex, text = caption?.Text, leftOffset = captionStart - areaStart,
+                        arrowWidth = ((Grid)glyph.GetVisualParent()).ColumnDefinitions[Grid.GetColumn(glyph)].ActualWidth,
                         fits = CaptionFits(caption, area, default), longest = guide?.DesiredSize.Width,
                         items = items.Select(entry => new { text = entry.text.Text,
                             leftOffset = popupPositioned ? left + TextStart(entry.text, frame) - captionStart : null,
@@ -595,6 +599,52 @@ namespace SourceGit.Automation
                     anchorX = anchor?.TranslatePoint(default, dropdown)?.X,
                     layerX = layer?.TranslatePoint(default, root)?.X,
                     alignment = (dropdown as ComboBox)?.HorizontalContentAlignment.ToString(), labelOffsets = offsets, selectedOffsets };
+            }
+            if (action == "checkbox_appearance")
+            {
+                var name = args.GetProperty("button").GetString();
+                var scope = name == "SearchScopeCheckBox" ? window.GetVisualDescendants().OfType<Button>().FirstOrDefault(c => c.Name == "SearchScopeButton" && c.IsEffectivelyVisible) : null;
+                if (scope?.Flyout is Flyout flyout && !flyout.IsOpen)
+                    flyout.ShowAt(scope);
+                var box = scope?.Flyout is Flyout { Content: CheckBox filter } ? filter :
+                    window.GetVisualDescendants().OfType<CheckBox>().FirstOrDefault(c => c.Name == name && c.IsEffectivelyVisible);
+                if (box?.IsEffectivelyEnabled != true) return new { ready = false };
+                box.SetCurrentValue(ToggleButton.IsCheckedProperty, index != 0);
+                var border = box.GetVisualDescendants().OfType<Border>().FirstOrDefault(c => c.Name == "Border");
+                var icon = border?.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().FirstOrDefault();
+                if (icon == null) return new { ready = false };
+                var classes = (IPseudoClasses)box.Classes;
+                var focused = classes.Contains(":focus-visible");
+                var hovered = classes.Contains(":pointerover");
+                var appearance = new List<object>();
+                try
+                {
+                    foreach (var (focus, hover) in new[] { (false, false), (true, false), (false, true) })
+                    {
+                        classes.Set(":focus-visible", focus);
+                        classes.Set(":pointerover", hover);
+                        appearance.Add(new { fill = border.Background?.ToString(), stroke = border.BorderBrush?.ToString(), mark = icon.Fill?.ToString(), visible = icon.IsVisible });
+                    }
+                }
+                finally
+                {
+                    classes.Set(":focus-visible", focused);
+                    classes.Set(":pointerover", hovered);
+                    if (scope != null && index == 0) scope.Flyout.Hide();
+                }
+                return new { ready = true, appearance };
+            }
+            if (action == "history_change_search")
+            {
+                var field = window.GetVisualDescendants().OfType<TextBox>().FirstOrDefault(c => c.Name == "CommitChangeSearchBox" && c.IsEffectivelyVisible);
+                if (field?.InnerRightContent is not StackPanel tools) return new { ready = false };
+                var icon = tools.Children.OfType<Avalonia.Controls.Shapes.Path>().Single();
+                var clear = tools.Children.OfType<Button>().Single();
+                var iconRight = icon.TranslatePoint(new Point(icon.Bounds.Width, 0), field)?.X;
+                return new { ready = icon.IsArrangeValid && iconRight.HasValue, leftIsEmpty = field.InnerLeftContent == null,
+                    icon = ReferenceEquals(icon.Data, field.FindResource("Icons.Search")),
+                    iconRight, width = field.Bounds.Width, clearShown = clear.IsVisible,
+                    clearRight = clear.IsVisible ? clear.TranslatePoint(new Point(clear.Bounds.Width, 0), field)?.X : null };
             }
             if (action.StartsWith("diff_", StringComparison.Ordinal))
             {

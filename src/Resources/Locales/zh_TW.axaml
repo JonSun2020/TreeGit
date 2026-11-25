@@ -1438,7 +1438,6 @@
   <x:String x:Key="Text.TreeGit.Binary.WindowTitle" xml:space="preserve">TreeGit · 二進位比較</x:String>
   <x:String x:Key="Text.TreeGit.Binary.Offset" xml:space="preserve">偏移量</x:String>
   <x:String x:Key="Text.TreeGit.Search" xml:space="preserve">搜尋</x:String>
-  <x:String x:Key="Text.TreeGit.Search.Label" xml:space="preserve">搜尋：</x:String>
   <x:String x:Key="Text.TreeGit.Search.Scope" xml:space="preserve">搜尋範圍</x:String>
   <x:String x:Key="Text.TreeGit.Search.ContainingBranches" xml:space="preserve">分支</x:String>
   <x:String x:Key="Text.TreeGit.History.Description" xml:space="preserve">描述</x:String>

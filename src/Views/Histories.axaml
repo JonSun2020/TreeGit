@@ -63,9 +63,7 @@
             </v:CompactComboBox.SelectionBoxItemTemplate>
             <x:String>all</x:String><x:String>current</x:String>
           </v:CompactComboBox>
-          <Border Classes="dialog_selections">
-            <CheckBox Classes="show_remotes" Content="{DynamicResource Text.TreeGit.History.ShowRemotes}" Margin="12,0" IsChecked="{Binding ShowRemoteBranches, Mode=TwoWay}"/>
-          </Border>
+          <CheckBox x:Name="ShowRemoteBranchesCheckBox" Classes="show_remotes" Content="{DynamicResource Text.TreeGit.History.ShowRemotes}" Margin="12,0" IsChecked="{Binding ShowRemoteBranches, Mode=TwoWay}"/>
           <v:CompactComboBox x:Name="HistoryOrderPicker" Padding="3,0" Height="22"
                     ItemTemplate="{StaticResource HistoryOrderLabel}" SelectedIndex="{Binding SortMode, Mode=TwoWay}">
             <v:CompactComboBox.Resources>

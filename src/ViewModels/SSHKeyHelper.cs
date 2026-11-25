@@ -26,11 +26,14 @@ namespace SourceGit.ViewModels
             private set => SetProperty(ref _generator, value);
         }
 
-        public SSHKeyHelper()
+        public SSHKeyHelper() : this(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".ssh")) { }
+
+        internal SSHKeyHelper(string keyDirectory)
         {
+            _keyDirectory = keyDirectory;
             Keys = new AvaloniaList<Models.SSHKeyPair>();
 
-            var sshDir = new DirectoryInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".ssh"));
+            var sshDir = new DirectoryInfo(_keyDirectory);
             if (sshDir.Exists)
             {
                 var files = sshDir.GetFiles("*.pub");
@@ -54,7 +57,7 @@ namespace SourceGit.ViewModels
 
         public void OpenGenerator()
         {
-            Generator = new SSHKeyGenerator();
+            Generator = new SSHKeyGenerator(_keyDirectory);
         }
 
         public void CloseGenerator()
@@ -105,6 +108,7 @@ namespace SourceGit.ViewModels
             }
         }
 
+        private readonly string _keyDirectory;
         private Models.SSHKeyPair _selectedKey = null;
         private SSHKeyGenerator _generator = null;
     }

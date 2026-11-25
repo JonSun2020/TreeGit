@@ -46,6 +46,9 @@ jobs:
       - name: Verify comparison settings and line-by-line display encoding
         shell: pwsh
         run: python tests/diff_view_profiles.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/diff-encoding-results" --encodings
+      - name: Verify dropdown options agree with collapsed captions
+        shell: pwsh
+        run: python tests/dropdown_audit.py src/bin/Debug/net10.0/SourceGit.exe "$env:RUNNER_TEMP/dropdown-audit-results"
       - name: Verify languages, table resizing, independent viewers and real merge results
         shell: pwsh
         run: |
@@ -211,6 +214,7 @@ jobs:
             ${{ runner.temp }}/menu-toggle-results/*.json
             ${{ runner.temp }}/menu-toggle-results/*.png
             ${{ runner.temp }}/menu-toggle-results/*.log
+            ${{ runner.temp }}/dropdown-audit-results/dropdown-results.json
             ${{ runner.temp }}/localization-catalog.json
             ${{ runner.temp }}/localization-ui-results/*.json
             ${{ runner.temp }}/localization-ui-results/*.png

@@ -37,14 +37,13 @@
         <!-- Search & Display Mode -->
         <Grid ColumnDefinitions="*,Auto">
           <TextBox Grid.Column="0" x:Name="CommitChangeSearchBox" Height="26" BorderThickness="1" BorderBrush="{DynamicResource Brush.Border2}" Background="Transparent" CornerRadius="0" Watermark="{DynamicResource Text.CommitDetail.Changes.Search}" Text="{Binding SearchChangeFilter, Mode=TwoWay}">
-            <TextBox.InnerLeftContent>
-              <Path Width="14" Height="14" Margin="4,0,0,0" Fill="{DynamicResource Brush.FG2}" Data="{StaticResource Icons.Search}"/>
-            </TextBox.InnerLeftContent>
-
             <TextBox.InnerRightContent>
-              <Button Classes="icon_button" Focusable="False" IsVisible="{Binding SearchChangeFilter, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" Command="{Binding ClearSearchChangeFilter}">
-                <Path Width="14" Height="14" Fill="{DynamicResource Brush.FG2}" Data="{StaticResource Icons.Clear}"/>
-              </Button>
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <Button Classes="icon_button" Focusable="False" IsVisible="{Binding SearchChangeFilter, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" Command="{Binding ClearSearchChangeFilter}">
+                  <Path Width="14" Height="14" Fill="{DynamicResource Brush.FG2}" Data="{StaticResource Icons.Clear}"/>
+                </Button>
+                <Path Width="14" Height="14" Margin="4,0" VerticalAlignment="Center" IsHitTestVisible="False" Fill="{DynamicResource Brush.FG2}" Data="{StaticResource Icons.Search}"/>
+              </StackPanel>
             </TextBox.InnerRightContent>
           </TextBox>
 

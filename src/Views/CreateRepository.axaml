@@ -5,17 +5,6 @@
              x:Class="SourceGit.Views.CreateRepository"
              x:DataType="vm:CreateRepository">
   <UserControl.Styles>
-    <Style Selector="CheckBox#CreateRepositoryPrivate:disabled /template/ Border#Border">
-      <Setter Property="Background" Value="Transparent"/>
-      <Setter Property="BorderBrush" Value="{DynamicResource Brush.FG2}"/>
-      <Setter Property="Opacity" Value="0.68"/>
-    </Style>
-    <Style Selector="CheckBox#CreateRepositoryPrivate:disabled /template/ Path#Icon">
-      <Setter Property="Fill" Value="{DynamicResource Brush.FG2}"/>
-    </Style>
-    <Style Selector="CheckBox#CreateRepositoryPrivate:disabled TextBlock">
-      <Setter Property="Foreground" Value="{DynamicResource Brush.FG2}"/>
-    </Style>
     <Style Selector="Button#VerifyGitHubAccount:disabled /template/ Border#PART_Border">
       <Setter Property="Background" Value="Transparent"/>
       <Setter Property="BorderBrush" Value="{DynamicResource Brush.FG2}"/>

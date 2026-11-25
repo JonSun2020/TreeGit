@@ -432,12 +432,13 @@ try:
  check('actual presenters restore their own profile flags',not main['presenters'][0]['wrap'] and external['presenters'][0]['wrap'] and not external['presenters'][0]['syntax'])
  check('comparison and configuration changes do not modify Git data',before==(git('rev-parse','HEAD'),git('ls-files','--stage'),git('status','--porcelain')))
  client.tool('ui_command',command='close_dialog');wait(lambda:not views().get('standalone'))
- for locale,zoom,branches,orders in (
-      ('zh_CN',1,('所有分支','当前分支'),('按日期排序','按拓扑排序')),
-      ('zh_TW',1.25,('全部分支','目前分支'),('依日期排序','依拓撲排序')),
-      ('en_US',1.5,('All branches','Current branch'),('Sort by date','Sort topologically'))):
+ for locale,zoom,branches,orders,methods in (
+      ('zh_CN',1,('所有分支','当前分支'),('按日期排序','按拓扑排序'),('提交指纹','作者','提交信息','路径','变更内容')),
+      ('zh_TW',1.25,('全部分支','目前分支'),('依日期排序','依拓撲排序'),('提交編號','作者','提交訊息','路徑','變更內容')),
+      ('en_US',1.5,('All branches','Current branch'),('Sort by date','Sort topologically'),('SHA','Author','Message','Path','Content'))):
   client.tool('ui_window',locale=locale,zoom=zoom,width=1180,height=760)
-  for picker,choices in [('HistoryBranchPicker',branches),('HistoryOrderPicker',orders)]:
+  for picker,choices in [('HistoryBranchPicker',branches),('HistoryOrderPicker',orders),('SearchMethodPicker',methods)]:
+   if picker=='SearchMethodPicker':client.tool('ui_select_view',repo=str(repo),view='search')
    def geometry(action=2):return client.probe('dropdown_geometry',action,picker)
    width=None
    for index,caption in enumerate(choices):
@@ -448,7 +449,7 @@ try:
     if width is None:width=closed['boxed']
     else:check(f'{locale} {picker} keeps its width when switching options',abs(width-closed['boxed'])<=.5,closed)
    geometry(1)
-   opened=wait(lambda:p if len((p:=geometry())['items'])==2 and p['left'] is not None and
+   opened=wait(lambda:p if len((p:=geometry())['items'])==len(choices) and p['left'] is not None and
                   all(item['leftOffset'] is not None for item in p['items']) else None)
    check_edges(f'{locale} {picker}',opened)
    check(f'{locale} {picker} options start at the same left edge as the closed box',
@@ -456,6 +457,40 @@ try:
          all(item['fits'] and abs(item['leftOffset'])<=1 for item in opened['items']),opened)
    geometry(0)
    geometry(3)
+   if picker=='HistoryOrderPicker':history_arrow_width=opened['arrowWidth']
+   if picker=='SearchMethodPicker':
+    check(locale+' search and history use the same compact dropdown arrow',abs(opened['arrowWidth']-history_arrow_width)<=.5,opened)
+    client.tool('ui_select_view',repo=str(repo),view='history')
+ for theme in ['Light','Dark','Blue']:
+  client.tool('ui_window',theme=theme,zoom=1)
+  def appearance(name,checked):
+   result=wait(lambda:p if (p:=client.probe('checkbox_appearance',int(checked),name))['ready'] else None)
+   return result['appearance']
+  reference='ShowRemoteBranchesCheckBox'
+  selected=appearance(reference,True)
+  unselected=appearance(reference,False)
+  check(theme+' history checked fill and mark stay visible when focused or hovered',
+        all(style['visible'] and style['fill']==selected[0]['fill'] and style['mark']==selected[0]['mark'] for style in selected) and
+        all(not style['visible'] for style in unselected) and selected[0]['fill']!=unselected[0]['fill'],selected)
+  appearance(reference,True)
+  client.tool('ui_select_view',repo=str(repo),view='search')
+  check(theme+' checked search scope matches Show Remote Branches',appearance('SearchScopeCheckBox',True)==selected)
+  check(theme+' unchecked search scope matches Show Remote Branches',appearance('SearchScopeCheckBox',False)==unselected)
+  client.tool('ui_select_view',repo=str(repo),view='commit')
+  for name in ['SkipCommitHooksCheckBox','SignOffCheckBox','PushImmediatelyCheckBox']:
+   check(theme+' checked '+name+' matches Show Remote Branches',appearance(name,True)==selected)
+   check(theme+' unchecked '+name+' matches Show Remote Branches',appearance(name,False)==unselected)
+  client.tool('ui_select_view',repo=str(repo),view='history')
+ client.tool('ui_select_commit',repo=str(repo),revision='HEAD')
+ client.tool('ui_command',repo=str(repo),command='commit_changes')
+ field=wait(lambda:p if (p:=client.probe('history_change_search'))['ready'] else None)
+ check('history change search shows only the magnifier at the right edge when empty',
+       field['leftIsEmpty'] and field['icon'] and 0<=field['width']-field['iconRight']<=12 and not field['clearShown'],field)
+ client.tool('ui_layout',action='test_set',button='CommitChangeSearchBox',text=filename)
+ field=wait(lambda:p if (p:=client.probe('history_change_search'))['ready'] and p['clearRight'] is not None else None)
+ check('history change search keeps the magnifier on the right of the clear button',
+       field['clearShown'] and 0<=field['width']-field['iconRight']<=12 and field['clearRight']<field['iconRight'],field)
+ client.tool('ui_layout',action='test_set',button='CommitChangeSearchBox',text='')
  for zoom in [1,1.25,1.5]:
   client.tool('ui_window',zoom=zoom,locale='zh_CN',width=1180,height=760)
   check_edges(f'{zoom} file encoding',dropdown_geometry('DiffEncodingPicker'))

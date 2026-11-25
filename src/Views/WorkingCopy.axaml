@@ -269,13 +269,13 @@
   </Grid>
   <Grid Grid.Row="3" Grid.ColumnSpan="3" Margin="8,0" ColumnDefinitions="*,Auto,Auto" VerticalAlignment="Center">
     <WrapPanel Grid.Column="0" VerticalAlignment="Center">
-      <CheckBox x:Name="SkipCommitHooksCheckBox" Classes="commit_option" IsChecked="{Binding NoVerifyOnCommit, Mode=TwoWay}" IsEnabled="{Binding CanChangeIndex}" MinHeight="24"><TextBlock Text="{DynamicResource Text.TreeGit.Commit.SkipHooks}" Foreground="{Binding #SkipCommitHooksCheckBox.Foreground}"/></CheckBox>
+      <CheckBox x:Name="SkipCommitHooksCheckBox" Classes="commit_option" Content="{DynamicResource Text.TreeGit.Commit.SkipHooks}" IsChecked="{Binding NoVerifyOnCommit, Mode=TwoWay}" IsEnabled="{Binding CanChangeIndex}" MinHeight="24"/>
       <v:CommitOptionSeparator VerticalAlignment="Center" Opacity="0.7"/>
-      <CheckBox x:Name="SignOffCheckBox" Classes="commit_option" IsChecked="{Binding EnableSignOff, Mode=TwoWay}" IsEnabled="{Binding CanChangeIndex}" MinHeight="24"><TextBlock Text="{DynamicResource Text.WorkingCopy.SignOff}" Foreground="{Binding #SignOffCheckBox.Foreground}"/></CheckBox>
+      <CheckBox x:Name="SignOffCheckBox" Classes="commit_option" Content="{DynamicResource Text.WorkingCopy.SignOff}" IsChecked="{Binding EnableSignOff, Mode=TwoWay}" IsEnabled="{Binding CanChangeIndex}" MinHeight="24"/>
       <StackPanel Orientation="Horizontal">
         <StackPanel.IsVisible><MultiBinding Converter="{x:Static BoolConverters.And}"><Binding Path="HasRemotes"/><Binding Path="UseAmend" Converter="{x:Static BoolConverters.Not}"/><Binding Path="InProgressContext" Converter="{x:Static ObjectConverters.IsNull}"/></MultiBinding></StackPanel.IsVisible>
         <v:CommitOptionSeparator VerticalAlignment="Center" Opacity="0.7"/>
-        <CheckBox x:Name="PushImmediatelyCheckBox" Classes="commit_option" IsChecked="{Binding PushAfterCommit, Mode=TwoWay}" IsEnabled="{Binding CanChangeIndex}" MinHeight="24"><TextBlock Text="{Binding PushAfterCommitText}" Foreground="{Binding #PushImmediatelyCheckBox.Foreground}"/></CheckBox>
+        <CheckBox x:Name="PushImmediatelyCheckBox" Classes="commit_option" Content="{Binding PushAfterCommitText}" IsChecked="{Binding PushAfterCommit, Mode=TwoWay}" IsEnabled="{Binding CanChangeIndex}" MinHeight="24"/>
       </StackPanel>
     </WrapPanel>
     <v:LoadingIcon Grid.Column="1" Width="18" Height="18" IsVisible="{Binding IsCommitting}"/>

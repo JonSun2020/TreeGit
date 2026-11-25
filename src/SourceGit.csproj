@@ -48,6 +48,7 @@
     <Compile Include="../tests/GraphStyleProbe.cs" />
     <Compile Include="../tests/UiLayoutProbe.cs" />
     <Compile Include="../tests/MenuToggleProbe.cs" />
+    <Compile Include="../tests/DropdownAuditProbe.cs" />
     <Compile Include="../tests/LocalAuditHost.cs" />
     <Compile Include="../tests/RepositoryCreationProbe.cs" />
     <Compile Include="../tests/RepositorySettingsProbe.cs" />

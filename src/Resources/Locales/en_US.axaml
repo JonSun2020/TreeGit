@@ -1455,7 +1455,6 @@ Server: {1}</x:String>
   <x:String x:Key="Text.TreeGit.Binary.WindowTitle" xml:space="preserve">TreeGit · Binary comparison</x:String>
   <x:String x:Key="Text.TreeGit.Binary.Offset" xml:space="preserve">Offset</x:String>
   <x:String x:Key="Text.TreeGit.Search" xml:space="preserve">Search</x:String>
-  <x:String x:Key="Text.TreeGit.Search.Label" xml:space="preserve">Search:</x:String>
   <x:String x:Key="Text.TreeGit.Search.Scope" xml:space="preserve">Search scope</x:String>
   <x:String x:Key="Text.TreeGit.Search.ContainingBranches" xml:space="preserve">Branch</x:String>
   <x:String x:Key="Text.TreeGit.History.Description" xml:space="preserve">Description</x:String>
