@@ -333,9 +333,8 @@ namespace SourceGit.Views
                 {
                     selected = await Task.Run(() =>
                     {
-                        if (forceBundled) return Native.GitExecutableLocator.FindBundledGit();
-                        if (Native.GitExecutableLocator.IsUsable(input)) return input;
-                        return OperatingSystem.IsWindows() ? Native.GitExecutableLocator.FindBundledGit() : Native.OS.FindGitExecutable();
+                        if (!forceBundled && Native.GitExecutableLocator.IsUsable(input)) return input;
+                        return OperatingSystem.IsWindows() ? Native.GitExecutableLocator.FindVerifiedBundledGit() : Native.OS.FindGitExecutable();
                     });
                     if (string.IsNullOrEmpty(selected))
                     {

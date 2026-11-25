@@ -31,16 +31,17 @@ namespace SourceGit.Native
 
         internal static string ReadUpdateIdentity(string app) => ReadUpdateRuntime(app).Identity;
 
-        internal static (string Identity, string Version) ReadUpdateRuntime(string app)
+        internal static (string Identity, string Version) ReadUpdateRuntime(string app, bool requirePayloadPresence = false)
         {
-            var identity = InspectUpdateRuntime(app, null, default, out var version);
+            var identity = InspectUpdateRuntime(app, null, default, out var version, requirePayloadPresence);
             return (identity, version);
         }
 
         internal static bool VerifyForUpdate(string app, string identity, CancellationToken token = default)
             => identity != null && InspectUpdateRuntime(app, identity, token, out _) == identity;
 
-        private static string InspectUpdateRuntime(string app, string expected, CancellationToken token, out string runtimeVersion)
+        private static string InspectUpdateRuntime(string app, string expected, CancellationToken token, out string runtimeVersion,
+            bool requirePayloadPresence = false)
         {
             runtimeVersion = null;
             try
@@ -56,7 +57,16 @@ namespace SourceGit.Native
                 // Ignore JSON formatting and component enumeration order across builds.
                 var entries = files.OrderBy(pair => pair.Key, StringComparer.Ordinal).Select(pair => pair.Key + "\t" + pair.Value);
                 var identity = Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(version + "\n" + string.Join('\n', entries))));
-                if (expected == null) { runtimeVersion = version; return identity; }
+                if (expected == null)
+                {
+                    if (requirePayloadPresence)
+                    {
+                        var filesNeeded = compact ? CompactFiles : RequiredFiles;
+                        if (!filesNeeded.All(name => File.Exists(CheckedUpdatePath(root, name))) || !File.Exists(manifest)) return null;
+                    }
+                    runtimeVersion = version;
+                    return identity;
+                }
                 if (identity != expected) return null;
 
                 if (!compact) return Complete(root, files, verifyConfig: true, token: token) ? identity : null;

@@ -66,10 +66,13 @@ namespace SourceGit.Native
             });
         }
 
-        internal static string ReadBundledVersion(string root)
+        internal static string ReadBundledVersion(string root) => GitRuntimeArchive.ReadUpdateRuntime(root, requirePayloadPresence: true).Version;
+
+        internal static string FindVerifiedBundledGit()
         {
-            var (identity, version) = GitRuntimeArchive.ReadUpdateRuntime(root);
-            return GitRuntimeArchive.VerifyForUpdate(root, identity) ? version : null;
+            var root = AppContext.BaseDirectory;
+            var identity = GitRuntimeArchive.ReadUpdateIdentity(root);
+            return GitRuntimeArchive.VerifyForUpdate(root, identity) ? FindBundledGit() : null;
         }
 
         internal static string FindBundledGit()
