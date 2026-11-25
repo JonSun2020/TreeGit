@@ -762,11 +762,19 @@ namespace SourceGit.ViewModels
             if (windows && Native.GitExecutableLocator.IsManagedBundle(configured))
                 configured = GitInstallPath = string.Empty;
             string path = null;
+            Native.GitExecutableLocator.DetectedGit? detected = null;
             if (!bundled)
             {
                 stage?.Invoke("Git");
                 if (string.IsNullOrEmpty(configured))
-                    path = OperatingSystem.IsWindows() ? Native.GitExecutableLocator.FindInstalledWindowsGit() : Native.OS.FindGitExecutable();
+                {
+                    if (OperatingSystem.IsWindows())
+                    {
+                        detected = Native.GitExecutableLocator.FindInstalledWindowsGitWithVersion();
+                        path = detected?.Path;
+                    }
+                    else path = Native.OS.FindGitExecutable();
+                }
                 else
                 {
                     // Selecting a path already reads its version. Reuse that result on returning launches.
@@ -779,10 +787,11 @@ namespace SourceGit.ViewModels
             if (windows && string.IsNullOrEmpty(path) && Native.TreeGitUpdateInstaller.BootstrapPlan?.RequiresSystemGit != true)
             {
                 stage?.Invoke("Bundled");
-                path = Native.GitExecutableLocator.FindBundledGit();
+                detected = Native.GitExecutableLocator.FindBundledGitWithVersion();
+                path = detected?.Path;
             }
 
-            Native.OS.GitExecutable = path;
+            Native.OS.SetGitExecutable(path, detected);
             if (path != null && windows && Native.GitExecutableLocator.IsBundled(path))
             {
                 if (!UseBundledGit)

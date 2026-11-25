@@ -7,9 +7,9 @@ exe=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parent
 if os.environ.get('TREEGIT_LOCAL_QA_ROOT'):verify_local_runtime(exe)
 else:assert os.environ.get('GITHUB_ACTIONS')=='true' and os.environ.get('RUNNER_OS')=='Windows', 'Destructive runtime tests require an owned CI runner'
 root=new_fixture(out,'TreeGit Git runtime 中文 ');bundled=exe.parent/'git/cmd/git.exe'
-checks=[];failure=None
+checks=[];settings_samples=[];failure=None
 def save():
- (out/'git-runtime-results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'root':str(root),'failure':failure},ensure_ascii=False,indent=2),encoding='utf-8')
+ (out/'git-runtime-results.json').write_text(json.dumps({'passed':len(checks),'checks':checks,'settingsSamples':settings_samples,'root':str(root),'failure':failure},ensure_ascii=False,indent=2),encoding='utf-8')
 def record_error(kind,value,tb):
  global failure
  failure=''.join(traceback.format_exception(kind,value,tb));sys.__excepthook__(kind,value,tb)
@@ -27,6 +27,7 @@ def git(repo,*args):
  return r.stdout.strip()
 repo=root/'repo with 空格';repo.mkdir();git(repo,'init','-b','main');git(repo,'config','user.name','Runtime QA');git(repo,'config','user.email','qa@example.invalid')
 (repo/'file.txt').write_text('initial\n');git(repo,'add','.');git(repo,'commit','-m','Initial')
+bundle_version=git(repo,'version').removeprefix('git version ')
 class Client:
  def __init__(self,no_system,saved=None,shell=0,force=False):
   data=exe.parent/'data';data.mkdir(exist_ok=True)
@@ -46,11 +47,29 @@ class Client:
  def close(self):
   self.p.stdin.close();self.p.wait(timeout=15)
   close_owned_gui(exe,self.pid)
-def scenario(label,no_system,saved,expected_bundled,operations=False):
+def check_settings(client,label,bundle_available):
+ started=time.monotonic()
+ client.tool('ui_command',{'command':'preferences','page':'git'})
+ try:
+  while time.monotonic()-started<15:
+   layout=client.tool('ui_layout',{'action':'list','window':'active'})
+   choice=next((b for b in layout['buttons'] if b['name']=='UseBundledGitChoice'),None)
+   texts=layout['localizedTexts']
+   version=next((t['text'] for t in texts if t['name']=='BundledGitVersionLabel'),None)
+   missing=any(t['text'].strip()=='BundledGit' for t in texts)
+   if choice and (choice['enabled'],version,missing)==(bundle_available,'- '+bundle_version if bundle_available else None,not bundle_available):
+    break
+   time.sleep(.05)
+  else:raise AssertionError((label,choice,version,missing))
+  settings_samples.append({'case':label,'available':bundle_available,'version':version,'readyMs':round(1000*(time.monotonic()-started))})
+  check(label+' renders the bundled version and availability together',True)
+ finally:client.tool('ui_command',{'command':'close_dialog'})
+def scenario(label,no_system,saved,expected_bundled,operations=False,bundle_available=None):
  c=Client(no_system,saved)
  try:
   info=c.state['git'];check(label+' selects the expected runtime',info['bundled']==expected_bundled and bool(info['path']))
   if expected_bundled:check(label+' uses the current application directory',Path(info['path'])==bundled)
+  if bundle_available is not None:check_settings(c,label,bundle_available)
   if operations:
    check('an unavailable saved Git Bash falls back to a usable Windows terminal',Path(c.state['terminal']['path']).is_file() and not c.state['terminal']['path'].lower().endswith('git-bash.exe'))
    c.tool('ui_open_repository',{'repo':str(repo)})
@@ -67,8 +86,8 @@ def scenario(label,no_system,saved,expected_bundled,operations=False):
    check('a retained success panel does not make MCP report clone failure',cloned['progressVisible'] and git(clone,'rev-parse','HEAD')==git(repo,'rev-parse','HEAD'))
    check('the successful clone result can close without replaying the clone',c.tool('ui_command',{'command':'cancel_popup'})['cancelled'] and not c.tool('ui_state')['layoutProbe']['popups'])
  finally:c.close()
-scenario('installed Git',False,None,False)
-scenario('missing saved path',True,root/'old-computer/git.exe',True,True)
+scenario('installed Git',False,None,False,bundle_available=True)
+scenario('missing saved path',True,root/'old-computer/git.exe',True,True,bundle_available=True)
 scenario('legacy automatically selected bundle detects a new system installation',False,bundled,False)
 c=Client(False,saved=shutil.which("git"),force=True)
 try:
@@ -111,7 +130,7 @@ finally:c.close()
 scenario('a copied old bundle relocates to the current directory',True,old_git,True)
 ssh=exe.parent/'git/usr/bin/ssh.exe';held=ssh.with_suffix('.held');ssh.rename(held)
 try:
- scenario('system Git with incomplete unused bundle',False,None,False)
+ scenario('system Git with incomplete unused bundle',False,None,False,bundle_available=False)
  c=Client(True)
  try:
   check('an incomplete required bundle is not silently accepted',not c.state['git']['path'])

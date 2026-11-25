@@ -44,6 +44,7 @@ namespace SourceGit.Commands
                 var errors = new StringBuilder();
 
                 proc.StartInfo = CreateGitStartInfo(true);
+                if (CancellationToken.IsCancellationRequested) return outs;
                 proc.ErrorDataReceived += (_, e) =>
                 {
                     if (e.Data == null) return;

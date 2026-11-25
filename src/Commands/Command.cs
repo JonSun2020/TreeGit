@@ -226,6 +226,14 @@ namespace SourceGit.Commands
         // Retry is opt-in for read-only discovery. Mutations must never use it.
         protected Result ReadToEnd(bool retrySilentFailure = false)
         {
+            var result = ReadToEndOnce();
+            if (!retrySilentFailure || !result.ExitCode.HasValue || !result.IsSilentFailure) return result;
+            Thread.Sleep(100);
+            return ReadToEndOnce();
+        }
+
+        private Result ReadToEndOnce()
+        {
             using var proc = new Process();
             proc.StartInfo = CreateGitStartInfo(true);
             if (HttpProxyTarget != null)
@@ -250,11 +258,6 @@ namespace SourceGit.Commands
 
             rs.IsSuccess = proc.ExitCode == 0;
             rs.ExitCode = proc.ExitCode;
-            if (retrySilentFailure && rs.IsSilentFailure)
-            {
-                System.Threading.Thread.Sleep(100);
-                return ReadToEnd();
-            }
             return rs;
         }
 
@@ -285,6 +288,14 @@ namespace SourceGit.Commands
         }
 
         private async Task<Result> ReadToEndAttemptAsync(bool retrySilentFailure, Encoding outputEncoding)
+        {
+            var result = await ReadToEndOnceAsync(outputEncoding).ConfigureAwait(false);
+            if (!retrySilentFailure || !result.ExitCode.HasValue || !result.IsSilentFailure) return result;
+            await Task.Delay(100, CancellationToken).ConfigureAwait(false);
+            return await ReadToEndOnceAsync(outputEncoding).ConfigureAwait(false);
+        }
+
+        private async Task<Result> ReadToEndOnceAsync(Encoding outputEncoding)
         {
             CancellationToken.ThrowIfCancellationRequested();
             using var proc = new Process();
@@ -318,11 +329,6 @@ namespace SourceGit.Commands
 
             rs.IsSuccess = proc.ExitCode == 0;
             rs.ExitCode = proc.ExitCode;
-            if (retrySilentFailure && rs.IsSilentFailure)
-            {
-                await Task.Delay(100, CancellationToken).ConfigureAwait(false);
-                return await ReadToEndAttemptAsync(false, outputEncoding).ConfigureAwait(false);
-            }
             return rs;
         }
 
@@ -341,7 +347,7 @@ namespace SourceGit.Commands
         {
             var useSetSid = CancellationToken.CanBeCanceled && Native.OS.SupportSetSid();
             var selfExecFile = Environment.ProcessPath;
-            var builder = new StringBuilder(2048);
+            var builder = new StringBuilder(512);
             var isWindows = OperatingSystem.IsWindows();
             var useSystemCredentials = isWindows &&
                 (UseCredentialManager ?? Native.RepositoryCredentials.UsesCredentialManager(CredentialScope ?? WorkingDirectory));

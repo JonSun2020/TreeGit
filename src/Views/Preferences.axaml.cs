@@ -688,29 +688,28 @@ namespace SourceGit.Views
                 var detected = await Task.Run(() =>
                 {
                     var path = currentPath.Trim().Trim('"');
-                    var (version, number) = ReadGitVersion(path);
-                    if (number >= Models.GitVersions.MINIMAL &&
+                    var current = Native.GitExecutableLocator.ReadInstallation(path);
+                    if (current is { } input && input.Version >= Models.GitVersions.MINIMAL &&
                         (!OperatingSystem.IsWindows() || !Native.GitExecutableLocator.IsManagedBundle(path)))
-                        return (Path: path, Version: version, Number: number);
+                        return (Found: current, Current: current);
 
-                    path = OperatingSystem.IsWindows() ? Native.GitExecutableLocator.FindInstalledWindowsGit() : Native.OS.FindGitExecutable();
-                    (version, number) = ReadGitVersion(path);
-                    return (Path: path ?? string.Empty, Version: version, Number: number);
+                    var found = OperatingSystem.IsWindows() ? Native.GitExecutableLocator.FindInstalledWindowsGitWithVersion() :
+                        Native.GitExecutableLocator.ReadInstallation(Native.OS.FindGitExecutable());
+                    return (Found: found, Current: current);
                 });
                 if (!IsVisible) return;
 
-                if (detected.Number >= Models.GitVersions.MINIMAL)
+                if (detected.Found is { } found && found.Version >= Models.GitVersions.MINIMAL)
                 {
-                    _versionPath = detected.Path;
-                    GitPathInput.Text = detected.Path;
-                    ShowGitVersion(detected.Version, detected.Number);
+                    _versionPath = found.Path;
+                    GitPathInput.Text = found.Path;
+                    ShowGitVersion(found.VersionText, found.Version);
                 }
                 else
                 {
-                    var (version, number) = await Task.Run(() => ReadGitVersion(currentPath));
-                    if (!IsVisible) return;
+                    var version = detected.Current?.VersionText ?? string.Empty;
                     _versionPath = currentPath;
-                    ShowGitVersion(version, number);
+                    ShowGitVersion(version, detected.Current?.Version);
                     if (string.IsNullOrEmpty(version) && UseBundledGitChoice.IsChecked != true)
                     {
                         _noSystemGitFound = true;

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Avalonia.Threading;
@@ -94,7 +95,11 @@ namespace SourceGit.ViewModels
         public DiffContext DiffContext
         {
             get => _diffContext;
-            private set => SetProperty(ref _diffContext, value);
+            private set
+            {
+                if (!ReferenceEquals(_diffContext, value)) _diffContext?.CancelLoad();
+                SetProperty(ref _diffContext, value);
+            }
         }
 
         public RevisionCompare(Repository repo, Models.Commit startPoint, Models.Commit endPoint)
@@ -322,49 +327,40 @@ namespace SourceGit.ViewModels
 
         private void RefreshVisible()
         {
-            if (_changes == null)
-                return;
+            if (_changes != null) VisibleChanges = FilterChanges(_changes, _searchFilter);
+        }
 
-            if (string.IsNullOrEmpty(_searchFilter))
-            {
-                VisibleChanges = _changes;
-            }
-            else
-            {
-                var visible = new List<Models.Change>();
-                foreach (var c in _changes)
-                {
-                    if (c.Path.Contains(_searchFilter, StringComparison.OrdinalIgnoreCase))
-                        visible.Add(c);
-                }
+        private static List<Models.Change> FilterChanges(List<Models.Change> changes, string filter)
+            => string.IsNullOrEmpty(filter) ? changes : changes.FindAll(c => c.Path.Contains(filter, StringComparison.OrdinalIgnoreCase));
 
-                VisibleChanges = visible;
-            }
+        internal void CancelBackgroundReads()
+        {
+            if (_readCancellation is { IsCancellationRequested: false }) _ = _readCancellation.CancelAsync();
+            _diffContext?.CancelLoad();
         }
 
         private void Refresh()
         {
+            CancelBackgroundReads();
+            _readCancellation = new CancellationTokenSource();
+            var token = _readCancellation.Token;
+            var left = GetSHA(_startPoint);
+            var right = GetSHA(_endPoint);
             Task.Run(async () =>
             {
-                _changes = await new Commands.CompareRevisions(_repo.FullPath, GetSHA(_startPoint), GetSHA(_endPoint))
+                var changes = await new Commands.CompareRevisions(_repo.FullPath, left, right) { CancellationToken = token }
                     .ReadAsync()
                     .ConfigureAwait(false);
-
-                var visible = _changes;
-                if (!string.IsNullOrWhiteSpace(_searchFilter))
-                {
-                    visible = [];
-                    foreach (var c in _changes)
-                    {
-                        if (c.Path.Contains(_searchFilter, StringComparison.OrdinalIgnoreCase))
-                            visible.Add(c);
-                    }
-                }
-
+                if (token.IsCancellationRequested) return;
+                var filter = _searchFilter;
+                var visible = string.IsNullOrWhiteSpace(filter) ? changes : FilterChanges(changes, filter);
                 Dispatcher.UIThread.Post(() =>
                 {
-                    TotalChanges = _changes.Count;
-                    VisibleChanges = visible;
+                    if (token.IsCancellationRequested) return;
+                    _changes = changes;
+                    TotalChanges = changes.Count;
+                    if (filter == _searchFilter) VisibleChanges = visible;
+                    else RefreshVisible();
                     IsLoading = false;
 
                     if (VisibleChanges.Count > 0)
@@ -372,7 +368,7 @@ namespace SourceGit.ViewModels
                     else
                         ChangeSelection = new(null);
                 });
-            });
+            }, token);
         }
 
         private string GetSHA(object obj)
@@ -386,6 +382,7 @@ namespace SourceGit.ViewModels
         }
 
         private Repository _repo;
+        private CancellationTokenSource _readCancellation;
         private bool _isLoading = true;
         private object _startPoint = null;
         private object _endPoint = null;

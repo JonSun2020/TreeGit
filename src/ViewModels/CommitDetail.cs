@@ -470,11 +470,16 @@ namespace SourceGit.ViewModels
                 .ConfigureAwait(false);
         }
 
-        private void Refresh()
+        internal void CancelBackgroundReads()
         {
             if (_cancellationSource is { IsCancellationRequested: false })
                 _ = _cancellationSource.CancelAsync();
+            _diffContext?.CancelLoad();
+        }
 
+        private void Refresh()
+        {
+            CancelBackgroundReads();
             _requestingRevisionFiles = false;
             _revisionFiles = null;
 

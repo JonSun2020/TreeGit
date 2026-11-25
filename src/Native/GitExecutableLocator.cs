@@ -13,6 +13,8 @@ namespace SourceGit.Native
 {
     internal static class GitExecutableLocator
     {
+        internal readonly record struct DetectedGit(string Path, string VersionText, Version Version);
+
         public static string BundledPath => Path.Combine(AppContext.BaseDirectory, "git", "cmd", "git.exe");
 
         private static string UserCache => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "TreeGit", GitRuntimeArchive.CacheDirectory);
@@ -35,14 +37,17 @@ namespace SourceGit.Native
             => FindInstalledWindowsGit() ?? FindBundledGit();
 
         [SupportedOSPlatform("windows")]
-        internal static string FindInstalledWindowsGit()
+        internal static string FindInstalledWindowsGit() => FindInstalledWindowsGitWithVersion()?.Path;
+
+        [SupportedOSPlatform("windows")]
+        internal static DetectedGit? FindInstalledWindowsGitWithVersion()
         {
             IEnumerable<string> candidates = GetWindowsCandidates();
 #if INTEGRATION_TESTS
             if (Environment.GetEnvironmentVariable("TREEGIT_TEST_NO_SYSTEM_GIT") == "1")
                 candidates = [];
 #endif
-            return Resolve(candidates, BundledPath, false);
+            return ResolveWithVersion(candidates, BundledPath, false);
         }
 
         internal static void FinishExpandedUpgrade()
@@ -75,11 +80,19 @@ namespace SourceGit.Native
             return GitRuntimeArchive.VerifyForUpdate(root, identity) ? FindBundledGit() : null;
         }
 
-        internal static string FindBundledGit()
+        internal static string FindBundledGit() => FindBundledGitWithVersion()?.Path;
+
+        internal static DetectedGit? FindBundledGitWithVersion()
         {
             try
             {
-                return GitRuntimeArchive.FindOrExtract(AppContext.BaseDirectory, UserCache, IsUsable);
+                DetectedGit? detected = null;
+                var path = GitRuntimeArchive.FindOrExtract(AppContext.BaseDirectory, UserCache, candidate =>
+                {
+                    detected = ReadInstallation(candidate);
+                    return detected is { } item && item.Version >= Models.GitVersions.MINIMAL;
+                });
+                return path == null ? null : detected;
             }
             catch (Exception error) when (error is IOException or InvalidDataException or UnauthorizedAccessException or
                 System.Text.Json.JsonException or KeyNotFoundException or InvalidOperationException or ArgumentException)
@@ -91,6 +104,9 @@ namespace SourceGit.Native
         // Kept separate from registry enumeration so absence, stale installations
         // and broken executables can be tested without modifying the user's OS.
         internal static string Resolve(IEnumerable<string> systemCandidates, string bundledPath, bool useBundled = true)
+            => ResolveWithVersion(systemCandidates, bundledPath, useBundled)?.Path;
+
+        internal static DetectedGit? ResolveWithVersion(IEnumerable<string> systemCandidates, string bundledPath, bool useBundled = true)
         {
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var bundledRoot = Path.GetDirectoryName(Path.GetDirectoryName(bundledPath));
@@ -99,16 +115,18 @@ namespace SourceGit.Native
                 var path = Normalize(candidate);
                 if (path == null || IsWithin(path, bundledRoot) || !seen.Add(path) || (!useBundled && IsManagedBundle(path)))
                     continue;
-                if (IsUsable(path))
-                    return path;
+                if (ReadInstallation(path) is { } detected && detected.Version >= Models.GitVersions.MINIMAL)
+                    return detected;
             }
-            return useBundled && IsUsable(bundledPath) ? Path.GetFullPath(bundledPath) : null;
+            if (useBundled && ReadInstallation(bundledPath) is { } bundled && bundled.Version >= Models.GitVersions.MINIMAL)
+                return bundled with { Path = Path.GetFullPath(bundledPath) };
+            return null;
         }
 
-        internal static bool IsUsable(string path)
-        {
-            return TryReadVersion(path, out _, out var version) && version >= Models.GitVersions.MINIMAL;
-        }
+        internal static bool IsUsable(string path) => ReadInstallation(path) is { } detected && detected.Version >= Models.GitVersions.MINIMAL;
+
+        internal static DetectedGit? ReadInstallation(string path) => TryReadVersion(path, out var text, out var version)
+            ? new DetectedGit(path, text, version) : null;
 
         internal static bool TryReadVersion(string path, out string text, out Version version)
         {

@@ -26,6 +26,7 @@ internal static class GitDiscoveryProbe
         if (args.Length > 0 && args[0] == "--version")
         {
             var folder = AppContext.BaseDirectory;
+            if (folder.Contains("_counted", StringComparison.Ordinal)) File.AppendAllText(Path.Combine(folder, "version-probes.txt"), "probe\n");
             if (folder.Contains("_hang")) Thread.Sleep(60000);
             if (folder.Contains("_broken")) { Console.Error.WriteLine("broken installation"); return 2; }
             Console.WriteLine(folder.Contains("_old") ? "git version 2.20.0" : "git version 2.56.0.windows.4");
@@ -60,6 +61,11 @@ internal static class GitDiscoveryProbe
         var corrupt = Path.Combine(root, "corrupt.exe"); File.WriteAllText(corrupt, "not an executable");
         Check("malformed executable files are rejected before native process creation", GitExecutableLocator.Resolve([corrupt], bundled) == bundled);
         Check("a bundled PATH entry cannot hide an installed Git", GitExecutableLocator.Resolve([bundled, installed], bundled) == installed);
+        var counted = Fixture("_counted");
+        var selected = GitExecutableLocator.ResolveWithVersion([counted], bundled);
+        Check("discovery returns the path and version from one executable probe",
+            selected is { } chosen && chosen.Path == counted && chosen.VersionText == "2.56.0.windows.4" && chosen.Version == new Version(2, 56, 0) &&
+            File.ReadAllLines(Path.Combine(Path.GetDirectoryName(counted)!, "version-probes.txt")).Length == 1);
         Check("invalid candidate names do not stop discovery", GitExecutableLocator.Resolve(["\0", "", installed], bundled) == installed);
         var stopwatch = Stopwatch.StartNew();
         Check("a hanging executable times out and is tried only once", GitExecutableLocator.Resolve([hang, hang], bundled) == bundled && stopwatch.Elapsed.TotalSeconds < 5.5);

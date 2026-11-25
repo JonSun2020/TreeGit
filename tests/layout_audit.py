@@ -19,6 +19,7 @@ import tempfile
 import threading
 import time
 import zlib
+from qa_process import close_owned_gui
 
 sys.stdout.reconfigure(encoding='utf-8')
 
@@ -112,14 +113,14 @@ pid = None
 checks = []
 records = []
 pointer_records = []
+skipped = []
 
 def stop_session():
     p.stdin.close()
     try: p.wait(timeout=10)
     except subprocess.TimeoutExpired: p.kill(); p.wait(timeout=5)
     if pid:
-        code = "$p=Get-Process -Id " + str(pid) + " -ErrorAction SilentlyContinue; if($p){if($p.Path -ne '" + str(exe).replace("'", "''") + "'){throw 'Wrong QA process'};if(-not $p.CloseMainWindow()){throw 'Owned QA window did not close'};if(-not $p.WaitForExit(15000)){throw 'Owned QA window did not exit'}}"
-        subprocess.run(['powershell', '-NoProfile', '-Command', code], capture_output=True, check=True)
+        close_owned_gui(exe, pid, allow_force=False)
 
 def rpc(method, params=None):
     global seq
@@ -383,26 +384,29 @@ try:
     click_ready('UnstageAllChanges')
     wait_for(lambda: git('diff', '--cached', '--name-only') == '')
     check('unstage all preserves all working files', (folder / 'a very long untracked filename with spaces and unicode 中文.txt').exists() and (repo / 'firmware.bin').stat().st_size == 16384)
-    blocked_temp = root / 'unavailable-temp-directory'
-    blocked_temp.write_text('A fixture file deliberately cannot be used as a directory.', encoding='utf-8')
-    wait_for(lambda: 'text.txt' in state()['workingCopyState']['unstaged'])
-    repo_tool('ui_diff', action='select', source='unstaged', file='text.txt')
-    click_ready('StageSelectedChanges', tempDirectory=str(blocked_temp))
-    wait_for(lambda: state()['workingCopyState']['canChangeIndex'])
-    check('failed stage keeps index and selected file intact', git('diff', '--cached', '--name-only') == '' and state()['workingCopyState']['selectedUnstaged'] == ['text.txt'])
-    check('failed stage explains the recoverable problem', tool('ui_state')['activePage']['notifications'] > 0)
-    repo_tool('ui_command', command='clear_notifications')
-    click_ready('StageSelectedChanges')
-    wait_for(lambda: git('diff', '--cached', '--name-only') == 'text.txt')
-    wait_for(lambda: 'text.txt' in state()['workingCopyState']['staged'])
-    repo_tool('ui_diff', action='select', source='staged', file='text.txt')
-    click_ready('UnstageSelectedChanges', tempDirectory=str(blocked_temp))
-    wait_for(lambda: state()['workingCopyState']['canChangeIndex'])
-    check('failed unstage keeps index and selected file intact', git('diff', '--cached', '--name-only') == 'text.txt' and state()['workingCopyState']['selectedStaged'] == ['text.txt'])
-    repo_tool('ui_command', command='clear_notifications')
-    click_ready('UnstageSelectedChanges')
-    wait_for(lambda: git('diff', '--cached', '--name-only') == '')
-    check('temporary write errors recover without restarting TreeGit', p.poll() is None and (repo / 'text.txt').read_text() == 'staged change\nunstaged change\n')
+    if os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ.get('RUNNER_OS') == 'Windows':
+        blocked_temp = root / 'unavailable-temp-directory'
+        blocked_temp.write_text('A fixture file deliberately cannot be used as a directory.', encoding='utf-8')
+        wait_for(lambda: 'text.txt' in state()['workingCopyState']['unstaged'])
+        repo_tool('ui_diff', action='select', source='unstaged', file='text.txt')
+        click_ready('StageSelectedChanges', tempDirectory=str(blocked_temp))
+        wait_for(lambda: state()['workingCopyState']['canChangeIndex'])
+        check('failed stage keeps index and selected file intact', git('diff', '--cached', '--name-only') == '' and state()['workingCopyState']['selectedUnstaged'] == ['text.txt'])
+        check('failed stage explains the recoverable problem', tool('ui_state')['activePage']['notifications'] > 0)
+        repo_tool('ui_command', command='clear_notifications')
+        click_ready('StageSelectedChanges')
+        wait_for(lambda: git('diff', '--cached', '--name-only') == 'text.txt')
+        wait_for(lambda: 'text.txt' in state()['workingCopyState']['staged'])
+        repo_tool('ui_diff', action='select', source='staged', file='text.txt')
+        click_ready('UnstageSelectedChanges', tempDirectory=str(blocked_temp))
+        wait_for(lambda: state()['workingCopyState']['canChangeIndex'])
+        check('failed unstage keeps index and selected file intact', git('diff', '--cached', '--name-only') == 'text.txt' and state()['workingCopyState']['selectedStaged'] == ['text.txt'])
+        repo_tool('ui_command', command='clear_notifications')
+        click_ready('UnstageSelectedChanges')
+        wait_for(lambda: git('diff', '--cached', '--name-only') == '')
+        check('temporary write errors recover without restarting TreeGit', p.poll() is None and (repo / 'text.txt').read_text() == 'staged change\nunstaged change\n')
+    else:
+        skipped.append('Staging and unstaging fault injection requires an isolated Windows CI desktop')
     git('update-index', '--cacheinfo', '100644,' + staged_blob + ',text.txt')
     repo_tool('ui_refresh')
     time.sleep(.5)
@@ -487,7 +491,7 @@ except Exception as error:
     try: screenshot('failure')
     except Exception: pass
 finally:
-    (out / 'layout-audit-results.json').write_text(json.dumps({'checks': checks, 'failures': [c for c in checks if not c['ok']], 'records': records, 'pointer': pointer_records, 'stderr': errors[-15:]}, ensure_ascii=False, indent=2), encoding='utf-8')
+    (out / 'layout-audit-results.json').write_text(json.dumps({'checks': checks, 'failures': [c for c in checks if not c['ok']], 'records': records, 'pointer': pointer_records, 'skipped': skipped, 'stderr': errors[-15:]}, ensure_ascii=False, indent=2), encoding='utf-8')
     stop_session()
     def readonly(fn, path, _):
         owned = Path(path)

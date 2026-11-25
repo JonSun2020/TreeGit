@@ -34,6 +34,7 @@ def process_sample(exe, pid):
     kernel.OpenProcess.restype = w.HANDLE
     kernel.QueryFullProcessImageNameW.argtypes = [w.HANDLE, w.DWORD, w.LPWSTR, c.POINTER(w.DWORD)]
     kernel.GetProcessHandleCount.argtypes = [w.HANDLE, c.POINTER(w.DWORD)]
+    kernel.GetProcessTimes.argtypes = [w.HANDLE, *([c.POINTER(w.FILETIME)] * 4)]
     kernel.CloseHandle.argtypes = [w.HANDLE]
     psapi.GetProcessMemoryInfo.argtypes = [w.HANDLE, c.POINTER(MemoryCounters), w.DWORD]
     process = kernel.OpenProcess(0x410, False, int(pid))
@@ -46,14 +47,18 @@ def process_sample(exe, pid):
         memory.cb = c.sizeof(memory)
         assert psapi.GetProcessMemoryInfo(process, c.byref(memory), memory.cb)
         assert kernel.GetProcessHandleCount(process, c.byref(handles))
+        created, exited, kernel_time, user_time = (w.FILETIME() for _ in range(4))
+        assert kernel.GetProcessTimes(process, c.byref(created), c.byref(exited), c.byref(kernel_time), c.byref(user_time))
+        cpu_ticks = sum((value.dwHighDateTime << 32) + value.dwLowDateTime for value in (kernel_time, user_time))
         return {'Id': int(pid), 'Path': image.value, 'HandleCount': handles.value,
                 'PrivateMemorySize64': memory.privateUsage, 'WorkingSet64': memory.workingSet,
+                'CpuSeconds': cpu_ticks / 10_000_000,
                 'memoryMetric': 'private committed bytes on Windows'}
     finally:
         kernel.CloseHandle(process)
 
 
-def close_owned_gui(exe, pid):
+def close_owned_gui(exe, pid, *, allow_force=True):
     assert os.environ.get('CI') == 'true', 'Shutdown checks require an owned CI application'
     exe = Path(exe).resolve()
     if os.name == 'posix':
@@ -107,16 +112,18 @@ def close_owned_gui(exe, pid):
                 owner = w.DWORD(); user.GetWindowThreadProcessId(window, c.byref(owner))
                 if owner.value == pid: user.PostMessageW(window, 0x10, 0, 0) # WM_CLOSE; no desktop input.
             if kernel.WaitForSingleObject(process, 10000) != 0:
+                assert allow_force, 'Owned application did not exit after a normal close request'
                 assert kernel.TerminateProcess(process, 0)
                 assert kernel.WaitForSingleObject(process, 5000) == 0
         finally: kernel.CloseHandle(process)
         return
     literal = str(exe).replace("'", "''")
-    script = "$p=Get-Process -Id " + str(int(pid)) + " -ErrorAction SilentlyContinue;if($p){if($p.Path -ne '" + literal + "'){throw 'Unexpected process; left unchanged'};$null=$p.CloseMainWindow();if(-not $p.WaitForExit(15000)){$p.Kill();$p.WaitForExit()}}"
+    on_timeout = '$p.Kill();$p.WaitForExit()' if allow_force else "throw 'Owned application did not exit after a normal close request'"
+    script = "$p=Get-Process -Id " + str(int(pid)) + " -ErrorAction SilentlyContinue;if($p){if($p.Path -ne '" + literal + "'){throw 'Unexpected process; left unchanged'};$null=$p.CloseMainWindow();if(-not $p.WaitForExit(15000)){" + on_timeout + "}}"
     subprocess.run(['powershell', '-NoProfile', '-Command', script], check=True, capture_output=True, timeout=30)
 
 
-def owned_handle_types(exe, pid):
+def owned_handle_types(exe, pid, detailed=False):
     """Count one verified Windows QA process's handles; never close its handles."""
     import collections
     import ctypes as c
@@ -139,6 +146,10 @@ def owned_handle_types(exe, pid):
     kernel.CloseHandle.argtypes = [w.HANDLE]
     kernel.GetFileType.argtypes = [w.HANDLE]
     kernel.GetFileType.restype = w.DWORD
+    kernel.GetProcessIdOfThread.argtypes = [w.HANDLE]
+    kernel.GetProcessIdOfThread.restype = w.DWORD
+    kernel.WaitForSingleObject.argtypes = [w.HANDLE, w.DWORD]
+    kernel.WaitForSingleObject.restype = w.DWORD
     process = kernel.OpenProcess(0x1040, False, int(pid))
     assert process, c.WinError(c.get_last_error())
     try:
@@ -158,23 +169,82 @@ def owned_handle_types(exe, pid):
         entries = (Entry * count).from_buffer(data, 2 * c.sizeof(c.c_size_t))
         counts = collections.Counter(e.type for e in entries if e.pid == pid)
         names, file_kinds = {}, collections.Counter()
+        inspected, thread_states = collections.Counter(), collections.Counter()
         for entry in entries:
-            if entry.pid != pid or (entry.type in names and names[entry.type] != 'File'): continue
+            if entry.pid != pid or (not detailed and entry.type in names and names[entry.type] != 'File'): continue
             duplicate = w.HANDLE()
             if not kernel.DuplicateHandle(process, w.HANDLE(entry.handle), w.HANDLE(-1), c.byref(duplicate), 0, False, 2): continue
             try:
-                if entry.type not in names:
+                type_name = None if detailed else names.get(entry.type)
+                if type_name is None:
                     value = c.create_string_buffer(4096)
                     if nt.NtQueryObject(duplicate, 2, value, len(value), c.byref(needed)) == 0:
                         text = Unicode.from_buffer(value)
-                        names[entry.type] = c.wstring_at(text.buffer, text.length // 2)
-                if names.get(entry.type) == 'File':
+                        type_name = c.wstring_at(text.buffer, text.length // 2)
+                        if not detailed:
+                            names[entry.type] = type_name
+                if detailed and type_name:
+                    inspected[type_name] += 1
+                    if type_name == 'Thread':
+                        owner = kernel.GetProcessIdOfThread(duplicate)
+                        owner_group = 'TreeGit' if owner == pid else 'OtherProcess' if owner else 'UnknownOwner'
+                        status = kernel.WaitForSingleObject(duplicate, 0)
+                        state = 'Exited' if status == 0 else 'Active' if status == 258 else 'UnknownState'
+                        thread_states[f'{state}{owner_group}Thread'] += 1
+                if type_name == 'File':
                     # Windows also calls active Git stdin/stdout pipes "File".
                     # Classify without querying pipe names (which can block).
                     file_kinds[{1: 'DiskFile', 2: 'CharacterFile', 3: 'PipeFile'}.get(kernel.GetFileType(duplicate), 'OtherFile')] += 1
             finally:
                 kernel.CloseHandle(duplicate)
+        if detailed:
+            assert inspected['File'], 'File handle accounting is unavailable'
+            return {**inspected, **file_kinds, **thread_states,
+                    'Uninspected': sum(counts.values()) - sum(inspected.values())}
         assert 'File' in names.values(), 'File handle accounting is unavailable'
         return {**{names.get(key, str(key)): value for key, value in counts.items()}, **file_kinds}
     finally:
         kernel.CloseHandle(process)
+
+
+def owned_windows_descendants(exe, pid):
+    """Snapshot child processes rooted at the verified Windows QA GUI."""
+    import ctypes as c
+    from ctypes import wintypes as w
+    from qa_cleanup import verify_process
+
+    assert os.name == 'nt' and os.environ.get('CI') == 'true'
+    verify_process(pid, exe)
+    kernel = c.WinDLL('kernel32', use_last_error=True)
+
+    class ProcessEntry(c.Structure):
+        _fields_ = [('size', w.DWORD), ('usage', w.DWORD), ('pid', w.DWORD), ('heap', c.c_size_t),
+                    ('module', w.DWORD), ('threads', w.DWORD), ('parent', w.DWORD),
+                    ('priority', w.LONG), ('flags', w.DWORD), ('name', w.WCHAR * 260)]
+
+    kernel.CreateToolhelp32Snapshot.argtypes = [w.DWORD, w.DWORD]
+    kernel.CreateToolhelp32Snapshot.restype = w.HANDLE
+    kernel.Process32FirstW.argtypes = kernel.Process32NextW.argtypes = [w.HANDLE, c.POINTER(ProcessEntry)]
+    kernel.CloseHandle.argtypes = [w.HANDLE]
+    snapshot = kernel.CreateToolhelp32Snapshot(2, 0)
+    assert snapshot and snapshot != w.HANDLE(-1).value, c.WinError(c.get_last_error())
+    try:
+        entry = ProcessEntry(size=c.sizeof(ProcessEntry))
+        assert kernel.Process32FirstW(snapshot, c.byref(entry)), c.WinError(c.get_last_error())
+        children = {}
+        while True:
+            children.setdefault(entry.parent, []).append((entry.pid, entry.name))
+            if not kernel.Process32NextW(snapshot, c.byref(entry)):
+                assert c.get_last_error() == 18, c.WinError(c.get_last_error())
+                break
+    finally:
+        kernel.CloseHandle(snapshot)
+
+    pending, seen, result = [pid], {pid}, []
+    while pending:
+        for child, name in children.get(pending.pop(), []):
+            if child not in seen:
+                seen.add(child)
+                pending.append(child)
+                result.append({'pid': child, 'name': name})
+    return result

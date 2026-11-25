@@ -908,12 +908,11 @@ namespace SourceGit
 
             // Git may have been installed after TreeGit started or while the
             // repair prompt was open. Discover it before requesting a download.
-            var installed = Native.GitExecutableLocator.FindInstalledWindowsGit();
-            if (installed == null) return false;
-            Native.OS.GitExecutable = installed;
+            if (Native.GitExecutableLocator.FindInstalledWindowsGitWithVersion() is not { } installed) return false;
+            Native.OS.SetGitExecutable(installed.Path, installed);
             if (!preferences.UseBundledGit)
             {
-                preferences.GitInstallPath = installed;
+                preferences.GitInstallPath = installed.Path;
                 Dispatcher.UIThread.Post(preferences.SaveDetectedGit);
             }
             return preferences.IsGitConfigured();

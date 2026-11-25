@@ -67,6 +67,7 @@ namespace SourceGit.ViewModels
 
         public void ShowSearchCommit(Models.Commit commit)
         {
+            if (_repo.BackgroundReads.IsCancellationRequested) return;
             _ignoreSelectionChange = true;
             SelectedCommits = [];
             _ignoreSelectionChange = false;
@@ -79,7 +80,25 @@ namespace SourceGit.ViewModels
             if (_searchDetailContext?.BranchDetails is { } details) _repo.SynchronizeCommitBranchSelection(commit, details);
         }
 
-        public void InvalidateSearchDetail() => _searchDetailContext = null;
+        public void InvalidateSearchDetail()
+        {
+            if (!ReferenceEquals(_searchDetailContext, _detailContext)) _searchDetailContext?.CancelBackgroundReads();
+            _searchDetailContext = null;
+        }
+
+        internal void CancelBackgroundReads()
+        {
+            CancelDetailReads(_detailContext);
+            if (!ReferenceEquals(_historyBeforeSearch?.Details, _detailContext)) CancelDetailReads(_historyBeforeSearch?.Details);
+            if (!ReferenceEquals(_searchDetailContext, _detailContext)) _searchDetailContext?.CancelBackgroundReads();
+            _searchCommitContext.EndSearch();
+        }
+
+        private static void CancelDetailReads(object detail)
+        {
+            if (detail is CommitDetail commit) commit.CancelBackgroundReads();
+            else if (detail is RevisionCompare compare) compare.CancelBackgroundReads();
+        }
 
         private void RestoreHistoryNavigation()
         {
@@ -385,6 +404,8 @@ namespace SourceGit.ViewModels
                 if (ReferenceEquals(_detailContext, value)) return;
                 if (_detailContext is CommitDetail previous)
                     previous.PropertyChanged -= OnDetailCommitChanged;
+                if (!ReferenceEquals(_detailContext, _historyBeforeSearch?.Details) && !ReferenceEquals(_detailContext, _searchDetailContext))
+                    CancelDetailReads(_detailContext);
                 SetProperty(ref _detailContext, value);
                 if (value is CommitDetail current)
                     current.PropertyChanged += OnDetailCommitChanged;
@@ -783,7 +804,7 @@ namespace SourceGit.ViewModels
 
         private void PostSelectedCommitsChanged()
         {
-            if (_ignoreSelectionChange)
+            if (_ignoreSelectionChange || _repo.BackgroundReads.IsCancellationRequested)
                 return;
 
             IsWorkingCopySelected = false;

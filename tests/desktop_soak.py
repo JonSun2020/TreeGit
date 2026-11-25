@@ -1,8 +1,9 @@
 """Sustained multi-repository GUI/Git/diff cycles; only disposable repositories are written."""
 import base64, json, os, queue, random, shutil, subprocess, sys, tempfile, threading, time, traceback
+from datetime import datetime, timezone
 from pathlib import Path
 from qa_cleanup import remove_fixture, new_fixture
-from qa_process import process_sample, close_owned_gui
+from qa_process import process_sample, close_owned_gui, owned_windows_descendants
 assert os.environ.get('CI')=='true' and (os.name=='posix' or os.environ.get('RUNNER_OS')=='Windows'), 'Run only on an owned CI desktop'
 exe=Path(sys.argv[1]).resolve();out=Path(sys.argv[2]).resolve();out.mkdir(parents=True,exist_ok=True)
 seconds=float(sys.argv[3]) if len(sys.argv)>3 else 600
@@ -33,9 +34,11 @@ def make_repo(index):
         for i in range(count):head=git(repo,'commit-tree',tree,'-p',head,'-m','Seed history '+str(i))
         if count:git(repo,'update-ref','refs/heads/main',head)
     return repo
-p=subprocess.Popen([str(exe),'--mcp'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',env=env,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
+trace=root/'git-trace.jsonl'
+app_env={**env,'GIT_TRACE2_EVENT':str(trace)} if os.environ.get('TREEGIT_SOAK_CLOSE_TRACE')=='1' else env
+p=subprocess.Popen([str(exe),'--mcp'],stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True,encoding='utf-8',env=app_env,creationflags=subprocess.CREATE_NO_WINDOW if os.name=='nt' else 0)
 replies=queue.Queue();threading.Thread(target=lambda:[replies.put(line) for line in p.stdout],daemon=True).start()
-seq=0;pid=None;latencies=[];samples=[];snapshots=set();cycle=0;merge_cycles=0;comparison_cycles=0;failure=None;runtime_git=None;start=time.monotonic();rng=random.Random(704)
+seq=0;pid=None;latencies=[];samples=[];snapshots=set();cycle=0;merge_cycles=0;comparison_cycles=0;failure=None;runtime_git=None;start=time.monotonic();rng=random.Random(704);close_tail=None
 
 def crash_log_files():
     return [{'name':path.name,'exception':path.read_text('utf-8',errors='replace').splitlines()[0]}
@@ -63,6 +66,7 @@ def sample(label):
     unexpected=crash_log_files()
     assert not unexpected,('Unexpected application exception logs',unexpected)
     process=process_sample(exe,pid)
+    if os.name=='nt': process['descendants']=owned_windows_descendants(exe,pid)
     temporary_bytes=0
     for directory,dirs,files in os.walk(root,followlinks=False):
         dirs[:]=[d for d in dirs if not (Path(directory)/d).is_symlink() and not (Path(directory)/d).is_junction()]
@@ -255,11 +259,44 @@ try:
             sample('running');print('PASS sustained cycles',cycle,'elapsed',round(time.monotonic()-start),'seconds',flush=True)
         time.sleep(rng.choice([.05,.2,.7,1.1]))
     tool('ui_window',{'zoom':1,'theme':'Blue','width':1440,'height':900});close_repositories()
+    tabs_closed=datetime.now(timezone.utc)
     for attempt in range(100):
         if not any(s.exists() for s in snapshots):break
         time.sleep(.1)
     assert not any(s.exists() for s in snapshots),'Closed tabs retained binary snapshot files'
+    if os.name=='nt':
+        began=time.monotonic();quiet_since=began;transient=set()
+        while time.monotonic()-began<15:
+            remaining=owned_windows_descendants(exe,pid)
+            now=time.monotonic()
+            if remaining:
+                quiet_since=now
+                transient.update((entry['pid'],entry['name']) for entry in remaining)
+            elif now-quiet_since>=2:
+                break
+            time.sleep(.1)
+        else:raise AssertionError(('Closed tabs retained child processes',remaining))
+        close_tail={'settledSeconds':round(quiet_since-began,3),'transientProcesses':len(transient)}
+        if trace.is_file():
+            late_starts={};commands={}
+            for line in trace.read_text('utf-8').splitlines():
+                event=json.loads(line)
+                if event['event']=='start':
+                    elapsed=(datetime.fromisoformat(event['time'])-tabs_closed).total_seconds()
+                    if elapsed>=0:
+                        args=event.get('argv',[])
+                        welcome_status={'--porcelain=v2','-b','-uall','--ignore-submodules=dirty'}.issubset(args)
+                        late_starts[event['sid']]={'seconds':round(elapsed,3),'welcomeStatus':welcome_status}
+                elif event['event']=='cmd_name' and event['sid'] in late_starts:
+                    commands[event['sid']]=event['name']
+            close_tail['gitStartedAfterClose']=[{**entry,'command':commands.get(sid)} for sid,entry in late_starts.items()]
+            # A process already launching as CloseTab returns can reach Git's
+            # trace startup slightly later. Guard against new repository work
+            # continuing while Welcome legitimately reads its own status cards.
+            assert not any(not entry['welcomeStatus'] and entry['seconds'] >= .5
+                           for entry in close_tail['gitStartedAfterClose']), close_tail
     sample('all-tabs-closed');print('PASS completed',cycle,'cycles',flush=True)
+    assert not samples[-1]['process'].get('descendants'), 'A child process appeared again after the desktop had settled'
 except BaseException:
     failure=traceback.format_exc()
     try:
@@ -276,6 +313,7 @@ finally:
     report=out/'desktop-soak-results.json';result=json.loads(report.read_text('utf-8'))
     result['fixtureRemoved']=not root.exists();result['ownedApplicationExited']=True
     result['unexpectedCrashLogs']=crash_log_files()
+    result['closeTail']=close_tail
     if result['unexpectedCrashLogs'] and not result['failure']:result['failure']='Unexpected application exception logs'
     report.write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
     assert not result['unexpectedCrashLogs'],result['unexpectedCrashLogs']

@@ -679,10 +679,14 @@ namespace SourceGit.ViewModels
 
         public void Close()
         {
+            _ = _backgroundReads.CancelAsync();
+            _watcher?.Dispose();
             Interlocked.Increment(ref _configurationRefreshVersion);
             _changesLayoutSave?.Dispose();
             SaveUIState();
-            _histories?.SearchCommitContext.EndSearch();
+            _histories?.CancelBackgroundReads();
+            (_workingCopy.DetailContext as DiffContext)?.CancelLoad();
+            _stashesPage?.DiffContext?.CancelLoad();
             var commitMessage = _workingCopy.CommitMessage;
 
             var mergeMessage = Path.Combine(GitDir, "MERGE_MSG");
@@ -709,9 +713,10 @@ namespace SourceGit.ViewModels
             if (_cancellationRefreshStashes is { IsCancellationRequested: false })
                 _cancellationRefreshStashes.Cancel();
 
-            _watcher?.Dispose();
             _autoFetchTimer.Dispose();
         }
+
+        internal CancellationToken BackgroundReads => _backgroundReads.Token;
 
         public void SendNotification(string message, bool isError = false)
         {
@@ -862,12 +867,14 @@ namespace SourceGit.ViewModels
 
         public void RefreshAll()
         {
+            var token = BackgroundReads;
+            if (token.IsCancellationRequested) return;
             var configurationVersion = Interlocked.Increment(ref _configurationRefreshVersion);
             var configuration = Task.Run(() =>
             {
                 Native.RepositoryCredentials.InvalidateMode(FullPath);
-                return ReadRepositoryConfigAsync();
-            });
+                return ReadRepositoryConfigAsync(token);
+            }, token);
             RefreshBranches(configuration);
             RefreshTags();
             RefreshSubmodules();
@@ -890,8 +897,8 @@ namespace SourceGit.ViewModels
                     return;
                 }
                 var issuetrackers = new List<Models.IssueTracker>();
-                await new Commands.IssueTracker(FullPath, true).ReadAllAsync(issuetrackers, true).ConfigureAwait(false);
-                await new Commands.IssueTracker(FullPath, false).ReadAllAsync(issuetrackers, false).ConfigureAwait(false);
+                await new Commands.IssueTracker(FullPath, true) { CancellationToken = token }.ReadAllAsync(issuetrackers, true).ConfigureAwait(false);
+                await new Commands.IssueTracker(FullPath, false) { CancellationToken = token }.ReadAllAsync(issuetrackers, false).ConfigureAwait(false);
                 Dispatcher.UIThread.Post(() =>
                 {
                     if (configurationVersion != Volatile.Read(ref _configurationRefreshVersion))
@@ -902,7 +909,7 @@ namespace SourceGit.ViewModels
                     _hasAllowedSignersFile = config.TryGetValue("gpg.ssh.allowedsignersfile", out var allowedSignersFile) && !string.IsNullOrEmpty(allowedSignersFile);
                     GitFlow.Parse(config);
                 });
-            });
+            }, token);
         }
 
         private async Task<Dictionary<string, string>> ReadRepositoryConfigAsync(CancellationToken cancellationToken = default)
@@ -1554,6 +1561,7 @@ namespace SourceGit.ViewModels
 
         private void RefreshBranches(Task<Dictionary<string, string>> configuration)
         {
+            if (BackgroundReads.IsCancellationRequested) return;
             if (_cancellationRefreshBranches is { IsCancellationRequested: false })
                 _cancellationRefreshBranches.Cancel();
 
@@ -1562,6 +1570,7 @@ namespace SourceGit.ViewModels
 
             _refreshBranchesTask = Task.Run(async () =>
             {
+                if (BackgroundReads.IsCancellationRequested) return;
                 var branchQuery = new Commands.QueryBranches(FullPath) { CancellationToken = token };
                 var branches = await branchQuery.GetResultAsync().ConfigureAwait(false);
                 if (token.IsCancellationRequested)
@@ -1571,7 +1580,7 @@ namespace SourceGit.ViewModels
                     return;
                 if (!branchQuery.Succeeded || config == null)
                 {
-                    Dispatcher.UIThread.Invoke(() =>
+                    await Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         if (token.IsCancellationRequested)
                             return;
@@ -1583,7 +1592,7 @@ namespace SourceGit.ViewModels
                 }
 
                 var remotes = Commands.QueryRemotes.Parse(config);
-                Dispatcher.UIThread.Invoke(() =>
+                await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     if (token.IsCancellationRequested)
                         return;
@@ -1593,8 +1602,9 @@ namespace SourceGit.ViewModels
                     var builder = BuildBranchTree(branches, remotes);
                     SetRefreshFailure("branches", false);
                     Remotes = remotes;
-                    var searchChanged = _hasBranchSnapshot && !_branches.ConvertAll(b => (b.FullName, b.Head, b.Upstream, b.IsCurrent))
-                        .SequenceEqual(branches.ConvertAll(b => (b.FullName, b.Head, b.Upstream, b.IsCurrent)));
+                    var searchChanged = _hasBranchSnapshot && (_branches.Count != branches.Count ||
+                        !_branches.Select(static b => (b.FullName, b.Head, b.Upstream, b.IsCurrent))
+                            .SequenceEqual(branches.Select(static b => (b.FullName, b.Head, b.Upstream, b.IsCurrent))));
                     _hasBranchSnapshot = true;
                     Branches = branches;
                     CurrentBranch = branches.Find(x => x.IsCurrent);
@@ -1625,16 +1635,21 @@ namespace SourceGit.ViewModels
 
         public void RefreshWorktrees()
         {
+            var token = BackgroundReads;
             Task.Run(async () =>
             {
-                var worktrees = await new Commands.Worktree(FullPath).ReadAllAsync().ConfigureAwait(false);
+                var worktrees = await new Commands.Worktree(FullPath) { CancellationToken = token }.ReadAllAsync().ConfigureAwait(false);
                 var cleaned = Worktree.Build(FullPath, worktrees);
-                Dispatcher.UIThread.Invoke(() => Worktrees = cleaned);
-            });
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (!token.IsCancellationRequested) Worktrees = cleaned;
+                });
+            }, token);
         }
 
         public void RefreshTags()
         {
+            if (BackgroundReads.IsCancellationRequested) return;
             if (_cancellationRefreshTags is { IsCancellationRequested: false })
                 _cancellationRefreshTags.Cancel();
 
@@ -1646,12 +1661,13 @@ namespace SourceGit.ViewModels
                 var query = new Commands.QueryTags(FullPath) { CancellationToken = token };
                 var tags = await query.GetResultAsync().ConfigureAwait(false);
                 if (!query.Succeeded) return;
-                Dispatcher.UIThread.Invoke(() =>
+                await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     if (token.IsCancellationRequested)
                         return;
 
-                    var searchChanged = _hasTagSnapshot && !_tags.ConvertAll(t => (t.Name, t.SHA)).SequenceEqual(tags.ConvertAll(t => (t.Name, t.SHA)));
+                    var searchChanged = _hasTagSnapshot && (_tags.Count != tags.Count ||
+                        !_tags.Select(static t => (t.Name, t.SHA)).SequenceEqual(tags.Select(static t => (t.Name, t.SHA))));
                     _hasTagSnapshot = true;
                     Tags = tags;
                     if (searchChanged) _histories?.SearchCommitContext.InvalidateResults();
@@ -1663,6 +1679,7 @@ namespace SourceGit.ViewModels
 
         public void RefreshCommits()
         {
+            if (BackgroundReads.IsCancellationRequested) return;
             if (_cancellationRefreshCommits is { IsCancellationRequested: false })
                 _cancellationRefreshCommits.Cancel();
 
@@ -1717,7 +1734,7 @@ namespace SourceGit.ViewModels
                 var commits = await commitQuery.GetResultAsync().ConfigureAwait(false);
                 if (!commitQuery.Succeeded)
                 {
-                    Dispatcher.UIThread.Invoke(() =>
+                    await Dispatcher.UIThread.InvokeAsync(() =>
                     {
                         if (token.IsCancellationRequested) return;
                         if (_histories != null) _histories.IsLoading = false;
@@ -1736,7 +1753,9 @@ namespace SourceGit.ViewModels
                     {
                         var ancestorQuery = new Commands.IsAncestor(FullPath, graphView.NavigationCommit, "HEAD") { CancellationToken = token };
                         context[0].IsMerged = await ancestorQuery.GetResultAsync().ConfigureAwait(false);
-                        var known = new HashSet<string>(commits.ConvertAll(c => c.SHA));
+                        var known = new HashSet<string>(commits.Count, StringComparer.Ordinal);
+                        foreach (var commit in commits)
+                            known.Add(commit.SHA);
                         foreach (var c in context)
                             if (known.Add(c.SHA)) commits.Add(c);
                     }
@@ -1773,12 +1792,15 @@ namespace SourceGit.ViewModels
                 if (graphView.OnlyBranch)
                 {
                     graphView.Name = commits.Find(c => c.SHA == preferredHead)?.Decorators.Find(d => d.Type == Models.DecoratorType.CurrentBranchHead)?.Name ?? graphView.Name;
+                    Predicate<Models.Decorator> remove = d =>
+                        (d.Type is Models.DecoratorType.LocalBranchHead or Models.DecoratorType.RemoteBranchHead or Models.DecoratorType.CurrentBranchHead) &&
+                        d.Name != graphView.Name && d.Name != upstreamName;
                     foreach (var commit in commits)
-                        if (!Array.Exists(pendingMergeHeads, sha => sha == commit.SHA))
-                            commit.Decorators.RemoveAll(d => (d.Type is Models.DecoratorType.LocalBranchHead or Models.DecoratorType.RemoteBranchHead or Models.DecoratorType.CurrentBranchHead) && d.Name != graphView.Name && d.Name != upstreamName);
+                        if (Array.IndexOf(pendingMergeHeads, commit.SHA) < 0)
+                            commit.Decorators.RemoveAll(remove);
                 }
 
-                Dispatcher.UIThread.Invoke(() =>
+                await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     if (token.IsCancellationRequested)
                         return;
@@ -1814,12 +1836,15 @@ namespace SourceGit.ViewModels
 
         public void RefreshSubmodules()
         {
+            var token = BackgroundReads;
+            if (token.IsCancellationRequested) return;
             if (!MayHaveSubmodules())
             {
                 if (_submodules.Count > 0)
                 {
                     Dispatcher.UIThread.Invoke(() =>
                     {
+                        if (token.IsCancellationRequested) return;
                         Submodules = [];
                         VisibleSubmodules = BuildVisibleSubmodules();
                     });
@@ -1830,10 +1855,11 @@ namespace SourceGit.ViewModels
 
             Task.Run(async () =>
             {
-                var submodules = await new Commands.QuerySubmodules(FullPath).GetResultAsync().ConfigureAwait(false);
+                var submodules = await new Commands.QuerySubmodules(FullPath) { CancellationToken = token }.GetResultAsync().ConfigureAwait(false);
 
-                Dispatcher.UIThread.Invoke(() =>
+                await Dispatcher.UIThread.InvokeAsync(() =>
                 {
+                    if (token.IsCancellationRequested) return;
                     bool hasChanged = _submodules.Count != submodules.Count;
                     if (!hasChanged)
                     {
@@ -1865,12 +1891,12 @@ namespace SourceGit.ViewModels
                         VisibleSubmodules = BuildVisibleSubmodules();
                     }
                 });
-            });
+            }, token);
         }
 
         public void RefreshWorkingCopyChanges()
         {
-            if (IsBare)
+            if (IsBare || BackgroundReads.IsCancellationRequested)
                 return;
 
             if (_cancellationRefreshWorkingCopyChanges is { IsCancellationRequested: false })
@@ -1881,6 +1907,7 @@ namespace SourceGit.ViewModels
 
             Task.Run(async () =>
             {
+                if (BackgroundReads.IsCancellationRequested) return;
                 // Background status must not contend with foreground index writes,
                 // including during the first refresh of a newly opened repository.
                 var query = new Commands.QueryLocalChanges(FullPath, _uiStates.IncludeUntrackedInLocalChanges);
@@ -1902,7 +1929,7 @@ namespace SourceGit.ViewModels
 
                 changes.Sort((l, r) => Models.NumericSort.Compare(l.Path, r.Path));
 
-                Dispatcher.UIThread.Invoke(() =>
+                await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     if (token.IsCancellationRequested)
                         return;
@@ -1925,7 +1952,7 @@ namespace SourceGit.ViewModels
 
         public void RefreshStashes()
         {
-            if (IsBare)
+            if (IsBare || BackgroundReads.IsCancellationRequested)
                 return;
 
             if (_cancellationRefreshStashes is { IsCancellationRequested: false })
@@ -1936,8 +1963,8 @@ namespace SourceGit.ViewModels
 
             Task.Run(async () =>
             {
-                var stashes = await new Commands.QueryStashes(FullPath).GetResultAsync().ConfigureAwait(false);
-                Dispatcher.UIThread.Invoke(() =>
+                var stashes = await new Commands.QueryStashes(FullPath) { CancellationToken = token }.GetResultAsync().ConfigureAwait(false);
+                await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     if (token.IsCancellationRequested)
                         return;
@@ -2403,7 +2430,7 @@ namespace SourceGit.ViewModels
 
         private void AutoFetchByTimer(object sender)
         {
-            if (Native.TreeGitUpdateInstaller.IsApplying) return;
+            if (BackgroundReads.IsCancellationRequested || Native.TreeGitUpdateInstaller.IsApplying) return;
             try
             {
                 Dispatcher.UIThread.Invoke(AutoFetchOnUIThread);
@@ -2416,7 +2443,7 @@ namespace SourceGit.ViewModels
 
         private async Task AutoFetchOnUIThread()
         {
-            if (IsAutoFetching)
+            if (BackgroundReads.IsCancellationRequested || IsAutoFetching)
                 return;
 
             CommandLog log = null;
@@ -2474,6 +2501,7 @@ namespace SourceGit.ViewModels
         private Models.FilterMode _historyFilterMode = Models.FilterMode.None;
         private bool _hasAllowedSignersFile = false;
 
+        private readonly CancellationTokenSource _backgroundReads = new();
         private Models.Watcher _watcher = null;
         private Histories _histories = null;
         private WorkingCopy _workingCopy = null;

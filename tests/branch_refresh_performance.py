@@ -66,6 +66,7 @@ def wait_for(read, predicate, timeout=30):
 
 def command_counts(trace, start):
     names = []
+    logs = {'graph': 0, 'parentAbbreviations': 0, 'other': 0}
     for line in trace.read_text('utf-8').splitlines()[start:]:
         try:
             event = json.loads(line)
@@ -73,12 +74,22 @@ def command_counts(trace, start):
             continue
         if event.get('event') == 'cmd_name':
             names.append(event['name'])
-    return {name: names.count(name) for name in ('branch', 'log', 'rev-list', 'status')}
+        argv = event.get('argv', []) if event.get('event') == 'start' else []
+        if 'log' in argv:
+            if any(arg.startswith('--format=%H%x00%P%x00%D') for arg in argv):
+                logs['graph'] += 1
+            elif '--no-walk=unsorted' in argv and '--abbrev=10' in argv:
+                logs['parentAbbreviations'] += 1
+            else:
+                logs['other'] += 1
+    counts = {name: names.count(name) for name in ('branch', 'log', 'rev-list', 'status', 'version')}
+    return {**counts, **logs}
 
 
 def main():
     exe, out = (Path(value).resolve() for value in sys.argv[1:3])
     reference = '--reference' in sys.argv[3:]
+    auto_discover = '--auto-discover' in sys.argv[3:]
     profile = IsolatedProfile(exe, out)
     fixture = new_fixture(out, 'TreeGit branch refresh fixture ')
     result = {}
@@ -125,7 +136,7 @@ def main():
             git('config', f'branch.{name}.merge', f'refs/heads/{name}')
         git('update-ref', '--stdin', input_text=''.join(refs))
         (profile.data / 'preference.json').write_text(json.dumps({
-            'Locale': 'zh_CN', 'Theme': 'Light', 'GitInstallPath': git_path,
+            'Locale': 'zh_CN', 'Theme': 'Light', 'GitInstallPath': '' if auto_discover else git_path,
             'Check4UpdatesOnStartup': False, 'EnableAutoFetch': False,
             'Workspaces': [{'Name': 'Performance demo', 'IsActive': True, 'RestoreOnStartup': True,
                             'Repositories': [repo.as_posix()], 'ActiveIdx': 0}],
@@ -177,11 +188,13 @@ def main():
         change('tagOnly', lambda: git('tag', 'visual-check', parent),
                lambda: wait_for(state, lambda s: any('visual-check' in row['refs'] for row in s['graphCommits'] or [])))
         if not reference:
+            if auto_discover:
+                assert result['initial']['commands']['version'] == 1, result
             assert result['initial']['commands']['rev-list'] == 1, result
             assert result['checkout']['commands']['rev-list'] == 1, result
             assert result['upstreamMoves']['commands']['rev-list'] == 0, result
             for name in ('checkout', 'upstreamMoves', 'tagOnly'):
-                assert result[name]['commands']['log'] == 1, result
+                assert result[name]['commands']['graph'] == 1, result
 
         # Preserve current-branch rendering and tracked status under both graph modes.
         client.tool('ui_graph', repo=repo.as_posix(), mode='current', showRemotes=True)

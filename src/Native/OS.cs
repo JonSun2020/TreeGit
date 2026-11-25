@@ -64,24 +64,24 @@ namespace SourceGit.Native
                     return RecoverGit(path) ?? string.Empty;
                 return path;
             }
-            set
+            set => SetGitExecutable(value);
+        }
+
+        internal static void SetGitExecutable(string value, GitExecutableLocator.DetectedGit? detected = null)
+        {
+            lock (_gitGate)
             {
-                lock (_gitGate)
-                {
-                    if (_gitExecutable != value)
+                if (_gitExecutable == value) return;
+                _gitExecutable = value;
+                _gitRuntimeRoot = OperatingSystem.IsWindows() ? GitExecutableLocator.RuntimeRoot(value) : null;
+                _gitEngine = null;
+                if (_gitRuntimeRoot != null)
+                    foreach (var prefix in new[] { "ucrt64", "mingw64" })
                     {
-                        _gitExecutable = value;
-                        _gitRuntimeRoot = OperatingSystem.IsWindows() ? GitExecutableLocator.RuntimeRoot(value) : null;
-                        _gitEngine = null;
-                        if (_gitRuntimeRoot != null)
-                            foreach (var prefix in new[] { "ucrt64", "mingw64" })
-                            {
-                                var engine = Path.Combine(_gitRuntimeRoot, prefix, "bin", "git.exe");
-                                if (File.Exists(engine)) { _gitEngine = engine; break; }
-                            }
-                        UpdateGitVersion();
+                        var engine = Path.Combine(_gitRuntimeRoot, prefix, "bin", "git.exe");
+                        if (File.Exists(engine)) { _gitEngine = engine; break; }
                     }
-                }
+                UpdateGitVersion(detected);
             }
         }
 
@@ -101,15 +101,16 @@ namespace SourceGit.Native
             {
                 if (!string.Equals(failed, _gitExecutable, StringComparison.OrdinalIgnoreCase))
                     return _gitExecutable;
-                var next = GitExecutableLocator.FindBundledGit();
-                if (string.IsNullOrEmpty(next))
+                var detected = GitExecutableLocator.FindBundledGitWithVersion();
+                if (detected is not { } bundled)
                     return null;
+                var next = bundled.Path;
                 _previousGit = failed;
                 _previousGitRoot = _gitRuntimeRoot;
                 if (string.Equals(failed, next, StringComparison.OrdinalIgnoreCase))
-                    UpdateGitVersion();
+                    UpdateGitVersion(bundled);
                 else
-                    GitExecutable = next;
+                    SetGitExecutable(next, bundled);
                 _usingBundled?.Invoke();
                 return next;
             }
@@ -445,22 +446,25 @@ namespace SourceGit.Native
             _backend.TerminateProcess(proc);
         }
 
-        private static void UpdateGitVersion()
+        private static void UpdateGitVersion(GitExecutableLocator.DetectedGit? detected)
         {
             GitVersionString = string.Empty;
             GitVersion = new Version(0, 0, 0);
             GitFlowVersion = Models.GitFlowVersion.None;
-            if (GitExecutableLocator.TryReadVersion(_gitExecutable, out var text, out var version))
+            var executable = _gitExecutable;
+            if (detected?.Path != executable)
+                detected = GitExecutableLocator.ReadInstallation(executable);
+            if (detected is { } installation)
             {
-                GitVersion = version;
-                GitVersionString = text;
-                Task.Run(UpdateGitFlowVersion);
+                GitVersion = installation.Version;
+                GitVersionString = installation.VersionText;
+                _ = Task.Run(() => UpdateGitFlowVersion(executable));
             }
         }
 
-        private static void UpdateGitFlowVersion()
+        private static void UpdateGitFlowVersion(string executable)
         {
-            var executable = _gitExecutable;
+            if (_gitExecutable != executable) return;
             var start = new ProcessStartInfo();
             start.FileName = executable;
             start.Arguments = "flow version";

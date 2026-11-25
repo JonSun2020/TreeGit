@@ -56,16 +56,17 @@ namespace SourceGit.ViewModels
                     }
                     else
                     {
+                        var token = _repo.BackgroundReads;
                         Task.Run(async () =>
                         {
-                            var changes = await new Commands.CompareRevisions(_repo.FullPath, $"{value.SHA}^", value.SHA)
+                            var changes = await new Commands.CompareRevisions(_repo.FullPath, $"{value.SHA}^", value.SHA) { CancellationToken = token }
                                 .ReadAsync()
                                 .ConfigureAwait(false);
 
                             var untracked = new List<Models.Change>();
                             if (value.Parents.Count == 3)
                             {
-                                untracked = await new Commands.CompareRevisions(_repo.FullPath, value.UntrackedParent, value.Parents[2])
+                                untracked = await new Commands.CompareRevisions(_repo.FullPath, value.UntrackedParent, value.Parents[2]) { CancellationToken = token }
                                     .ReadAsync()
                                     .ConfigureAwait(false);
 
@@ -77,13 +78,13 @@ namespace SourceGit.ViewModels
 
                             Dispatcher.UIThread.Post(() =>
                             {
-                                if (value.SHA.Equals(_selectedStash?.SHA ?? string.Empty, StringComparison.Ordinal))
+                                if (!token.IsCancellationRequested && value.SHA.Equals(_selectedStash?.SHA ?? string.Empty, StringComparison.Ordinal))
                                 {
                                     _untracked = untracked;
                                     Changes = changes;
                                 }
                             });
-                        });
+                        }, token);
                     }
                 }
             }
@@ -119,7 +120,11 @@ namespace SourceGit.ViewModels
         public DiffContext DiffContext
         {
             get => _diffContext;
-            private set => SetProperty(ref _diffContext, value);
+            private set
+            {
+                if (!ReferenceEquals(_diffContext, value)) _diffContext?.CancelLoad();
+                SetProperty(ref _diffContext, value);
+            }
         }
 
         public StashesPage(Repository repo)

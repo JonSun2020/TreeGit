@@ -117,6 +117,10 @@ try:
     def composer_visible(): return bool(composition() and composition()['visible'])
     def commit_page(): tool('ui_select_view', repo=str(repo), view='commit'); wait(composer_visible)
     def draft(message): tool('ui_working_copy', repo=str(repo), message=message); commit_page()
+    def stage_buttons():
+        names = ['StageAllChanges', 'StageSelectedChanges', 'UnstageAllChanges', 'UnstageSelectedChanges']
+        found = {button['name']: button['enabled'] for button in tool('ui_layout')['buttons'] if button['name'] in names}
+        return tuple(found.get(name) for name in names)
     def folded_geometry():
         split = next(s for s in tool('ui_layout')['splitters'] if s['owner'] == 'Histories' and s['row'] == 1 and s['visible'])
         return split['actualRows'][2]
@@ -158,8 +162,21 @@ try:
     check('top-left commit button opens the same complete commit page', state()['view'] == 1 and tool('ui_layout')['bottomTabs'][2]['active'])
     draft('Preserved commit draft')
     check('draft cannot enable an empty-index commit', not composition()['commitEnabled'] and git('rev-parse', 'HEAD') == initial)
+    tool('ui_diff', repo=str(repo), action='select', source='unstaged', file='draft.txt'); commit_page()
+    wait(lambda: stage_buttons() == (True, True, False, False))
+    check('empty index disables both unstage controls', stage_buttons() == (True, True, False, False))
     git('add', 'staged.txt'); tool('ui_refresh', repo=str(repo)); wait(lambda: composition() and composition()['commitEnabled'])
     check('staging enables editor and commit without losing the draft', composition()['inputEnabled'] and not composition()['maskVisible'] and composition()['inputText'] == 'Preserved commit draft')
+    tool('ui_diff', repo=str(repo), action='select', source='unstaged', file='draft.txt'); commit_page()
+    wait(lambda: stage_buttons() == (True, True, True, False))
+    check('unselected staged files enable only unstage all', stage_buttons() == (True, True, True, False))
+    tool('ui_diff', repo=str(repo), action='select', source='staged', file='staged.txt'); commit_page()
+    wait(lambda: stage_buttons() == (True, False, True, True))
+    check('unselected unstaged files enable only stage all', stage_buttons() == (True, False, True, True))
+    git('add', 'draft.txt'); tool('ui_refresh', repo=str(repo))
+    wait(lambda: stage_buttons() == (False, False, True, True))
+    check('empty unstaged list disables both stage controls', stage_buttons() == (False, False, True, True))
+    git('reset', '--', 'draft.txt'); tool('ui_refresh', repo=str(repo))
     git('reset', '--', 'staged.txt'); tool('ui_refresh', repo=str(repo)); wait(lambda: composition() and composition()['maskVisible'])
     check('unstaging restores the mask while preserving the draft', not composition()['inputEnabled'] and not composition()['commitEnabled'] and composition()['inputText'] == 'Preserved commit draft')
     git('add', 'staged.txt'); tool('ui_refresh', repo=str(repo)); wait(lambda: composition() and composition()['commitEnabled'])
