@@ -7,7 +7,7 @@
              mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="450"
              x:Class="SourceGit.Views.Discard"
              x:DataType="vm:Discard">
-  <StackPanel Orientation="Vertical" Margin="8,0,0,0">
+  <StackPanel Orientation="Vertical" Margin="8,0">
     <StackPanel Orientation="Horizontal" Classes="popup_heading">
       <Path Width="16" Height="16"
             Data="{StaticResource Icons.Undo}"/>
@@ -21,7 +21,7 @@
     <ContentControl Margin="0,16,0,8" Content="{Binding Mode}">
       <ContentControl.DataTemplates>
         <DataTemplate DataType="vm:DiscardAllMode">
-          <Grid RowDefinitions="32,Auto,Auto,Auto,Auto" ColumnDefinitions="120,*">
+          <Grid Classes="operation_form" RowDefinitions="32,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
             <TextBlock Grid.Row="0" Grid.Column="0"
                        Margin="0,0,8,0"
                        HorizontalAlignment="Right"
@@ -55,7 +55,7 @@
         </DataTemplate>
 
         <DataTemplate DataType="vm:DiscardSingleFile">
-          <Grid RowDefinitions="32,Auto" ColumnDefinitions="120,*">
+          <Grid Classes="operation_form" RowDefinitions="32,Auto" ColumnDefinitions="Auto,*">
             <TextBlock Grid.Row="0" Grid.Column="0"
                        Margin="0,0,8,0"
                        HorizontalAlignment="Right"
@@ -80,7 +80,7 @@
         </DataTemplate>
 
         <DataTemplate DataType="vm:DiscardMultipleFiles">
-          <Grid RowDefinitions="32,Auto" ColumnDefinitions="120,*">
+          <Grid Classes="operation_form" RowDefinitions="32,Auto" ColumnDefinitions="Auto,*">
             <TextBlock Grid.Row="0" Grid.Column="0"
                        Margin="0,0,8,0"
                        HorizontalAlignment="Right"

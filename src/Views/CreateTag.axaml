@@ -9,7 +9,7 @@
              mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="450"
              x:Class="SourceGit.Views.CreateTag"
              x:DataType="vm:CreateTag">
-  <StackPanel Orientation="Vertical" Margin="8,0,0,0">
+  <StackPanel Orientation="Vertical" Margin="8,0">
     <StackPanel Orientation="Horizontal" Classes="popup_heading">
       <Path Width="16" Height="16"
             Data="{StaticResource Icons.Tag.Add}"/>
@@ -20,7 +20,7 @@
                  Text="{DynamicResource Text.CreateTag.Title}"/>
     </StackPanel>
 
-    <Grid Margin="0,16,8,0" RowDefinitions="32,32,32,Auto,Auto,Auto" ColumnDefinitions="120,*">
+    <Grid Classes="operation_form" Margin="0,16,0,0" RowDefinitions="32,32,32,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
       <TextBlock Grid.Row="0" Grid.Column="0"
                  HorizontalAlignment="Right" VerticalAlignment="Center"
                  Margin="0,0,8,0"

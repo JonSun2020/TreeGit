@@ -1628,6 +1628,10 @@
     <Setter Property="Opacity" Value="0.68"/>
   </Style>
 
+  <Style Selector="TextBlock.repository_settings_caption:disabled">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.FG2}"/>
+  </Style>
+
   <Style Selector="Expander.settings_expander">
     <Style.Resources>
       <Thickness x:Key="ExpanderHeaderPadding">8,0,0,0</Thickness>

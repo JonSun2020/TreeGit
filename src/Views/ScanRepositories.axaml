@@ -18,7 +18,7 @@
                  Text="{DynamicResource Text.ScanRepositories}"/>
     </StackPanel>
 
-    <Grid Margin="0,16,0,0" ColumnDefinitions="Auto,*">
+    <Grid Classes="operation_form" Margin="0,16,0,0" ColumnDefinitions="Auto,*">
       <TextBlock Grid.Column="0"
                  HorizontalAlignment="Right" VerticalAlignment="Center"
                  Margin="0,0,8,0"

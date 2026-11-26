@@ -29,7 +29,10 @@ namespace SourceGit.Views
 
                     if (input is InputElement { Focusable: true, IsEffectivelyEnabled: true } focusable)
                     {
-                        focusable.Focus(NavigationMethod.Directional);
+                        // Fetch can open with the remote selector disabled and
+                        // automatically focus its first checkbox.
+                        var navigation = ctl is Fetch && focusable is CheckBox ? NavigationMethod.Unspecified : NavigationMethod.Directional;
+                        focusable.Focus(navigation);
                         if (input is TextBox box)
                             box.CaretIndex = box.CaretIndex = box.Text?.Length ?? 0;
                         return;

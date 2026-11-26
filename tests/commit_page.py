@@ -3,6 +3,7 @@
 Runs only in an isolated integration application using routed button clicks.
 """
 import base64
+from io import BytesIO
 import json
 import os
 from pathlib import Path
@@ -15,6 +16,7 @@ import tempfile
 import threading
 import time
 import traceback
+from PIL import Image
 from qa_cleanup import new_fixture, remove_fixture, verify_process
 
 exe, out = (Path(v).resolve() for v in sys.argv[1:3])
@@ -92,6 +94,17 @@ def check(name, condition, details=None):
     assert condition, (name, details)
     checks.append(name)
     print('PASS', name, flush=True)
+
+
+def visible_caption_ink(image, field):
+    box = field['caption']
+    x, y = round(box['x']), round(box['y'])
+    right, bottom = round(box['x'] + box['width']), round(box['y'] + box['height'])
+    if x < 0 or y < 0 or right > image.width or bottom > image.height or right <= x or bottom <= y:
+        return False
+    foreground = tuple(bytes.fromhex(field['foreground'][-6:]))
+    pixels = image.crop((x, y, right, bottom)).getdata()
+    return sum(max(abs(a - b) for a, b in zip(pixel, foreground)) <= 40 for pixel in pixels) >= 6
 
 
 try:
@@ -235,9 +248,38 @@ try:
         tool('ui_command',repo=str(repo),command='repository_settings')
         wait(lambda:any(dialog['type']=='RepositorySettings' for dialog in tool('ui_state')['dialogs']))
         tool('ui_command',command='repository_settings_advanced')
+        def fields(): return {f['name']:f for f in tool('ui_layout',window='active')['repositorySettingsFields']}
+        identity_names = ('CommitterName', 'CommitterEmail')
+        imported_fields = wait(lambda: f if set(identity_names) <= (f:=fields()).keys() else None)
+        check(locale+' imported local Git identity starts editable', all(imported_fields[n]['editorEnabled'] for n in identity_names), imported_fields)
+        tool('ui_layout',window='active',action='test_set',button='UseGlobalIdentity',value=1)
+        global_fields = fields()
+        check(locale+' global identity disables the editors and mutes both complete captions', all(
+            not global_fields[n]['editorEnabled'] and not global_fields[n]['captionEnabled'] and
+            global_fields[n]['foreground']==global_fields[n]['mutedForeground'] and global_fields[n]['text'].endswith((':','：'))
+            for n in identity_names), global_fields)
+        disabled_image = Image.open(BytesIO(tool('ui_screenshot',window='active'))).convert('RGB')
+        check(locale+' both disabled captions are actually drawn', all(visible_caption_ink(disabled_image, global_fields[n]) for n in identity_names))
+        tool('ui_layout',window='active',action='test_set',button='UseGlobalIdentity',value=0)
+        local_fields = fields()
+        check(locale+' local identity enables the editors and restores the captions', all(
+            local_fields[n]['editorEnabled'] and local_fields[n]['captionEnabled'] and
+            local_fields[n]['foreground']!=global_fields[n]['foreground'] for n in identity_names), local_fields)
         for name in ['CommitLinks','SyncMerge','Signing','SubmoduleUpdate']:
             tool('ui_layout',window='active',action='test_set',button='TreeGitSettings'+name,value=1)
         layout=tool('ui_layout',window='active');records.append({'advancedLocale':locale,'layout':layout})
+        aligned = layout['repositorySettingsFields']
+        check(locale+' all six advanced editors share both horizontal edges', len(aligned)==6 and all(
+            max(f['editor'][key] for f in aligned)-min(f['editor'][key] for f in aligned)<=1.1 for key in ('x','width')), aligned)
+        check(locale+' all six advanced editors use the compact height and matching rounded corners',
+              all(abs(f['editor']['localHeight']-26)<=.5 and f['corners']==[3,3,3,3] for f in aligned), aligned)
+        check(locale+' captions end on one line at the shared right edge', all(
+            abs((f['caption']['x']+f['caption']['width'])-(f['editor']['x']-6))<=1.1 and
+            abs(f['caption']['width']-f['textWidth'])<=1.1 for f in aligned), aligned)
+        longest = max(aligned,key=lambda f:f['textWidth'])
+        check(locale+' the longest caption and editor meet opposite edges of the field rows',
+              abs(longest['caption']['x']-longest['row']['x'])<=1.1 and all(
+              abs((f['editor']['x']+f['editor']['width'])-(f['row']['x']+f['row']['width']))<=1.1 for f in aligned), aligned)
         ignored=next(t['text'] for t in layout['localizedTexts'] if t['name']=='RepositoryIgnorePath')
         check(locale+' ignore path uses native separators',ignored == str(repo / '.gitignore'),ignored)
         bars=[b for b in layout['scrollBars'] if b['visible'] and b['orientation']=='Vertical']
@@ -247,6 +289,20 @@ try:
         actions=[b for b in layout['buttons'] if b['inScrollArea'] and b['text']]
         (out/(locale+'-advanced-scrollbar.png')).write_bytes(tool('ui_screenshot',window='active'))
         check(locale+' advanced controls keep clear of the outer scrollbar',bool(actions) and all(b['bounds']['x']+b['bounds']['width']<=bar['bounds']['x']-1 for b in actions),{'actions':actions,'bar':bar})
+        for name in ['CommitLinks','SubmoduleUpdate']:
+            tool('ui_layout',window='active',action='test_set',button='TreeGitSettings'+name,value=0)
+        remaining = {f['name'] for f in aligned}
+        for scroll_to_end in (False, True):
+            observed = tool('ui_layout',window='active')
+            bars = [b for b in observed['scrollBars'] if b['visible'] and b['orientation']=='Vertical']
+            if bars:
+                outer = max(bars,key=lambda b:b['bounds']['x'])
+                tool('ui_layout',window='active',action='scroll',scrollbar=outer['index'],value=outer['maximum'] if scroll_to_end else 0)
+                observed = tool('ui_layout',window='active')
+            rendered = Image.open(BytesIO(tool('ui_screenshot',window='active'))).convert('RGB')
+            remaining.difference_update(f['name'] for f in observed['repositorySettingsFields'] if visible_caption_ink(rendered,f))
+            rendered.save(out/(locale+('-captions-bottom.png' if scroll_to_end else '-captions-top.png')))
+        check(locale+' all six captions and colons appear in rendered output',not remaining,sorted(remaining))
         check(locale+' unused template editor is absent',not any(t['text']==templates_label for t in layout['localizedTexts']))
         (out/(locale+'-advanced-scrollbar.png')).write_bytes(tool('ui_screenshot',window='active'))
         tool('ui_command',command='close_dialog')
@@ -263,6 +319,21 @@ try:
         (out/(locale+'-folded-detail-tooltip.png')).write_bytes(tool('ui_screenshot'))
         probe('history_collapse');wait(lambda:not state()['detailsCollapsed'])
         check(locale+' unfolding closes tooltips again',not any(t['open'] for t in probe()['detailTooltips']))
+
+    fresh = root / 'Fresh repository'
+    git('init', '-b', 'main', str(fresh))
+    original_config = (fresh / '.git/config').read_bytes()
+    tool('ui_open_repository', repo=str(fresh))
+    tool('ui_command', repo=str(fresh), command='repository_settings')
+    tool('ui_command', command='repository_settings_advanced')
+    imported_fields = wait(lambda: f if set(identity_names) <= (f:=fields()).keys() else None)
+    check('newly imported repository without local identity defaults to global settings',
+          all(not imported_fields[n]['editorEnabled'] and not imported_fields[n]['captionEnabled'] for n in identity_names), imported_fields)
+    tool('ui_command', command='close_dialog')
+    check('inspecting the imported identity does not write repository Git config', (fresh / '.git/config').read_bytes()==original_config)
+    tabs = tool('ui_tabs', action='list')['tabs']
+    tool('ui_tabs', action='close', index=next(tab['index'] for tab in tabs if tab['repo'] and Path(tab['repo'])==fresh))
+    tool('ui_open_repository', repo=str(repo))
     draft('Preserved commit draft')
     tool('ui_window', locale='zh_CN', width=1280, height=820)
     probe('commit_staged'); wait(lambda: git('rev-parse', 'HEAD') != initial and composition() and not state()['workingCopyState']['committing'])

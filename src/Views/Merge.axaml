@@ -7,7 +7,7 @@
       <TextBlock FontSize="18" Margin="8,0,0,0" Classes="bold" Text="{DynamicResource Text.Merge}"/>
     </StackPanel>
 
-    <Grid Margin="0,16,0,0" RowDefinitions="32,32,32,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="130,*">
+    <Grid Classes="operation_form" Margin="0,16,0,0" RowDefinitions="32,32,32,Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
       <TextBlock Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" Text="{DynamicResource Text.Merge.Source}"/>
       <ContentControl Grid.Row="0" Grid.Column="1" Content="{Binding Source}">
         <ContentControl.DataTemplates>

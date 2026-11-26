@@ -7,8 +7,8 @@
       <TextBlock FontSize="18" Margin="8,0,0,0" Classes="bold" Text="{DynamicResource Text.Stash.Title}"/>
     </StackPanel>
 
-    <Grid Margin="0,20,0,0" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="100,*">
-      <TextBlock Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="8,0" Text="{DynamicResource Text.Stash.Mode}"/>
+    <Grid Classes="operation_form" Margin="0,20,0,0" RowDefinitions="Auto,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
+      <TextBlock Grid.Row="0" Grid.Column="0" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0" Text="{DynamicResource Text.Stash.Mode}"/>
       <ComboBox x:Name="StashModePicker" Grid.Row="0" Grid.Column="1" MinHeight="32" Padding="8,2" HorizontalContentAlignment="Stretch" ItemsSource="{Binding Source={x:Static m:DealWithChangesAfterStashing.Supported}}" SelectedIndex="{Binding ChangesAfterStashing, Mode=TwoWay}" HorizontalAlignment="Stretch">
         <ComboBox.ItemTemplate>
           <DataTemplate DataType="m:DealWithChangesAfterStashing">

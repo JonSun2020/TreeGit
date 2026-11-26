@@ -215,6 +215,42 @@ namespace SourceGit.Automation
                         width = t.Bounds.Width, height = t.Bounds.Height, trimming = t.TextTrimming.ToString(),
                         wrapping = t.TextWrapping.ToString(), textWidth = t.TextLayout.WidthIncludingTrailingWhitespace,
                         textHeight = t.TextLayout.Height, bounds = Bounds(t) }).ToArray(),
+                repositorySettingsFields = controls.OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && t.Classes.Contains("repository_settings_caption"))
+                    .Select(t =>
+                    {
+                        var row = (Grid)t.Parent;
+                        var editor = row.Children[1];
+                        var corner = ((TemplatedControl)editor).CornerRadius;
+                        return new { name = editor.Name, row = Bounds(row), editor = Bounds(editor), caption = Bounds(t),
+                            corners = new[] { corner.TopLeft, corner.TopRight, corner.BottomRight, corner.BottomLeft },
+                            text = t.Text, textWidth = t.TextLayout.WidthIncludingTrailingWhitespace, editorEnabled = editor.IsEffectivelyEnabled,
+                            captionEnabled = t.IsEffectivelyEnabled, foreground = t.Foreground?.ToString(),
+                            mutedForeground = t.FindResource("Brush.FG2")?.ToString() };
+                    }).ToArray(),
+                operationForms = controls.OfType<Grid>().Where(g => g.IsEffectivelyVisible && g.Classes.Contains("operation_form"))
+                    .Select(g =>
+                    {
+                        var popup = g.GetVisualAncestors().OfType<UserControl>().First(v => v.DataContext is ViewModels.Popup);
+                        var advancedCaption = g.Children.OfType<TextBlock>().FirstOrDefault(t => t.Name is "BranchAdvancedOptions" or "PushAdvancedOptions");
+                        var firstOption = g.GetVisualDescendants().OfType<CheckBox>().FirstOrDefault(c => c.Name is "BranchAllowOverwrite" or "PushSkipHooks");
+                        object advancedOptions = null;
+                        if (advancedCaption != null && firstOption?.Content is TextBlock optionText)
+                        {
+                            double? Baseline(TextBlock text) => text.TranslatePoint(new Point(0, text.Padding.Top + text.TextLayout.Baseline), window)?.Y;
+                            var previous = g.Children.LastOrDefault(c => c.IsEffectivelyVisible && Grid.GetColumn(c) == 1 &&
+                                Grid.GetRow(c) < Grid.GetRow(advancedCaption));
+                            advancedOptions = new {
+                                baselineDifference = Baseline(advancedCaption) - Baseline(optionText),
+                                gap = firstOption.TranslatePoint(default, window)?.Y - previous?.TranslatePoint(new Point(0, previous.Bounds.Height), window)?.Y
+                            };
+                        }
+                        return new { popup = popup.GetType().Name, body = Bounds(popup), form = Bounds(g), advancedOptions,
+                            captions = g.Children.Where(c => c.IsEffectivelyVisible && Grid.GetColumn(c) == 0 && Grid.GetColumnSpan(c) == 1)
+                                .SelectMany(c => c is TextBlock text ? new[] { text } : c.GetVisualDescendants().OfType<TextBlock>())
+                                .Where(t => t.IsEffectivelyVisible && !string.IsNullOrWhiteSpace(t.Text))
+                                .Select(t => new { text = t.Text, bounds = Bounds(t), textWidth = t.TextLayout.WidthIncludingTrailingWhitespace }).ToArray(),
+                            values = g.Children.Where(c => c.IsEffectivelyVisible && Grid.GetColumn(c) == 1 && c.Bounds.Width > 0).Select(Bounds).ToArray() };
+                    }).ToArray(),
                 binaryJumpGroups = controls.OfType<StackPanel>().Where(c => c.Name == "BinaryJumpGroup" && c.IsEffectivelyVisible)
                     .Select(c => new { bounds = Bounds(c), children = c.Children.Select(child => new { type = child.GetType().Name, bounds = Bounds(child) }).ToArray() }).ToArray(),
                 historySelectionText = controls.Where(c => c.Classes.Contains("history_commit_text") && c.IsEffectivelyVisible && c.DataContext is Models.Commit && c.FindAncestorOfType<DataGridRow>() != null)

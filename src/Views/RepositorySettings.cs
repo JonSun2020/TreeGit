@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -7,6 +8,7 @@ using Avalonia;
 using Avalonia.Collections;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Layout;
@@ -138,6 +140,15 @@ namespace SourceGit.Views
             remoteActions.Children.Add(credentials);
 
             var advancedPage = new StackPanel { Name = "AdvancedRepositorySettings", Spacing = 6, Margin = new Thickness(0, 0, 18, 0) };
+            var advancedLayout = new AdvancedFieldLayout();
+            advancedLayout.Children.Add(advancedPage);
+            Grid AddField(StackPanel group, string label, TemplatedControl editor)
+            {
+                var row = Field(label, editor);
+                group.Children.Add(row);
+                advancedLayout.TrackCaption(label, (TextBlock)row.Children[0], row.ColumnDefinitions[0]);
+                return row;
+            }
             var ignored = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
             var ignorePath = Path.Combine(repo.FullPath, ".gitignore");
             ignored.Children.Add(new TextBlock { Name = "RepositoryIgnorePath", Text = Native.OS.FormatLocalPath(ignorePath), TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center });
@@ -146,12 +157,13 @@ namespace SourceGit.Views
             var identity = new StackPanel { Spacing = 4 };
             _global = new CheckBox { Name = "UseGlobalIdentity", [!Avalonia.Controls.ContentControl.ContentProperty] = App.TextBinding("TreeGit.Settings.GlobalIdentity"), IsChecked = _configuration.UseGlobalIdentity };
             identity.Children.Add(_global);
-            _name = new TextBox { Name = "CommitterName", Text = _configuration.UserName, Height = 26 };
-            _email = new TextBox { Name = "CommitterEmail", Text = _configuration.UserEmail, Height = 26 };
-            identity.Children.Add(Field("TreeGit.Settings.FullName", _name)); identity.Children.Add(Field("TreeGit.Settings.Email", _email));
-            void EnableIdentity() => _name.IsEnabled = _email.IsEnabled = _global.IsChecked != true;
+            _name = new TextBox { Name = "CommitterName", Text = _configuration.UserName };
+            _email = new TextBox { Name = "CommitterEmail", Text = _configuration.UserEmail };
+            var nameRow = AddField(identity, "TreeGit.Settings.FullName", _name);
+            var emailRow = AddField(identity, "TreeGit.Settings.Email", _email);
+            void EnableIdentity() => nameRow.IsEnabled = emailRow.IsEnabled = _global.IsChecked != true;
             _global.IsCheckedChanged += (_, _) => EnableIdentity(); EnableIdentity();
-            advancedPage.Children.Add(Group("TreeGit.Settings.Identity", identity));
+            advancedPage.Children.Add(Group("TreeGit.Settings.Identity", identity, horizontalPadding: 22));
             var links = new StackPanel { Spacing = 6 };
             _links = new ListBox { Height = 64, ItemsSource = _configuration.IssueTrackers, DisplayMemberBinding = new Binding("Name"), Background = this.FindResource("Brush.Contents") as IBrush, BorderThickness = new Thickness(1), BorderBrush = Brushes.Gray };
             links.Children.Add(_links);
@@ -163,7 +175,7 @@ namespace SourceGit.Views
             var sync = new StackPanel { Spacing = 4 };
             _defaultRemote = new ComboBox
             {
-                Name = "DefaultRemote", HorizontalAlignment = HorizontalAlignment.Stretch,
+                Name = "DefaultRemote", Padding = new Thickness(8, 0),
                 ItemTemplate = new FuncDataTemplate<string>((remote, _) => remote == string.Empty
                     ? new TextBlock { [!TextBlock.TextProperty] = App.TextBinding("TreeGit.Settings.Automatic") }
                     : new TextBlock { Text = remote }),
@@ -174,15 +186,15 @@ namespace SourceGit.Views
                 if (!_updatingRemoteChoices && _defaultRemote.SelectedItem is string name)
                     _configuration.DefaultRemote = name;
             };
-            sync.Children.Add(Field("TreeGit.Settings.DefaultRemote", _defaultRemote));
+            AddField(sync, "TreeGit.Settings.DefaultRemote", _defaultRemote);
             var merge = new ComboBox { Name = "MergeMode", ItemsSource = Models.MergeMode.Supported,
                 ItemTemplate = new FuncDataTemplate<Models.MergeMode>((mode, _) => new TextBlock { [!TextBlock.TextProperty] = App.TextBinding(mode.NameResourceKey) }),
-                HorizontalAlignment = HorizontalAlignment.Stretch, SelectedIndex = Math.Clamp(_configuration.PreferredMergeMode, 0, Models.MergeMode.Supported.Length - 1) };
+                Padding = new Thickness(8, 0), SelectedIndex = Math.Clamp(_configuration.PreferredMergeMode, 0, Models.MergeMode.Supported.Length - 1) };
             merge.SelectionChanged += (_, _) => _configuration.PreferredMergeMode = merge.SelectedIndex;
-            sync.Children.Add(Field("TreeGit.Settings.MergeMode", merge));
-            var proxy = new TextBox { Name = "HttpProxy", Height = 28, Text = _configuration.HttpProxy, [!Avalonia.Controls.TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Settings.ProxyHint") };
+            AddField(sync, "TreeGit.Settings.MergeMode", merge);
+            var proxy = new TextBox { Name = "HttpProxy", Text = _configuration.HttpProxy, [!Avalonia.Controls.TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Settings.ProxyHint") };
             proxy.TextChanged += (_, _) => _configuration.HttpProxy = proxy.Text ?? string.Empty;
-            sync.Children.Add(Field("TreeGit.Settings.HttpProxy", proxy));
+            AddField(sync, "TreeGit.Settings.HttpProxy", proxy);
             _autoRefresh = Option("AutoRefresh", "TreeGit.Settings.AutoRefresh", _configuration.AutoRefreshEnabled, value => _configuration.AutoRefreshEnabled = value);
             _backgroundFetch = Option("BackgroundFetch", "TreeGit.Settings.BackgroundFetch", _configuration.BackgroundFetchEnabled, value => _configuration.BackgroundFetchEnabled = value);
             sync.Children.Add(new StackPanel
@@ -195,9 +207,9 @@ namespace SourceGit.Views
             });
             advancedPage.Children.Add(Optional("TreeGit.Settings.SyncMerge", sync, endsWithOptions: true));
             var signing = new StackPanel { Spacing = 4 };
-            var signingKey = new TextBox { Name = "SigningKey", Height = 28, Text = _configuration.GPGUserSigningKey, [!Avalonia.Controls.TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Settings.SigningKeyHint") };
+            var signingKey = new TextBox { Name = "SigningKey", Text = _configuration.GPGUserSigningKey, [!Avalonia.Controls.TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Settings.SigningKeyHint") };
             signingKey.TextChanged += (_, _) => _configuration.GPGUserSigningKey = signingKey.Text ?? string.Empty;
-            signing.Children.Add(Field("TreeGit.Settings.SigningKey", signingKey));
+            AddField(signing, "TreeGit.Settings.SigningKey", signingKey);
             signing.Children.Add(new StackPanel
             {
                 Children =
@@ -220,7 +232,7 @@ namespace SourceGit.Views
             void Select(bool advanced)
             {
                 _advanced = advanced;
-                scroll.Content = advanced ? advancedPage : remotePage;
+                scroll.Content = advanced ? advancedLayout : remotePage;
                 scroll.Offset = new Vector(0, 0);
                 SetTabAppearance(remoteTab, !advanced);
                 SetTabAppearance(advancedTab, advanced);
@@ -417,16 +429,46 @@ namespace SourceGit.Views
             Content = new Border { Padding = new Thickness(6, 0), UseLayoutRounding = true, Child = content },
         };
 
-        private static Control Group(string title, Control content)
-            => new StackPanel { Spacing = 2, Children = { new TextBlock { [!TextBlock.TextProperty] = App.TextBinding(title) }, new Border { BorderThickness = new Thickness(1), BorderBrush = new SolidColorBrush(Color.Parse("#CED8DF")), CornerRadius = new CornerRadius(3), Padding = new Thickness(6), Child = content } } };
+        private static Control Group(string title, Control content, double horizontalPadding = 6)
+            => new StackPanel { Spacing = 2, Children = { new TextBlock { [!TextBlock.TextProperty] = App.TextBinding(title) }, new Border { BorderThickness = new Thickness(1), BorderBrush = new SolidColorBrush(Color.Parse("#CED8DF")), CornerRadius = new CornerRadius(3), Padding = new Thickness(horizontalPadding, 6), Child = content } } };
 
-        private static Control Field(string label, Control editor)
+        private static Grid Field(string label, TemplatedControl editor)
         {
-            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("100,*"), ColumnSpacing = 6 };
+            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing = 6 };
             var caption = RepositoryDialogLayout.FieldLabel(label);
-            caption.TextWrapping = TextWrapping.Wrap;
+            caption.Name = editor.Name + "Label";
+            caption.Classes.Add("repository_settings_caption");
+            editor.HorizontalAlignment = HorizontalAlignment.Stretch;
+            editor.Height = 26;
+            editor.CornerRadius = new CornerRadius(3);
             row.Children.Add(caption);
             Grid.SetColumn(editor, 1); row.Children.Add(editor); return row;
+        }
+
+        private sealed class AdvancedFieldLayout : Grid
+        {
+            private readonly List<(string Label, TextBlock Caption, ColumnDefinition Column)> _fields = [];
+
+            public void TrackCaption(string label, TextBlock caption, ColumnDefinition column) => _fields.Add((label, caption, column));
+
+            protected override Size MeasureOverride(Size availableSize)
+            {
+                var width = 0.0;
+                // Collapsed sections still contribute their localized captions to the column.
+                foreach (var (label, caption, _) in _fields)
+                {
+                    var typeface = new Typeface(caption.FontFamily, caption.FontStyle, caption.FontWeight, caption.FontStretch);
+                    var text = new FormattedText(App.Text(label), CultureInfo.CurrentUICulture, caption.FlowDirection,
+                        typeface, caption.FontSize, Brushes.Black);
+                    width = Math.Max(width, text.WidthIncludingTrailingWhitespace);
+                }
+
+                var columnWidth = new GridLength(Math.Ceiling(width));
+                foreach (var (_, _, column) in _fields)
+                    column.Width = columnWidth;
+
+                return base.MeasureOverride(availableSize);
+            }
         }
     }
 

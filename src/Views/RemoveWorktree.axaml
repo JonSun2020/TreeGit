@@ -7,7 +7,7 @@
              mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
              x:Class="SourceGit.Views.RemoveWorktree"
              x:DataType="vm:RemoveWorktree">
-  <StackPanel Orientation="Vertical" Margin="8,0,0,0">
+  <StackPanel Orientation="Vertical" Margin="8,0">
     <StackPanel Orientation="Horizontal" Classes="popup_heading">
       <Path Width="16" Height="16"
             Data="{StaticResource Icons.Clear}"/>
@@ -18,10 +18,10 @@
                  Text="{DynamicResource Text.RemoveWorktree}"/>
     </StackPanel>
 
-    <Grid Margin="8,16,0,0" RowDefinitions="32,Auto" ColumnDefinitions="120,*">
+    <Grid Classes="operation_form" Margin="0,16,0,0" RowDefinitions="32,Auto" ColumnDefinitions="Auto,*">
       <TextBlock Grid.Row="0" Grid.Column="0"
                  HorizontalAlignment="Right"
-                 Margin="8,0"
+                 Margin="0,0,8,0"
                  Text="{DynamicResource Text.RemoveWorktree.Target}"/>
       <Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="Auto,*">
         <Path Grid.Column="0" Width="12" Height="12" Data="{StaticResource Icons.Worktree}"/>

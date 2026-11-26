@@ -7,8 +7,6 @@ namespace SourceGit.ViewModels
 {
     public class StashChanges : Popup
     {
-        public override double DialogMaxWidth => 700;
-
         public string Message
         {
             get;

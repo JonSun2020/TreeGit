@@ -600,7 +600,7 @@ namespace SourceGit.Automation
                     layerX = layer?.TranslatePoint(default, root)?.X,
                     alignment = (dropdown as ComboBox)?.HorizontalContentAlignment.ToString(), labelOffsets = offsets, selectedOffsets };
             }
-            if (action == "checkbox_appearance")
+            if (action is "checkbox_appearance" or "checkbox_initial_appearance")
             {
                 var name = args.GetProperty("button").GetString();
                 var scope = name == "SearchScopeCheckBox" ? window.GetVisualDescendants().OfType<Button>().FirstOrDefault(c => c.Name == "SearchScopeButton" && c.IsEffectivelyVisible) : null;
@@ -609,13 +609,19 @@ namespace SourceGit.Automation
                 var box = scope?.Flyout is Flyout { Content: CheckBox filter } ? filter :
                     window.GetVisualDescendants().OfType<CheckBox>().FirstOrDefault(c => c.Name == name && c.IsEffectivelyVisible);
                 if (box?.IsEffectivelyEnabled != true) return new { ready = false };
-                box.SetCurrentValue(ToggleButton.IsCheckedProperty, index != 0);
+                if (action == "checkbox_appearance") box.SetCurrentValue(ToggleButton.IsCheckedProperty, index != 0);
                 var border = box.GetVisualDescendants().OfType<Border>().FirstOrDefault(c => c.Name == "Border");
                 var icon = border?.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>().FirstOrDefault();
                 if (icon == null) return new { ready = false };
                 var classes = (IPseudoClasses)box.Classes;
                 var focused = classes.Contains(":focus-visible");
                 var hovered = classes.Contains(":pointerover");
+                if (action == "checkbox_initial_appearance")
+                    return new { ready = true, @checked = box.IsChecked == true, focused = box.IsFocused,
+                        focusVisible = focused, stroke = border.BorderBrush?.ToString(), fill = border.Background?.ToString(),
+                        thickness = border.BorderThickness.Top, plainStroke = box.FindResource("Brush.FG1")?.ToString(),
+                        selectedStroke = box.FindResource("Brush.TreeGit.ParentSHA")?.ToString(),
+                        selectedFill = box.FindResource("Brush.TreeGit.Selection")?.ToString() };
                 var appearance = new List<object>();
                 try
                 {

@@ -18,7 +18,7 @@
                  Text="{DynamicResource Text.DeleteMultiTags}"/>
     </StackPanel>
 
-    <Border Margin="4,16,0,0"
+    <Border Margin="0,16,0,0"
             Background="{DynamicResource Brush.Contents}"
             BorderThickness="1"
             BorderBrush="{DynamicResource Brush.Border1}"
@@ -57,11 +57,11 @@
       </ListBox>
     </Border>
 
-    <CheckBox Margin="4,6,0,0"
+    <CheckBox Margin="0,6,0,0"
               Content="{DynamicResource Text.DeleteMultiTags.DeleteFromRemotes}"
               IsChecked="{Binding DeleteFromRemote, Mode=TwoWay}"/>
 
-    <TextBlock Margin="4,6,0,0"
+    <TextBlock Margin="0,6,0,0"
                Text="{DynamicResource Text.DeleteMultiTags.Tip}"
                TextWrapping="Wrap"
                Foreground="{DynamicResource Brush.FG2}"

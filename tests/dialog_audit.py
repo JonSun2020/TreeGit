@@ -22,7 +22,7 @@ root = Path(tempfile.mkdtemp(prefix='TreeGit dialog audit ')).resolve()
 repo = root/'repo'
 remote = root/'remote.git'
 env = os.environ.copy()
-env.update(GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'), GIT_CONFIG_NOSYSTEM='1')
+env.update(GIT_CONFIG_GLOBAL=str(root/'global.gitconfig'), GIT_CONFIG_NOSYSTEM='1', TREEGIT_TEST_MENU_PROBE='1')
 def git(*args):
     p = subprocess.run(['git', '-C', str(repo), *args], capture_output=True, text=True, encoding='utf-8',env=env)
     assert p.returncode == 0, p.stderr
@@ -77,6 +77,61 @@ def check(name,ok):
 def within(d):
     a=d['workArea']
     return d['x']>=a['x']-1 and d['y']>=a['y']-1 and d['x']+d['width']*d['scaling']<=a['x']+a['width']+1 and d['y']+d['height']*d['scaling']<=a['y']+a['height']+1
+
+def audit_operation(locale, view, command, **args):
+    if command in ('stash_apply_dialog','stash_drop_dialog','stash_branch_dialog'):
+        tool('ui_stashes', {'repo':str(repo),'action':'select','stash':'stash@{0}'})
+    if command.startswith('fixture_'):
+        tool('ui_layout', {'action':'test_dropdowns','text':command})
+    else:
+        tool('ui_command', {'repo':str(repo),'command':command,**args})
+    try:
+        deadline=time.monotonic()+10
+        frames=[]
+        while time.monotonic()<deadline:
+            frames=[f for f in tool('ui_layout')['operationForms'] if f['popup']==view and f['values']]
+            if frames and any(f['captions'] for f in frames):break
+            time.sleep(.04)
+        assert frames and any(f['captions'] for f in frames),(locale,view,command)
+        labels=[label for f in frames for label in f['captions']]
+        left=min(label['bounds']['x'] for label in labels)-frames[0]['body']['x']
+        right=frames[0]['body']['x']+frames[0]['body']['width']-max(v['x']+v['width'] for f in frames for v in f['values'])
+        aligned=abs(left-right)<=1.5 and left>=-1 and right>=-1
+        labels_fit=all(label['textWidth']<=label['bounds']['localWidth']+1.1 for label in labels)
+        advanced=frames[0]['advancedOptions']
+        sample={'operation':command,'locale':locale,'left':left,'right':right,'labels':labels,
+                'bodyWidth':frames[0]['body']['localWidth'],'advancedOptions':advanced}
+        records.append(sample)
+        check(f'{locale} {command} balances the outer margins and fits each caption',aligned and labels_fit)
+        if command in {'push_dialog','create_branch'}:
+            check(f'{locale} {command} aligns the advanced caption with the first checkbox baseline',
+                  advanced is not None and abs(advanced['baselineDifference'])<=.5)
+        if command=='fetch_dialog':
+            probe={'action':'test_menu','text':'checkbox_initial_appearance','button':'FetchForceCheckBox','value':0}
+            initial=tool('ui_layout',probe)
+            check(f'{locale} Fetch opens with the regular unchecked border before any click',initial['ready'] and initial['focused'] and
+                  not initial['checked'] and not initial['focusVisible'] and initial['thickness']==1 and initial['stroke']==initial['plainStroke'])
+            if locale=='zh_CN':(out/'fetch-opening.png').write_bytes(tool('ui_screenshot'))
+            tool('ui_layout', {'action':'test_set','button':'FetchForceCheckBox','value':1})
+            tool('ui_command', {'repo':str(repo),'command':'cancel_popup'})
+            tool('ui_command', {'repo':str(repo),'command':'fetch_dialog'})
+            deadline=time.monotonic()+10
+            selected={'ready':False}
+            while time.monotonic()<deadline:
+                selected=tool('ui_layout',probe)
+                if selected['ready'] and selected['focused']: break
+                time.sleep(.04)
+            check(f'{locale} Fetch reopens with the regular checked border',selected['ready'] and selected['checked'] and not selected['focusVisible'] and
+                  selected['thickness']==1 and selected['stroke']==selected['selectedStroke'] and selected['fill']==selected['selectedFill'])
+            tool('ui_layout', {'action':'test_set','button':'FetchForceCheckBox','value':0})
+        if command in {'push_dialog','create_branch','stash_dialog'}:
+            (out/(locale+'-'+command+'-spacing.png')).write_bytes(tool('ui_screenshot'))
+        if locale=='zh_CN' and command in {'push_dialog','pull_dialog','create_branch','merge_dialog','stash_dialog','fixture_discard_all','create_tag'}:
+            (out/(command+'-margins.png')).write_bytes(tool('ui_screenshot'))
+        return sample
+    finally:
+        tool('ui_command', {'repo':str(repo),'command':'cancel_popup'})
+
 try:
     rpc('initialize',{'protocolVersion':'2025-11-25'})
     tool('ui_open_repository',{'repo':str(repo)})
@@ -96,6 +151,34 @@ try:
         capture('reflog-recovery-'+str(attempt+1))
     tool('git_run',{'repo':str(repo),'arguments':['branch','recovered',lost]})
     check('a recovered branch keeps the lost commit reachable',git('rev-parse','recovered')==lost)
+    before=(git('rev-parse','HEAD'),git('ls-files','--stage'),git('status','--porcelain'))
+    for locale,theme,scale in ('zh_CN','Light',1),('zh_TW','Dark',1.25),('en_US','Blue',1.5):
+        tool('ui_window',{'locale':locale,'theme':theme,'zoom':scale})
+        samples={}
+        for view,command,args in [
+            ('Fetch','fetch_dialog',{}),('Pull','pull_dialog',{}),('Push','push_dialog',{}),
+            ('CreateBranch','create_branch',{}),('RenameBranch','fixture_rename_branch',{}),('DeleteBranch','fixture_delete_branch',{}),
+            ('Merge','merge_dialog',{'revision':lost}),('Rebase','fixture_rebase',{}),('Reset','reset_dialog',{}),
+            ('StashChanges','stash_dialog',{}),('ApplyStash','stash_apply_dialog',{}),('DropStash','stash_drop_dialog',{}),
+            ('CheckoutBranchFromStash','stash_branch_dialog',{}),('Discard','fixture_discard_all',{}),
+            ('Discard','fixture_discard_one',{}),('Discard','fixture_discard_many',{}),('Apply','apply_patch',{}),
+            ('CreateTag','create_tag',{}),('DeleteTag','fixture_delete_tag',{}),('PushTag','fixture_push_tag',{}),
+        ]:
+            samples[command]=audit_operation(locale,view,command,**args)
+        push_gap=samples['push_dialog']['advancedOptions']['gap']
+        branch_gap=samples['create_branch']['advancedOptions']['gap']
+        check(f'{locale} Push and Create Branch share the 8-DIP gap above advanced options',
+              abs(push_gap-branch_gap)<=.5 and abs(push_gap-8*scale)<=1)
+        check(f'{locale} Stash uses the same width as Push, Pull, and Create Branch',
+              max(samples[command]['bodyWidth'] for command in ('push_dialog','pull_dialog','create_branch','stash_dialog')) -
+              min(samples[command]['bodyWidth'] for command in ('push_dialog','pull_dialog','create_branch','stash_dialog')) <=1)
+    check('opening and cancelling operation forms preserves real Git state',
+          before==(git('rev-parse','HEAD'),git('ls-files','--stage'),git('status','--porcelain')))
+    tool('ui_window',{'locale':'zh_CN','zoom':1})
+    tool('ui_select_commit',{'repo':str(repo),'revision':'v1.0'})
+    deadline=time.monotonic()+10
+    while time.monotonic()<deadline and not tool('ui_state')['layoutProbe']['taggedRefs']:
+        time.sleep(.04)
     for theme in ['Blue','Light','Dark','Default','Blue']:
         tool('ui_window',{'theme':theme})
         state=capture('tag-theme-'+theme.lower())

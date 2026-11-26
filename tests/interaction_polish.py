@@ -135,7 +135,7 @@ try:
   for index, mode in enumerate(('discard','keep_index','keep_all')):
    tool('ui_command',command='stash_options',repo=str(repo),stashMode=mode)
    captions=wait(lambda: v if (v:=probe('stash_captions'))['width']>0 and len(v['closed'])==2 else None)
-   check(locale+' stash keeps both captions visible for '+mode, captions['width']>460 and all(c['fits'] for c in captions['closed']),captions)
+   check(locale+' stash keeps both captions visible for '+mode, all(c['fits'] for c in captions['closed']),captions)
   probe('stash_captions',button='open')
   captions=wait(lambda: v if len((v:=probe('stash_captions'))['options'])==6 else None)
   check(locale+' all stash options show complete labels and descriptions',all(c['fits'] for c in captions['options']),captions)

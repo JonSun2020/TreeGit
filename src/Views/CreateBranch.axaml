@@ -20,9 +20,9 @@
                  Text="{DynamicResource Text.CreateBranch.Title}"/>
     </StackPanel>
 
-    <Grid Margin="0,16,0,0" RowDefinitions="32,32,Auto,Auto,Auto,Auto">
+    <Grid Classes="operation_form" Margin="0,16,0,0" RowDefinitions="32,32,Auto,8,Auto,Auto,Auto">
       <Grid.ColumnDefinitions>
-        <ColumnDefinition Width="Auto" MinWidth="140"/>
+        <ColumnDefinition Width="Auto"/>
         <ColumnDefinition Width="*"/>
       </Grid.ColumnDefinitions>
 
@@ -99,16 +99,16 @@
         </v:DealWithLocalChangesMethod.IsVisible>
       </v:DealWithLocalChangesMethod>
 
-      <TextBlock x:Name="BranchAdvancedOptions" Grid.Row="3" Grid.Column="0" Text="{DynamicResource Text.UI.AdvancedOptionsLabel}"
-                 HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,8,8,0"/>
-      <CheckBox x:Name="BranchAllowOverwrite" Grid.Row="3" Grid.Column="1" Margin="0,8,0,0"
+      <TextBlock x:Name="BranchAdvancedOptions" Grid.Row="4" Grid.Column="0" Text="{DynamicResource Text.UI.AdvancedOptionsLabel}"
+                 HorizontalAlignment="Right" VerticalAlignment="Center" UseLayoutRounding="False" Margin="0,0,8,0"/>
+      <CheckBox x:Name="BranchAllowOverwrite" Grid.Row="4" Grid.Column="1" UseLayoutRounding="False"
                 IsChecked="{Binding AllowOverwrite, Mode=TwoWay}" ToolTip.Tip="{Binding OverrideTip}">
         <TextBlock Text="{DynamicResource Text.CreateBranch.OverwriteExisting}" TextWrapping="Wrap"/>
       </CheckBox>
-      <TextBlock Grid.Row="4" Grid.ColumnSpan="2" Text="{DynamicResource Text.UI.ResetBranchEnabled}"
+      <TextBlock Grid.Row="5" Grid.ColumnSpan="2" Text="{DynamicResource Text.UI.ResetBranchEnabled}"
                  IsVisible="{Binding AllowOverwrite}" FontWeight="Bold" TextWrapping="Wrap" Margin="0,0,0,4"/>
 
-      <CheckBox Grid.Row="5" Grid.Column="1"
+      <CheckBox Grid.Row="6" Grid.Column="1"
                 Content="{DynamicResource Text.CreateBranch.Checkout}"
                 IsChecked="{Binding CheckoutAfterCreated, Mode=TwoWay}"
                 IsVisible="{Binding !IsBareRepository}"/>

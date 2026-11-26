@@ -9,7 +9,7 @@
              mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="450"
              x:Class="SourceGit.Views.ExecuteCustomAction"
              x:DataType="vm:ExecuteCustomAction">
-  <StackPanel Orientation="Vertical" Margin="8,0">
+  <StackPanel Orientation="Vertical" Margin="8,0" Grid.IsSharedSizeScope="True">
     <StackPanel Orientation="Horizontal" Classes="popup_heading">
       <Path Width="16" Height="16"
             Data="{StaticResource Icons.Action}"/>
@@ -20,7 +20,11 @@
                  Text="{Binding CustomAction.Name}"/>
     </StackPanel>
 
-    <Grid Margin="0,16,0,0" Height="32" ColumnDefinitions="150,*">
+    <Grid Classes="operation_form" Margin="0,16,0,0" Height="32">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto" SharedSizeGroup="CustomActionCaption"/>
+        <ColumnDefinition Width="*"/>
+      </Grid.ColumnDefinitions>
       <TextBlock Grid.Column="0"
                  Text="{DynamicResource Text.ExecuteCustomAction.Target}"
                  HorizontalAlignment="Right" VerticalAlignment="Center"
@@ -86,7 +90,11 @@
 
       <ItemsControl.DataTemplates>
         <DataTemplate DataType="vm:CustomActionControlTextBox">
-          <Grid Height="32" ColumnDefinitions="150,*">
+          <Grid Classes="operation_form" Height="32">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" SharedSizeGroup="CustomActionCaption"/>
+              <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0"
                        Text="{Binding Label}"
                        HorizontalAlignment="Right" VerticalAlignment="Center"
@@ -101,7 +109,11 @@
         </DataTemplate>
 
         <DataTemplate DataType="vm:CustomActionControlCheckBox">
-          <Grid Height="32" ColumnDefinitions="150,*">
+          <Grid Classes="operation_form" Height="32">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" SharedSizeGroup="CustomActionCaption"/>
+              <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
             <CheckBox Grid.Column="1"
                       Content="{Binding Label}"
                       ToolTip.Tip="{Binding ToolTip, Mode=OneWay}"
@@ -110,7 +122,11 @@
         </DataTemplate>
 
         <DataTemplate DataType="vm:CustomActionControlPathSelector">
-          <Grid Height="32" ColumnDefinitions="150,*">
+          <Grid Classes="operation_form" Height="32">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" SharedSizeGroup="CustomActionCaption"/>
+              <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
             <TextBlock Grid.Column="0"
                        Text="{Binding Label}"
                        HorizontalAlignment="Right" VerticalAlignment="Center"
@@ -130,7 +146,11 @@
         </DataTemplate>
 
         <DataTemplate DataType="vm:CustomActionControlComboBox">
-          <Grid RowDefinitions="32,Auto" ColumnDefinitions="150,*">
+          <Grid Classes="operation_form" RowDefinitions="32,Auto">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" SharedSizeGroup="CustomActionCaption"/>
+              <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
             <TextBlock Grid.Row="0" Grid.Column="0"
                        Text="{Binding Label}"
                        HorizontalAlignment="Right" VerticalAlignment="Center"
@@ -152,7 +172,11 @@
         </DataTemplate>
 
         <DataTemplate DataType="vm:CustomActionControlBranchSelector">
-          <Grid RowDefinitions="32,Auto" ColumnDefinitions="150,*">
+          <Grid Classes="operation_form" RowDefinitions="32,Auto">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto" SharedSizeGroup="CustomActionCaption"/>
+              <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
             <TextBlock Grid.Row="0" Grid.Column="0"
                        Text="{Binding Label}"
                        HorizontalAlignment="Right" VerticalAlignment="Center"
