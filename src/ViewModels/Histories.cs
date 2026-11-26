@@ -198,7 +198,7 @@ namespace SourceGit.ViewModels
         public List<Models.Commit> Commits
         {
             get => _commits;
-            set
+            private set
             {
                 GenerateGraph(value);
                 if (SetProperty(ref _commits, value))

@@ -13,7 +13,19 @@ namespace SourceGit.Models
     public class RepositorySettings
     {
         public bool AutoRefreshEnabled { get; set; } = true;
-        public bool BackgroundFetchEnabled { get; set; } = true;
+        public bool BackgroundFetchEnabled
+        {
+            get => _backgroundFetchEnabled;
+            set
+            {
+                if (_backgroundFetchEnabled == value) return;
+                _backgroundFetchEnabled = value;
+                BackgroundFetchChanged?.Invoke();
+            }
+        }
+
+        internal event Action BackgroundFetchChanged;
+        private bool _backgroundFetchEnabled = true;
 
         public string DefaultRemote
         {

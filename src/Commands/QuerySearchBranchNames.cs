@@ -79,6 +79,8 @@ namespace SourceGit.Commands
                 var heads = new HashSet<string>(branches.ConvertAll(b => b.Head), StringComparer.Ordinal);
                 await process.StandardInput.WriteAsync(string.Join("\n", heads) + "\n").ConfigureAwait(false);
                 process.StandardInput.Close();
+                BigInteger previousMask = default;
+                Models.SearchBranchCoverage previousCoverage = null;
                 while (await process.StandardOutput.ReadLineAsync().ConfigureAwait(false) is { } line)
                 {
                     if (CancellationToken.IsCancellationRequested) break;
@@ -87,10 +89,16 @@ namespace SourceGit.Commands
                     pending.Remove(parts[0], out var mask);
                     if (wanted.Remove(parts[0]))
                     {
-                        var containing = new List<Models.Branch>();
-                        for (var i = 0; i < bits.Length; i++)
-                            if ((mask & bits[i]) != BigInteger.Zero) containing.Add(branches[i]);
-                        names[parts[0]] = new Models.SearchBranchCoverage(containing);
+                        // Adjacent hits often have the same immutable containing-ref list.
+                        if (previousCoverage == null || previousMask != mask)
+                        {
+                            var containing = new List<Models.Branch>();
+                            for (var i = 0; i < bits.Length; i++)
+                                if ((mask & bits[i]) != BigInteger.Zero) containing.Add(branches[i]);
+                            previousMask = mask;
+                            previousCoverage = new Models.SearchBranchCoverage(containing);
+                        }
+                        names[parts[0]] = previousCoverage;
                         if (wanted.Count == 0) { Stop(); break; }
                     }
                     for (var i = 1; i < parts.Length; i++)

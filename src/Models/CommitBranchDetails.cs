@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
 namespace SourceGit.Models
 {
@@ -35,15 +36,21 @@ namespace SourceGit.Models
                 });
         }
 
-        internal static Dictionary<string, int> IndexGraph(List<Commit> graph)
+        internal static Dictionary<string, int> IndexGraph(List<Commit> graph) => _graphPositions.GetValue(graph, static commits =>
         {
-            var positions = new Dictionary<string, int>(StringComparer.Ordinal);
-            for (var i = 0; i < graph.Count; i++) positions[graph[i].SHA] = i;
+            var positions = new Dictionary<string, int>(commits.Count, StringComparer.Ordinal);
+            for (var i = 0; i < commits.Count; i++) positions[commits[i].SHA] = i;
             return positions;
-        }
+        });
+
+        private static readonly ConditionalWeakTable<List<Commit>, Dictionary<string, int>> _graphPositions = new();
 
         internal static Branch ChooseGraphBranch(Commit commit, List<Commit> graph, List<Branch> containing, Dictionary<string, int> positions)
         {
+            if (containing.Count <= 1) return containing.Count == 0 ? null : containing[0];
+            var firstHead = containing[0].Head;
+            var competingHeads = containing.Exists(branch => branch.Head != firstHead);
+
             bool SameLine(Branch branch)
             {
                 if (!positions.TryGetValue(branch.Head, out var position) || graph[position].Color != commit.Color) return false;
@@ -61,7 +68,8 @@ namespace SourceGit.Models
             (int Match, int Local, int Current, int Position) best = (-1, -1, -1, int.MinValue);
             foreach (var branch in containing)
             {
-                var rank = (branch.Head == commit.SHA ? 3 : SameLine(branch) ? 2 : 0,
+                // Refs at the same tip have identical ancestry and graph position.
+                var rank = (branch.Head == commit.SHA ? 3 : competingHeads && SameLine(branch) ? 2 : 0,
                     branch.IsLocal ? 1 : 0, branch.IsCurrent ? 1 : 0,
                     positions.TryGetValue(branch.Head, out var index) ? -index : int.MinValue);
                 if (selected == null || rank.CompareTo(best) > 0) { selected = branch; best = rank; }

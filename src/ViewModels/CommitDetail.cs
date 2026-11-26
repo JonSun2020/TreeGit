@@ -55,8 +55,10 @@ namespace SourceGit.ViewModels
                     {
                         _commit = value;
                         OnPropertyChanged(nameof(Commit));
-                        RefreshBranchDetails(value, _cancellationSource?.Token ?? default);
-                        RefreshParentRevisions(value, _cancellationSource?.Token ?? default);
+                        var token = _cancellationSource?.Token ?? default;
+                        if (_supplementaryDetailsStarted)
+                            RefreshBranchDetails(value, token);
+                        RefreshParentRevisions(value, token, resolveShortNames: _supplementaryDetailsStarted);
                     }
                     return;
                 }
@@ -480,6 +482,7 @@ namespace SourceGit.ViewModels
         private void Refresh()
         {
             CancelBackgroundReads();
+            _supplementaryDetailsStarted = false;
             _requestingRevisionFiles = false;
             _revisionFiles = null;
 
@@ -543,6 +546,7 @@ namespace SourceGit.ViewModels
             Dispatcher.UIThread.Post(() =>
             {
                 if (token.IsCancellationRequested || _commit?.SHA != selectedCommit.SHA) return;
+                _supplementaryDetailsStarted = true;
                 RefreshBranchDetails(_commit, token);
                 RefreshParentRevisions(_commit, token);
                 ReadCommitMetadata(selectedCommit, token);
@@ -819,6 +823,7 @@ namespace SourceGit.ViewModels
         private string _viewRevisionFilePath = string.Empty;
         private object _viewRevisionFileContent = null;
         private CancellationTokenSource _cancellationSource = null;
+        private bool _supplementaryDetailsStarted;
         private bool _requestingRevisionFiles = false;
         private List<string> _revisionFiles = null;
         private string _revisionFileSearchFilter = string.Empty;

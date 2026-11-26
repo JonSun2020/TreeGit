@@ -315,9 +315,11 @@ namespace SourceGit.ViewModels
 
         public bool EnableAutoFetch
         {
-            get;
-            set;
-        } = false;
+            get => _enableAutoFetch;
+            set => SetProperty(ref _enableAutoFetch, value);
+        }
+
+        private bool _enableAutoFetch;
 
         public const int MaximumAutoFetchInterval = 9999;
 

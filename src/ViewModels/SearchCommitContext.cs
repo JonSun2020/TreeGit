@@ -133,7 +133,7 @@ namespace SourceGit.ViewModels
             var filter = _filter;
             var method = (Models.CommitSearchMethod)_method;
             var onlyCurrentBranch = _onlySearchCurrentBranch;
-            var graph = _histories.Commits?.ToList() ?? [];
+            var graph = _histories.Commits;
             var locals = _histories.Repository.Branches.Where(b => b.IsLocal && !b.IsDetachedHead).ToList();
 
             Task.Run(async () =>

@@ -45,7 +45,7 @@ namespace SourceGit.ViewModels
                 _repo.SynchronizeCommitBranchSelection(commit, searchDetails);
                 return;
             }
-            var graph = _repo.Histories.Commits?.ToList() ?? [];
+            var graph = _repo.Histories.Commits;
             var locals = _repo.Branches.Where(b => b.IsLocal && !b.IsDetachedHead).ToList();
             var key = string.Join('\n', locals.OrderBy(b => b.FullName, StringComparer.Ordinal).Select(b => b.FullName + " " + b.Head));
             if (_originSnapshot == null || _originSnapshotKey != key || _originSnapshot.IsFaulted || _originSnapshot.IsCanceled)

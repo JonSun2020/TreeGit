@@ -1,4 +1,6 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
+using System.Threading;
 
 namespace SourceGit.Models
 {
@@ -11,21 +13,32 @@ namespace SourceGit.Models
 
         public User(string data)
         {
-            var parts = data.Split('±', 2);
-            if (parts.Length < 2)
+            var separator = data.IndexOf('±');
+            if (separator < 0)
             {
                 Email = data;
             }
             else
             {
-                Name = parts[0];
-                Email = parts[1];
+                Name = data[..separator];
+                Email = data[(separator + 1)..];
             }
         }
 
-        public static User FindOrAdd(string data)
+        public static User FindOrAdd(ReadOnlySpan<char> data)
         {
-            return _caches.GetOrAdd(data, static key => new User(key));
+            var cache = Volatile.Read(ref _cache);
+            if (cache.GetAlternateLookup<ReadOnlySpan<char>>().TryGetValue(data, out var user))
+                return user;
+
+            // Open views own their users. Interning only needs to retain recent identities.
+            if (cache.Count >= MaxCachedUsers)
+            {
+                Interlocked.CompareExchange(ref _cache, new(StringComparer.Ordinal), cache);
+                cache = Volatile.Read(ref _cache);
+            }
+
+            return cache.GetOrAdd(data.ToString(), static key => new User(key));
         }
 
         public override string ToString()
@@ -33,6 +46,7 @@ namespace SourceGit.Models
             return $"{Name} <{Email}>";
         }
 
-        private static ConcurrentDictionary<string, User> _caches = new ConcurrentDictionary<string, User>();
+        private const int MaxCachedUsers = 4096;
+        private static ConcurrentDictionary<string, User> _cache = new(StringComparer.Ordinal);
     }
 }

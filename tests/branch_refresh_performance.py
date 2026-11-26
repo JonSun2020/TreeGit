@@ -67,6 +67,7 @@ def wait_for(read, predicate, timeout=30):
 def command_counts(trace, start):
     names = []
     logs = {'graph': 0, 'parentAbbreviations': 0, 'other': 0}
+    local_config = 0
     for line in trace.read_text('utf-8').splitlines()[start:]:
         try:
             event = json.loads(line)
@@ -75,6 +76,8 @@ def command_counts(trace, start):
         if event.get('event') == 'cmd_name':
             names.append(event['name'])
         argv = event.get('argv', []) if event.get('event') == 'start' else []
+        if 'config' in argv and '--local' in argv and '-l' in argv:
+            local_config += 1
         if 'log' in argv:
             if any(arg.startswith('--format=%H%x00%P%x00%D') for arg in argv):
                 logs['graph'] += 1
@@ -82,8 +85,8 @@ def command_counts(trace, start):
                 logs['parentAbbreviations'] += 1
             else:
                 logs['other'] += 1
-    counts = {name: names.count(name) for name in ('branch', 'log', 'rev-list', 'status', 'version')}
-    return {**counts, **logs}
+    counts = {name: names.count(name) for name in ('branch', 'config', 'log', 'rev-list', 'status', 'version')}
+    return {**counts, **logs, 'localConfig': local_config}
 
 
 def main():
@@ -190,6 +193,7 @@ def main():
         if not reference:
             if auto_discover:
                 assert result['initial']['commands']['version'] == 1, result
+            assert result['initial']['commands']['localConfig'] == 0, result
             assert result['initial']['commands']['rev-list'] == 1, result
             assert result['checkout']['commands']['rev-list'] == 1, result
             assert result['upstreamMoves']['commands']['rev-list'] == 0, result

@@ -131,9 +131,9 @@ namespace SourceGit.Commands
             var commit = new Models.Commit() { SHA = data[fields[0]].ToString() };
             commit.ParseParents(data[fields[1]].ToString());
             commit.ParseDecorators(data[fields[2]].ToString());
-            commit.Author = Models.User.FindOrAdd(data[fields[3]].ToString());
+            commit.Author = Models.User.FindOrAdd(data[fields[3]]);
             commit.AuthorTime = ulong.Parse(data[fields[4]]);
-            commit.Committer = Models.User.FindOrAdd(data[fields[5]].ToString());
+            commit.Committer = Models.User.FindOrAdd(data[fields[5]]);
             commit.CommitterTime = ulong.Parse(data[fields[6]]);
             commit.Subject = subject.ToString();
             return commit;

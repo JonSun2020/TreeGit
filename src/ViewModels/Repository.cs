@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -274,6 +275,7 @@ namespace SourceGit.ViewModels
                 {
                     if (_histories != null)
                         _histories.HasSingleRemote = value != null && value.Count == 1;
+                    UpdateAutoFetchTimer();
                 }
             }
         }
@@ -663,8 +665,8 @@ namespace SourceGit.ViewModels
             else if (_settings.LoadRecovery == 1 || _uiStates.LoadRecovery == 1)
                 SendNotification(App.Text("Repository.ConfigRecovery.Backup"), true);
             _selectedViewIndex = 0;
-            _lastFetchTime = DateTime.Now;
-            _autoFetchTimer = new Timer(AutoFetchByTimer, null, 5000, 5000);
+            _settings.BackgroundFetchChanged += UpdateAutoFetchTimer;
+            Preferences.Instance.PropertyChanged += OnAutoFetchPreferenceChanged;
             RefreshAll();
         }
 
@@ -680,6 +682,9 @@ namespace SourceGit.ViewModels
         public void Close()
         {
             _ = _backgroundReads.CancelAsync();
+            Preferences.Instance.PropertyChanged -= OnAutoFetchPreferenceChanged;
+            _settings.BackgroundFetchChanged -= UpdateAutoFetchTimer;
+            _autoFetchTimer?.Stop();
             _watcher?.Dispose();
             Interlocked.Increment(ref _configurationRefreshVersion);
             _changesLayoutSave?.Dispose();
@@ -712,8 +717,6 @@ namespace SourceGit.ViewModels
                 _cancellationRefreshCommits.Cancel();
             if (_cancellationRefreshStashes is { IsCancellationRequested: false })
                 _cancellationRefreshStashes.Cancel();
-
-            _autoFetchTimer.Dispose();
         }
 
         internal CancellationToken BackgroundReads => _backgroundReads.Token;
@@ -898,7 +901,10 @@ namespace SourceGit.ViewModels
                 }
                 var issuetrackers = new List<Models.IssueTracker>();
                 await new Commands.IssueTracker(FullPath, true) { CancellationToken = token }.ReadAllAsync(issuetrackers, true).ConfigureAwait(false);
-                await new Commands.IssueTracker(FullPath, false) { CancellationToken = token }.ReadAllAsync(issuetrackers, false).ConfigureAwait(false);
+                // The full config already tells us whether a local link rule can exist.
+                // Read that scope explicitly when needed so global rules cannot replace local ones.
+                if (config.Keys.Any(static key => key.StartsWith("issuetracker.", StringComparison.Ordinal)))
+                    await new Commands.IssueTracker(FullPath, false) { CancellationToken = token }.ReadAllAsync(issuetrackers, false).ConfigureAwait(false);
                 Dispatcher.UIThread.Post(() =>
                 {
                     if (configurationVersion != Volatile.Read(ref _configurationRefreshVersion))
@@ -2087,7 +2093,10 @@ namespace SourceGit.ViewModels
             var val = remote.DisableAutoFetch ? "false" : "true";
             var succ = await new Commands.Config(FullPath).SetAsync($"remote.{remote.Name.Quoted()}.disableautofetch", val);
             if (succ)
+            {
                 remote.DisableAutoFetch = !remote.DisableAutoFetch;
+                UpdateAutoFetchTimer();
+            }
         }
 
         public void AddSubmodule()
@@ -2428,50 +2437,52 @@ namespace SourceGit.ViewModels
             return null;
         }
 
-        private void AutoFetchByTimer(object sender)
+        private void OnAutoFetchPreferenceChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (BackgroundReads.IsCancellationRequested || Native.TreeGitUpdateInstaller.IsApplying) return;
-            try
-            {
-                Dispatcher.UIThread.Invoke(AutoFetchOnUIThread);
-            }
-            catch
-            {
-                // Ignore exception.
-            }
+            if (e.PropertyName == nameof(Preferences.EnableAutoFetch)) UpdateAutoFetchTimer();
         }
 
-        private async Task AutoFetchOnUIThread()
+        private void UpdateAutoFetchTimer()
         {
-            if (BackgroundReads.IsCancellationRequested || IsAutoFetching)
-                return;
+            if (BackgroundReads.IsCancellationRequested) return;
+            var enabled = Preferences.Instance.EnableAutoFetch && _settings.BackgroundFetchEnabled &&
+                _remotes.Exists(static remote => !remote.DisableAutoFetch);
+            if (enabled == (_autoFetchTimer?.IsEnabled ?? false)) return;
 
+            if (!enabled)
+            {
+                _autoFetchTimer.Stop();
+                return;
+            }
+
+            MarkFetched();
+            if (_autoFetchTimer == null)
+            {
+                _autoFetchTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+                _autoFetchTimer.Tick += AutoFetchByTimer;
+            }
+            _autoFetchTimer.Start();
+        }
+
+        private async void AutoFetchByTimer(object sender, EventArgs e)
+        {
+            if (BackgroundReads.IsCancellationRequested || IsAutoFetching || Native.TreeGitUpdateInstaller.IsApplying)
+                return;
             CommandLog log = null;
 
             try
             {
-                if (!_settings.BackgroundFetchEnabled || !Preferences.Instance.EnableAutoFetch || !CanCreatePopup(userInitiated: false) || GetOwnerPage()?.Popup != null)
+                if (!CanCreatePopup(userInitiated: false) || GetOwnerPage()?.Popup != null)
                 {
-                    _lastFetchTime = DateTime.Now;
+                    MarkFetched();
                     return;
                 }
 
-                var lockFile = Path.Combine(GitDir, "index.lock");
-                if (File.Exists(lockFile))
+                if (_lastFetchTime.AddMinutes(Preferences.Instance.AutoFetchInterval) > DateTime.Now ||
+                    File.Exists(Path.Combine(GitDir, "index.lock")))
                     return;
 
-                var now = DateTime.Now;
-                var desire = _lastFetchTime.AddMinutes(Preferences.Instance.AutoFetchInterval);
-                if (desire > now)
-                    return;
-
-                var remotes = new List<Models.Remote>();
-                foreach (var r in _remotes)
-                {
-                    if (!r.DisableAutoFetch)
-                        remotes.Add(r);
-                }
-
+                var remotes = _remotes.FindAll(static remote => !remote.DisableAutoFetch);
                 if (remotes.Count == 0)
                     return;
 
@@ -2481,18 +2492,20 @@ namespace SourceGit.ViewModels
                 foreach (var remote in remotes)
                 {
                     await new Commands.Fetch(FullPath, remote).Use(log).ExecAsync();
-                    if (log.AuthenticationCancelled) break;
+                    if (log.AuthenticationCancelled || BackgroundReads.IsCancellationRequested) break;
                 }
 
-                _lastFetchTime = DateTime.Now;
+                MarkFetched();
             }
             catch
             {
                 // Ignore all exceptions.
             }
-
-            IsAutoFetching = false;
-            log?.Complete();
+            finally
+            {
+                IsAutoFetching = false;
+                log?.Complete();
+            }
         }
 
         private readonly string _gitCommonDir = null;
@@ -2534,7 +2547,7 @@ namespace SourceGit.ViewModels
         private string _historyNavigationBranch = string.Empty;
 
         private bool _isAutoFetching = false;
-        private Timer _autoFetchTimer = null;
+        private DispatcherTimer _autoFetchTimer = null;
         private DateTime _lastFetchTime = DateTime.MinValue;
 
         private Models.BisectState _bisectState = Models.BisectState.None;

@@ -267,10 +267,18 @@ try:
     git('checkout', 'main')
     git('merge', '--no-ff', 'feature/origin', '-m', 'Integrate side branch')
     origin_before = [git('rev-parse', 'HEAD'), git('ls-files', '--stage'), git('status', '--porcelain'), git('for-each-ref')]
-    tool('ui_refresh', repo=str(repo))
-    wait(lambda: not state()['graphLoading'] and any(b['reference'] == 'refs/heads/feature/origin' for b in state()['loadedBranches']))
     local_origin, remote_origin = 'refs/heads/feature/origin', 'refs/remotes/origin/feature/origin'
     pair = {local_origin, remote_origin}
+    containing_refs = pair | {'refs/heads/main', 'refs/heads/derived/child', 'refs/remotes/other/feature/origin'}
+    tool('ui_refresh', repo=str(repo))
+
+    def origin_snapshot_ready():
+        snapshot = state()
+        commits = snapshot['graphCommits']
+        return (not snapshot['graphLoading'] and commits and commits[0]['sha'] == origin_before[0] and
+                containing_refs.issubset(branch['reference'] for branch in snapshot['loadedBranches']))
+
+    wait(origin_snapshot_ready)
     probe('sidebar_folders_open')
 
     def highlights():
