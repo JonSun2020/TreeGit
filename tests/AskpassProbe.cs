@@ -1,18 +1,36 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 namespace SourceGit.Tests
 {
     internal static class AskpassProbe
     {
+        private sealed record Draft(string Username, string Password);
+        private static readonly ConditionalWeakTable<Views.Askpass, Draft> _submittedDrafts = new();
+
+        internal static void VerifyRevealAfterReturningToInput(Views.PasswordTextBox input)
+        {
+            if (input.InnerRightContent is not ToggleButton eye || !eye.Focus(NavigationMethod.Pointer))
+                throw new InvalidOperationException("The eye button must accept focus.");
+            eye.SetCurrentValue(ToggleButton.IsCheckedProperty, true);
+            if (!input.RevealPassword || !input.Focus(NavigationMethod.Pointer) || !input.RevealPassword || eye.IsChecked != true)
+                throw new InvalidOperationException("Returning from the eye to the password field must keep it revealed.");
+        }
+
         internal static void Trace(string state)
         {
             var fixture = Environment.GetEnvironmentVariable("SOURCEGIT_TEST_ASKPASS_FIXTURE");
@@ -30,6 +48,26 @@ namespace SourceGit.Tests
         }
         [DllImport("user32.dll")]
         private static extern IntPtr GetWindow(IntPtr window, uint command);
+
+        private static void VerifyCredentialFields(Views.Askpass view)
+        {
+            var labels = new[] { view.RepositoryLabel, view.ServerLabel, view.UsernameLabel, view.PasswordLabel };
+            Control[] values = [view.TxtRepository, view.TxtServer, view.TxtUsername, view.TxtPassphrase];
+            double Right(Control c) => c.TranslatePoint(new Point(c.Bounds.Width, 0), view).Value.X;
+            double X(Control c) => c.TranslatePoint(default, view).Value.X;
+            double Center(Control c) => c.TranslatePoint(new Point(0, c.Bounds.Height / 2), view).Value.Y;
+            bool Rounded(TextBox box) => box.GetVisualDescendants().OfType<Border>().Any(b =>
+                b.Name == "PART_BorderElement" && b.CornerRadius.TopLeft > 0 && b.CornerRadius.BottomRight > 0);
+            var token = Native.RepositoryCredentials.UsesGitHubToken(view.TxtServer.Text);
+            if (labels.Any(label => Math.Abs(Right(label) - Right(labels[0])) > 1) ||
+                values.Any(value => Math.Abs(X(value) - X(values[0])) > 1) ||
+                Math.Abs(Center(view.UsernameLabel) - Center(view.TxtUsername)) > 1 ||
+                Math.Abs(Center(view.PasswordLabel) - Center(view.TxtPassphrase)) > 1 ||
+                !Rounded(view.TxtUsername) || !Rounded(view.TxtPassphrase) || view.TokenHelp.IsVisible != token ||
+                view.PasswordLabel.Text != App.Text(token ? "TreeGit.Credentials.GitHubTokenLabel" : "TreeGit.Credentials.Password") ||
+                view.TxtPassphrase.Watermark != App.Text(token ? "TreeGit.Credentials.GitHubTokenPlaceholder" : "TreeGit.Credentials.OptionalPassword"))
+                throw new InvalidOperationException("Credential rows, rounded fields, or provider-specific labels are incorrect.");
+        }
 
         public static void OnLoaded(Views.Askpass view, Action submit)
         {
@@ -49,8 +87,15 @@ namespace SourceGit.Tests
             }
             if (view.IsCredentialPrompt)
             {
-                if (!view.UsernameSection.IsVisible || !view.TxtUsername.IsEffectivelyVisible || !view.TxtPassphrase.IsEffectivelyVisible)
+                if (!view.UsernameLabel.IsEffectivelyVisible || !view.TxtUsername.IsEffectivelyVisible || !view.TxtPassphrase.IsEffectivelyVisible)
                     throw new InvalidOperationException("Username and password must be visible in the same authentication window.");
+                if (_submittedDrafts.TryGetValue(view, out var previous))
+                {
+                    if (!view.ValidationMessage.IsVisible || view.TxtUsername.Text != previous.Username || view.TxtPassphrase.Text != previous.Password)
+                        throw new InvalidOperationException("Failed authentication must preserve the submitted account and secret.");
+                    Append(fixture, "draft-preserved-after-failure\n");
+                    _submittedDrafts.Remove(view);
+                }
                 var hasAttempts = value.TryGetProperty("attempts", out var attempts);
                 var attempt = (hasAttempts ? attempts[0] : value).Clone();
                 var next = hasAttempts && attempts.GetArrayLength() > 1 ? JsonSerializer.Serialize(new { attempts = attempts.EnumerateArray().Skip(1).Select(a => a.Clone()).ToArray() }) : null;
@@ -75,8 +120,23 @@ namespace SourceGit.Tests
                     var usernameProvider = ControlAutomationPeer.CreatePeerForElement(view.TxtUsername) as IValueProvider;
                     if (passwordProvider?.Value != string.Empty || usernameProvider?.Value != view.TxtUsername.Text)
                         throw new InvalidOperationException("Accessibility must preserve the account field without exposing the password.");
-                    view.ToggleShowPassword.IsChecked = true;
-                    if (!view.TxtPassphrase.RevealPassword) throw new InvalidOperationException("The eye toggle did not reveal the password.");
+                    view.UpdateLayout();
+                    VerifyCredentialFields(view);
+                    if (attempt.TryGetProperty("verifyFixedWidth", out var verifyWidth) && verifyWidth.GetBoolean())
+                    {
+                        var original = view.TxtPassphrase.Text;
+                        var windowWidth = view.Bounds.Width;
+                        var inputWidth = view.TxtPassphrase.Bounds.Width;
+                        view.TxtPassphrase.Text = new string('x', 512);
+                        await Task.Delay(100);
+                        view.UpdateLayout();
+                        if (Math.Abs(view.Bounds.Width - windowWidth) > .5 ||
+                            Math.Abs(view.TxtPassphrase.Bounds.Width - inputWidth) > .5)
+                            throw new InvalidOperationException("A long token must not resize the authentication dialog or the input field.");
+                        view.TxtPassphrase.Text = original;
+                        Append(fixture, "credential-width-stable\n");
+                    }
+                    VerifyRevealAfterReturningToInput(view.TxtPassphrase);
                     if (passwordProvider.Value != string.Empty)
                         throw new InvalidOperationException("Revealing a password must not publish it through the value interface.");
                     view.ToggleShowPassword.IsChecked = false;
@@ -84,15 +144,28 @@ namespace SourceGit.Tests
                         throw new InvalidOperationException("The eye toggle did not restore star masking.");
                     Append(fixture, "visibility-toggle\n");
                     Append(fixture, "password-interface-protected\n");
+                    if (attempt.TryGetProperty("expectTokenRequired", out var tokenRequired) && tokenRequired.GetBoolean())
+                    {
+                        view.TxtPassphrase.Text = string.Empty;
+                        submit();
+                        if (!view.ValidationMessage.IsVisible || view.ValidationMessage.Text != App.Text("TreeGit.Credentials.GitHubTokenRequired"))
+                            throw new InvalidOperationException("GitHub HTTPS must require a token in manual mode.");
+                        Append(fixture, "github-token-required\n");
+                    }
                     if (next != null) File.WriteAllText(fixture, next);
                     if (cancel) view.Close();
                     else
                     {
+                        var draft = new Draft(view.TxtUsername.Text, view.TxtPassphrase.Text);
                         submit();
+                        if ((view.IsVerifying || view.ValidationMessage.IsVisible) &&
+                            (view.TxtUsername.Text != draft.Username || view.TxtPassphrase.Text != draft.Password))
+                            throw new InvalidOperationException("Submitting or validating an authentication form must keep the input.");
                         if (view.IsVerifying && (!view.VerificationOverlay.IsVisible || view.CredentialFields.IsEnabled || view.ConfirmAuthentication.IsEnabled))
                             throw new InvalidOperationException("The verifying mask must block repeated confirmation and input.");
                         if (view.IsVerifying)
                         {
+                            _submittedDrafts.Add(view, draft);
                             var before = view.TxtPassphrase.Text;
                             var blocked = false;
                             try { passwordProvider.SetValue("blocked verification edit"); }

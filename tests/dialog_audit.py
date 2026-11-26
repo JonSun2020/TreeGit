@@ -78,6 +78,68 @@ def within(d):
     a=d['workArea']
     return d['x']>=a['x']-1 and d['y']>=a['y']-1 and d['x']+d['width']*d['scaling']<=a['x']+a['width']+1 and d['y']+d['height']*d['scaling']<=a['y']+a['height']+1
 
+def audit_advanced_options(locale, view, initial):
+    def set_option(name, value):
+        tool('ui_layout', {'action':'test_set','button':name,'value':value})
+    def state():
+        return next(f['advancedOptions'] for f in tool('ui_layout')['operationForms'] if f['popup']==view)
+    def right(bounds):
+        return bounds['x']+bounds['width']
+    def bottom(bounds):
+        return bounds['y']+bounds['height']
+    names=['BranchAllowOverwrite'] if view=='CreateBranch' else ['PushSkipHooks','PushForce']
+    states=[]
+    color='#ffff8585' if locale=='zh_TW' else '#ffb91c1c'
+    for mask in range(1<<len(names)):
+        for i,name in enumerate(names):
+            set_option(name,(mask>>i)&1)
+        current=state()
+        states.append(current)
+        expected={name for i,name in enumerate(names) if (mask>>i)&1}
+        warnings=current['warnings']
+        check(f'{locale} {view} shows bold warning text with grey italics for inactive options for option mask {mask}',
+              {w['owner'] for w in warnings}==set(names) and all(w['text'] and w['messageText'] and w['bold'] and
+                  w['opacity']==w['messageOpacity'] and w['fontStyle']==w['messageFontStyle'] and
+                  (w['opacity']==1 and w['color'].lower()==color and w['messageColor']==w['normal'] and w['fontStyle']=='Normal'
+                   if w['owner'] in expected else 0<w['opacity']<1 and w['color']==w['messageColor']==w['muted'] and w['fontStyle']=='Italic')
+                  for w in warnings))
+        if mask==0:
+            (out/(locale+'-'+view+'-warnings-inactive.png')).write_bytes(tool('ui_screenshot'))
+    warnings=states[-1]['warnings']
+    check(f'{locale} {view} warning colons align in red directly below their own options',
+          len(warnings)==len(names) and all(w['text'].endswith((':','\uff1a')) and w['color'].lower()==color and
+              abs(right(w['label'])-right(initial['caption']))<=.5 and w['label']['y']>=bottom(w['option'])-.5 and
+              abs(w['baselineDifference'])<=.5 for w in warnings) and
+          (len(warnings)==1 or bottom(warnings[0]['message'])<=warnings[1]['option']['y']+.5))
+    if view=='CreateBranch':
+        set_option('BranchCheckoutAfterCreated',0)
+        disabled=state()
+        states.append(disabled)
+        local=disabled['localChanges']
+        check(f'{locale} Create Branch keeps local changes below the checkout checkbox and disables and mutes the whole group',
+              local['visible'] and local['checkout']['y']>=bottom(warnings[0]['message'])-.5 and
+              local['bounds']['y']>=bottom(local['checkout'])-.5 and
+              not local['enabled'] and not local['captionEnabled'] and local['opacity']<1 and local['captionOpacity']<1 and
+              len(local['radios'])==3 and all(not r['isEffectivelyEnabled'] and r['foreground']==local['muted'] and
+                  r['ring']==local['muted'] and r['fillAlpha']==0 and
+                  (not r['isChecked'] or r['dot']==local['muted']) for r in local['radios']))
+        (out/(locale+'-branch-disabled-warning.png')).write_bytes(tool('ui_screenshot'))
+        set_option('BranchCheckoutAfterCreated',1)
+        reenabled=state()
+        states.append(reenabled)
+        local=reenabled['localChanges']
+        check(f'{locale} Create Branch restores radio input and the selected method when checkout is re-enabled',
+              local['enabled'] and local['captionEnabled'] and local['opacity']==1 and local['captionOpacity']==1 and
+              all(r['isEffectivelyEnabled'] for r in local['radios']) and
+              [r['isChecked'] for r in local['radios']]==[r['isChecked'] for r in disabled['localChanges']['radios']])
+    else:
+        (out/(locale+'-push-both-warnings.png')).write_bytes(tool('ui_screenshot'))
+    for name in names:
+        set_option(name,0)
+    states.append(state())
+    check(f'{locale} {view} reserves identical dialog geometry before and after toggles',
+          all(s['dialog']==initial['dialog'] for s in states))
+
 def audit_operation(locale, view, command, **args):
     if command in ('stash_apply_dialog','stash_drop_dialog','stash_branch_dialog'):
         tool('ui_stashes', {'repo':str(repo),'action':'select','stash':'stash@{0}'})
@@ -89,7 +151,8 @@ def audit_operation(locale, view, command, **args):
         deadline=time.monotonic()+10
         frames=[]
         while time.monotonic()<deadline:
-            frames=[f for f in tool('ui_layout')['operationForms'] if f['popup']==view and f['values']]
+            layout=tool('ui_layout')
+            frames=[f for f in layout['operationForms'] if f['popup']==view and f['values']]
             if frames and any(f['captions'] for f in frames):break
             time.sleep(.04)
         assert frames and any(f['captions'] for f in frames),(locale,view,command)
@@ -103,9 +166,12 @@ def audit_operation(locale, view, command, **args):
                 'bodyWidth':frames[0]['body']['localWidth'],'advancedOptions':advanced}
         records.append(sample)
         check(f'{locale} {command} balances the outer margins and fits each caption',aligned and labels_fit)
+        check(f'{locale} {command} uses rounded input and selection controls',
+              all(field['rounded'] for field in layout['roundedInputFields']))
         if command in {'push_dialog','create_branch'}:
             check(f'{locale} {command} aligns the advanced caption with the first checkbox baseline',
                   advanced is not None and abs(advanced['baselineDifference'])<=.5)
+            audit_advanced_options(locale,view,advanced)
         if command=='fetch_dialog':
             probe={'action':'test_menu','text':'checkbox_initial_appearance','button':'FetchForceCheckBox','value':0}
             initial=tool('ui_layout',probe)
@@ -168,7 +234,7 @@ try:
         push_gap=samples['push_dialog']['advancedOptions']['gap']
         branch_gap=samples['create_branch']['advancedOptions']['gap']
         check(f'{locale} Push and Create Branch share the 8-DIP gap above advanced options',
-              abs(push_gap-branch_gap)<=.5 and abs(push_gap-8*scale)<=1)
+              abs(push_gap-branch_gap)<=.5 and abs(push_gap-8)<=.5)
         check(f'{locale} Stash uses the same width as Push, Pull, and Create Branch',
               max(samples[command]['bodyWidth'] for command in ('push_dialog','pull_dialog','create_branch','stash_dialog')) -
               min(samples[command]['bodyWidth'] for command in ('push_dialog','pull_dialog','create_branch','stash_dialog')) <=1)

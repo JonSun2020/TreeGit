@@ -20,7 +20,7 @@
                  Text="{DynamicResource Text.CreateBranch.Title}"/>
     </StackPanel>
 
-    <Grid Classes="operation_form" Margin="0,16,0,0" RowDefinitions="32,32,Auto,8,Auto,Auto,Auto">
+    <Grid Classes="operation_form" Margin="0,16,0,0" RowDefinitions="32,32,8,Auto,Auto,Auto,Auto">
       <Grid.ColumnDefinitions>
         <ColumnDefinition Width="Auto"/>
         <ColumnDefinition Width="*"/>
@@ -76,42 +76,33 @@
                                 Text="{Binding Name, Mode=TwoWay}"
                                 Watermark="{DynamicResource Text.CreateBranch.Name.Placeholder}"/>
 
-      <Border Grid.Row="2" Grid.Column="0"
-              Height="32"
-              VerticalAlignment="Top">
-        <Border.IsVisible>
-          <MultiBinding Converter="{x:Static BoolConverters.And}">
-            <Binding Path="HasLocalChanges" Mode="OneWay"/>
-            <Binding Path="CheckoutAfterCreated" Mode="OneWay"/>
-          </MultiBinding>
-        </Border.IsVisible>
+      <TextBlock x:Name="BranchAdvancedOptions" Grid.Row="3" Grid.Column="0" Text="{DynamicResource Text.UI.AdvancedOptionsLabel}"
+                 HorizontalAlignment="Right" VerticalAlignment="Center" UseLayoutRounding="False" Margin="0,0,8,0"/>
+      <CheckBox x:Name="BranchAllowOverwrite" Grid.Row="3" Grid.Column="1" UseLayoutRounding="False"
+                IsChecked="{Binding AllowOverwrite, Mode=TwoWay}" ToolTip.Tip="{Binding OverrideTip}">
+        <TextBlock Text="{DynamicResource Text.CreateBranch.OverwriteExisting}" TextWrapping="Wrap"/>
+      </CheckBox>
+      <ContentControl Grid.Row="4" Grid.Column="0" Classes="operation_warning warning_label" Classes.active="{Binding AllowOverwrite}"
+                      Content="{DynamicResource Text.UI.WarningLabel}"
+                      HorizontalAlignment="Right" VerticalAlignment="Top" UseLayoutRounding="False" Margin="0,0,8,4"/>
+      <ContentControl Grid.Row="4" Grid.Column="1" Classes="operation_warning" Classes.active="{Binding AllowOverwrite}"
+                      Content="{DynamicResource Text.UI.ResetBranchEnabled}" Margin="0,0,0,4"/>
+
+      <CheckBox x:Name="BranchCheckoutAfterCreated" Grid.Row="5" Grid.Column="1"
+                Content="{DynamicResource Text.CreateBranch.Checkout}"
+                IsChecked="{Binding CheckoutAfterCreated, Mode=TwoWay}"
+                IsVisible="{Binding !IsBareRepository}"/>
+
+      <Border x:Name="BranchLocalChangesLabel" Grid.Row="6" Grid.Column="0"
+              Height="32" VerticalAlignment="Top" Classes="option_dependent"
+              IsVisible="{Binding HasLocalChanges}" IsEnabled="{Binding CheckoutAfterCreated}">
         <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center"
                    Margin="0,0,8,0"
                    Text="{DynamicResource Text.CreateBranch.LocalChanges}"/>
       </Border>
-      <v:DealWithLocalChangesMethod Grid.Row="2" Grid.Column="1"
-                                    Method="{Binding DealWithLocalChanges, Mode=TwoWay}">
-        <v:DealWithLocalChangesMethod.IsVisible>
-          <MultiBinding Converter="{x:Static BoolConverters.And}">
-            <Binding Path="HasLocalChanges" Mode="OneWay"/>
-            <Binding Path="CheckoutAfterCreated" Mode="OneWay"/>
-          </MultiBinding>
-        </v:DealWithLocalChangesMethod.IsVisible>
-      </v:DealWithLocalChangesMethod>
-
-      <TextBlock x:Name="BranchAdvancedOptions" Grid.Row="4" Grid.Column="0" Text="{DynamicResource Text.UI.AdvancedOptionsLabel}"
-                 HorizontalAlignment="Right" VerticalAlignment="Center" UseLayoutRounding="False" Margin="0,0,8,0"/>
-      <CheckBox x:Name="BranchAllowOverwrite" Grid.Row="4" Grid.Column="1" UseLayoutRounding="False"
-                IsChecked="{Binding AllowOverwrite, Mode=TwoWay}" ToolTip.Tip="{Binding OverrideTip}">
-        <TextBlock Text="{DynamicResource Text.CreateBranch.OverwriteExisting}" TextWrapping="Wrap"/>
-      </CheckBox>
-      <TextBlock Grid.Row="5" Grid.ColumnSpan="2" Text="{DynamicResource Text.UI.ResetBranchEnabled}"
-                 IsVisible="{Binding AllowOverwrite}" FontWeight="Bold" TextWrapping="Wrap" Margin="0,0,0,4"/>
-
-      <CheckBox Grid.Row="6" Grid.Column="1"
-                Content="{DynamicResource Text.CreateBranch.Checkout}"
-                IsChecked="{Binding CheckoutAfterCreated, Mode=TwoWay}"
-                IsVisible="{Binding !IsBareRepository}"/>
+      <v:DealWithLocalChangesMethod Grid.Row="6" Grid.Column="1" Classes="option_dependent"
+                                    IsVisible="{Binding HasLocalChanges}" IsEnabled="{Binding CheckoutAfterCreated}"
+                                    Method="{Binding DealWithLocalChanges, Mode=TwoWay}"/>
     </Grid>
   </StackPanel>
 </UserControl>

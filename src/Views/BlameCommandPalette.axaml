@@ -14,7 +14,6 @@
                                        Height="24"
                                        Margin="4,8,4,0"
                                        BorderThickness="1"
-                                       CornerRadius="12"
                                        Text="{Binding Filter, Mode=TwoWay}"
                                        BorderBrush="{DynamicResource Brush.Border2}"
                                        VerticalContentAlignment="Center">

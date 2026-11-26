@@ -22,7 +22,7 @@
   </UserControl.Resources>
   <Grid RowDefinitions="28,*" Background="{DynamicResource Brush.Contents}">
     <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Background="{DynamicResource Brush.SubPanel}" Margin="2,0">
-      <TextBox x:Name="TxtSearchCommitsBox" Grid.Column="0" Height="24" MinHeight="24" CornerRadius="0" Padding="4,0" Watermark="{DynamicResource Text.TreeGit.Search}" Text="{Binding Filter, Mode=TwoWay}" VerticalContentAlignment="Center" KeyDown="OnSearchBoxKeyDown">
+      <TextBox x:Name="TxtSearchCommitsBox" Grid.Column="0" Height="24" MinHeight="24" Padding="4,0" Watermark="{DynamicResource Text.TreeGit.Search}" Text="{Binding Filter, Mode=TwoWay}" VerticalContentAlignment="Center" KeyDown="OnSearchBoxKeyDown">
         <TextBox.InnerRightContent>
           <StackPanel Orientation="Horizontal">
             <Button Classes="icon_button" Width="20" Command="{Binding ClearFilter}" IsVisible="{Binding Filter, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"><Path Width="12" Height="12" Fill="{DynamicResource Brush.FG2}" Data="{StaticResource Icons.Clear}"/></Button>

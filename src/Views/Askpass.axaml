@@ -37,33 +37,41 @@
 
     <Grid Grid.Row="1" Margin="0,16" RowDefinitions="*,Auto">
     <StackPanel x:Name="CredentialFields" Grid.Row="0" Orientation="Vertical">
-      <Border Margin="16,0">
+      <Border x:Name="PromptDescription" Margin="16,0,16,12">
         <TextBlock x:Name="TxtDescription" MaxWidth="480" Text="{DynamicResource Text.Askpass.Passphrase}" TextWrapping="Wrap"/>
       </Border>
 
-      <StackPanel x:Name="UsernameSection" Margin="16,12,16,0" Spacing="6" IsVisible="False">
-        <TextBlock Text="{DynamicResource Text.TreeGit.Credentials.Username}"/>
-        <TextBox x:Name="TxtUsername" Height="32" Watermark="{DynamicResource Text.TreeGit.Credentials.UsernameHint}"/>
-        <TextBlock Text="{DynamicResource Text.TreeGit.Credentials.OptionalPassword}" Margin="0,6,0,0"/>
-      </StackPanel>
+      <Grid Margin="16,0,16,16" MaxWidth="480" ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+        <TextBlock x:Name="RepositoryLabel" IsVisible="False" Grid.Row="0" Grid.Column="0" Margin="0,0,8,6"
+                   HorizontalAlignment="Right" VerticalAlignment="Top" Text="{DynamicResource Text.TreeGit.Credentials.RepositoryCaption}"/>
+        <TextBlock x:Name="TxtRepository" IsVisible="{Binding #RepositoryLabel.IsVisible}" Grid.Row="0" Grid.Column="1"
+                   Margin="0,0,0,6" TextWrapping="Wrap"/>
+        <TextBlock x:Name="ServerLabel" IsVisible="{Binding #RepositoryLabel.IsVisible}" Grid.Row="1" Grid.Column="0" Margin="0,0,8,6"
+                   HorizontalAlignment="Right" VerticalAlignment="Top" Text="{DynamicResource Text.TreeGit.Credentials.ServerCaption}"/>
+        <TextBlock x:Name="TxtServer" IsVisible="{Binding #RepositoryLabel.IsVisible}" Grid.Row="1" Grid.Column="1"
+                   Margin="0,0,0,6" TextWrapping="Wrap"/>
 
-      <v:PasswordTextBox x:Name="TxtPassphrase"
-               Margin="16"
-               MinWidth="300"
-               Height="32"
-               Watermark="{DynamicResource Text.TreeGit.Credentials.PasswordHint}"
-               Focusable="True"
-               PasswordChar="*"
-               RevealPassword="{Binding #ToggleShowPassword.IsChecked, Mode=OneWay}"
-               HorizontalAlignment="Stretch">
-        <TextBox.InnerRightContent>
-          <ToggleButton Grid.Column="6"
-                        x:Name="ToggleShowPassword"
-                        Classes="toggle_untracked"
-                        ToolTip.Tip="{DynamicResource Text.TreeGit.Credentials.TogglePassword}"
-                        Width="26" Height="14"/>
-        </TextBox.InnerRightContent>
-      </v:PasswordTextBox>
+        <TextBlock x:Name="UsernameLabel" IsVisible="{Binding #RepositoryLabel.IsVisible}" Grid.Row="2" Grid.Column="0" Margin="0,0,8,6"
+                   HorizontalAlignment="Right" VerticalAlignment="Center" Text="{DynamicResource Text.TreeGit.Credentials.Username}"/>
+        <TextBox x:Name="TxtUsername" IsVisible="{Binding #RepositoryLabel.IsVisible}" Grid.Row="2" Grid.Column="1"
+                 Height="26" Margin="0,0,0,6" VerticalAlignment="Center" Watermark="{DynamicResource Text.TreeGit.Credentials.UsernameHint}"/>
+        <TextBlock x:Name="PasswordLabel" IsVisible="{Binding #RepositoryLabel.IsVisible}" Grid.Row="3" Grid.Column="0" Margin="0,0,8,0"
+                   HorizontalAlignment="Right" VerticalAlignment="Center"/>
+        <v:PasswordTextBox x:Name="TxtPassphrase" Grid.Row="3" Grid.Column="1"
+                         MinWidth="300" Height="26" VerticalAlignment="Center"
+                         ScrollViewer.HorizontalScrollBarVisibility="Hidden"
+                         Watermark="{DynamicResource Text.TreeGit.Credentials.PasswordHint}"
+                         Focusable="True" PasswordChar="*"
+                         RevealPassword="{Binding #ToggleShowPassword.IsChecked, Mode=OneWay}">
+          <TextBox.InnerRightContent>
+            <ToggleButton x:Name="ToggleShowPassword"
+                          Classes="toggle_untracked"
+                          ToolTip.Tip="{DynamicResource Text.TreeGit.Credentials.TogglePassword}"
+                          Width="26" Height="14"/>
+          </TextBox.InnerRightContent>
+        </v:PasswordTextBox>
+        <v:GitHubTokenHelp x:Name="TokenHelp" Grid.Row="4" Grid.Column="1" IsVisible="False" Margin="0,6,0,0"/>
+      </Grid>
       <TextBlock x:Name="ValidationMessage" Margin="16,0,16,12" MaxWidth="480" TextWrapping="Wrap" Foreground="IndianRed" IsVisible="False"/>
     </StackPanel>
     <Grid x:Name="VerificationOverlay" Grid.Row="0" IsVisible="False" IsHitTestVisible="False" MinHeight="100">

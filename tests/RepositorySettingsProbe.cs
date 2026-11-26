@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
@@ -601,12 +602,45 @@ namespace SourceGit.Tests
             {
                 var dropdown = dialog.GetLogicalDescendants().OfType<ComboBox>().Single(c => c.Name == "CredentialRemote");
                 var confirm = dialog.GetLogicalDescendants().OfType<Button>().Single(b => b.Name == "ConfirmCredentials");
+                var mode = dialog.GetLogicalDescendants().OfType<CheckBox>().Single(c => c.Name == "CredentialMode");
+                var username = dialog.GetLogicalDescendants().OfType<TextBox>().Single(c => c.Name == "CredentialUsername");
+                var password = dialog.GetLogicalDescendants().OfType<Views.PasswordTextBox>().Single(c => c.Name == "CredentialPassword");
+                var textBlocks = dialog.GetLogicalDescendants().OfType<TextBlock>().ToArray();
+                var description = textBlocks.Single(c => c.Name == "CredentialDescription");
+                var status = textBlocks.Single(c => c.Name == "CredentialStatus");
+                var hint = textBlocks.Single(c => c.Name == "CredentialIdentityHint");
                 for (var attempt = 0; attempt < 160 && !confirm.IsEnabled; attempt++)
                     await Task.Delay(25);
+                await Task.Delay(75);
                 dialog.UpdateLayout();
                 var scroll = dropdown.FindAncestorOfType<ScrollViewer>() ?? throw new InvalidOperationException("Credential viewport is unavailable.");
                 if (!confirm.IsEnabled || dropdown.ItemCount < 2)
                     throw new InvalidOperationException("Credential fixture did not load both remotes.");
+
+                var configPath = Path.Combine(Path.GetDirectoryName(repo.Settings.StoragePath)!, "config");
+                var originalConfig = File.ReadAllBytes(configPath);
+                username.Text = "fixture-account";
+                password.Text = "fixture-secret";
+                AskpassProbe.VerifyRevealAfterReturningToInput(password);
+                var modeSnapshots = new List<object>();
+                foreach (var system in new[] { false, true, false })
+                {
+                    mode.SetCurrentValue(CheckBox.IsCheckedProperty, system);
+                    for (var attempt = 0; attempt < 160 && !confirm.IsEnabled; attempt++)
+                        await Task.Delay(25);
+                    await Task.Delay(75);
+                    dialog.UpdateLayout();
+                    modeSnapshots.Add(new
+                    {
+                        height = dialog.Bounds.Height, top = dialog.Position.Y,
+                        hintY = hint.TranslatePoint(default, dialog).Value.Y,
+                        confirmY = confirm.TranslatePoint(default, dialog).Value.Y,
+                        status = status.Text == App.Text(system ? "TreeGit.Credentials.SystemManaged" : "TreeGit.Credentials.None"),
+                        fits = status.TextLayout.Height <= status.Bounds.Height + .5,
+                        editable = username.IsEffectivelyEnabled,
+                        preservesDraft = username.Text == "fixture-account" && password.Text == "fixture-secret",
+                    });
+                }
 
                 const double clippedHeight = 8;
                 var pickerTop = dropdown.TranslatePoint(default, scroll).Value.Y + scroll.Offset.Y;
@@ -635,16 +669,15 @@ namespace SourceGit.Tests
                 dropdown.IsDropDownOpen = false;
                 await Task.Delay(50);
                 var afterClose = scroll.Offset.Y;
-                var textBlocks = dialog.GetLogicalDescendants().OfType<TextBlock>().ToArray();
-                var description = textBlocks.Single(c => c.Name == "CredentialDescription");
-                var status = textBlocks.Single(c => c.Name == "CredentialStatus");
-                var hint = textBlocks.Single(c => c.Name == "CredentialIdentityHint");
-                var hintGap = hint.Bounds.Top - status.Bounds.Bottom;
+                var hintGap = hint.Bounds.Top - ((Control)status.Parent).Bounds.Bottom;
                 return new
                 {
                     clippedAtBottom, popupAligned, offset, afterFocus, afterOpen, afterClose, anchor, anchorAfter,
                     pathTopInset = ((Control)scroll.Content).Margin.Top,
                     hintGap,
+                    modeSnapshots,
+                    credentialReveal = true,
+                    switchingPreservesConfig = originalConfig.AsSpan().SequenceEqual(File.ReadAllBytes(configPath)),
                     descriptionFlows = description.Text.Contains("SSH", StringComparison.Ordinal) && !description.Text.Contains('\n') && !description.Text.Contains('\r'),
                     stable = Math.Abs(offset - afterFocus) < .5 && Math.Abs(offset - afterOpen) < .5 &&
                         Math.Abs(offset - afterClose) < .5 && Math.Abs(anchor - anchorAfter) < .5,
@@ -728,6 +761,8 @@ namespace SourceGit.Tests
                     else if (scenario is not ("unchanged" or "early_input")) throw new ArgumentException("Unknown credential scenario");
                     if (scenario == "config_locked") { File.WriteAllText(config + ".lock", "owned credential test"); locked = true; }
                     if (scenario == "commit_failure") File.SetAttributes(config, attributes | FileAttributes.ReadOnly);
+                    var enteredUser = user.Text;
+                    var enteredPassword = password.Text;
                     if (!clearCancelled) save.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     else ((Button)controls["CancelCredentials"]).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     for (var attempt = 0; attempt < 200 && !save.IsEnabled; attempt++) await Task.Delay(30);
@@ -743,6 +778,7 @@ namespace SourceGit.Tests
                         modeEnabledAtOpen, stillLoadingAtOpen, fieldsEnabledAtOpen, fieldsMatchModeWhileLoading, earlyInputPreserved,
                         earlyInputSaved = saved.HasValue && saved.Value.Username == "early-test-user" && saved.Value.Password == "early-test-secret",
                         inlineFields, remoteAligned, rightAligned, remoteCaption, modeToFieldsGap, passwordCaption, passwordWatermark,
+                        draftPreserved = user.Text == enteredUser && password.Text == enteredPassword,
                         localizedInputError = scenario != "oversized" || status.Text == App.Text("TreeGit.Credentials.TooLong") && status.Foreground == Avalonia.Media.Brushes.IndianRed,
                         systemMode = Native.RepositoryCredentials.UsesCredentialManager(repo.FullPath) });
                 }

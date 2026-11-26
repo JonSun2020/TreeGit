@@ -585,7 +585,7 @@
   </Style>
 
   <Style Selector="TextBox">
-    <Setter Property="CornerRadius" Value="0"/>
+    <Setter Property="CornerRadius" Value="3"/>
     <Setter Property="Padding" Value="4,0"/>
     <Setter Property="MinHeight" Value="16"/>
     <Setter Property="VerticalContentAlignment" Value="Center"/>
@@ -1096,6 +1096,7 @@
       <SolidColorBrush x:Key="ComboBoxDropDownBorderBrush" Color="{DynamicResource SystemAccentColor}"/>
     </Style.Resources>
 
+    <Setter Property="CornerRadius" Value="3"/>
     <Setter Property="MinHeight" Value="20"/>
     <Setter Property="VerticalAlignment" Value="Center"/>
     <Setter Property="BorderBrush" Value="{DynamicResource Brush.Border1}"/>
@@ -1111,6 +1112,7 @@
     </Style>
     <Style Selector="^ /template/ Border#PopupBorder">
       <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="3"/>
       <Setter Property="Padding" Value="0"/>
     </Style>
     <Style Selector="^:pointerover /template/ Border#Background">
@@ -1628,6 +1630,40 @@
     <Setter Property="Opacity" Value="0.68"/>
   </Style>
 
+  <Style Selector="ContentControl.operation_warning">
+    <Setter Property="IsHitTestVisible" Value="False"/>
+    <Setter Property="FontWeight" Value="Bold"/>
+    <Setter Property="Template">
+      <ControlTemplate>
+        <!-- Measure both styles so wrapping and window height stay stable when toggling. -->
+        <Grid>
+          <TextBlock Classes="inactive_warning_text" Text="{TemplateBinding Content}"
+                     HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Top"
+                     FontWeight="{TemplateBinding FontWeight}" FontStyle="Italic" TextWrapping="Wrap"
+                     Foreground="{DynamicResource Brush.FG2}" Opacity="0.68"/>
+          <TextBlock Classes="active_warning_text" Text="{TemplateBinding Content}"
+                     HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Top"
+                     FontWeight="{TemplateBinding FontWeight}" TextWrapping="Wrap"
+                     Foreground="{DynamicResource Brush.FG1}" Opacity="0" AutomationProperties.AccessibilityView="Raw"/>
+        </Grid>
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^.active /template/ TextBlock.inactive_warning_text">
+      <Setter Property="Opacity" Value="0"/>
+      <Setter Property="AutomationProperties.AccessibilityView" Value="Raw"/>
+    </Style>
+    <Style Selector="^.active /template/ TextBlock.active_warning_text">
+      <Setter Property="Opacity" Value="1"/>
+      <Setter Property="AutomationProperties.AccessibilityView" Value="Content"/>
+    </Style>
+    <Style Selector="^.warning_label">
+      <Setter Property="HorizontalContentAlignment" Value="Right"/>
+      <Style Selector="^ /template/ TextBlock.active_warning_text">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.OperationWarning}"/>
+      </Style>
+    </Style>
+  </Style>
+
   <Style Selector="TextBlock.repository_settings_caption:disabled">
     <Setter Property="Foreground" Value="{DynamicResource Brush.FG2}"/>
   </Style>
@@ -1677,6 +1713,7 @@
     <Setter Property="Background" Value="{DynamicResource Brush.Contents}"/>
 
     <Style Selector="^ /template/ ButtonSpinner#PART_Spinner">
+      <Setter Property="CornerRadius" Value="3"/>
       <Setter Property="MinHeight" Value="0"/>
       <Setter Property="Height" Value="28"/>
     </Style>

@@ -1336,10 +1336,11 @@
   <x:String x:Key="Text.Stash.After.KeepAll.Description" xml:space="preserve">建立貯藏副本，本地仍保留相同的暫存和未暫存修改。</x:String>
   <x:String x:Key="Text.UI.AdvancedOptions" xml:space="preserve">進階選項</x:String>
   <x:String x:Key="Text.UI.AdvancedOptionsLabel" xml:space="preserve">進階選項：</x:String>
-  <x:String x:Key="Text.UI.ForcePushEnabled" xml:space="preserve">注意：已開啟強制推送，可能改寫遠端提交歷史。</x:String>
-  <x:String x:Key="Text.UI.SkipHooksEnabled" xml:space="preserve">注意：本次操作將跳過倉庫鉤子檢查。</x:String>
+  <x:String x:Key="Text.UI.WarningLabel" xml:space="preserve">注意：</x:String>
+  <x:String x:Key="Text.UI.ForcePushEnabled" xml:space="preserve">強制推送可能改寫遠端提交歷史。</x:String>
+  <x:String x:Key="Text.UI.SkipHooksEnabled" xml:space="preserve">勾選此項會跳過本次推送的倉庫鉤子檢查。</x:String>
   <x:String x:Key="Text.UI.SkipHooksShort" xml:space="preserve">將跳過鉤子檢查</x:String>
-  <x:String x:Key="Text.UI.ResetBranchEnabled" xml:space="preserve">注意：允許將已有分支重置到所選提交。</x:String>
+  <x:String x:Key="Text.UI.ResetBranchEnabled" xml:space="preserve">允許將已有分支重置到所選提交。</x:String>
   <x:String x:Key="Text.UI.FilterStatus" xml:space="preserve">按檔案狀態篩選</x:String>
   <x:String x:Key="Text.UI.AllChanges" xml:space="preserve">全部變更</x:String>
   <x:String x:Key="Text.UI.Conflicts" xml:space="preserve">僅顯示衝突</x:String>
@@ -1405,15 +1406,23 @@
   <x:String x:Key="Text.TreeGit.Branches.SelectContaining" xml:space="preserve">請選擇確實包含此提交的分支。</x:String>
   <x:String x:Key="Text.TreeGit.Stage.Failed" xml:space="preserve">暫存未完成，請確認磁碟空間與檔案存取權限後重試。</x:String>
   <x:String x:Key="Text.TreeGit.Unstage.Failed" xml:space="preserve">取消暫存未完成，請確認磁碟空間與檔案存取權限後重試。</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.Username" xml:space="preserve">帳號</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Username" xml:space="preserve">帳號：</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Password" xml:space="preserve">密碼：</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.UsernameHint" xml:space="preserve">使用者名稱</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.OptionalPassword" xml:space="preserve">密碼（可留空）</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.GitHubTokenLabel">個人存取權杖：</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.GitHubTokenPlaceholder">GitHub 個人存取權杖（PAT）</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.GitHubTokenRequired">請輸入 GitHub 個人存取權杖（PAT）。GitHub 的 HTTPS Git 驗證不接受帳號密碼。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.GitHubTokenHelp">為此儲存庫建立權杖。拉取時授予 Contents 讀取權限，推送時授予讀寫權限。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.PasswordHint" xml:space="preserve">密碼</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.TogglePassword" xml:space="preserve">顯示／隱藏密碼</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Authentication" xml:space="preserve">儲存庫帳號與密碼</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.Context" xml:space="preserve">儲存庫：{0}
-伺服器：{1}</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.RepositoryCaption" xml:space="preserve">儲存庫：</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.ServerCaption" xml:space="preserve">伺服器：</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Retry" xml:space="preserve">驗證失敗，請檢查帳號、密碼或權杖並重新輸入。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.PermissionDenied">遠端拒絕存取。請檢查目前帳號的儲存庫存取權限，以及權杖是否已獲得所需權限。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.RepositoryUnavailable">遠端儲存庫不存在或對目前帳號不可見。請核對遠端位址與儲存庫存取權限。</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.ServerError">遠端伺服器傳回錯誤。請在服務恢復後重試。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Verifying">正在驗證…</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.PushUnavailable">暫時無法驗證推送權限，已保留你的修改和提交說明。</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Success">驗證成功</x:String>
@@ -1909,6 +1918,9 @@
   <x:String x:Key="Text.TreeGit.Operation.Connecting">連線中…</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Verifying">驗證中…</x:String>
   <x:String x:Key="Text.TreeGit.Operation.AuthenticationFailed">帳號驗證失敗，請重新輸入。</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.PermissionDenied">遠端拒絕存取，請檢查儲存庫權限。</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.RepositoryUnavailable">遠端儲存庫無法使用，請檢查位址與存取權限。</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.ServerError">遠端伺服器傳回錯誤。</x:String>
   <x:String x:Key="Text.TreeGit.Operation.VerificationTimeout">驗證逾時，請重試。</x:String>
   <x:String x:Key="Text.TreeGit.Startup.SettingsFailed">部分啟動設定未能載入。請在「工具 → 外部工具」中檢查 Git 設定。</x:String>
   <x:String x:Key="Text.TreeGit.Startup.OtherRepositories">正在背景載入其他儲存庫（{0}/{1}）…</x:String>

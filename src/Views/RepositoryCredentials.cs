@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
@@ -45,20 +46,30 @@ namespace SourceGit.Views
             var remoteLabel = RepositoryDialogLayout.FieldLabel("TreeGit.Credentials.RemoteLabel");
             remoteLabel.Name = "CredentialRemoteLabel";
             var username = new TextBox { Name = "CredentialUsername", Height = 32, [!Avalonia.Controls.TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Credentials.UsernameHint") };
-            var password = new PasswordTextBox { Name = "CredentialPassword", Height = 32, PasswordChar = '*',
-                [!TextBox.WatermarkProperty] = App.TextBinding("TreeGit.Credentials.OptionalToken") };
+            var password = new PasswordTextBox { Name = "CredentialPassword", Height = 32, PasswordChar = '*' };
             var showPassword = new ToggleButton { Classes = { "toggle_untracked" }, Width = 26, Height = 14 };
             ToolTip.SetTip(showPassword, App.Text("TreeGit.Credentials.TogglePassword"));
             password.InnerRightContent = showPassword;
             showPassword.IsCheckedChanged += (_, _) => password.RevealPassword = showPassword.IsChecked == true;
             var useManager = new CheckBox { Name = "CredentialMode", Content = new TextBlock { [!Avalonia.Controls.TextBlock.TextProperty] = App.TextBinding("TreeGit.Credentials.SystemAuth"), TextWrapping = Avalonia.Media.TextWrapping.Wrap }, IsChecked = Native.RepositoryCredentials.UsesCredentialManager(repo.FullPath) };
-            var fields = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), RowDefinitions = new RowDefinitions("Auto,12,Auto,4,Auto,6,Auto"), ColumnSpacing = 8 };
+            var fields = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), RowDefinitions = new RowDefinitions("Auto,12,Auto,4,Auto,6,Auto,Auto"), ColumnSpacing = 8 };
             var usernameLabel = RepositoryDialogLayout.FieldLabel("TreeGit.Credentials.UsernameLabel");
             usernameLabel.Name = "CredentialUsernameLabel";
             usernameLabel.Classes.Add("option_dependent");
-            var passwordLabel = RepositoryDialogLayout.FieldLabel("TreeGit.Credentials.PasswordLabel");
-            passwordLabel.Name = "CredentialPasswordLabel";
+            var passwordLabel = new TextBlock { Name = "CredentialPasswordLabel", HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Center, TextAlignment = Avalonia.Media.TextAlignment.Right };
             passwordLabel.Classes.Add("option_dependent");
+            var tokenHelp = new GitHubTokenHelp { Name = "CredentialGitHubTokenHelp", IsVisible = false, Margin = new Thickness(0, 6, 0, 0) };
+            IDisposable secretLabelBinding = null, secretHintBinding = null;
+            void UpdateSecretField()
+            {
+                var token = remotes.SelectedItem is Target target && Native.RepositoryCredentials.UsesGitHubToken(target.Url);
+                tokenHelp.IsVisible = token;
+                secretLabelBinding?.Dispose();
+                secretHintBinding?.Dispose();
+                secretLabelBinding = passwordLabel.Bind(TextBlock.TextProperty, App.TextBinding(token ? "TreeGit.Credentials.GitHubTokenLabel" : "TreeGit.Credentials.PasswordLabel"));
+                secretHintBinding = password.Bind(TextBox.WatermarkProperty, App.TextBinding(token ? "TreeGit.Credentials.GitHubTokenPlaceholder" : "TreeGit.Credentials.OptionalToken"));
+            }
             Grid.SetColumn(remotes, 1);
             Grid.SetRow(useManager, 2);
             Grid.SetColumnSpan(useManager, 2);
@@ -68,6 +79,8 @@ namespace SourceGit.Views
             Grid.SetRow(passwordLabel, 6);
             Grid.SetRow(password, 6);
             Grid.SetColumn(password, 1);
+            Grid.SetRow(tokenHelp, 7);
+            Grid.SetColumn(tokenHelp, 1);
             fields.Children.Add(remoteLabel);
             fields.Children.Add(remotes);
             fields.Children.Add(useManager);
@@ -75,6 +88,7 @@ namespace SourceGit.Views
             fields.Children.Add(username);
             fields.Children.Add(passwordLabel);
             fields.Children.Add(password);
+            fields.Children.Add(tokenHelp);
             var message = new TextBlock { Name = "CredentialStatus", TextWrapping = Avalonia.Media.TextWrapping.Wrap };
             void ErrorMessage(Exception error, string fallback)
             {
@@ -136,13 +150,16 @@ namespace SourceGit.Views
             {
                 if (!populatingFields && change.Property == TextBox.TextProperty) passwordEdited = true;
             };
-            async void LoadSelected()
+            async void LoadSelected(bool remoteChanged)
             {
                 var version = ++selectionVersion;
                 loading = true;
                 credentialUris = [];
-                ResetFields();
-                clearPending = false;
+                if (remoteChanged)
+                {
+                    ResetFields();
+                    clearPending = false;
+                }
                 message.ClearValue(TextBlock.ForegroundProperty);
                 UpdateEnabled();
                 if (!query.Succeeded) { loading = false; UpdateEnabled(); message.Text = App.Text("TreeGit.Config.ReadFailed"); return; }
@@ -159,13 +176,14 @@ namespace SourceGit.Views
                     if (version != selectionVersion || lifetime.IsCancellationRequested) return;
                     credentialUris = uris;
                     var existing = uris.Reverse().Select(candidate => Native.RepositoryCredentials.Get(repo.FullPath, candidate)).FirstOrDefault(account => account.HasValue) ?? EmbeddedAccount(uri);
-                    if (!usernameEdited)
+                    if (!usernameEdited && !clearPending)
                     {
                         populatingFields = true;
                         username.Text = existing?.Username ?? string.Empty;
                         populatingFields = false;
                     }
                     message.Text = useManager.IsChecked == true ? App.Text("TreeGit.Credentials.SystemManaged") :
+                        clearPending ? App.Text("TreeGit.Credentials.ClearPending") :
                         existing.HasValue ? App.Text("TreeGit.Credentials.Exists") : App.Text("TreeGit.Credentials.None");
                 }
                 catch (OperationCanceledException) { }
@@ -176,9 +194,9 @@ namespace SourceGit.Views
             {
                 if (saving || changingMode) return;
                 if (loading) UpdateEnabled();
-                else LoadSelected();
+                else LoadSelected(false);
             };
-            remotes.SelectionChanged += (_, _) => LoadSelected();
+            remotes.SelectionChanged += (_, _) => { UpdateSecretField(); LoadSelected(true); };
             save.Click += async (_, _) =>
             {
                 if (saving || loading) return;
@@ -203,6 +221,8 @@ namespace SourceGit.Views
                         var oldAccount = previous.Values.Reverse().FirstOrDefault(account => account.HasValue) ?? EmbeddedAccount(remoteUri);
                         if (!clearPending && !editedPassword && oldAccount.HasValue && oldAccount.Value.Username == enteredUser)
                             enteredPassword = oldAccount.Value.Password;
+                        if (!clearing && Native.RepositoryCredentials.UsesGitHubToken(remoteUri.AbsoluteUri) && string.IsNullOrWhiteSpace(enteredPassword))
+                            throw new InvalidOperationException(App.Text("TreeGit.Credentials.GitHubTokenRequired"));
                         if (enteredUser.IndexOfAny(['\r', '\n', '\0']) >= 0 || enteredPassword.IndexOfAny(['\r', '\n', '\0']) >= 0)
                             throw new InvalidOperationException(App.Text("TreeGit.Credentials.InvalidCharacters"));
                         if (Encoding.Unicode.GetByteCount(enteredPassword) > 5120)
@@ -278,16 +298,30 @@ namespace SourceGit.Views
             buttons.Children.Add(confirmation);
             panel.Children.Add(fields);
             var notices = new StackPanel { Spacing = 6 };
-            notices.Children.Add(message);
+            // Measure the localized alternatives together so a status change cannot move the hint below.
+            var status = new Grid { IsHitTestVisible = false };
+            foreach (var key in new[] { "Loading", "SystemManaged", "Exists", "None", "ClearPending", "ReadFailed" })
+            {
+                var measure = new TextBlock
+                {
+                    [!TextBlock.TextProperty] = App.TextBinding("TreeGit.Credentials." + key),
+                    TextWrapping = message.TextWrapping,
+                    Opacity = 0,
+                };
+                AutomationProperties.SetAccessibilityView(measure, AccessibilityView.Raw);
+                status.Children.Add(measure);
+            }
+            status.Children.Add(message);
+            notices.Children.Add(status);
             notices.Children.Add(new TextBlock { Name = "CredentialIdentityHint", [!TextBlock.TextProperty] = App.TextBinding("TreeGit.Credentials.IdentityHint"), TextWrapping = Avalonia.Media.TextWrapping.Wrap, FontSize = 12 });
             panel.Children.Add(notices);
             RepositoryDialogLayout.Apply(this, panel, buttons, 520);
             UpdateEnabled();
             if (remotes.ItemCount > 0)
                 remotes.SelectedItem = remotes.Items.OfType<Target>().FirstOrDefault(r => r.RemoteName == remoteName) ?? remotes.Items[0];
-            else LoadSelected();
+            else { UpdateSecretField(); LoadSelected(true); }
             Closing += (_, e) => { if (saving && !confirmedClose) e.Cancel = true; };
-            Closed += (_, _) => { lifetime.Cancel(); ResetFields(); };
+            Closed += (_, _) => { lifetime.Cancel(); ResetFields(); secretLabelBinding?.Dispose(); secretHintBinding?.Dispose(); };
         }
     }
 }

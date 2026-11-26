@@ -19,7 +19,7 @@
                  Text="{DynamicResource Text.Push.Title}"/>
     </StackPanel>
 
-    <Grid Classes="operation_form" Margin="0,16,0,0" RowDefinitions="32,32,32,Auto,Auto,Auto,8,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
+    <Grid Classes="operation_form" Margin="0,16,0,0" RowDefinitions="32,32,32,Auto,Auto,Auto,8,Auto,Auto,Auto,Auto" ColumnDefinitions="Auto,*">
       <TextBlock Grid.Row="0" Grid.Column="0"
                  HorizontalAlignment="Right" VerticalAlignment="Center"
                  Margin="0,0,8,0"
@@ -95,13 +95,20 @@
                 IsChecked="{Binding NoVerify, Mode=TwoWay}">
         <TextBlock Text="{DynamicResource Text.Push.NoVerify}" TextWrapping="Wrap"/>
       </CheckBox>
-      <CheckBox x:Name="PushForce" Grid.Row="8" Grid.Column="1" IsChecked="{Binding ForcePush, Mode=TwoWay}">
+      <ContentControl Grid.Row="8" Grid.Column="0" Classes="operation_warning warning_label" Classes.active="{Binding NoVerify}"
+                      Content="{DynamicResource Text.UI.WarningLabel}"
+                      HorizontalAlignment="Right" VerticalAlignment="Top" UseLayoutRounding="False" Margin="0,0,8,4"/>
+      <ContentControl Grid.Row="8" Grid.Column="1" Classes="operation_warning" Classes.active="{Binding NoVerify}"
+                      Content="{DynamicResource Text.UI.SkipHooksEnabled}" Margin="0,0,0,4"/>
+
+      <CheckBox x:Name="PushForce" Grid.Row="9" Grid.Column="1" IsChecked="{Binding ForcePush, Mode=TwoWay}">
         <TextBlock Text="{DynamicResource Text.Push.Force}" TextWrapping="Wrap"/>
       </CheckBox>
-      <StackPanel Grid.Row="9" Grid.ColumnSpan="2" Spacing="4" Margin="0,4,0,0">
-        <TextBlock Text="{DynamicResource Text.UI.ForcePushEnabled}" IsVisible="{Binding ForcePush}" Foreground="{DynamicResource Brush.FG1}" TextWrapping="Wrap" FontWeight="Bold"/>
-        <TextBlock Text="{DynamicResource Text.UI.SkipHooksEnabled}" IsVisible="{Binding NoVerify}" Foreground="{DynamicResource Brush.FG1}" TextWrapping="Wrap" FontWeight="Bold"/>
-      </StackPanel>
+      <ContentControl Grid.Row="10" Grid.Column="0" Classes="operation_warning warning_label" Classes.active="{Binding ForcePush}"
+                      Content="{DynamicResource Text.UI.WarningLabel}"
+                      HorizontalAlignment="Right" VerticalAlignment="Top" UseLayoutRounding="False" Margin="0,0,8,4"/>
+      <ContentControl Grid.Row="10" Grid.Column="1" Classes="operation_warning" Classes.active="{Binding ForcePush}"
+                      Content="{DynamicResource Text.UI.ForcePushEnabled}" Margin="0,0,0,4"/>
     </Grid>
   </StackPanel>
 </UserControl>

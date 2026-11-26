@@ -136,6 +136,12 @@ def labels(active=False):
     return '\n'.join([item['text'] for item in state['labels']] + [item['text'] for item in state.get('metadataDocuments', [])])
 
 
+def active_warnings(popup, count):
+    return any(f['popup'] == popup and len(f['advancedOptions']['warnings']) == count and
+               all(w['opacity'] == 1 for w in f['advancedOptions']['warnings'])
+               for f in layout()['operationForms'])
+
+
 def capture(name, active=False):
     if name == 'failure' or os.environ.get('TREEGIT_TEST_NATIVE_CAPTURE') == '1':
         from PIL import ImageGrab
@@ -230,13 +236,13 @@ try:
         check(action + ' has a fixed footer inside the window', all(0 <= b['bounds']['y'] and b['bounds']['y'] + b['bounds']['height'] <= 800 for b in layout()['buttons'] if b['name'] in ['ConfirmPopup', 'CancelPopup']))
         if action == 'create_branch':
             set_control('BranchAllowOverwrite', 1)
-            until(lambda: '允许将已有分支重置' in labels())
+            until(lambda: active_warnings('CreateBranch', 1))
             check('inline branch overwrite option displays its warning', '允许将已有分支重置' in labels())
         if action == 'push_dialog':
             set_control('PushForce', 1)
             set_control('PushSkipHooks', 1)
-            until(lambda: '已开启强制推送' in labels() and '跳过' in labels())
-            check('inline advanced push options display active warnings', '已开启强制推送' in labels())
+            until(lambda: active_warnings('Push', 2))
+            check('inline advanced push options display active warnings', '强制推送可能改写远程提交历史' in labels())
         capture(action)
         command('cancel_popup')
     check('opening and cancelling dialogs does not modify Git', before_popup == (git('status', '--porcelain=v1'), git('show-ref')))

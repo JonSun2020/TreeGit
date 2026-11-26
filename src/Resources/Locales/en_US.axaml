@@ -1353,10 +1353,11 @@ Manually add a branch/tag history filter will disable this feature automatically
   <x:String x:Key="Text.Stash.After.KeepAll.Description" xml:space="preserve">Save a stash copy and restore the same staged and unstaged changes locally.</x:String>
   <x:String x:Key="Text.UI.AdvancedOptions" xml:space="preserve">Advanced options</x:String>
   <x:String x:Key="Text.UI.AdvancedOptionsLabel" xml:space="preserve">Advanced options:</x:String>
-  <x:String x:Key="Text.UI.ForcePushEnabled" xml:space="preserve">Warning: force push is enabled; remote history may be rewritten.</x:String>
-  <x:String x:Key="Text.UI.SkipHooksEnabled" xml:space="preserve">Warning: repository checks will be skipped.</x:String>
+  <x:String x:Key="Text.UI.WarningLabel" xml:space="preserve">Warning:</x:String>
+  <x:String x:Key="Text.UI.ForcePushEnabled" xml:space="preserve">Force push may rewrite remote history.</x:String>
+  <x:String x:Key="Text.UI.SkipHooksEnabled" xml:space="preserve">Selecting this option skips repository hook checks for the push.</x:String>
   <x:String x:Key="Text.UI.SkipHooksShort" xml:space="preserve">Checks skipped</x:String>
-  <x:String x:Key="Text.UI.ResetBranchEnabled" xml:space="preserve">Warning: an existing branch may be reset to the selected commit.</x:String>
+  <x:String x:Key="Text.UI.ResetBranchEnabled" xml:space="preserve">An existing branch may be reset to the selected commit.</x:String>
   <x:String x:Key="Text.UI.FilterStatus" xml:space="preserve">Filter changes by status</x:String>
   <x:String x:Key="Text.UI.AllChanges" xml:space="preserve">All changes</x:String>
   <x:String x:Key="Text.UI.Conflicts" xml:space="preserve">Conflicts only</x:String>
@@ -1422,15 +1423,23 @@ Manually add a branch/tag history filter will disable this feature automatically
   <x:String x:Key="Text.TreeGit.Branches.SelectContaining" xml:space="preserve">Select a branch that contains this commit.</x:String>
   <x:String x:Key="Text.TreeGit.Stage.Failed" xml:space="preserve">Staging did not finish. Check free disk space and file access, then retry.</x:String>
   <x:String x:Key="Text.TreeGit.Unstage.Failed" xml:space="preserve">Unstaging did not finish. Check free disk space and file access, then retry.</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.Username" xml:space="preserve">Username</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Username" xml:space="preserve">Username:</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.Password" xml:space="preserve">Password:</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.UsernameHint" xml:space="preserve">Username</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.OptionalPassword" xml:space="preserve">Password (optional)</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.GitHubTokenLabel">Personal access token:</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.GitHubTokenPlaceholder">GitHub personal access token (PAT)</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.GitHubTokenRequired">Enter a GitHub personal access token (PAT). GitHub does not accept account passwords for Git over HTTPS.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.GitHubTokenHelp">Create a token for this repository. Set Contents to Read-only for pulling or Read and write for pushing.</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.PasswordHint" xml:space="preserve">Password</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.TogglePassword" xml:space="preserve">Show / hide password</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Authentication" xml:space="preserve">Repository credentials</x:String>
-  <x:String x:Key="Text.TreeGit.Credentials.Context" xml:space="preserve">Repository: {0}
-Server: {1}</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.RepositoryCaption" xml:space="preserve">Repository:</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.ServerCaption" xml:space="preserve">Server:</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Retry" xml:space="preserve">Authentication failed. Check your account, password or token and try again.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.PermissionDenied">The remote denied access. Check this account’s repository access and any token permissions.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.RepositoryUnavailable">The repository is missing or hidden from this account. Check the remote address and repository access.</x:String>
+  <x:String x:Key="Text.TreeGit.Credentials.ServerError">The remote server returned an error. Try again when the service is available.</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Verifying">Verifying…</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.PushUnavailable">Unable to verify push access. Your changes and commit message have been kept.</x:String>
   <x:String x:Key="Text.TreeGit.Credentials.Success">Verified successfully</x:String>
@@ -1850,6 +1859,9 @@ Server: {1}</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Connecting">Connecting…</x:String>
   <x:String x:Key="Text.TreeGit.Operation.Verifying">Verifying…</x:String>
   <x:String x:Key="Text.TreeGit.Operation.AuthenticationFailed">Account verification failed. Please try again.</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.PermissionDenied">The remote denied access. Check your repository permissions.</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.RepositoryUnavailable">Repository unavailable. Check the remote address and repository access.</x:String>
+  <x:String x:Key="Text.TreeGit.Operation.ServerError">The remote server returned an error.</x:String>
   <x:String x:Key="Text.TreeGit.Operation.VerificationTimeout">Verification timed out. Please try again.</x:String>
   <x:String x:Key="Text.TreeGit.Startup.SettingsFailed">Some startup settings could not be loaded. Check Git in Tools → External Tools.</x:String>
   <x:String x:Key="Text.TreeGit.Startup.OtherRepositories">Loading other repositories ({0}/{1})…</x:String>

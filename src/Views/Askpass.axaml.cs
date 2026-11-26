@@ -2,6 +2,7 @@ using System;
 using System.Security.Cryptography;
 using System.Text;
 
+using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
@@ -67,7 +68,7 @@ namespace SourceGit.Views
             CredentialFields.IsEnabled = ConfirmAuthentication.IsEnabled = true;
             VerificationOverlay.IsVisible = false;
             ValidationMessage.Text = App.Text(key); ValidationMessage.IsVisible = true;
-            TxtPassphrase.Text = string.Empty; TxtPassphrase.Focus();
+            TxtPassphrase.Focus();
         }
 
         internal async void SessionAccepted()
@@ -95,10 +96,19 @@ namespace SourceGit.Views
         public void ConfigureCredentials(string repo, string remote, string username, bool retry = false)
         {
             IsCredentialPrompt = true;
+            Width = 512;
+            SizeToContent = SizeToContent.Height;
+            TxtPassphrase.MinWidth = 0;
             Title = App.Text("TreeGit.Credentials.Authentication");
             TxtTitle.Text = Title;
-            TxtDescription.Text = App.Text("TreeGit.Credentials.Context", repo, remote);
-            UsernameSection.IsVisible = true;
+            PromptDescription.IsVisible = false;
+            RepositoryLabel.IsVisible = true;
+            TxtRepository.Text = repo;
+            TxtServer.Text = remote;
+            _usesGitHubToken = Native.RepositoryCredentials.UsesGitHubToken(remote);
+            TokenHelp.IsVisible = _usesGitHubToken;
+            App.BindText(PasswordLabel, TextBlock.TextProperty, _usesGitHubToken ? "TreeGit.Credentials.GitHubTokenLabel" : "TreeGit.Credentials.Password");
+            App.BindText(TxtPassphrase, TextBox.WatermarkProperty, _usesGitHubToken ? "TreeGit.Credentials.GitHubTokenPlaceholder" : "TreeGit.Credentials.OptionalPassword");
             TxtUsername.Text = username ?? string.Empty;
             if (retry)
             {
@@ -143,6 +153,13 @@ namespace SourceGit.Views
                 ValidationMessage.IsVisible = true;
                 return;
             }
+            if (_usesGitHubToken && string.IsNullOrWhiteSpace(passphrase))
+            {
+                ValidationMessage.Text = App.Text("TreeGit.Credentials.GitHubTokenRequired");
+                ValidationMessage.IsVisible = true;
+                TxtPassphrase.Focus();
+                return;
+            }
             if (_sessionSubmit != null)
             {
                 IsVerifying = true;
@@ -152,7 +169,6 @@ namespace SourceGit.Views
                 VerificationOverlay.IsVisible = true;
                 _verificationTimer.Start();
                 _sessionSubmit(username, passphrase);
-                TxtPassphrase.Text = string.Empty;
                 return;
             }
             byte[] passBytes = Encoding.UTF8.GetBytes(IsCredentialPrompt ? $"username={username}\npassword={passphrase}\n\n" : passphrase + "\n");
@@ -174,6 +190,7 @@ namespace SourceGit.Views
         private Action<string, string> _sessionSubmit;
         private Action _sessionCancel, _sessionTimeout;
         private bool _sessionClosing, _sessionSucceeded;
+        private bool _usesGitHubToken;
 #if INTEGRATION_TESTS
         private bool _loaded;
         internal void SetTestVerificationTimeout(int milliseconds) => _verificationTimer.Interval = TimeSpan.FromMilliseconds(milliseconds);

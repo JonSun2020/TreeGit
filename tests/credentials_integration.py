@@ -3,6 +3,7 @@ import base64
 import http.server
 import json
 import os
+import socket
 from pathlib import Path
 import subprocess
 import ssl
@@ -25,6 +26,42 @@ states_mode = '--states' in sys.argv[3:]
 https_mode = '--https' in sys.argv[3:]
 scheme = 'https' if https_mode else 'http'
 fixture = root/'askpass-fixture.json'
+if '--layout-only' in sys.argv[3:]:
+    import shutil
+    from qa_cleanup import remove_fixture
+    from qa_profile import IsolatedProfile
+
+    results = []
+    with_profile = IsolatedProfile(exe, artifacts)
+    try:
+        for locale in ('zh_CN', 'zh_TW', 'en_US'):
+            with_profile.reset()
+            (exe.parent/'data/preference.json').write_text(json.dumps({'Locale': locale}), encoding='utf-8')
+            for provider, remote in [('github', 'https://github.com/demo/project.git'),
+                                     ('password', 'https://github.com.example.invalid/demo/project.git')]:
+                for suffix in ('.events', '.png'):
+                    Path(str(fixture)+suffix).unlink(missing_ok=True)
+                fixture.write_text(json.dumps({'username': 'demo', 'password': 'fixture-value',
+                                               'expectTokenRequired': provider == 'github',
+                                               'verifyFixedWidth': True, 'cancel': True}), encoding='utf-8')
+                case_env = {**os.environ, 'SOURCEGIT_LAUNCH_AS_ASKPASS': 'TRUE',
+                            'SOURCEGIT_TEST_ASKPASS_FIXTURE': str(fixture)}
+                prompt = subprocess.run([str(exe), '--credential-prompt'],
+                                        input=json.dumps({'repo': 'Demo repository', 'remote': remote}),
+                                        env=case_env, encoding='utf-8', capture_output=True, timeout=20,
+                                        creationflags=subprocess.CREATE_NO_WINDOW)
+                events = Path(str(fixture)+'.events').read_text(encoding='utf-8').splitlines()
+                assert prompt.returncode == 0 and not prompt.stdout, (prompt.returncode, prompt.stderr)
+                assert {'visibility-toggle', 'password-interface-protected', 'credential-width-stable'}.issubset(events), events
+                assert ('github-token-required' in events) == (provider == 'github'), events
+                shutil.copyfile(str(fixture)+'.png', artifacts/f'{locale}-{provider}-credentials.png')
+                results.append({'locale': locale, 'provider': provider})
+        (artifacts/'credential-layout-results.json').write_text(json.dumps({'passed': len(results), 'cases': results}), encoding='utf-8')
+    finally:
+        with_profile.close()
+        remove_fixture(root, root.parent, 'SourceGit credential ')
+    raise SystemExit(0)
+
 seen = []
 class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, *args): pass
@@ -34,7 +71,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if credential in ['slow:wait', 'cancel-live:wait']:
             time.sleep(2)
         if credential == 'drop:network':
-            self.send_error(500)
+            self.close_connection = True
+            self.connection.shutdown(socket.SHUT_RDWR)
+            return
+        if credential == 'server:error':
+            self.send_error(503)
+            return
+        if credential in ('limited:permission', 'hidden:repository'):
+            self.send_error(403 if credential == 'limited:permission' else 404)
             return
         if credential not in ['alice:alpha-test', 'bob:beta-test', 'charlie:']:
             self.send_response(401)
@@ -49,7 +93,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_header('Content-Length',str(len(data)))
         self.end_headers()
         self.wfile.write(data)
-server = http.server.ThreadingHTTPServer(('127.0.0.1',0), Handler)
+class CredentialServer(http.server.ThreadingHTTPServer):
+    def handle_error(self, request, client_address):
+        if not isinstance(sys.exc_info()[1], (BrokenPipeError, ConnectionResetError, ConnectionAbortedError)):
+            super().handle_error(request, client_address)
+
+server = CredentialServer(('127.0.0.1',0), Handler)
 if https_mode:
     openssl=git.parent.parent/'usr/bin/openssl.exe'
     if not openssl.exists():
@@ -182,6 +231,8 @@ try:
         assert events.count('combined-dialog') == 12 and events.count('scoped-combined-dialog') == 12,events
         assert events.count('visibility-toggle') == 12,events
         assert events.count('password-interface-protected') == 12,events
+        # A retry after a rejected cached credential may open with no submitted draft.
+        assert events.count('draft-preserved-after-failure') >= 4,events.count('draft-preserved-after-failure')
         assert events.count('retry-message') == 6,events
         assert 'username-dialog' not in events and 'password-dialog' not in events,events
         result['automatic_missing_credential_dialog']=events
@@ -220,23 +271,35 @@ try:
             lines=Path(str(fixture)+'.events').read_text('utf-8').splitlines()[start_events:]
             states=[line for line in lines if line.startswith('state:')]
             pids={line.split(':')[1] for line in states if line.endswith(':request-get')}
+            if push_check and cancelled:
+                # Cancelling can stop the helper before its get trace is flushed.
+                pids.update(line.split(':')[1] for line in states if line.endswith(':window-closed-False-False'))
             assert len(pids)==1,(name,states)
             assert not (repo/'.git/refs/heads/main').exists(),name
             assert not (repo/'.git/index').exists(),name
             return states
-        blank=state_case('blank-account',[{'username':'','password':''},{'username':'alice','password':'alpha-test'}])
+        blank=state_case('blank-account',[{'username':'','password':'draft-secret'},{'username':'alice','password':'alpha-test'}])
         assert any(s.endswith(':input-validation') for s in blank) and any(s.endswith(':success') for s in blank),blank
         timeout=state_case('timeout',[{'username':'slow','password':'wait','timeoutMs':300},{'username':'alice','password':'alpha-test'}])
         assert any(s.endswith(':TreeGit.Credentials.Timeout') for s in timeout) and any(s.endswith(':success') for s in timeout),timeout
         connection=state_case('connection',[{'username':'drop','password':'network'},{'username':'alice','password':'alpha-test'}])
         assert any(s.endswith(':TreeGit.Credentials.ConnectionFailed') for s in connection) and any(s.endswith(':success') for s in connection),connection
+        server_error=state_case('server-error',[{'username':'server','password':'error'},{'username':'alice','password':'alpha-test'}])
+        assert any(s.endswith(':TreeGit.Credentials.ServerError') for s in server_error) and any(s.endswith(':success') for s in server_error),server_error
+        forbidden=state_case('forbidden',[{'username':'limited','password':'permission'},{'username':'alice','password':'alpha-test'}])
+        assert any(s.endswith(':TreeGit.Credentials.PermissionDenied') for s in forbidden) and any(s.endswith(':success') for s in forbidden),forbidden
+        unavailable=state_case('unavailable',[{'username':'hidden','password':'repository'},{'username':'alice','password':'alpha-test'}])
+        assert any(s.endswith(':TreeGit.Credentials.RepositoryUnavailable') for s in unavailable) and any(s.endswith(':success') for s in unavailable),unavailable
+        events_after=Path(str(fixture)+'.events').read_text(encoding='utf-8').splitlines()
+        assert events_after.count('draft-preserved-after-failure') >= events.count('draft-preserved-after-failure')+5
         cancel_live=state_case('cancel-live',[{'username':'cancel-live','password':'wait','cancelWhileVerifying':True}],cancelled=True)
         assert any(s.endswith(':cancel-verifying') for s in cancel_live) and not any(s.endswith(':success') for s in cancel_live),cancel_live
         push_cancel=state_case('push-cancel',[{'username':'cancelled','password':'','cancel':True}],cancelled=True,push_check=True)
         result.update(empty_account_stays_in_same_input_window=True,verification_timeout_recovers_in_same_window=True,
                       connection_failure_recovers_in_same_window=True,cancel_during_verification_stops_operation=True,
                       push_auth_cancel_preserves_unborn_head_and_index=True)
-        result['verificationStates']={'blank':blank,'timeout':timeout,'connection':connection,'cancel':cancel_live,'pushCancel':push_cancel}
+        result['verificationStates']={'blank':blank,'timeout':timeout,'connection':connection,'serverError':server_error,'permissionDenied':forbidden,
+                                      'repositoryUnavailable':unavailable,'cancel':cancel_live,'pushCancel':push_cancel}
     (artifacts/('credentials-https-prompt-results.json' if https_mode and prompt_mode else 'credentials-https-results.json' if https_mode else 'credentials-prompt-results.json' if prompt_mode else 'credentials-results.json')).write_text(json.dumps(result,indent=2),encoding='utf-8')
     print('PASS vault roundtrip, repository isolation, username/path isolation, real authenticated fetch for alice/bob, erase',flush=True)
 finally:

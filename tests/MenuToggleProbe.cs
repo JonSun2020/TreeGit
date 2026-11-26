@@ -114,6 +114,13 @@ namespace SourceGit.Automation
                 return x.HasValue && x.Value + Math.Min(0, line.OverhangLeading) >= inset.Left + 1 &&
                     x.Value + line.Width - Math.Min(0, line.OverhangTrailing) <= area.Bounds.Width - inset.Right - 1;
             }
+            if (action == "creation_token_focus")
+            {
+                var token = window.GetVisualDescendants().OfType<Views.PasswordTextBox>().Single(c => c.Name == "CreateRepositoryToken");
+                var preserved = token.Text == "fixture-token";
+                Tests.AskpassProbe.VerifyRevealAfterReturningToInput(token);
+                return new { preserved, revealed = token.RevealPassword };
+            }
             if (action == "content_selection")
             {
                 var views = window.GetVisualDescendants().ToArray();

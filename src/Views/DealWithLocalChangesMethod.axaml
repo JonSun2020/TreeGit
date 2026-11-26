@@ -15,6 +15,17 @@
         </FocusAdornerTemplate>
       </Setter>
 
+      <Style Selector="^ RadioButton:disabled">
+        <Setter Property="Foreground" Value="{DynamicResource Brush.FG2}"/>
+        <Style Selector="^ /template/ Ellipse#Border">
+          <Setter Property="Fill" Value="Transparent"/>
+          <Setter Property="Stroke" Value="{DynamicResource Brush.FG2}"/>
+        </Style>
+        <Style Selector="^:checked /template/ Ellipse#Dot">
+          <Setter Property="Fill" Value="{DynamicResource Brush.FG2}"/>
+        </Style>
+      </Style>
+
       <Style Selector="^:focus-visible RadioButton:checked">
         <Style Selector="^ /template/ Ellipse#Border">
           <Setter Property="Stroke" Value="{DynamicResource Brush.TreeGit.ParentSHA}"/>

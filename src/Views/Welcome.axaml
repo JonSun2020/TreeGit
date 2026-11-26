@@ -23,7 +23,6 @@
                x:Name="SearchBox"
                Height="32"
                Padding="0"
-               CornerRadius="16"
                BorderBrush="{DynamicResource Brush.Border0}"
                BorderThickness="1"
                Background="{DynamicResource Brush.Contents}"

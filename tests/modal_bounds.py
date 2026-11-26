@@ -10,7 +10,7 @@ import tempfile
 import threading
 import time
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
-from qa_cleanup import new_fixture, verify_process
+from qa_cleanup import new_fixture, remove_fixture, verify_process
 from qa_process import close_owned_gui
 from qa_profile import IsolatedProfile
 
@@ -74,6 +74,15 @@ try:
             check(locale+' repository path has a 12 DIP top inset',details['pathTopInset']==12)
             check(locale+' SSH description flows into the preceding paragraph',details['descriptionFlows'])
             check(locale+' identity hint follows the status with a 6 DIP gap',abs(details['hintGap']-6)<.5)
+            states=details['modeSnapshots']
+            check(locale+' credential mode toggling preserves the window, hint and confirmation positions',
+                  len(states)==3 and all(abs(s[key]-states[0][key])<.5 for s in states for key in ('height','top','hintY','confirmY')))
+            check(locale+' both modes fit their status and preserve the saved configuration',
+                  [s['editable'] for s in states]==[True,False,True] and
+                  all(s['status'] and s['fits'] for s in states) and details['switchingPreservesConfig'])
+            check(locale+' the credential eye control preserves reveal on returning to the input',details['credentialReveal'])
+            check(locale+' switching credential mode preserves both typed fields',
+                  all(s['preservesDraft'] for s in states))
         assert not failures,records
         raise SystemExit(0)
     for locale,zoom,theme in ([] if input_only or redirect_only or '--dropdown-only' in sys.argv[3:] else [(language,scale,theme) for language in ['zh_CN','zh_TW','en_US'] for scale in [1,1.5,2,2.5] for theme in ['Light','Dark','Blue']]):
@@ -134,6 +143,8 @@ try:
         if scenario=='early_input':check('a delayed credential lookup preserves the typed account and token',details['earlyInputPreserved'])
         else:check(scenario+' displays the saved account',details['storedAccountShown'])
         check(scenario+' keeps input errors localized and visible',details['localizedInputError'])
+        if scenario in ('oversized','config_locked','commit_failure'):
+            check(scenario+' rejected credentials keep their original input for correction',details['draftPreserved'])
         check(scenario+' closes only after confirm succeeds or cancel',details['automaticallyClosed']==(scenario not in ['oversized','config_locked','commit_failure']))
         if scenario=='unchanged':check('confirming an existing account preserves its unedited password',details['success'] and details['originalCredentialPreserved'] and not details['systemMode'])
         elif scenario=='empty_password':check('a different account can explicitly use an empty password',details['success'] and details['emptyPasswordSaved'] and details['newUsernameSaved'] and not details['systemMode'])
@@ -171,3 +182,4 @@ finally:
     if pid and credential_dropdown_only:close_owned_gui(exe,pid)
     elif pid:subprocess.run(['taskkill','/PID',str(pid),'/F'],capture_output=True)
     if isolated:isolated.close()
+    remove_fixture(root,root.parent,'TreeGit nested dialog audit ')

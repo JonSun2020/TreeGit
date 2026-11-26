@@ -4,6 +4,8 @@ using Avalonia.Automation;
 using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Interactivity;
 
 namespace SourceGit.Views
 {
@@ -12,6 +14,19 @@ namespace SourceGit.Views
     public sealed class PasswordTextBox : TextBox
     {
         protected override Type StyleKeyOverride => typeof(TextBox);
+
+        protected override void OnLostFocus(RoutedEventArgs e)
+        {
+            base.OnLostFocus(e);
+            if (InnerRightContent is not ToggleButton { IsChecked: true } toggle)
+                return;
+
+            // The eye and the text share a focus boundary.
+            if (IsKeyboardFocusWithin)
+                SetCurrentValue(RevealPasswordProperty, true);
+            else
+                toggle.SetCurrentValue(ToggleButton.IsCheckedProperty, false);
+        }
 
         protected override AutomationPeer OnCreateAutomationPeer() => new PasswordPeer(this);
 

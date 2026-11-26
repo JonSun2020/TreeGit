@@ -92,7 +92,6 @@
                            Height="24"
                            Margin="6,0"
                            BorderThickness="1"
-                           CornerRadius="12"
                            Text="{TemplateBinding SearchFilter, Mode=TwoWay}"
                            BorderBrush="{DynamicResource Brush.Border2}"
                            VerticalContentAlignment="Center"

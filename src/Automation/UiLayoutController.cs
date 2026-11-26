@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Shapes;
 using Avalonia.Input;
 using Avalonia.VisualTree;
 
@@ -237,19 +238,65 @@ namespace SourceGit.Automation
                         if (advancedCaption != null && firstOption?.Content is TextBlock optionText)
                         {
                             double? Baseline(TextBlock text) => text.TranslatePoint(new Point(0, text.Padding.Top + text.TextLayout.Baseline), window)?.Y;
-                            var previous = g.Children.LastOrDefault(c => c.IsEffectivelyVisible && Grid.GetColumn(c) == 1 &&
-                                Grid.GetRow(c) < Grid.GetRow(advancedCaption));
+                            static TextBlock WarningText(ContentControl warning) =>
+                                warning.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Opacity > 0);
+                            var localChanges = g.Children.OfType<Views.DealWithLocalChangesMethod>().FirstOrDefault();
+                            var localCaption = g.Children.FirstOrDefault(c => c.Name == "BranchLocalChangesLabel");
                             advancedOptions = new {
                                 baselineDifference = Baseline(advancedCaption) - Baseline(optionText),
-                                gap = firstOption.TranslatePoint(default, window)?.Y - previous?.TranslatePoint(new Point(0, previous.Bounds.Height), window)?.Y
+                                gap = g.RowDefinitions[Grid.GetRow(advancedCaption) - 1].ActualHeight,
+                                dialog = Bounds(popup.GetVisualAncestors().OfType<Border>().First(b => b.Name == "PopupDialogSurface")),
+                                caption = Bounds(advancedCaption),
+                                localChanges = localChanges == null ? null : new {
+                                    checkout = Bounds(g.Children.First(c => c.Name == "BranchCheckoutAfterCreated")),
+                                    bounds = Bounds(localChanges), visible = localChanges.IsEffectivelyVisible, enabled = localChanges.IsEffectivelyEnabled,
+                                    opacity = localChanges.Opacity, captionEnabled = localCaption.IsEffectivelyEnabled, captionOpacity = localCaption.Opacity,
+                                    radios = localChanges.GetVisualDescendants().OfType<RadioButton>().Select(r =>
+                                    {
+                                        var parts = r.GetVisualDescendants().OfType<Ellipse>();
+                                        var ring = parts.FirstOrDefault(e => e.Name == "Border");
+                                        return new { name = r.Name, isEffectivelyEnabled = r.IsEffectivelyEnabled, isChecked = r.IsChecked, foreground = r.Foreground?.ToString(),
+                                            ring = ring?.Stroke?.ToString(), fillAlpha = (ring?.Fill as Avalonia.Media.ISolidColorBrush)?.Color.A,
+                                            dot = parts.FirstOrDefault(e => e.Name == "Dot")?.Fill?.ToString() };
+                                    }).ToArray(),
+                                    muted = localChanges.FindResource("Brush.FG2")?.ToString()
+                                },
+                                warnings = g.Children.OfType<ContentControl>()
+                                    .Where(t => Grid.GetColumn(t) == 0 && t.Classes.Contains("operation_warning"))
+                                    .Select(warning =>
+                                    {
+                                        var row = Grid.GetRow(warning);
+                                        var label = WarningText(warning);
+                                        var message = WarningText(g.Children.OfType<ContentControl>().First(t => Grid.GetRow(t) == row && Grid.GetColumn(t) == 1));
+                                        if (label == null || message == null)
+                                            return null;
+                                        var owner = g.Children.OfType<CheckBox>().First(c => Grid.GetRow(c) == row - 1);
+                                        return new { owner = owner.Name, option = Bounds(owner), label = Bounds(label), message = Bounds(message),
+                                            text = label.Text, opacity = label.Opacity, messageOpacity = message.Opacity, color = label.Foreground.ToString(),
+                                            messageText = message.Text, messageColor = message.Foreground.ToString(),
+                                            fontStyle = label.FontStyle.ToString(), messageFontStyle = message.FontStyle.ToString(),
+                                            bold = label.FontWeight == Avalonia.Media.FontWeight.Bold && message.FontWeight == Avalonia.Media.FontWeight.Bold,
+                                            muted = label.FindResource("Brush.FG2")?.ToString(), normal = label.FindResource("Brush.FG1")?.ToString(),
+                                            baselineDifference = Baseline(label) - Baseline(message) };
+                                    }).Where(w => w != null).ToArray()
                             };
                         }
                         return new { popup = popup.GetType().Name, body = Bounds(popup), form = Bounds(g), advancedOptions,
                             captions = g.Children.Where(c => c.IsEffectivelyVisible && Grid.GetColumn(c) == 0 && Grid.GetColumnSpan(c) == 1)
                                 .SelectMany(c => c is TextBlock text ? new[] { text } : c.GetVisualDescendants().OfType<TextBlock>())
-                                .Where(t => t.IsEffectivelyVisible && !string.IsNullOrWhiteSpace(t.Text))
+                                .Where(t => t.IsEffectivelyVisible && t.Opacity > 0 && !string.IsNullOrWhiteSpace(t.Text))
                                 .Select(t => new { text = t.Text, bounds = Bounds(t), textWidth = t.TextLayout.WidthIncludingTrailingWhitespace }).ToArray(),
                             values = g.Children.Where(c => c.IsEffectivelyVisible && Grid.GetColumn(c) == 1 && c.Bounds.Width > 0).Select(Bounds).ToArray() };
+                    }).ToArray(),
+                roundedInputFields = controls.OfType<TemplatedControl>().Where(c => c.IsEffectivelyVisible &&
+                    (c is TextBox or ComboBox or Views.BranchSelector) && !c.Classes.Contains("no_border"))
+                    .Select(c =>
+                    {
+                        var borderName = c is ComboBox ? "Background" : c is Views.BranchSelector ? "PART_Background" : "PART_BorderElement";
+                        var border = c.GetVisualDescendants().OfType<Border>().FirstOrDefault(b => b.Name == borderName);
+                        var radius = border?.CornerRadius ?? c.CornerRadius;
+                        return new { name = c.Name ?? c.GetType().Name,
+                            rounded = radius.TopLeft > 0 && radius.TopRight > 0 && radius.BottomLeft > 0 && radius.BottomRight > 0 };
                     }).ToArray(),
                 binaryJumpGroups = controls.OfType<StackPanel>().Where(c => c.Name == "BinaryJumpGroup" && c.IsEffectivelyVisible)
                     .Select(c => new { bounds = Bounds(c), children = c.Children.Select(child => new { type = child.GetType().Name, bounds = Bounds(child) }).ToArray() }).ToArray(),
@@ -266,7 +313,7 @@ namespace SourceGit.Automation
                         bounds = Bounds(t), visibleHeight = VisibleHeight(t), spans = t.Spans.Select(s => new { name = s.Name, text = s.Text, start = s.Start, length = s.Length, sha = s.SHA, parent = s.IsParent, label = s.IsLabel }).ToArray(),
                         viewport = t.FindAncestorOfType<ScrollViewer>() is { } scroll ? new { bounds = Bounds(scroll), screen = ScreenPoint(scroll) } : null,
                         menu = t.ContextMenu is { IsOpen: true } menu ? menu.Items.OfType<MenuItem>().Select(i => new { name = i.Name, text = i.Header?.ToString(), enabled = i.IsEnabled, screen = ScreenPoint(i) }).ToArray() : null }).ToArray(),
-                labels = controls.OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && !string.IsNullOrEmpty(t.Text)).Take(500)
+                labels = controls.OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && t.Opacity > 0 && !string.IsNullOrEmpty(t.Text)).Take(500)
                     .Select(t => new { text = t.Text, bounds = Bounds(t), visibleHeight = VisibleHeight(t) }).ToArray(),
                 sidebarCommitTints = controls.OfType<Border>().Where(b => b.Name == "CommitCoverageBackground" && b.IsEffectivelyVisible && b.DataContext is ViewModels.BranchTreeNode { Backend: Models.Branch })
                     .Select(b => new { reference = ((Models.Branch)((ViewModels.BranchTreeNode)b.DataContext).Backend).FullName,

@@ -15,10 +15,24 @@ using System.Threading;
 
 namespace SourceGit.Native
 {
+    internal enum RemoteAccessFailure
+    {
+        None,
+        RejectedCredentials,
+        PermissionDenied,
+        RepositoryUnavailable,
+        ServerError,
+    }
+
     // Generic Windows credentials are encrypted and owned by the current Windows user.
     // No passwords are written into repository config, portable data, logs or MCP output.
     internal static class RepositoryCredentials
     {
+        internal static bool UsesGitHubToken(string remote)
+            => Uri.TryCreate(remote, UriKind.Absolute, out var uri) &&
+                (uri.Scheme is "http" or "https") &&
+                uri.IdnHost.TrimEnd('.').Equals("github.com", StringComparison.OrdinalIgnoreCase);
+
         // Git may authenticate against a canonical redirect (e.g. repo.git)
         // while the configured remote is repo. Only follow server-confirmed,
         // same-origin redirects; never guess that two paths share credentials.
@@ -58,8 +72,11 @@ namespace SourceGit.Native
             return Regex.Replace(text, @"(Authorization\s*:\s*(?:Basic|Bearer)\s+)[^\s\""']+", "$1***", RegexOptions.IgnoreCase);
         }
         public static bool IsAuthenticationFailure(string output)
+            => ClassifyRemoteAccessFailure(output) is RemoteAccessFailure.RejectedCredentials or RemoteAccessFailure.PermissionDenied;
+
+        internal static RemoteAccessFailure ClassifyRemoteAccessFailure(string output)
         {
-            if (output == null) return false;
+            if (string.IsNullOrEmpty(output)) return RemoteAccessFailure.None;
             // A local reference hook can print an authentication-like message
             // after the fetch transport has succeeded. Never replay that hook.
             // Remove URLs before testing so a repository named "hook" still
@@ -68,16 +85,30 @@ namespace SourceGit.Native
             if (Regex.IsMatch(detail, @"\bhooks?\b", RegexOptions.IgnoreCase) ||
                 detail.Contains("unable to update local ref", StringComparison.OrdinalIgnoreCase) ||
                 detail.Contains("cannot lock ref", StringComparison.OrdinalIgnoreCase) ||
-                detail.Contains("failed to update ref", StringComparison.OrdinalIgnoreCase)) return false;
-            return (output.Contains("fatal: Authentication failed for 'http", StringComparison.OrdinalIgnoreCase) ||
+                detail.Contains("failed to update ref", StringComparison.OrdinalIgnoreCase) ||
+                output.Contains("told us to quit", StringComparison.OrdinalIgnoreCase) ||
+                output.Contains("User canceled authentication", StringComparison.OrdinalIgnoreCase) ||
+                output.Contains("User cancelled authentication", StringComparison.OrdinalIgnoreCase))
+                return RemoteAccessFailure.None;
+
+            if (output.Contains("The requested URL returned error: 403", StringComparison.OrdinalIgnoreCase) ||
+                output.Contains("Write access to repository not granted", StringComparison.OrdinalIgnoreCase))
+                return RemoteAccessFailure.PermissionDenied;
+
+            if (output.Contains("The requested URL returned error: 404", StringComparison.OrdinalIgnoreCase) ||
+                output.Contains("remote: Repository not found", StringComparison.OrdinalIgnoreCase) ||
+                Regex.IsMatch(output, @"fatal: repository 'https?://[^']*' not found", RegexOptions.IgnoreCase))
+                return RemoteAccessFailure.RepositoryUnavailable;
+
+            if (Regex.IsMatch(output, @"The requested URL returned error: 5[0-9]{2}\b", RegexOptions.IgnoreCase))
+                return RemoteAccessFailure.ServerError;
+
+            return output.Contains("fatal: Authentication failed for 'http", StringComparison.OrdinalIgnoreCase) ||
                 output.Contains(CredentialSession.RejectedMarker, StringComparison.Ordinal) ||
                 output.Contains("The requested URL returned error: 401", StringComparison.OrdinalIgnoreCase) ||
-                output.Contains("The requested URL returned error: 403", StringComparison.OrdinalIgnoreCase) ||
                 output.Contains("Permission denied (publickey", StringComparison.OrdinalIgnoreCase) ||
-                output.Contains("Permission denied (password", StringComparison.OrdinalIgnoreCase)) &&
-                !output.Contains("told us to quit", StringComparison.OrdinalIgnoreCase) &&
-                !output.Contains("User canceled authentication", StringComparison.OrdinalIgnoreCase) &&
-                !output.Contains("User cancelled authentication", StringComparison.OrdinalIgnoreCase);
+                output.Contains("Permission denied (password", StringComparison.OrdinalIgnoreCase)
+                ? RemoteAccessFailure.RejectedCredentials : RemoteAccessFailure.None;
         }
 
         private static readonly ConcurrentDictionary<string, Lazy<bool>> _managerModes = new(StringComparer.OrdinalIgnoreCase);

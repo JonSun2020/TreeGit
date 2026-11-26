@@ -52,11 +52,13 @@ namespace SourceGit.Commands
         public int? LastExitCode { get; private set; }
         protected bool IsAuthenticationRetry { get; set; }
         public bool WasAuthenticationCancelled { get; private set; }
+        internal string AuthenticationFailureStage { get; private set; }
         internal bool WasCredentialAccepted { get; private set; }
         private protected Native.CredentialSession AuthenticationSession;
 
         private protected async Task<bool> RetryAuthenticationAsync(int exitCode, string error, bool allowed, bool requireTransportExit)
         {
+            AuthenticationFailureStage = null;
             WasAuthenticationCancelled = AuthenticationSession?.WasCancelled == true ||
                 error.Contains(Native.CredentialSession.CancelMarker, StringComparison.Ordinal) ||
                 error.Contains("told us to quit", StringComparison.OrdinalIgnoreCase) ||
@@ -74,21 +76,33 @@ namespace SourceGit.Commands
                 return false;
             }
             var timedOut = AuthenticationSession?.WasTimedOut == true;
-            var rejected = Native.RepositoryCredentials.IsAuthenticationFailure(error);
+            var failure = Native.RepositoryCredentials.ClassifyRemoteAccessFailure(error);
+            var rejected = failure is Native.RemoteAccessFailure.RejectedCredentials or Native.RemoteAccessFailure.PermissionDenied;
+            var unavailableAfterPrompt = failure == Native.RemoteAccessFailure.RepositoryUnavailable &&
+                AuthenticationSession is { HasPrompt: true, WasAccepted: false };
             var connectionFailure = AuthenticationSession is { HasPrompt: true, WasAccepted: false } &&
                 (error.Contains("fatal: unable to access", StringComparison.OrdinalIgnoreCase) ||
                  error.Contains("Could not resolve hostname", StringComparison.OrdinalIgnoreCase) ||
                  error.Contains("Connection timed out", StringComparison.OrdinalIgnoreCase));
+            var (stage, action) = timedOut ? ("VerificationTimeout", "timeout") : failure switch
+            {
+                Native.RemoteAccessFailure.RejectedCredentials => ("AuthenticationFailed", "rejected"),
+                Native.RemoteAccessFailure.PermissionDenied => ("PermissionDenied", "permission-denied"),
+                Native.RemoteAccessFailure.RepositoryUnavailable => ("RepositoryUnavailable", "repository-unavailable"),
+                Native.RemoteAccessFailure.ServerError => ("ServerError", "server-error"),
+                _ => connectionFailure ? ("ConnectionFailed", "error") : (null, null),
+            };
+            if (allowed) AuthenticationFailureStage = stage;
             if (!allowed || !OperatingSystem.IsWindows() ||
-                !(timedOut || (!requireTransportExit || exitCode == 128) && (rejected || connectionFailure))) return false;
+                !(timedOut || (!requireTransportExit || exitCode == 128) && (rejected || unavailableAfterPrompt || connectionFailure))) return false;
             // A server can refuse access without requesting credentials (for
             // example, a read-only HTTP remote). One silent retry can bypass
             // cached credentials, but repeated attempts need user input.
             if (IsAuthenticationRetry && AuthenticationSession?.HasPrompt != true) return false;
             if (AuthenticationSession != null)
             {
-                Log?.ReportAuthenticationState(timedOut ? "VerificationTimeout" : rejected ? "AuthenticationFailed" : "ConnectionFailed");
-                await AuthenticationSession.NotifyAsync(timedOut ? "timeout" : rejected ? "rejected" : "error").ConfigureAwait(false);
+                Log?.ReportAuthenticationState(stage);
+                await AuthenticationSession.NotifyAsync(action).ConfigureAwait(false);
                 AuthenticationSession.ResetTimeout();
             }
             IsAuthenticationRetry = true;
@@ -109,6 +123,7 @@ namespace SourceGit.Commands
             }
             IsAuthenticationRetry = false;
             WasAuthenticationCancelled = false;
+            AuthenticationFailureStage = null;
             var originalCancellation = CancellationToken;
             using var operationCancellation = SupportsAuthenticationRetry && Log?.OperationCancellation.CanBeCanceled == true ?
                 CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, Log.OperationCancellation) : null;
@@ -461,7 +476,7 @@ namespace SourceGit.Commands
             }
 
             // Commands that parse human-readable fields need stable tokens on every platform.
-            if (!OperatingSystem.IsWindows() || Log?.HasOperationPanel == true || RequiresInvariantOutput)
+            if (!OperatingSystem.IsWindows() || Log?.HasOperationPanel == true || RequiresInvariantOutput || SupportsAuthenticationRetry)
             {
                 start.Environment["LANG"] = "C";
                 start.Environment["LC_ALL"] = "C";

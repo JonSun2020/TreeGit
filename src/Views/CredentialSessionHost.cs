@@ -129,7 +129,7 @@ namespace SourceGit.Views
                         }
                         finally { _requests.Release(); }
                     }
-                    else if (request.Action is "accepted" or "rejected" or "timeout" or "error")
+                    else if (request.Action is "accepted" or "rejected" or "permission-denied" or "repository-unavailable" or "server-error" or "timeout" or "error")
                     {
                         await Dispatcher.UIThread.InvokeAsync(() =>
                         {
@@ -137,8 +137,16 @@ namespace SourceGit.Views
                             else
                             {
                                 if (_reply?.Task.IsCompleted == true) _reply = NewReply();
-                                _window?.SessionFailed(request.Action == "timeout" ? "TreeGit.Credentials.Timeout" :
-                                    request.Action == "error" ? "TreeGit.Credentials.ConnectionFailed" : "TreeGit.Credentials.Retry");
+                                var key = request.Action switch
+                                {
+                                    "timeout" => "Timeout",
+                                    "error" => "ConnectionFailed",
+                                    "permission-denied" => "PermissionDenied",
+                                    "repository-unavailable" => "RepositoryUnavailable",
+                                    "server-error" => "ServerError",
+                                    _ => "Retry",
+                                };
+                                _window?.SessionFailed("TreeGit.Credentials." + key);
                             }
                         });
                     }

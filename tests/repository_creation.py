@@ -225,6 +225,9 @@ try:
         else:click('ConfirmPopup');wait(lambda:popup() and popup()['error'])
         check(name+' failure leaves local files untouched',not (root/name).exists())
         check(name+' failure stays available for correction',popup() is not None)
+        token_state=probe('creation_token_focus')
+        check(name+' failure retains the token and the eye stays on when returning to its input',
+              token_state['preserved'] and token_state['revealed'])
         if scenario==5:check('an existing remote is never silently adopted',probe('welcome_mock_state')['posts']==0 and not popup()['canConnectExisting'])
         click('CancelPopup')
     welcome();create_form('lost-response',True,3);click('ConfirmPopup');wait(lambda:popup() and popup()['error'])

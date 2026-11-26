@@ -54,7 +54,6 @@
                                     HorizontalAlignment="Left" VerticalAlignment="Center"
                                     BorderThickness="1"
                                     BorderBrush="{DynamicResource Brush.Border2}"
-                                    CornerRadius="13"
                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
                                     ScrollViewer.VerticalScrollBarVisibility="Disabled"
                                     Watermark="{DynamicResource Text.File.HexViewer.GotoAddress}"

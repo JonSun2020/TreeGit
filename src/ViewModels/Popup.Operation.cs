@@ -15,7 +15,8 @@ namespace SourceGit.ViewModels
             "LFSFetch" or "LFSPull" or "LFSPush";
         public bool OperationPanelVisible { get => _operationPanelVisible; private set => SetProperty(ref _operationPanelVisible, value); }
         public bool ShowFullOutput { get => _showFullOutput; set => SetProperty(ref _showFullOutput, value); }
-        public bool OperationPhaseFailed => _operationStage is "AuthenticationFailed" or "ConnectionFailed" or "PushRejected" or "GitUnavailable" or "VerificationTimeout" or "Failed";
+        public bool OperationPhaseFailed => _operationStage is "AuthenticationFailed" or "PermissionDenied" or "RepositoryUnavailable" or
+            "ConnectionFailed" or "ServerError" or "PushRejected" or "GitUnavailable" or "VerificationTimeout" or "Failed";
         public string OperationStage => _operationStage == "Running" ? App.Text("TreeGit.Operation.Running", DialogTitle) : App.Text("TreeGit.Operation." + _operationStage);
         public string StatusDescription => UsesOperationPanel ? OperationStage : ProgressDescription;
         public bool ShowStatus => InProgress || UsesOperationPanel && OperationPhaseFailed;
@@ -54,11 +55,13 @@ namespace SourceGit.ViewModels
                 OperationPanelVisible = false;
                 OnAuthenticationState("Cancelled");
             }
-            else
+            else if (success)
             {
-                if (success) OperationProgress = 100;
-                OnAuthenticationState(success ? "Succeeded" : "Failed");
+                OperationProgress = 100;
+                OnAuthenticationState("Succeeded");
             }
+            else if (!OperationPhaseFailed)
+                OnAuthenticationState("Failed");
         }
 
         protected void BeginOperationPart(int index, int count)
@@ -115,8 +118,10 @@ namespace SourceGit.ViewModels
         public void OnAuthenticationState(string state)
         {
             var previousStage = _operationStage;
+            if (state == "AuthenticationFailed" && (previousStage is "PermissionDenied" or "RepositoryUnavailable" or "ServerError"))
+                return;
             _operationStage = state;
-            if (OperationPanelVisible && state is "AuthenticationFailed" or "VerificationTimeout" or "ConnectionFailed")
+            if (OperationPanelVisible && state is "AuthenticationFailed" or "PermissionDenied" or "RepositoryUnavailable" or "VerificationTimeout" or "ConnectionFailed" or "ServerError")
             {
                 _resumeAfterAuthentication = true; OperationPanelVisible = false;
             }
@@ -160,9 +165,8 @@ namespace SourceGit.ViewModels
                 var success = command is Commands.VerifyPushCredentials write ? await write.VerifyAsync() : await command.ExecAsync();
                 if (!success && !command.WasAuthenticationCancelled)
                 {
-                    var stage = command.LastExitCode.HasValue ? "ConnectionFailed" : "Failed";
-                    if (push && (command.FailureMessage.Contains("returned error: 403", StringComparison.OrdinalIgnoreCase) ||
-                                 command.FailureMessage.Contains("write access to repository not granted", StringComparison.OrdinalIgnoreCase)))
+                    var stage = command.AuthenticationFailureStage ?? (command.LastExitCode.HasValue ? "ConnectionFailed" : "Failed");
+                    if (push && stage == "PermissionDenied")
                         stage = "PushRejected";
                     if (!command.LastExitCode.HasValue && OperatingSystem.IsWindows() && string.IsNullOrEmpty(Native.OS.GitExecutable))
                         stage = "GitUnavailable";
