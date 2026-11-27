@@ -1,7 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Media;
+using Avalonia.Platform.Storage;
 
 namespace SourceGit.Views
 {
@@ -12,6 +16,7 @@ namespace SourceGit.Views
         private ContextMenu CreateContextMenuForSingleCommit(ViewModels.Repository repo, Models.Commit commit)
         {
             var menu = new ContextMenu();
+            menu.Items.Add(CreateCommitReportMenuItem(repo, [commit]));
             var current = repo.CurrentBranch;
             var vm = DataContext as ViewModels.Histories;
             var pending = ViewModels.InProgressContext.HasPendingOperation(repo.GitDir);
@@ -43,11 +48,6 @@ namespace SourceGit.Views
             var extended = CreateExtendedContextMenuForSingleCommit(repo, commit);
             var old = extended?.Items.OfType<MenuItem>().ToList() ?? [];
             extended?.Items.Clear();
-            var patch = old.FirstOrDefault(item => item.Name == "LegacyCommitPatch");
-            if (patch != null)
-            {
-                patch.Name = "CommitPatch"; patch.Header = App.Text("CommitMenu.Patch"); menu.Items.Add(patch); old.Remove(patch);
-            }
             Add("CommitCherryPick", "CherryPick", "Icons.CherryPick", async () => { if (vm != null) await vm.CherryPickAsync(commit); }, canChange);
             Add("CommitCopySHA", "CopySHA", "Icons.Hash", async () => await this.CopyTextAsync(commit.SHA));
 
@@ -67,6 +67,76 @@ namespace SourceGit.Views
             OpenCommitMenu?.Close(); OpenCommitMenu = menu;
             menu.Closed += (_, _) => { if (OpenCommitMenu == menu) OpenCommitMenu = null; };
             return menu;
+        }
+
+        private MenuItem CreateCommitReportMenuItem(ViewModels.Repository repo, IReadOnlyList<Models.Commit> selected)
+        {
+            var icon = this.CreateMenuIcon("Icons.Save");
+            if (icon != null)
+            {
+                icon.Width = icon.Height = 14;
+                icon.Fill = ReportIconBrush;
+            }
+            var item = new MenuItem
+            {
+                Name = "CommitExportReport",
+                Header = App.Text("CommitReport.Menu"),
+                Icon = icon,
+            };
+            item.Click += (_, e) =>
+            {
+                e.Handled = true;
+                if (!repo.CanCreatePopup())
+                    return;
+
+                IEnumerable<Models.Commit> ordered = selected;
+                var history = (DataContext as ViewModels.Histories)?.Commits;
+                if (selected.Count > 1 && history != null)
+                {
+                    var selectedIds = selected.Select(c => c.SHA).ToHashSet(StringComparer.Ordinal);
+                    var inHistoryOrder = history.Where(c => selectedIds.Contains(c.SHA)).ToArray();
+                    if (inHistoryOrder.Length == selected.Count)
+                        ordered = inHistoryOrder;
+                }
+                var snapshot = ordered.OrderByDescending(c => c.CommitterTime).ToArray();
+                repo.ShowPopup(new ViewModels.ExportCommitReport(repo, snapshot, PickCommitReportDestinationAsync));
+            };
+            return item;
+        }
+
+        private static readonly IBrush ReportIconBrush = new LinearGradientBrush
+        {
+            StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+            EndPoint = new RelativePoint(1, 1, RelativeUnit.Relative),
+            GradientStops =
+            [
+                new GradientStop(Color.FromRgb(26, 135, 73), 0),
+                new GradientStop(Color.FromRgb(32, 123, 190), 1),
+            ],
+        };
+
+        private async Task<string> PickCommitReportDestinationAsync(string suggestedName)
+        {
+#if INTEGRATION_TESTS
+            if (Tests.CommitReportProbe.Picker is { } picker)
+                return await picker(suggestedName);
+#endif
+            var storage = TopLevel.GetTopLevel(this)?.StorageProvider;
+            if (storage == null)
+                return null;
+
+            var options = new FilePickerSaveOptions
+            {
+                Title = App.Text("CommitReport.Title"),
+                SuggestedFileName = suggestedName,
+                DefaultExtension = "html",
+                FileTypeChoices = [new FilePickerFileType("HTML") { Patterns = ["*.html"], MimeTypes = ["text/html"] }],
+                ShowOverwritePrompt = true,
+            };
+            using var file = await storage.SaveFilePickerAsync(options);
+            if (file == null)
+                return null;
+            return file.TryGetLocalPath() ?? throw new System.IO.IOException(App.Text("CommitReport.LocalFileRequired"));
         }
     }
 }

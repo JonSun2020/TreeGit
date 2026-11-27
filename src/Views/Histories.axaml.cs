@@ -11,7 +11,6 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
-using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
 
 namespace SourceGit.Views
@@ -1086,13 +1085,14 @@ namespace SourceGit.Views
             }
 
             var menu = new ContextMenu();
+            menu.Items.Add(CreateCommitReportMenuItem(repo, selected));
 
             if (!repo.IsBare)
             {
                 if (canCherryPick)
                 {
-                    var cherryPick = new MenuItem();
-                    cherryPick.Header = App.Text("CommitCM.CherryPickMultiple");
+                    var cherryPick = new MenuItem { Name = "CommitCherryPick" };
+                    cherryPick.Header = App.Text("CommitMenu.CherryPick");
                     cherryPick.Icon = this.CreateMenuIcon("Icons.CherryPick");
                     cherryPick.Click += (_, e) =>
                     {
@@ -1116,48 +1116,8 @@ namespace SourceGit.Views
                     };
                     menu.Items.Add(merge);
                 }
-
-                if (canCherryPick || canMerge)
-                    menu.Items.Add(new MenuItem() { Header = "-" });
             }
 
-            var saveToPatch = new MenuItem();
-            saveToPatch.Icon = this.CreateMenuIcon("Icons.Save");
-            saveToPatch.Header = App.Text("CommitCM.SaveAsPatch");
-            saveToPatch.Click += async (_, e) =>
-            {
-                var storageProvider = TopLevel.GetTopLevel(this)?.StorageProvider;
-                if (storageProvider == null)
-                    return;
-
-                var options = new FolderPickerOpenOptions() { AllowMultiple = false };
-                try
-                {
-                    var picker = await storageProvider.OpenFolderPickerAsync(options);
-                    if (picker.Count == 1)
-                    {
-                        var folder = picker[0];
-                        var folderPath = folder is { Path: { IsAbsoluteUri: true } path } ? path.LocalPath : folder.Path.ToString();
-                        var succ = false;
-                        for (var i = 0; i < selected.Count; i++)
-                        {
-                            succ = await repo.SaveCommitAsPatchAsync(selected[i], folderPath, i);
-                            if (!succ)
-                                break;
-                        }
-
-                        if (succ)
-                            repo.SendNotification(App.Text("SaveAsPatchSuccess"));
-                    }
-                }
-                catch (Exception exception)
-                {
-                    repo.SendNotification(App.Text("TreeGit.Message.PatchSaveFailed", exception.Message), true);
-                }
-
-                e.Handled = true;
-            };
-            menu.Items.Add(saveToPatch);
             menu.Items.Add(new MenuItem() { Header = "-" });
 
             var copyInfos = new MenuItem();
@@ -1349,7 +1309,7 @@ namespace SourceGit.Views
                 }
 
                 var cherryPick = new MenuItem { Name = "LegacyCommitCore" };
-                cherryPick.Header = App.Text("CommitCM.CherryPick");
+                cherryPick.Header = App.Text("CommitMenu.CherryPick");
                 cherryPick.Icon = this.CreateMenuIcon("Icons.CherryPick");
                 cherryPick.Click += async (_, e) =>
                 {
@@ -1521,37 +1481,6 @@ namespace SourceGit.Views
 
                 menu.Items.Add(new MenuItem() { Header = "-" });
             }
-
-            var saveToPatch = new MenuItem { Name = "LegacyCommitPatch" };
-            saveToPatch.Icon = this.CreateMenuIcon("Icons.Save");
-            saveToPatch.Header = App.Text("CommitCM.SaveAsPatch");
-            saveToPatch.Click += async (_, e) =>
-            {
-                var storageProvider = TopLevel.GetTopLevel(this)?.StorageProvider;
-                if (storageProvider == null)
-                    return;
-
-                var options = new FolderPickerOpenOptions() { AllowMultiple = false };
-                try
-                {
-                    var selected = await storageProvider.OpenFolderPickerAsync(options);
-                    if (selected.Count == 1)
-                    {
-                        var folder = selected[0];
-                        var folderPath = folder is { Path: { IsAbsoluteUri: true } path } ? path.LocalPath : folder.Path.ToString();
-                        var succ = await repo.SaveCommitAsPatchAsync(commit, folderPath);
-                        if (succ)
-                            repo.SendNotification(App.Text("SaveAsPatchSuccess"));
-                    }
-                }
-                catch (Exception exception)
-                {
-                    repo.SendNotification(App.Text("TreeGit.Message.PatchSaveFailed", exception.Message), true);
-                }
-
-                e.Handled = true;
-            };
-            menu.Items.Add(saveToPatch);
 
             var archive = new MenuItem { Name = "LegacyCommitCore" };
             archive.Icon = this.CreateMenuIcon("Icons.Archive");

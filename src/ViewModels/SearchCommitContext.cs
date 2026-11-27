@@ -205,8 +205,7 @@ namespace SourceGit.ViewModels
                     foreach (var commit in result)
                     {
                         if (!branchNames.TryGetValue(commit.SHA, out var coverage)) continue;
-                        var origin = origins.TryGetValue(commit.SHA, out var reference) ? locals.Find(b => b.FullName == reference) : null;
-                        var details = new Models.CommitBranchDetails(commit, coverage, graph, origin, graphPositions);
+                        var details = Models.CommitBranchDetails.FromSnapshot(commit, coverage, graph, locals, origins, graphPositions);
                         commit.SearchBranchDetails = details;
                         commit.SearchBranches = details.Coverage;
                     }

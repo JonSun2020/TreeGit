@@ -160,8 +160,6 @@
   <x:String x:Key="Text.CommandPalette.RepositoryActions" xml:space="preserve">自訂動作</x:String>
   <x:String x:Key="Text.CommandPalette.RevisionFiles" xml:space="preserve">檔案列表</x:String>
   <x:String x:Key="Text.CommitCM.Checkout" xml:space="preserve">簽出 (checkout) 此提交...</x:String>
-  <x:String x:Key="Text.CommitCM.CherryPick" xml:space="preserve">揀選 (cherry-pick) 此提交...</x:String>
-  <x:String x:Key="Text.CommitCM.CherryPickMultiple" xml:space="preserve">揀選 (cherry-pick)...</x:String>
   <x:String x:Key="Text.CommitCM.CompareWithHead" xml:space="preserve">與目前 HEAD 比較</x:String>
   <x:String x:Key="Text.CommitCM.CompareWithWorktree" xml:space="preserve">與本機工作樹比較</x:String>
   <x:String x:Key="Text.CommitCM.CopyAuthor" xml:space="preserve">作者</x:String>
@@ -184,7 +182,6 @@
   <x:String x:Key="Text.CommitCM.Rebase" xml:space="preserve">重定基底 (rebase) ${0}$ 至 ${1}$...</x:String>
   <x:String x:Key="Text.CommitCM.Reset" xml:space="preserve">重設 (reset) ${0}$ 至 ${1}$...</x:String>
   <x:String x:Key="Text.CommitCM.Revert" xml:space="preserve">復原此提交...</x:String>
-  <x:String x:Key="Text.CommitCM.SaveAsPatch" xml:space="preserve">另存為修補檔 (patch)...</x:String>
   <x:String x:Key="Text.CommitDetail.Changes" xml:space="preserve">變更對比</x:String>
   <x:String x:Key="Text.CommitDetail.Changes.Count" xml:space="preserve">個檔案已變更</x:String>
   <x:String x:Key="Text.CommitDetail.Changes.Search" xml:space="preserve">篩選變更...</x:String>
@@ -1322,7 +1319,6 @@
   <x:String x:Key="Text.CommitMenu.InteractiveRebase">互動式重定基底此提交的子提交…</x:String>
   <x:String x:Key="Text.CommitMenu.Reset">重置目前分支到此次提交…</x:String>
   <x:String x:Key="Text.CommitMenu.Revert">回滾提交…</x:String>
-  <x:String x:Key="Text.CommitMenu.Patch">建立補丁…</x:String>
   <x:String x:Key="Text.CommitMenu.CherryPick">遴選…</x:String>
   <x:String x:Key="Text.CommitMenu.CopySHA">複製 SHA 到剪貼簿</x:String>
   <x:String x:Key="Text.CommitMenu.Advanced">高階操作</x:String>
@@ -1948,4 +1944,33 @@
   <x:String x:Key="Text.TreeGit.Git.MissingRepair">找不到可用的 Git。請安裝 Git，或下載 TreeGit 的 BundledGit 版本。要立即下載最新版 BundledGit 並自動修復嗎？</x:String>
   <x:String x:Key="Text.TreeGit.Git.Unavailable">找不到可用的 Git。</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.RepairAvailable">正在準備包含 Git 的完整更新。</x:String>
+  <x:String x:Key="Text.CommitReport.Menu">匯出提交報告…</x:String>
+  <x:String x:Key="Text.CommitReport.Title">匯出提交報告</x:String>
+  <x:String x:Key="Text.CommitReport.Selection">已選取 {0} 個提交</x:String>
+  <x:String x:Key="Text.CommitReport.Context">上下文行數</x:String>
+  <x:String x:Key="Text.CommitReport.ContextLabel">上下文行數：</x:String>
+  <x:String x:Key="Text.CommitReport.ChooseFile">選擇 HTML 報告的儲存位置</x:String>
+  <x:String x:Key="Text.CommitReport.Writing">正在匯出提交報告…</x:String>
+  <x:String x:Key="Text.CommitReport.Saved">提交報告已儲存至：{0}</x:String>
+  <x:String x:Key="Text.CommitReport.Failed">無法匯出提交報告：{0}</x:String>
+  <x:String x:Key="Text.CommitReport.LocalFileRequired">請選擇本機儲存位置。</x:String>
+  <x:String x:Key="Text.CommitReport.Author">作者</x:String>
+  <x:String x:Key="Text.CommitReport.Date">作者日期</x:String>
+  <x:String x:Key="Text.CommitReport.Parents">父提交</x:String>
+  <x:String x:Key="Text.CommitReport.Changes">變更檔案</x:String>
+  <x:String x:Key="Text.CommitReport.FirstParent">以第一個父提交為比較基準</x:String>
+  <x:String x:Key="Text.CommitReport.EmptyTree">空樹（初始提交）</x:String>
+  <x:String x:Key="Text.CommitReport.NoChanges">沒有檔案變更。</x:String>
+  <x:String x:Key="Text.CommitReport.NoMatches">沒有符合條件的檔案。</x:String>
+  <x:String x:Key="Text.CommitReport.Wrap">自動換行</x:String>
+  <x:String x:Key="Text.CommitReport.Binary">二進位檔案</x:String>
+  <x:String x:Key="Text.CommitReport.Added">新增行數</x:String>
+  <x:String x:Key="Text.CommitReport.Removed">刪除行數</x:String>
+  <x:String x:Key="Text.CommitReport.SelectCommit">選擇提交</x:String>
+  <x:String x:Key="Text.CommitReport.OldVersion">舊版本</x:String>
+  <x:String x:Key="Text.CommitReport.NewVersion">新版本</x:String>
+  <x:String x:Key="Text.CommitReport.ResizeColumn">調整欄寬</x:String>
+  <x:String x:Key="Text.CommitReport.Branch">分支</x:String>
+  <x:String x:Key="Text.CommitReport.ResizePane">調整窗格大小</x:String>
+  <x:String x:Key="Text.CommitReport.Ordinal">序號</x:String>
 </ResourceDictionary>

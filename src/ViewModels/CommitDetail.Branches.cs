@@ -68,8 +68,7 @@ namespace SourceGit.ViewModels
                     token.ThrowIfCancellationRequested();
                     if (!names.TryGetValue(commit.SHA, out var coverage)) throw new InvalidOperationException("Branch query did not complete.");
                     var recorded = await origins.ConfigureAwait(false);
-                    var origin = recorded.TryGetValue(commit.SHA, out var reference) ? locals.Find(b => b.FullName == reference) : null;
-                    var details = new Models.CommitBranchDetails(commit, coverage, graph, origin);
+                    var details = Models.CommitBranchDetails.FromSnapshot(commit, coverage, graph, locals, recorded);
                     Dispatcher.UIThread.Post(() =>
                     {
                         if (token.IsCancellationRequested || request != _branchDetailsRequest || _commit?.SHA != commit.SHA) return;

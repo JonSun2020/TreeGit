@@ -2219,39 +2219,6 @@ namespace SourceGit.ViewModels
             return all;
         }
 
-        public async Task<bool> SaveCommitAsPatchAsync(Models.Commit commit, string folder, int index = 0)
-        {
-            var ignoredChars = new HashSet<char> { '/', '\\', ':', ',', '*', '?', '\"', '<', '>', '|', '`', '$', '^', '%', '[', ']', '+', '-' };
-            var builder = new StringBuilder();
-            builder.Append(index.ToString("D4"));
-            builder.Append('-');
-
-            var chars = commit.Subject.ToCharArray();
-            var len = 0;
-            foreach (var c in chars)
-            {
-                if (!ignoredChars.Contains(c))
-                {
-                    if (c == ' ' || c == '\t')
-                        builder.Append('-');
-                    else
-                        builder.Append(c);
-
-                    len++;
-
-                    if (len >= 48)
-                        break;
-                }
-            }
-            builder.Append(".patch");
-
-            var saveTo = Path.Combine(folder, builder.ToString());
-            var log = CreateLog("Save Commit as Patch");
-            var succ = await new Commands.FormatPatch(FullPath, commit.SHA, saveTo).Use(log).ExecAsync();
-            log.Complete();
-            return succ;
-        }
-
         private LauncherPage GetOwnerPage()
         {
             var launcher = App.GetLauncher();

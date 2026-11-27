@@ -1,0 +1,28 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:SourceGit.ViewModels"
+             x:Class="SourceGit.Views.ExportCommitReport"
+             x:DataType="vm:ExportCommitReport">
+  <UserControl.Resources>
+    <DataTemplate x:Key="ContextNumber" x:DataType="x:Int32">
+      <TextBlock Text="{Binding}"/>
+    </DataTemplate>
+  </UserControl.Resources>
+  <StackPanel Margin="8,0">
+    <StackPanel Orientation="Horizontal" Classes="popup_heading">
+      <Path Width="16" Height="16" Data="{StaticResource Icons.Save}"/>
+      <TextBlock FontSize="18" Margin="8,0,0,0" Classes="bold" Text="{DynamicResource Text.CommitReport.Title}"/>
+    </StackPanel>
+
+    <TextBlock Margin="0,16,0,4" Text="{Binding CommitCount}"/>
+    <Grid Classes="operation_form" ColumnDefinitions="Auto,*" RowDefinitions="32">
+      <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,8,0"
+                 Text="{DynamicResource Text.CommitReport.ContextLabel}"/>
+      <ComboBox Grid.Column="1" Name="CommitReportContext" Height="28" CornerRadius="3"
+                HorizontalAlignment="Stretch" VerticalAlignment="Center"
+                AutomationProperties.Name="{DynamicResource Text.CommitReport.Context}"
+                ItemsSource="{Binding ContextOptions}" SelectedItem="{Binding ContextLines, Mode=TwoWay}"
+                ItemTemplate="{StaticResource ContextNumber}" SelectionBoxItemTemplate="{StaticResource ContextNumber}"/>
+    </Grid>
+  </StackPanel>
+</UserControl>

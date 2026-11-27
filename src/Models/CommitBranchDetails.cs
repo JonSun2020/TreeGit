@@ -17,6 +17,13 @@ namespace SourceGit.Models
             App.Text(IsInferred ? "CommitBranches.Estimated" : "CommitBranches.LocalRecord", Primary.FriendlyName);
         public Commit DisplayCommit { get; }
 
+        internal static CommitBranchDetails FromSnapshot(Commit commit, SearchBranchCoverage coverage, List<Commit> graph,
+            List<Branch> locals, IReadOnlyDictionary<string, string> origins, Dictionary<string, int> graphPositions = null)
+        {
+            var origin = origins.TryGetValue(commit.SHA, out var reference) ? locals.Find(branch => branch.FullName == reference) : null;
+            return new CommitBranchDetails(commit, coverage, graph, origin, graphPositions);
+        }
+
         public CommitBranchDetails(Commit commit, SearchBranchCoverage coverage, List<Commit> graph, Branch recordedOrigin,
             Dictionary<string, int> graphPositions = null)
         {

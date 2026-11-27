@@ -161,8 +161,6 @@
   <x:String x:Key="Text.CommandPalette.RepositoryActions" xml:space="preserve">Repository Custom Actions</x:String>
   <x:String x:Key="Text.CommandPalette.RevisionFiles" xml:space="preserve">Revision Files</x:String>
   <x:String x:Key="Text.CommitCM.Checkout" xml:space="preserve">Checkout Commit...</x:String>
-  <x:String x:Key="Text.CommitCM.CherryPick" xml:space="preserve">Cherry-Pick Commit...</x:String>
-  <x:String x:Key="Text.CommitCM.CherryPickMultiple" xml:space="preserve">Cherry-Pick...</x:String>
   <x:String x:Key="Text.CommitCM.CompareWithHead" xml:space="preserve">Compare with HEAD</x:String>
   <x:String x:Key="Text.CommitCM.CompareWithWorktree" xml:space="preserve">Compare with Worktree</x:String>
   <x:String x:Key="Text.CommitCM.CopyAuthor" xml:space="preserve">Author</x:String>
@@ -185,7 +183,6 @@
   <x:String x:Key="Text.CommitCM.Rebase" xml:space="preserve">Rebase ${0}$ on ${1}$...</x:String>
   <x:String x:Key="Text.CommitCM.Reset" xml:space="preserve">Reset ${0}$ to ${1}$...</x:String>
   <x:String x:Key="Text.CommitCM.Revert" xml:space="preserve">Revert Commit...</x:String>
-  <x:String x:Key="Text.CommitCM.SaveAsPatch" xml:space="preserve">Save as Patch...</x:String>
   <x:String x:Key="Text.CommitDetail.Changes" xml:space="preserve">CHANGES</x:String>
   <x:String x:Key="Text.CommitDetail.Changes.Count" xml:space="preserve">changed file(s)</x:String>
   <x:String x:Key="Text.CommitDetail.Changes.Search" xml:space="preserve">Search Changes...</x:String>
@@ -1339,7 +1336,6 @@ Manually add a branch/tag history filter will disable this feature automatically
   <x:String x:Key="Text.CommitMenu.InteractiveRebase">Interactive rebase descendants…</x:String>
   <x:String x:Key="Text.CommitMenu.Reset">Reset current branch to this commit…</x:String>
   <x:String x:Key="Text.CommitMenu.Revert">Revert commit…</x:String>
-  <x:String x:Key="Text.CommitMenu.Patch">Create patch…</x:String>
   <x:String x:Key="Text.CommitMenu.CherryPick">Cherry-pick…</x:String>
   <x:String x:Key="Text.CommitMenu.CopySHA">Copy SHA to clipboard</x:String>
   <x:String x:Key="Text.CommitMenu.Advanced">Advanced operations</x:String>
@@ -1889,4 +1885,33 @@ Manually add a branch/tag history filter will disable this feature automatically
   <x:String x:Key="Text.TreeGit.Git.MissingRepair">No usable Git was found. Install Git or download the BundledGit edition of TreeGit. Download the latest BundledGit edition and repair now?</x:String>
   <x:String x:Key="Text.TreeGit.Git.Unavailable">No usable Git was found.</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.RepairAvailable">Preparing the complete update with bundled Git.</x:String>
+  <x:String x:Key="Text.CommitReport.Menu">Export commit report…</x:String>
+  <x:String x:Key="Text.CommitReport.Title">Export commit report</x:String>
+  <x:String x:Key="Text.CommitReport.Selection">Selected commits: {0}</x:String>
+  <x:String x:Key="Text.CommitReport.Context">Context lines</x:String>
+  <x:String x:Key="Text.CommitReport.ContextLabel">Context lines:</x:String>
+  <x:String x:Key="Text.CommitReport.ChooseFile">Choose where to save the HTML report</x:String>
+  <x:String x:Key="Text.CommitReport.Writing">Writing commit report…</x:String>
+  <x:String x:Key="Text.CommitReport.Saved">Commit report saved to: {0}</x:String>
+  <x:String x:Key="Text.CommitReport.Failed">Could not export the commit report: {0}</x:String>
+  <x:String x:Key="Text.CommitReport.LocalFileRequired">Choose a local location for the report.</x:String>
+  <x:String x:Key="Text.CommitReport.Author">Author</x:String>
+  <x:String x:Key="Text.CommitReport.Date">Author date</x:String>
+  <x:String x:Key="Text.CommitReport.Parents">Parents</x:String>
+  <x:String x:Key="Text.CommitReport.Changes">Changed files</x:String>
+  <x:String x:Key="Text.CommitReport.FirstParent">Compared with first parent</x:String>
+  <x:String x:Key="Text.CommitReport.EmptyTree">Empty tree (initial commit)</x:String>
+  <x:String x:Key="Text.CommitReport.NoChanges">No file changes.</x:String>
+  <x:String x:Key="Text.CommitReport.NoMatches">No files match the filter.</x:String>
+  <x:String x:Key="Text.CommitReport.Wrap">Wrap lines</x:String>
+  <x:String x:Key="Text.CommitReport.Binary">Binary file</x:String>
+  <x:String x:Key="Text.CommitReport.Added">Added lines</x:String>
+  <x:String x:Key="Text.CommitReport.Removed">Removed lines</x:String>
+  <x:String x:Key="Text.CommitReport.SelectCommit">Select commit</x:String>
+  <x:String x:Key="Text.CommitReport.OldVersion">Old version</x:String>
+  <x:String x:Key="Text.CommitReport.NewVersion">New version</x:String>
+  <x:String x:Key="Text.CommitReport.ResizeColumn">Resize column</x:String>
+  <x:String x:Key="Text.CommitReport.Branch">Branch</x:String>
+  <x:String x:Key="Text.CommitReport.ResizePane">Resize pane</x:String>
+  <x:String x:Key="Text.CommitReport.Ordinal">No.</x:String>
 </ResourceDictionary>

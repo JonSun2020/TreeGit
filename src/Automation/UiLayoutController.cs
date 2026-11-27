@@ -59,6 +59,8 @@ namespace SourceGit.Automation
                 return MenuToggleProbe.Execute(window, args);
             else if (action == "test_dropdowns")
                 return DropdownAuditProbe.Execute(window, args);
+            else if (action == "test_commit_report")
+                return Tests.CommitReportProbe.Open(window, args);
             else if (action == "test_metadata")
             {
                 if (Environment.GetEnvironmentVariable("CI") != "true") throw new InvalidOperationException("An owned CI fixture is required.");

@@ -165,8 +165,6 @@
   <x:String x:Key="Text.CommandPalette.RepositoryActions" xml:space="preserve">自定义操作列表</x:String>
   <x:String x:Key="Text.CommandPalette.RevisionFiles" xml:space="preserve">文件列表</x:String>
   <x:String x:Key="Text.CommitCM.Checkout" xml:space="preserve">检出此提交...</x:String>
-  <x:String x:Key="Text.CommitCM.CherryPick" xml:space="preserve">挑选(cherry-pick)此提交...</x:String>
-  <x:String x:Key="Text.CommitCM.CherryPickMultiple" xml:space="preserve">挑选(cherry-pick)...</x:String>
   <x:String x:Key="Text.CommitCM.CompareWithHead" xml:space="preserve">与当前HEAD比较</x:String>
   <x:String x:Key="Text.CommitCM.CompareWithWorktree" xml:space="preserve">与本地工作树比较</x:String>
   <x:String x:Key="Text.CommitCM.CopyAuthor" xml:space="preserve">作者</x:String>
@@ -189,7 +187,6 @@
   <x:String x:Key="Text.CommitCM.Rebase" xml:space="preserve">变基(rebase) ${0}$ 到 ${1}$...</x:String>
   <x:String x:Key="Text.CommitCM.Reset" xml:space="preserve">重置(reset) ${0}$ 到 ${1}$...</x:String>
   <x:String x:Key="Text.CommitCM.Revert" xml:space="preserve">回滚此提交...</x:String>
-  <x:String x:Key="Text.CommitCM.SaveAsPatch" xml:space="preserve">另存为补丁...</x:String>
   <x:String x:Key="Text.CommitDetail.Changes" xml:space="preserve">变更对比</x:String>
   <x:String x:Key="Text.CommitDetail.Changes.Count" xml:space="preserve">个文件发生变更</x:String>
   <x:String x:Key="Text.CommitDetail.Changes.Search" xml:space="preserve">查找变更...</x:String>
@@ -1343,7 +1340,6 @@
   <x:String x:Key="Text.CommitMenu.InteractiveRebase">交互式变基此提交的子提交…</x:String>
   <x:String x:Key="Text.CommitMenu.Reset">重置当前分支到此次提交…</x:String>
   <x:String x:Key="Text.CommitMenu.Revert">回滚提交…</x:String>
-  <x:String x:Key="Text.CommitMenu.Patch">创建补丁…</x:String>
   <x:String x:Key="Text.CommitMenu.CherryPick">遴选…</x:String>
   <x:String x:Key="Text.CommitMenu.CopySHA">复制 SHA 到剪贴板</x:String>
   <x:String x:Key="Text.CommitMenu.Advanced">高级操作</x:String>
@@ -1893,4 +1889,33 @@
   <x:String x:Key="Text.TreeGit.Git.MissingRepair">未找到可用的 Git。请安装 Git，或下载 TreeGit 的 BundledGit 版本。现在下载最新版 BundledGit 并自动修复吗？</x:String>
   <x:String x:Key="Text.TreeGit.Git.Unavailable">未找到可用的 Git。</x:String>
   <x:String x:Key="Text.SelfUpdate.Flow.RepairAvailable">正在为你准备包含 Git 的完整更新。</x:String>
+  <x:String x:Key="Text.CommitReport.Menu">导出提交报告…</x:String>
+  <x:String x:Key="Text.CommitReport.Title">导出提交报告</x:String>
+  <x:String x:Key="Text.CommitReport.Selection">已选中 {0} 个提交</x:String>
+  <x:String x:Key="Text.CommitReport.Context">上下文行数</x:String>
+  <x:String x:Key="Text.CommitReport.ContextLabel">上下文行数：</x:String>
+  <x:String x:Key="Text.CommitReport.ChooseFile">选择 HTML 报告的保存位置</x:String>
+  <x:String x:Key="Text.CommitReport.Writing">正在导出提交报告…</x:String>
+  <x:String x:Key="Text.CommitReport.Saved">提交报告已保存至：{0}</x:String>
+  <x:String x:Key="Text.CommitReport.Failed">无法导出提交报告：{0}</x:String>
+  <x:String x:Key="Text.CommitReport.LocalFileRequired">请选择本地保存位置。</x:String>
+  <x:String x:Key="Text.CommitReport.Author">作者</x:String>
+  <x:String x:Key="Text.CommitReport.Date">作者日期</x:String>
+  <x:String x:Key="Text.CommitReport.Parents">父提交</x:String>
+  <x:String x:Key="Text.CommitReport.Changes">变更文件</x:String>
+  <x:String x:Key="Text.CommitReport.FirstParent">以第一个父提交为比较基准</x:String>
+  <x:String x:Key="Text.CommitReport.EmptyTree">空树（初始提交）</x:String>
+  <x:String x:Key="Text.CommitReport.NoChanges">没有文件变更。</x:String>
+  <x:String x:Key="Text.CommitReport.NoMatches">没有匹配的文件。</x:String>
+  <x:String x:Key="Text.CommitReport.Wrap">自动换行</x:String>
+  <x:String x:Key="Text.CommitReport.Binary">二进制文件</x:String>
+  <x:String x:Key="Text.CommitReport.Added">新增行数</x:String>
+  <x:String x:Key="Text.CommitReport.Removed">删除行数</x:String>
+  <x:String x:Key="Text.CommitReport.SelectCommit">选择提交</x:String>
+  <x:String x:Key="Text.CommitReport.OldVersion">旧版本</x:String>
+  <x:String x:Key="Text.CommitReport.NewVersion">新版本</x:String>
+  <x:String x:Key="Text.CommitReport.ResizeColumn">调整列宽</x:String>
+  <x:String x:Key="Text.CommitReport.Branch">分支</x:String>
+  <x:String x:Key="Text.CommitReport.ResizePane">调整窗格大小</x:String>
+  <x:String x:Key="Text.CommitReport.Ordinal">序号</x:String>
 </ResourceDictionary>

@@ -51,6 +51,7 @@ namespace SourceGit.ViewModels
             "EditRemote" => App.Text("Remote.EditTitle"),
             "EditRepositoryNode" => App.Text(this is EditRepositoryNode e && e.IsRepository ? "EditRepositoryNode.TitleForRepository" : "EditRepositoryNode.TitleForGroup"),
             "ExecuteCustomAction" => (this as ExecuteCustomAction)?.CustomAction.Name,
+            "ExportCommitReport" => App.Text("CommitReport.Title"),
             "Fetch" => App.Text("Fetch.Title"),
             "FetchInto" => App.Text("Fetch.Title"),
             "GitFlowFinish" => App.Text((this as GitFlowFinish)?.Type switch

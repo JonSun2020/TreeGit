@@ -269,7 +269,7 @@ namespace SourceGit.Views
                 if (hasCurrentHead && listBox.Tag is Models.Commit { IsCurrentHead: false })
                 {
                     var cherryPick = new MenuItem();
-                    cherryPick.Header = App.Text("CommitCM.CherryPickMultiple");
+                    cherryPick.Header = App.Text("CommitMenu.CherryPick");
                     cherryPick.Icon = this.CreateMenuIcon("Icons.CherryPick");
                     cherryPick.Click += (_, ev) =>
                     {
