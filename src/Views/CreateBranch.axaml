@@ -94,13 +94,13 @@
                 IsVisible="{Binding !IsBareRepository}"/>
 
       <Border x:Name="BranchLocalChangesLabel" Grid.Row="6" Grid.Column="0"
-              Height="32" VerticalAlignment="Top" Classes="option_dependent"
+              Height="32" VerticalAlignment="Top"
               IsVisible="{Binding HasLocalChanges}" IsEnabled="{Binding CheckoutAfterCreated}">
-        <TextBlock HorizontalAlignment="Right" VerticalAlignment="Center"
+        <TextBlock Classes="operation_dependent_caption" HorizontalAlignment="Right" VerticalAlignment="Center"
                    Margin="0,0,8,0"
                    Text="{DynamicResource Text.CreateBranch.LocalChanges}"/>
       </Border>
-      <v:DealWithLocalChangesMethod Grid.Row="6" Grid.Column="1" Classes="option_dependent"
+      <v:DealWithLocalChangesMethod Grid.Row="6" Grid.Column="1"
                                     IsVisible="{Binding HasLocalChanges}" IsEnabled="{Binding CheckoutAfterCreated}"
                                     Method="{Binding DealWithLocalChanges, Mode=TwoWay}"/>
     </Grid>

@@ -23,6 +23,8 @@ if '--replays-extended' in sys.argv[3:]:
     modes=['stream-replay-'+mode for mode in ['readonly','ref-config','cancelled','driver','renormalize','promisor','invalid-range']]
 if '--revision-files' in sys.argv[3:]:
     modes=['stream-revision-file-'+mode for mode in ['valid','missing','missing-worktree','closed','close-loading','cancelled','write-failure','snapshot-write-failure','literal']]
+if '--background-read-cancellation' in sys.argv[3:]:
+    modes=['stream-revision-file-cancel-image-read','stream-revision-file-cancel-status-read']
 if '--safety' in sys.argv[3:]:
     modes=['safety-'+mode for mode in ['status-failure','status-cancelled','status-count','bounded-output','quoted-arguments','normal','rebase-history-blocked','rebase-history-benign','unborn','obstruction','selected-obstruction','selected-literal','nested-repository','selected-nested-repository','junction','failed-discard','merge-ignored','merge-benign-directory','merge-file-ancestor','merge-nested-repository']]
     modes += ['safety-'+mode for mode in ['patch-ignored','patch-benign','patch-root','patch-mainline-1','patch-mainline-2']]

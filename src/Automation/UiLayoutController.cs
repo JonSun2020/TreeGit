@@ -211,6 +211,10 @@ namespace SourceGit.Automation
 #if INTEGRATION_TESTS
                 locale = App.ActiveLocale,
                 savedLocale = ViewModels.Preferences.Instance.Locale,
+                welcomeRows = controls.OfType<Views.RepositoryListBox>().Where(list => list.IsEffectivelyVisible)
+                    .SelectMany(list => list.GetRealizedContainers()).Select(row => row.DataContext)
+                    .OfType<ViewModels.RepositoryNode>().Where(node => node.IsRepository)
+                    .Select(node => new { name = node.Name, branch = node.Status?.CurrentBranch, changes = node.Status?.LocalChanges }).ToArray(),
                 localizedTexts = controls.OfType<TextBlock>().Where(t => t.IsEffectivelyVisible && !string.IsNullOrWhiteSpace(t.Text))
                     .Select(t => new { name = t.Name, text = t.Text, context = t.DataContext?.GetType().Name,
                         width = t.Bounds.Width, height = t.Bounds.Height, trimming = t.TextTrimming.ToString(),
@@ -241,7 +245,7 @@ namespace SourceGit.Automation
                             static TextBlock WarningText(ContentControl warning) =>
                                 warning.GetVisualDescendants().OfType<TextBlock>().FirstOrDefault(t => t.Opacity > 0);
                             var localChanges = g.Children.OfType<Views.DealWithLocalChangesMethod>().FirstOrDefault();
-                            var localCaption = g.Children.FirstOrDefault(c => c.Name == "BranchLocalChangesLabel");
+                            var localCaption = g.Children.OfType<Border>().FirstOrDefault(c => c.Name == "BranchLocalChangesLabel")?.Child as TextBlock;
                             advancedOptions = new {
                                 baselineDifference = Baseline(advancedCaption) - Baseline(optionText),
                                 gap = g.RowDefinitions[Grid.GetRow(advancedCaption) - 1].ActualHeight,
@@ -250,12 +254,15 @@ namespace SourceGit.Automation
                                 localChanges = localChanges == null ? null : new {
                                     checkout = Bounds(g.Children.First(c => c.Name == "BranchCheckoutAfterCreated")),
                                     bounds = Bounds(localChanges), visible = localChanges.IsEffectivelyVisible, enabled = localChanges.IsEffectivelyEnabled,
-                                    opacity = localChanges.Opacity, captionEnabled = localCaption.IsEffectivelyEnabled, captionOpacity = localCaption.Opacity,
+                                    captionEnabled = localCaption.IsEffectivelyEnabled, captionOpacity = localCaption.Opacity,
+                                    captionColor = localCaption.Foreground?.ToString(),
                                     radios = localChanges.GetVisualDescendants().OfType<RadioButton>().Select(r =>
                                     {
                                         var parts = r.GetVisualDescendants().OfType<Ellipse>();
                                         var ring = parts.FirstOrDefault(e => e.Name == "Border");
-                                        return new { name = r.Name, isEffectivelyEnabled = r.IsEffectivelyEnabled, isChecked = r.IsChecked, foreground = r.Foreground?.ToString(),
+                                        var text = (TextBlock)r.Content;
+                                        return new { name = r.Name, isEffectivelyEnabled = r.IsEffectivelyEnabled, isChecked = r.IsChecked,
+                                            textColor = text.Foreground?.ToString(), textOpacity = text.Opacity,
                                             ring = ring?.Stroke?.ToString(), fillAlpha = (ring?.Fill as Avalonia.Media.ISolidColorBrush)?.Color.A,
                                             dot = parts.FirstOrDefault(e => e.Name == "Dot")?.Fill?.ToString() };
                                     }).ToArray(),
@@ -277,6 +284,7 @@ namespace SourceGit.Automation
                                             fontStyle = label.FontStyle.ToString(), messageFontStyle = message.FontStyle.ToString(),
                                             bold = label.FontWeight == Avalonia.Media.FontWeight.Bold && message.FontWeight == Avalonia.Media.FontWeight.Bold,
                                             muted = label.FindResource("Brush.FG2")?.ToString(), normal = label.FindResource("Brush.FG1")?.ToString(),
+                                            mutedOpacity = label.FindResource("OperationDisabledTextOpacity"),
                                             baselineDifference = Baseline(label) - Baseline(message) };
                                     }).Where(w => w != null).ToArray()
                             };

@@ -92,6 +92,55 @@ namespace SourceGit.Tests
                     catch (OperationCanceledException) { success = File.ReadAllText(target) == original; }
                     break;
                 }
+                case "cancel-image-read":
+                case "cancel-status-read":
+                {
+                    var imageRead = mode == "cancel-image-read";
+                    var ready = Path.Combine(root, "reader.ready");
+                    using var cancellation = new CancellationTokenSource();
+                    var previous = Native.ProcessLauncher.BeforeStart;
+                    Native.ProcessLauncher.BeforeStart = (process, attempt) =>
+                    {
+                        previous?.Invoke(process, attempt);
+                        var args = process.StartInfo.Arguments;
+                        if (imageRead ? !args.StartsWith("show ", StringComparison.Ordinal) : !args.Contains("--porcelain=v2", StringComparison.Ordinal)) return;
+                        process.StartInfo.FileName = "powershell.exe";
+                        process.StartInfo.Arguments = string.Empty;
+                        var path = ready.Replace("'", "''");
+                        foreach (var argument in new[] { "-NoProfile", "-NonInteractive", "-Command",
+                            $"$path='{path}';[IO.File]::WriteAllText($path+'.tmp',[string]$PID);[IO.File]::Move($path+'.tmp',$path);Start-Sleep -Seconds 20" })
+                            process.StartInfo.ArgumentList.Add(argument);
+                    };
+                    var cancelRead = Task.Run(async () =>
+                    {
+                        for (var i = 0; i < 400 && !File.Exists(ready); i++) await Task.Delay(25);
+                        cancellation.Cancel();
+                        if (!File.Exists(ready)) throw new IOException("The owned reader did not start.");
+                    });
+                    var abandoned = false;
+                    try
+                    {
+                        if (imageRead)
+                        {
+                            try { await ViewModels.ImageSource.FromRevisionAsync(root, "HEAD", "sample.txt", Models.ImageDecoder.Builtin, cancellation.Token); }
+                            catch (OperationCanceledException) { abandoned = true; }
+                        }
+                        else
+                        {
+                            var status = await new Commands.QueryRepositoryStatus(root) { CancellationToken = cancellation.Token }.GetResultAsync();
+                            abandoned = status == null;
+                        }
+                        await cancelRead;
+                    }
+                    finally { Native.ProcessLauncher.BeforeStart = previous; }
+                    var pid = int.Parse(File.ReadAllText(ready));
+                    bool exited;
+                    try { using var process = Process.GetProcessById(pid); exited = process.WaitForExit(4000); }
+                    catch (ArgumentException) { exited = true; }
+                    success = abandoned && exited;
+                    details = new { abandoned, exited };
+                    break;
+                }
                 case "snapshot-write-failure":
                 {
                     var start = new ProcessStartInfo("powershell.exe") { UseShellExecute = false, CreateNoWindow = true,

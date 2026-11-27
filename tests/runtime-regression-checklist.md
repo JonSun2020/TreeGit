@@ -13,6 +13,7 @@
 | Git 进程与失败恢复 | 覆盖大量输出、静默失败、命令启动失败、取消和远程操作。验证只读请求不会修改 refs、索引、草稿或工作文件，写入命令不会自动重放。 | `command_pipes.py`、`remote_query_cancellation.py`、`interaction_safety.py` |
 | 长时资源 | 同时记录耗时、CPU、私有内存、工作集、句柄类型、Git 子进程和临时数据。在操作后立即、等长空闲后、关闭全部标签后采样。检查磁盘句柄、已退出线程句柄、子进程和快照是否持续累积。 | `desktop_soak.py`、`handle_lifetime.py` |
 | 后台获取 | 用本地远程仓库检查正常定时获取、仓库和远程开关、无远程的仓库，以及设置修改后的重新调度。用实际远程跟踪引用和 Git 命令记录核对结果，并确认本地 HEAD 保持原值。 | `auto_fetch_schedule.py` |
+| 欢迎页状态和查询取消 | 检查折叠分组的初始 Git 状态调用次数，筛选后展开分组，核对显示的分支和未提交文件数。取消进行中的状态读取和图片读取，确认子进程退出。 | `welcome_status_performance.py`、`command_pipes.py --background-read-cancellation` |
 | 便携包和尺寸 | 分别核对 SystemGit、BundledGit 的压缩及解压体积、校验值、正式启动和实际配置。确认更新和回退路径，核对正式入口指向的版本。 | `package_smoke.py`、`updater_end_to_end.py`、`build/publish-treegit.py` |
 
 - 串行复用一份隔离程序。构建和测试前检查系统盘、工作盘及内存余量，记录测试进程峰值和临时占用。退出后核对进程、测试副本、独立配置和 Git 临时仓库均已清理。

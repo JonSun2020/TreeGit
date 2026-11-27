@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Avalonia;
@@ -38,23 +39,23 @@ namespace SourceGit.ViewModels
             };
         }
 
-        public static async Task<ImageSource> FromFileAsync(string fullpath, Models.ImageDecoder decoder)
+        public static async Task<ImageSource> FromFileAsync(string fullpath, Models.ImageDecoder decoder, CancellationToken token = default)
         {
             if (!File.Exists(fullpath))
                 return new ImageSource(null, 0);
 
             await using var stream = File.OpenRead(fullpath);
-            return await Task.Run(() => LoadFromStream(stream, decoder)).ConfigureAwait(false);
+            return await DecodeAsync(stream, decoder, token).ConfigureAwait(false);
         }
 
-        public static async Task<ImageSource> FromRevisionAsync(string repo, string revision, string file, Models.ImageDecoder decoder)
+        public static async Task<ImageSource> FromRevisionAsync(string repo, string revision, string file, Models.ImageDecoder decoder, CancellationToken token = default)
         {
             var emptyTreeHash = Models.EmptyTreeHash.Guess(revision);
             if (emptyTreeHash.Equals(revision, StringComparison.Ordinal))
                 return new ImageSource(null, 0);
 
-            await using var stream = await Commands.QueryFileContent.RunAsync(repo, revision, file).ConfigureAwait(false);
-            return await Task.Run(() => LoadFromStream(stream, decoder)).ConfigureAwait(false);
+            await using var stream = await Commands.QueryFileContent.RunAsync(repo, revision, file, token: token).ConfigureAwait(false);
+            return await DecodeAsync(stream, decoder, token).ConfigureAwait(false);
         }
 
         public static async Task<ImageSource> FromLFSObjectAsync(string repo, Models.LFSObject lfs, Models.ImageDecoder decoder)
@@ -69,6 +70,17 @@ namespace SourceGit.ViewModels
 
             await using var stream = await Commands.QueryFileContent.FromLFSAsync(repo, lfs.Oid, lfs.Size).ConfigureAwait(false);
             return await Task.Run(() => LoadFromStream(stream, decoder)).ConfigureAwait(false);
+        }
+
+        private static async Task<ImageSource> DecodeAsync(Stream stream, Models.ImageDecoder decoder, CancellationToken token)
+        {
+            var image = await Task.Run(() => LoadFromStream(stream, decoder), token).ConfigureAwait(false);
+            if (token.IsCancellationRequested)
+            {
+                image.Bitmap?.Dispose();
+                token.ThrowIfCancellationRequested();
+            }
+            return image;
         }
 
         private static ImageSource LoadFromStream(Stream stream, Models.ImageDecoder decoder)

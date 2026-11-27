@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Diagnostics;
+using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -13,46 +15,52 @@ namespace SourceGit.Commands
         {
             WorkingDirectory = repo;
             RaiseError = false;
+            Args = "--no-optional-locks status --porcelain=v2 -b -uall --ignore-submodules=dirty";
         }
 
         public async Task<Models.RepositoryStatus> GetResultAsync()
         {
-            Args = "--no-optional-locks status --porcelain=v2 -b -uall --ignore-submodules=dirty";
-            var rs = await ReadToEndAsync().ConfigureAwait(false);
-            if (!rs.IsSuccess)
-                return null;
-
-            var status = new Models.RepositoryStatus();
-            var lines = rs.StdOut.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries);
-            var count = lines.Length;
-            if (count < 2)
-                return null;
-
-            var sha1 = lines[0].Substring(13).Trim(); // Remove "# branch.oid " prefix
-            var head = lines[1].Substring(14).Trim(); // Remove "# branch.head " prefix
-
-            if (head.Equals("(detached)", StringComparison.Ordinal))
-                status.CurrentBranch = sha1.Length > 10 ? $"({sha1.Substring(0, 10)})" : "-";
-            else
-                status.CurrentBranch = head;
-
-            var localChanges = 0;
-            for (var i = 2; i < count; i++)
+            if (CancellationToken.IsCancellationRequested) return null;
+            try
             {
-                var line = lines[i];
-                if (line.StartsWith("# ", StringComparison.Ordinal))
+                using var process = new Process { StartInfo = CreateGitStartInfo(true) };
+                if (CancellationToken.IsCancellationRequested) return null;
+                Native.ProcessLauncher.Start(process);
+                using var registration = CancellationToken.Register(() =>
                 {
-                    if (line.StartsWith("# branch.ab ", StringComparison.Ordinal))
-                        ParseTrackStatus(status, line.Substring(12).Trim());
-                }
-                else
+                    try { if (!process.HasExited) Native.OS.TerminateProcess(process); }
+                    catch (InvalidOperationException) { }
+                    catch (System.ComponentModel.Win32Exception) { }
+                });
+                var errorDrain = process.StandardError.BaseStream.CopyToAsync(Stream.Null);
+                var status = new Models.RepositoryStatus();
+                string oid = null;
+                string head = null;
+                // Only branch metadata and counts are needed for the Welcome row.
+                while (await process.StandardOutput.ReadLineAsync().ConfigureAwait(false) is { } line)
                 {
-                    localChanges++;
+                    if (line.StartsWith("# branch.oid ", StringComparison.Ordinal))
+                        oid = line[13..].Trim();
+                    else if (line.StartsWith("# branch.head ", StringComparison.Ordinal))
+                        head = line[14..].Trim();
+                    else if (line.StartsWith("# branch.ab ", StringComparison.Ordinal))
+                        ParseTrackStatus(status, line[12..].Trim());
+                    else if (line.Length > 0 && !line.StartsWith("# ", StringComparison.Ordinal))
+                        status.LocalChanges++;
                 }
-            }
+                await process.WaitForExitAsync().ConfigureAwait(false);
+                await errorDrain.ConfigureAwait(false);
+                if (process.ExitCode != 0 || CancellationToken.IsCancellationRequested || oid == null || head == null)
+                    return null;
 
-            status.LocalChanges = localChanges;
-            return status;
+                status.CurrentBranch = head;
+                if (head == "(detached)") status.CurrentBranch = oid.Length > 10 ? $"({oid.AsSpan(0, 10)})" : "-";
+                return status;
+            }
+            catch (Exception error) when (error is IOException or InvalidOperationException or System.ComponentModel.Win32Exception)
+            {
+                return null;
+            }
         }
 
         private void ParseTrackStatus(Models.RepositoryStatus status, string input)

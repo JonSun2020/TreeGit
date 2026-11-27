@@ -260,13 +260,13 @@ namespace SourceGit.ViewModels
             {
                 var imgDecoder = ImageSource.GetDecoder(_option.Path);
                 if (imgDecoder != Models.ImageDecoder.None)
-                    rs = await CreateImageDiffAsync(imgDecoder).ConfigureAwait(false);
+                    rs = await CreateImageDiffAsync(imgDecoder, token).ConfigureAwait(false);
                 else
                     rs = await CreateBinaryDiffAsync().ConfigureAwait(false);
             }
             else if (latest.IsSubmoduleChange)
             {
-                rs = await CreateSubmoduleDiffAsync(latest.OldHash, latest.NewHash).ConfigureAwait(false);
+                rs = await CreateSubmoduleDiffAsync(latest.OldHash, latest.NewHash, token).ConfigureAwait(false);
             }
             else if (IsEmptyFileHash(latest.OldHash) || IsEmptyFileHash(latest.NewHash))
             {
@@ -277,97 +277,77 @@ namespace SourceGit.ViewModels
                 rs = new Models.NoOrEOLChange();
             }
 
-            token.ThrowIfCancellationRequested();
-            await Dispatcher.UIThread.InvokeAsync(() =>
+            var unpublishedImage = rs as Models.ImageDiff;
+            try
             {
-                if (loadVersion != Volatile.Read(ref _loadVersion)) return;
-                OldMode = latest.OldMode;
-                NewMode = latest.NewMode;
-
-                if (rs is Models.TextDiff cur)
+                token.ThrowIfCancellationRequested();
+                await Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    IsTextDiff = true;
-                    IsIgnoreWhitespaceVisible = true;
+                    if (loadVersion != Volatile.Read(ref _loadVersion)) return;
+                    OldMode = latest.OldMode;
+                    NewMode = latest.NewMode;
 
-                    var option = cur.IsDisplayOnly ? _option.AsDisplayOnly() : _option;
-                    if (Settings.UseSideBySideDiff && !cur.IsNewOrDeletedFile)
-                        Content = new TwoSideTextDiff(option, cur, _content as TextDiffContext);
+                    if (rs is Models.TextDiff cur)
+                    {
+                        IsTextDiff = true;
+                        IsIgnoreWhitespaceVisible = true;
+
+                        var option = cur.IsDisplayOnly ? _option.AsDisplayOnly() : _option;
+                        if (Settings.UseSideBySideDiff && !cur.IsNewOrDeletedFile)
+                            Content = new TwoSideTextDiff(option, cur, _content as TextDiffContext);
+                        else
+                            Content = new CombinedTextDiff(option, cur, _content as TextDiffContext);
+                    }
                     else
-                        Content = new CombinedTextDiff(option, cur, _content as TextDiffContext);
-                }
-                else
-                {
-                    IsTextDiff = false;
-                    IsIgnoreWhitespaceVisible = (rs is Models.NoOrEOLChange);
-                    Content = rs;
-                }
+                    {
+                        IsTextDiff = false;
+                        IsIgnoreWhitespaceVisible = (rs is Models.NoOrEOLChange);
+                        unpublishedImage = null;
+                        Content = rs;
+                    }
 
-                // Publish the cache identity with its content on the UI
-                // thread. A newly selected context must never inherit a
-                // completed identity while the matching content is pending.
-                _info = info;
-            });
+                    // Publish the cache identity with its content on the UI
+                    // thread. A newly selected context must never inherit a
+                    // completed identity while the matching content is pending.
+                    _info = info;
+                });
+            }
+            finally
+            {
+                unpublishedImage?.Old?.Dispose();
+                unpublishedImage?.New?.Dispose();
+            }
         }
 
-        private async Task<Models.ImageDiff> CreateImageDiffAsync(Models.ImageDecoder imgDecoder)
+        private async Task<Models.ImageDiff> CreateImageDiffAsync(Models.ImageDecoder decoder, CancellationToken token)
         {
-            var oldPath = string.IsNullOrEmpty(_option.OrgPath) ? _option.Path : _option.OrgPath;
-            var imgDiff = new Models.ImageDiff();
-            var fullPath = Path.Combine(_repo, _option.Path);
-
-            if (_option.Revisions.Count == 2) // Two revisions are specified, compare them
+            Task<ImageSource> ReadSide(string revision, string path)
             {
-                if (_option.Revisions[0].Equals("-R", StringComparison.Ordinal)) // `-R` means the old side is the working tree
-                {
-                    var oldImage = await ImageSource.FromFileAsync(fullPath, imgDecoder).ConfigureAwait(false);
-                    imgDiff.Old = oldImage.Bitmap;
-                    imgDiff.OldFileSize = oldImage.Size;
-                }
-                else
-                {
-                    var oldImage = await ImageSource.FromRevisionAsync(_repo, _option.Revisions[0], oldPath, imgDecoder).ConfigureAwait(false);
-                    imgDiff.Old = oldImage.Bitmap;
-                    imgDiff.OldFileSize = oldImage.Size;
-                }
-
-                if (string.IsNullOrEmpty(_option.Revisions[1])) // Empty string in the second revision means the new side is the working tree
-                {
-                    var newImage = await ImageSource.FromFileAsync(fullPath, imgDecoder).ConfigureAwait(false);
-                    imgDiff.New = newImage.Bitmap;
-                    imgDiff.NewFileSize = newImage.Size;
-                }
-                else
-                {
-                    var newImage = await ImageSource.FromRevisionAsync(_repo, _option.Revisions[1], _option.Path, imgDecoder).ConfigureAwait(false);
-                    imgDiff.New = newImage.Bitmap;
-                    imgDiff.NewFileSize = newImage.Size;
-                }
-            }
-            else if (_option.IsUnstaged) // Unstaged change compared to staged or HEAD
-            {
-                if (!oldPath.Equals("/dev/null", StringComparison.Ordinal))
-                {
-                    var oldImage = await ImageSource.FromRevisionAsync(_repo, string.Empty, oldPath, imgDecoder).ConfigureAwait(false);
-                    imgDiff.Old = oldImage.Bitmap;
-                    imgDiff.OldFileSize = oldImage.Size;
-                }
-
-                var newImage = await ImageSource.FromFileAsync(fullPath, imgDecoder).ConfigureAwait(false);
-                imgDiff.New = newImage.Bitmap;
-                imgDiff.NewFileSize = newImage.Size;
-            }
-            else // Staged change compared to the last commit (HEAD)
-            {
-                var oldImage = await ImageSource.FromRevisionAsync(_repo, "HEAD", oldPath, imgDecoder).ConfigureAwait(false);
-                imgDiff.Old = oldImage.Bitmap;
-                imgDiff.OldFileSize = oldImage.Size;
-
-                var newImage = await ImageSource.FromRevisionAsync(_repo, string.Empty, _option.Path, imgDecoder).ConfigureAwait(false);
-                imgDiff.New = newImage.Bitmap;
-                imgDiff.NewFileSize = newImage.Size;
+                token.ThrowIfCancellationRequested();
+                if (path == "/dev/null")
+                    return Task.FromResult(new ImageSource(null, 0));
+                return revision == null
+                    ? ImageSource.FromFileAsync(Path.Combine(_repo, path), decoder, token)
+                    : ImageSource.FromRevisionAsync(_repo, revision, path, decoder, token);
             }
 
-            return imgDiff;
+            var oldImage = await ReadSide(_option.BinaryOldRevision, _option.BinaryOldPath).ConfigureAwait(false);
+            try
+            {
+                var newImage = await ReadSide(_option.BinaryNewRevision, _option.BinaryNewPath).ConfigureAwait(false);
+                return new Models.ImageDiff
+                {
+                    Old = oldImage.Bitmap,
+                    New = newImage.Bitmap,
+                    OldFileSize = oldImage.Size,
+                    NewFileSize = newImage.Size,
+                };
+            }
+            catch
+            {
+                oldImage.Bitmap?.Dispose();
+                throw;
+            }
         }
 
         private async Task<Models.TextDiff> TryWideDiffAsync(Models.DiffResult result, int codePage, int context, bool ignoreSpace, bool ignoreCR, CancellationToken token)
@@ -408,19 +388,19 @@ namespace SourceGit.ViewModels
             });
         }
 
-        private async Task<Models.SubmoduleDiff> CreateSubmoduleDiffAsync(string oldRevision, string newRevision)
+        private async Task<Models.SubmoduleDiff> CreateSubmoduleDiffAsync(string oldRevision, string newRevision, CancellationToken token)
         {
             var submoduleDiff = new Models.SubmoduleDiff();
             var submoduleRoot = $"{_repo}/{_option.Path}".Replace('\\', '/').TrimEnd('/');
             submoduleDiff.FullPath = submoduleRoot;
 
             if (IsValidSubmoduleHash(oldRevision))
-                submoduleDiff.Old = await new Commands.QuerySubmoduleRevision(submoduleRoot, oldRevision)
+                submoduleDiff.Old = await new Commands.QuerySubmoduleRevision(submoduleRoot, oldRevision) { CancellationToken = token }
                     .GetResultAsync()
                     .ConfigureAwait(false);
 
             if (IsValidSubmoduleHash(newRevision))
-                submoduleDiff.New = await new Commands.QuerySubmoduleRevision(submoduleRoot, newRevision)
+                submoduleDiff.New = await new Commands.QuerySubmoduleRevision(submoduleRoot, newRevision) { CancellationToken = token }
                     .GetResultAsync()
                     .ConfigureAwait(false);
 

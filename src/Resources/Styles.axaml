@@ -12,6 +12,7 @@
   </Design.PreviewWith>
 
   <Styles.Resources>
+    <x:Double x:Key="OperationDisabledTextOpacity">0.43</x:Double>
     <ControlTheme x:Key="TreeGit.CommitTableHeader" TargetType="DataGridColumnHeader">
       <Setter Property="MinHeight" Value="0"/>
       <Setter Property="Height" Value="24"/>
@@ -1630,6 +1631,11 @@
     <Setter Property="Opacity" Value="0.68"/>
   </Style>
 
+  <Style Selector="TextBlock.operation_dependent_caption:disabled">
+    <Setter Property="Foreground" Value="{DynamicResource Brush.FG2}"/>
+    <Setter Property="Opacity" Value="{StaticResource OperationDisabledTextOpacity}"/>
+  </Style>
+
   <Style Selector="ContentControl.operation_warning">
     <Setter Property="IsHitTestVisible" Value="False"/>
     <Setter Property="FontWeight" Value="Bold"/>
@@ -1640,7 +1646,7 @@
           <TextBlock Classes="inactive_warning_text" Text="{TemplateBinding Content}"
                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Top"
                      FontWeight="{TemplateBinding FontWeight}" FontStyle="Italic" TextWrapping="Wrap"
-                     Foreground="{DynamicResource Brush.FG2}" Opacity="0.68"/>
+                     Foreground="{DynamicResource Brush.FG2}" Opacity="{StaticResource OperationDisabledTextOpacity}"/>
           <TextBlock Classes="active_warning_text" Text="{TemplateBinding Content}"
                      HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Top"
                      FontWeight="{TemplateBinding FontWeight}" TextWrapping="Wrap"

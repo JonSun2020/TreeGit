@@ -17,12 +17,17 @@
 
       <Style Selector="^ RadioButton:disabled">
         <Setter Property="Foreground" Value="{DynamicResource Brush.FG2}"/>
+        <Style Selector="^ /template/ ContentPresenter#PART_ContentPresenter">
+          <Setter Property="Opacity" Value="1"/>
+        </Style>
         <Style Selector="^ /template/ Ellipse#Border">
           <Setter Property="Fill" Value="Transparent"/>
           <Setter Property="Stroke" Value="{DynamicResource Brush.FG2}"/>
+          <Setter Property="Opacity" Value="0.68"/>
         </Style>
         <Style Selector="^:checked /template/ Ellipse#Dot">
           <Setter Property="Fill" Value="{DynamicResource Brush.FG2}"/>
+          <Setter Property="Opacity" Value="0.68"/>
         </Style>
       </Style>
 
@@ -40,26 +45,29 @@
   </UserControl.Styles>
   
   <StackPanel Orientation="Vertical" Margin="0,4,0,2">
-    <RadioButton Content="{DynamicResource Text.DealWithLocalChanges.DoNothing}"
-                 Focusable="False"
+    <RadioButton Focusable="False"
                  x:Name="RadioDoNothing"
                  Height="24"
                  IsChecked="True"
                  Click="OnRadioButtonClicked"
-                 Tag="{Binding Source={x:Static m:DealWithLocalChanges.DoNothing}}"/>
-    <RadioButton Content="{DynamicResource Text.DealWithLocalChanges.StashAndReapply}"
-                 Focusable="False"
+                 Tag="{Binding Source={x:Static m:DealWithLocalChanges.DoNothing}}">
+      <TextBlock Classes="operation_dependent_caption" Text="{DynamicResource Text.DealWithLocalChanges.DoNothing}"/>
+    </RadioButton>
+    <RadioButton Focusable="False"
                  x:Name="RadioStashAndReapply"
                  Height="24"
                  IsChecked="False"
                  Click="OnRadioButtonClicked"
-                 Tag="{Binding Source={x:Static m:DealWithLocalChanges.StashAndReapply}}"/>
-    <RadioButton Content="{DynamicResource Text.DealWithLocalChanges.Discard}"
-                 Focusable="False"
+                 Tag="{Binding Source={x:Static m:DealWithLocalChanges.StashAndReapply}}">
+      <TextBlock Classes="operation_dependent_caption" Text="{DynamicResource Text.DealWithLocalChanges.StashAndReapply}"/>
+    </RadioButton>
+    <RadioButton Focusable="False"
                  x:Name="RadioDiscard"
                  Height="24"
                  IsChecked="False"
                  Click="OnRadioButtonClicked"
-                 Tag="{Binding Source={x:Static m:DealWithLocalChanges.Discard}}"/>
+                 Tag="{Binding Source={x:Static m:DealWithLocalChanges.Discard}}">
+      <TextBlock Classes="operation_dependent_caption" Text="{DynamicResource Text.DealWithLocalChanges.Discard}"/>
+    </RadioButton>
   </StackPanel>
 </UserControl>

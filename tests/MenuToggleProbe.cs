@@ -1206,6 +1206,12 @@ namespace SourceGit.Automation
             }
             else if (action == "welcome_mock") return RepositoryCreationProbe.Configure(index);
             else if (action == "welcome_mock_state") return RepositoryCreationProbe.State();
+            else if (action == "welcome_expand_group")
+            {
+                var list = window.GetVisualDescendants().OfType<Views.RepositoryListBox>().Single(v => v.IsEffectivelyVisible);
+                var group = list.Items.OfType<ViewModels.RepositoryNode>().Where(node => !node.IsRepository).ElementAt(index);
+                if (!group.IsExpanded) ViewModels.Welcome.Instance.ToggleNodeIsExpanded(group);
+            }
             else if (action == "popup_commit_action")
             {
                 var repo = ((ViewModels.Launcher)window.DataContext).ActivePage.Data as ViewModels.Repository

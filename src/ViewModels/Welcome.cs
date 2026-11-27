@@ -59,14 +59,17 @@ namespace SourceGit.ViewModels
 
             _isUpdatingStatus = true;
 
-            // avoid collection was modified while enumerating.
-            var nodes = new List<RepositoryNode>();
-            nodes.AddRange(Preferences.Instance.RepositoryNodes);
-
-            foreach (var node in nodes)
-                await node.UpdateStatusAsync(force, token);
-
-            _isUpdatingStatus = false;
+            try
+            {
+                // Manual refresh includes the repositories inside collapsed groups.
+                var nodes = new List<RepositoryNode>(Preferences.Instance.RepositoryNodes);
+                foreach (var node in nodes)
+                    await node.UpdateStatusAsync(force, token);
+            }
+            finally
+            {
+                _isUpdatingStatus = false;
+            }
         }
 
         public void ToggleNodeIsExpanded(RepositoryNode node)

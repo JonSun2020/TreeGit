@@ -49,7 +49,7 @@ namespace SourceGit.Commands
             var message = lines[8].TrimEnd();
             var uncommittedChangesCount = 0;
             if (_hasUncommittedChange)
-                uncommittedChangesCount = await new CountLocalChanges(WorkingDirectory, true)
+                uncommittedChangesCount = await new CountLocalChanges(WorkingDirectory, true) { CancellationToken = CancellationToken }
                     .GetResultAsync()
                     .ConfigureAwait(false);
 

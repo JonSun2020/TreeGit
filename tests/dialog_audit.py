@@ -101,7 +101,8 @@ def audit_advanced_options(locale, view, initial):
               {w['owner'] for w in warnings}==set(names) and all(w['text'] and w['messageText'] and w['bold'] and
                   w['opacity']==w['messageOpacity'] and w['fontStyle']==w['messageFontStyle'] and
                   (w['opacity']==1 and w['color'].lower()==color and w['messageColor']==w['normal'] and w['fontStyle']=='Normal'
-                   if w['owner'] in expected else 0<w['opacity']<1 and w['color']==w['messageColor']==w['muted'] and w['fontStyle']=='Italic')
+                   if w['owner'] in expected else w['opacity']==w['mutedOpacity'] and 0<w['opacity']<1 and
+                   w['color']==w['messageColor']==w['muted'] and w['fontStyle']=='Italic')
                   for w in warnings))
         if mask==0:
             (out/(locale+'-'+view+'-warnings-inactive.png')).write_bytes(tool('ui_screenshot'))
@@ -119,8 +120,10 @@ def audit_advanced_options(locale, view, initial):
         check(f'{locale} Create Branch keeps local changes below the checkout checkbox and disables and mutes the whole group',
               local['visible'] and local['checkout']['y']>=bottom(warnings[0]['message'])-.5 and
               local['bounds']['y']>=bottom(local['checkout'])-.5 and
-              not local['enabled'] and not local['captionEnabled'] and local['opacity']<1 and local['captionOpacity']<1 and
-              len(local['radios'])==3 and all(not r['isEffectivelyEnabled'] and r['foreground']==local['muted'] and
+              not local['enabled'] and not local['captionEnabled'] and local['captionColor']==local['muted'] and
+              local['captionOpacity']==states[0]['warnings'][0]['opacity'] and
+              len(local['radios'])==3 and all(not r['isEffectivelyEnabled'] and r['textColor']==local['captionColor'] and
+                  r['textOpacity']==local['captionOpacity'] and
                   r['ring']==local['muted'] and r['fillAlpha']==0 and
                   (not r['isChecked'] or r['dot']==local['muted']) for r in local['radios']))
         (out/(locale+'-branch-disabled-warning.png')).write_bytes(tool('ui_screenshot'))
@@ -129,8 +132,8 @@ def audit_advanced_options(locale, view, initial):
         states.append(reenabled)
         local=reenabled['localChanges']
         check(f'{locale} Create Branch restores radio input and the selected method when checkout is re-enabled',
-              local['enabled'] and local['captionEnabled'] and local['opacity']==1 and local['captionOpacity']==1 and
-              all(r['isEffectivelyEnabled'] for r in local['radios']) and
+              local['enabled'] and local['captionEnabled'] and local['captionOpacity']==1 and
+              all(r['isEffectivelyEnabled'] and r['textOpacity']==1 for r in local['radios']) and
               [r['isChecked'] for r in local['radios']]==[r['isChecked'] for r in disabled['localChanges']['radios']])
     else:
         (out/(locale+'-push-both-warnings.png')).write_bytes(tool('ui_screenshot'))

@@ -17,7 +17,7 @@ namespace SourceGit.Commands
                 token.ThrowIfCancellationRequested();
                 if (isLFSFiltered)
                 {
-                    await using var pointerStream = await QueryFileContent.RunAsync(repo, revision, file, requireSuccess: true).ConfigureAwait(false);
+                    await using var pointerStream = await QueryFileContent.RunAsync(repo, revision, file, requireSuccess: true, token: token).ConfigureAwait(false);
                     await ExecCmdAsync(repo, "lfs smudge", saveTo, token, pointerStream).ConfigureAwait(false);
                 }
                 else

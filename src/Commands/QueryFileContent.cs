@@ -1,14 +1,16 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace SourceGit.Commands
 {
     public static class QueryFileContent
     {
-        public static async Task<MemoryStream> RunAsync(string repo, string revision, string file, bool requireSuccess = false)
+        public static async Task<MemoryStream> RunAsync(string repo, string revision, string file, bool requireSuccess = false, CancellationToken token = default)
         {
+            token.ThrowIfCancellationRequested();
             var starter = new ProcessStartInfo();
             starter.WorkingDirectory = repo;
             starter.FileName = Native.OS.GitExecutable;
@@ -22,12 +24,23 @@ namespace SourceGit.Commands
             try
             {
                 using var proc = Native.ProcessLauncher.Start(starter)!;
-                await proc.StandardOutput.BaseStream.CopyToAsync(stream).ConfigureAwait(false);
-                await proc.WaitForExitAsync().ConfigureAwait(false);
+                using var cancellation = token.Register(() =>
+                {
+                    try { if (!proc.HasExited) proc.Kill(true); }
+                    catch (Exception error) when (error is InvalidOperationException or System.ComponentModel.Win32Exception) { }
+                });
+                await proc.StandardOutput.BaseStream.CopyToAsync(stream, token).ConfigureAwait(false);
+                await proc.WaitForExitAsync(token).ConfigureAwait(false);
+                token.ThrowIfCancellationRequested();
                 if (requireSuccess && proc.ExitCode != 0) throw new IOException("The selected revision file could not be read.");
             }
             catch (Exception e)
             {
+                if (token.IsCancellationRequested)
+                {
+                    stream.Dispose();
+                    token.ThrowIfCancellationRequested();
+                }
                 if (requireSuccess) { stream.Dispose(); throw; }
                 Models.Notification.Send(repo, $"Failed to query file content: {e}", true);
             }

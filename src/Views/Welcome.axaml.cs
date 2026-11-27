@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Threading;
 
 using Avalonia;
@@ -7,6 +8,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 namespace SourceGit.Views
@@ -81,17 +83,65 @@ namespace SourceGit.Views
             InitializeComponent();
         }
 
-        protected override async void OnLoaded(RoutedEventArgs e)
+        protected override void OnLoaded(RoutedEventArgs e)
         {
             base.OnLoaded(e);
             SearchBox.Focus(NavigationMethod.Directional);
-            await ViewModels.Welcome.Instance.UpdateStatusAsync(false, _cancellation.Token);
+            _statusLifetime = new CancellationTokenSource();
+            TreeContainer.ContainerPrepared += OnRepositoryRowPrepared;
+            TreeContainer.ContainerClearing += OnRepositoryRowClearing;
+            RequestStatusRefresh();
         }
 
         protected override void OnUnloaded(RoutedEventArgs e)
         {
-            _cancellation.Cancel();
+            TreeContainer.ContainerPrepared -= OnRepositoryRowPrepared;
+            TreeContainer.ContainerClearing -= OnRepositoryRowClearing;
+            var lifetime = _statusLifetime;
+            _statusLifetime = null;
+            lifetime?.Cancel();
+            lifetime?.Dispose();
             base.OnUnloaded(e);
+        }
+
+        private void OnRepositoryRowPrepared(object sender, ContainerPreparedEventArgs e) => RequestStatusRefresh();
+
+        private void OnRepositoryRowClearing(object sender, ContainerClearingEventArgs e) => RequestStatusRefresh();
+
+        private void RequestStatusRefresh()
+        {
+            if (_statusLifetime == null || _statusRefreshRequested) return;
+            _statusRefreshRequested = true;
+            if (!_refreshingStatuses) Dispatcher.UIThread.Post(RefreshVisibleStatuses, DispatcherPriority.Background);
+        }
+
+        private async void RefreshVisibleStatuses()
+        {
+            _refreshingStatuses = true;
+            try
+            {
+                while (_statusRefreshRequested && _statusLifetime is { } lifetime)
+                {
+                    _statusRefreshRequested = false;
+                    var token = lifetime.Token;
+                    var nodes = TreeContainer.GetRealizedContainers().Select(row => row.DataContext)
+                        .OfType<ViewModels.RepositoryNode>().Where(node => node.IsRepository).Distinct().ToArray();
+                    foreach (var node in nodes)
+                    {
+                        if (token.IsCancellationRequested || _statusRefreshRequested) break;
+                        await node.UpdateStatusAsync(false, token);
+                    }
+                }
+            }
+            catch (Exception error)
+            {
+                Native.OS.LogException(error);
+            }
+            finally
+            {
+                _refreshingStatuses = false;
+                _statusRefreshRequested = false;
+            }
         }
 
         protected override void OnKeyDown(KeyEventArgs e)
@@ -470,6 +520,8 @@ namespace SourceGit.Views
         private PointerPressedEventArgs _pressTreeNodeEvent = null;
         private bool _startDragTreeNode = false;
         private readonly DataFormat<string> _dndRepoNode = DataFormat.CreateStringApplicationFormat("sourcegit-dnd-repo-node");
-        private CancellationTokenSource _cancellation = new CancellationTokenSource();
+        private CancellationTokenSource _statusLifetime;
+        private bool _statusRefreshRequested;
+        private bool _refreshingStatuses;
     }
 }

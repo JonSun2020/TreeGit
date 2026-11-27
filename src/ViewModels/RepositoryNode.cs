@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -165,22 +166,25 @@ namespace SourceGit.ViewModels
                 return;
             }
 
-            if (!Directory.Exists(_id))
-            {
-                _lastUpdateStatus = DateTime.Now;
-                Status = null;
+            if (!force && _lastUpdateStatus != 0 && Stopwatch.GetElapsedTime(_lastUpdateStatus).TotalSeconds < 10)
                 return;
-            }
 
-            if (!force)
+            var path = _id;
+            var request = ++_statusRequest;
+            var cancellation = token.GetValueOrDefault();
+            var result = await Task.Run(async () =>
             {
-                var passed = DateTime.Now - _lastUpdateStatus;
-                if (passed.TotalSeconds < 10.0)
-                    return;
-            }
+                if (!Directory.Exists(path)) return (Exists: false, Status: (Models.RepositoryStatus)null);
+                var status = await new Commands.QueryRepositoryStatus(path) { CancellationToken = cancellation }
+                    .GetResultAsync().ConfigureAwait(false);
+                return (Exists: true, Status: status);
+            });
+            if (cancellation.IsCancellationRequested || request != _statusRequest || _id != path)
+                return;
 
-            _lastUpdateStatus = DateTime.Now;
-            Status = await new Commands.QueryRepositoryStatus(_id).GetResultAsync();
+            _lastUpdateStatus = Stopwatch.GetTimestamp();
+            if (!result.Exists || result.Status != null)
+                Status = result.Status;
         }
 
         public void LoadMinimalInfo(string gitDir)
@@ -231,6 +235,7 @@ namespace SourceGit.ViewModels
         private bool _isExpanded = false;
         private bool _isVisible = true;
         private Models.RepositoryStatus _status = null;
-        private DateTime _lastUpdateStatus = DateTime.UnixEpoch.ToLocalTime();
+        private long _lastUpdateStatus;
+        private long _statusRequest;
     }
 }
