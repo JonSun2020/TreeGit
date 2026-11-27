@@ -54,7 +54,8 @@ jobs:
           python-version: '3.13'
       - name: Install the image reader for pixel checks
         shell: pwsh
-        run: python -m pip install --only-binary=:all: Pillow==12.2.0
+        run: |
+          python -m pip install --only-binary=:all: Pillow==12.2.0
       - name: Verify languages, table resizing, independent viewers and real merge results
         shell: pwsh
         run: |
