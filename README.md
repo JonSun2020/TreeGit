@@ -34,7 +34,7 @@ TreeGit 是面向工程师的 Windows 便携 Git 客户端。用它查看固件�
 
 AI 连接：在“工具 → MCP · AI 连接”复制配置。详见 [MCP 使用说明](docs/MCP.md)。
 
-[完整功能与入口](docs/FUNCTIONALITY.md) · [便携版与构建说明](docs/PORTABLE.md) · [发行说明](docs/RELEASE-2026.24.15.md)
+[完整功能与入口](docs/FUNCTIONALITY.md) · [便携版与构建说明](docs/PORTABLE.md) · [发行说明](docs/RELEASE-2026.24.16.md)
 
 ## 开源与维护
 

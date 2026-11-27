@@ -72,6 +72,7 @@
                    WindowManagerAddShadowHint="False"
                    IsOpen="{TemplateBinding IsDropDownOpened, Mode=TwoWay}"
                    Width="{Binding Bounds.Width, ElementName=PART_Background}"
+                   UseLayoutRounding="False"
                    MaxHeight="600"
                    PlacementTarget="PART_Background"
                    ShouldUseOverlayLayer="True"
