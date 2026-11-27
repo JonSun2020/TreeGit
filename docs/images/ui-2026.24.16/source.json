@@ -1,0 +1,21 @@
+{
+  "version": "2026.24.16",
+  "source": "6973246fad1066c3247f521a511a09ea02c77de4",
+  "packageRun": 45927369253,
+  "galleryRun": 45927369253,
+  "galleryRunAttempt": 1,
+  "artifactId": 15167427924,
+  "integrationTests": false,
+  "fictionalDataOnly": true,
+  "checks": 9,
+  "files": {
+    "binary-diff.png": "1f79580f618aa44957fb7f736a091951bbb119c849e3eff2e8d85e995f68d59b",
+    "branch-highlights.png": "c69ed764bf88567cac97f0b5d16fae02b689befe036c22ac09edc8cd2a8cbc02",
+    "branch-search.png": "228b7f0cc074bdad00ba40b8b11497cda93597802d7a58d29fc640a07c37a289",
+    "merge-editor.png": "e3c35b53f025e762b73c17226bbec0b53512ddde14ff5baba88c15140a3e0394",
+    "text-comparison.png": "9272295235a640c04084a89399e27ed94e39c0b69d1ae0402e4516d17a3c1b56",
+    "commit-page.png": "dd9c3ede5aa7ed1af5f8a7bcdaef30bc5a76fdfccf6009ea03d7935f41bd0423",
+    "pull-options.png": "d2dd2a7fd3d8781cd9add761bb39ff3dd3244b4036eb5e349e27e5361e58e29c"
+  },
+  "privacyReviewed": true
+}

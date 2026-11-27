@@ -17,11 +17,11 @@ TreeGit 是面向工程师的 Windows 便携 Git 客户端。用它查看固件�
 
 | 固件字节变化与偏移跳转 | 选中提交后高亮对应分支 |
 | --- | --- |
-| [<img src="docs/images/ui-2026.24.15/binary-diff.png" width="480" alt="固件以十六进制和 ASCII 并排显示，标出变化字节和跳转偏移">](docs/images/ui-2026.24.15/binary-diff.png) | [<img src="docs/images/ui-2026.24.15/branch-highlights.png" width="480" alt="历史提交选中后，本地分支和跟踪远端同时高亮，其他包含分支以浅色标出">](docs/images/ui-2026.24.15/branch-highlights.png) |
+| [<img src="docs/images/ui-2026.24.16/binary-diff.png" width="480" alt="固件以十六进制和 ASCII 并排显示，标出变化字节和跳转偏移">](docs/images/ui-2026.24.16/binary-diff.png) | [<img src="docs/images/ui-2026.24.16/branch-highlights.png" width="480" alt="历史提交选中后，本地分支和跟踪远端同时高亮，其他包含分支以浅色标出">](docs/images/ui-2026.24.16/branch-highlights.png) |
 | **展开搜索结果的包含分支** | **三方对照并编辑合并结果** |
-| [<img src="docs/images/ui-2026.24.15/branch-search.png" width="480" alt="搜索结果展开包含该提交的本地和远程分支">](docs/images/ui-2026.24.15/branch-search.png) | [<img src="docs/images/ui-2026.24.15/merge-editor.png" width="480" alt="Local、Base 和 Remote 并排对照，下方可编辑合并结果">](docs/images/ui-2026.24.15/merge-editor.png) |
+| [<img src="docs/images/ui-2026.24.16/branch-search.png" width="480" alt="搜索结果展开包含该提交的本地和远程分支">](docs/images/ui-2026.24.16/branch-search.png) | [<img src="docs/images/ui-2026.24.16/merge-editor.png" width="480" alt="Local、Base 和 Remote 并排对照，下方可编辑合并结果">](docs/images/ui-2026.24.16/merge-editor.png) |
 | **同一文件的混合编码中文差异** | **暂存状态、文件差异和提交说明** |
-| [<img src="docs/images/ui-2026.24.15/text-comparison.png" width="480" alt="自动匹配混合编码，左右显示两行可读的中文差异">](docs/images/ui-2026.24.15/text-comparison.png) | [<img src="docs/images/ui-2026.24.15/commit-page.png" width="480" alt="提交页同时显示暂存状态、当前文件差异和提交说明，未暂存区的按钮已置灰">](docs/images/ui-2026.24.15/commit-page.png) |
+| [<img src="docs/images/ui-2026.24.16/text-comparison.png" width="480" alt="自动匹配混合编码，左右显示两行可读的中文差异">](docs/images/ui-2026.24.16/text-comparison.png) | [<img src="docs/images/ui-2026.24.16/commit-page.png" width="480" alt="提交页同时显示暂存状态、当前文件差异和提交说明，未暂存区的按钮已置灰">](docs/images/ui-2026.24.16/commit-page.png) |
 
 ## 下载与使用
 

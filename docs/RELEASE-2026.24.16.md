@@ -23,3 +23,11 @@
 - 欢迎页仅查询已显示的仓库状态，滚动或展开分组时按需读取。在包含 39 个仓库的测试清单中，初次进入欢迎页的 Git 状态查询从 39 次减为 3 次。
 - 无可用远程或关闭自动获取时停止轮询。减少了启动和刷新时的重复 Git 配置查询及分支归属计算。
 - 仓库状态逐行读取。关闭或切换视图时，可取消未完成的状态、图片和子模块差异查询。
+
+## 界面示例
+
+正式便携包的演示图集展示了固件字节对比、提交和分支联动、搜索结果、可编辑三方合并、混合编码、提交页和拉取弹窗。截图使用虚构仓库。 [查看 2026.24.16 图集](https://github.com/JonSun2020/TreeGit/tree/master/docs/images/ui-2026.24.16)
+
+![内置固件对比并排显示十六进制和 ASCII，标出 24 个变化字节](https://raw.githubusercontent.com/JonSun2020/TreeGit/master/docs/images/ui-2026.24.16/binary-diff.png)
+
+![拉取弹窗按列对齐远程仓库、分支和本地更改选项](https://raw.githubusercontent.com/JonSun2020/TreeGit/master/docs/images/ui-2026.24.16/pull-options.png)
