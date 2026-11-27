@@ -18,6 +18,8 @@ import tempfile
 import threading
 import time
 
+from qa_cleanup import verify_process
+
 assert os.environ.get('GITHUB_ACTIONS') == 'true' and os.environ.get('RUNNER_OS') == 'Windows'
 exe = Path(sys.argv[1]).resolve()
 out = Path(sys.argv[2]).resolve(); out.mkdir(parents=True, exist_ok=True)
@@ -106,6 +108,7 @@ api.SetForegroundWindow.argtypes = [wintypes.HWND]
 api.GetAncestor.argtypes = [wintypes.HWND, wintypes.UINT]; api.GetAncestor.restype = wintypes.HWND
 api.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
 api.IsWindowVisible.argtypes = [wintypes.HWND]
+api.SetWindowPos.argtypes = [wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int, ctypes.c_int, ctypes.c_int, wintypes.UINT]
 enum_callback = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
 api.EnumWindows.argtypes = [enum_callback, wintypes.LPARAM]
 def owner(hwnd):
@@ -124,6 +127,11 @@ def activate_main():
     hwnd = max(owned)[1]; assert owner(hwnd) == pid
     api.SetForegroundWindow(hwnd)
     return hwnd
+
+def set_menu_window_on_top(hwnd, on_top):
+    assert owner(hwnd) == pid
+    # Keep the CI runner's other windows from intercepting the native menu checks.
+    assert api.SetWindowPos(hwnd, -1 if on_top else -2, 0, 0, 0, 0, 0x0013)
 
 api.GetDC.argtypes = [wintypes.HWND]; api.GetDC.restype = wintypes.HDC
 api.ReleaseDC.argtypes = [wintypes.HWND, wintypes.HDC]
@@ -201,6 +209,7 @@ def open_commit_menu(sha, select=True):
     if select: tool('ui_select_commit', {'repo': str(repo), 'revision': sha})
     row = wait_for(lambda: next((r for r in state()['historyRows'] if r['sha'] == sha), None))
     hwnd = activate_main(); point = wintypes.POINT(row['x'], row['y'])
+    set_menu_window_on_top(hwnd, True)
     assert owner(api.WindowFromPoint(point)) == pid and api.GetAncestor(api.WindowFromPoint(point), 2) == hwnd
     assert api.SetCursorPos(point.x, point.y)
     api.mouse_event(8, 0, 0, 0, 0); api.mouse_event(16, 0, 0, 0, 0)
@@ -233,11 +242,13 @@ def press_commit_menu(name):
     assert all(current[k] == item[k] for k in ('x', 'y', 'width', 'height')), 'Menu moved before the click'
     assert owner(api.WindowFromPoint(point)) == pid, 'Menu click target outside owned CI GUI'
     api.mouse_event(2, 0, 0, 0, 0); time.sleep(.05); api.mouse_event(4, 0, 0, 0, 0)
+    set_menu_window_on_top(main, False)
 
 def close_commit_menu():
     assert owner(api.GetForegroundWindow()) == pid
     api.keybd_event(0x1B, 0, 0, 0); api.keybd_event(0x1B, 0, 2, 0)
     wait_for(lambda: state()['commitMenu'] is None)
+    set_menu_window_on_top(activate_main(), False)
 
 def press(name):
     main = activate_main()
@@ -308,6 +319,7 @@ def reset():
 try:
     rpc('initialize', {'protocolVersion': '2025-11-25'})
     tool('ui_open_repository', {'repo': str(repo)}); pid = tool('ui_state')['processId']
+    verify_process(pid, exe)
     tool('ui_window', {'state': 'maximized', 'theme': 'Blue'})
     refresh(); pending(False)
     check('clean repository has no synthetic history row', not state()['pendingRow']['visible'])
